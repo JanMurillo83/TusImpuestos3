@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('abono', 18, 8);
             $table->string('factura')->nullable();
             $table->integer('nopartida')->nullable();
-            $table->foreignId('cat_polizas_id')->constrained();
+            $table->integer('cat_polizas_id')->default(0);
             $table->foreignId('team_id')->constrained()->nullable();
             $table->timestamps();
         });
@@ -43,6 +43,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('auxiliares_nima831222hz9');
+        Schema::dropIfExists('auxiliares');
     }
 };

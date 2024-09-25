@@ -74,6 +74,8 @@ class Almacencfdis extends Model
 		'TipoCambio',
 		'TotalImpuestosTrasladados',
 		'TotalImpuestosRetenidos',
+        'ejercicio',
+        'periodo',
 		'content',
 		'user_tax',
 		'used',

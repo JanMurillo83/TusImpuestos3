@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\CatCuentasResource\Pages;
+namespace App\Filament\Resources\CatPolizasResource\Pages;
 
-use App\Filament\Resources\CatCuentasResource;
+use App\Filament\Resources\CatPolizasResource;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
@@ -10,9 +10,9 @@ use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
 
-class CreateCatCuentas extends CreateRecord
+class CreateCatPolizas extends CreateRecord
 {
-    protected static string $resource = CatCuentasResource::class;
+    protected static string $resource = CatPolizasResource::class;
     protected function getCreateAnotherFormAction(): Action
     {
         return parent::getCreateAnotherFormAction()

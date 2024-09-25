@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('nombre')->nullable();
             $table->string('acumula')->nullable();
             $table->string('tipo')->nullable();
-            $table->integer('naturaleza')->default(0);
+            $table->string('naturaleza')->nullable();
             $table->string('csat')->nullable();
             $table->foreignId('team_id')->constrained();
             $table->timestamps();

@@ -16,8 +16,11 @@ use CfdiUtils;
 use CfdiUtils\Cfdi;
 use Filament\Facades\Filament;
 use App\Models\Almacencfdis;
+use App\Models\Solicitudes;
 use App\Models\Xmlfiles;
 use Filament\Notifications\Notification;
+use App\Http\Controllers\DescargaSAT;
+use Illuminate\Http\Request;
 
 class ListXmlfiles extends ListRecords
 {
@@ -37,7 +40,10 @@ class ListXmlfiles extends ListRecords
                         ->label('Versión de la Solicitud')
                         ->numeric()
                         ->default(0),
-                ])->modalWidth(MaxWidth::ExtraSmall),
+                ])->modalWidth(MaxWidth::ExtraSmall)
+                ->action(function($livewire,$data){
+                    $livewire->GeneraSolicitud($data);
+                }),
             Action::make('importacion')
                 ->label('Importacion XML')
                 ->form([
@@ -59,6 +65,99 @@ class ListXmlfiles extends ListRecords
                     $livewire->ProcesaArchivo($data);
                 }),
         ];
+    }
+    public function GeneraSolicitud($data)
+    {
+        $solicita = Filament::getTenant()->taxid;
+        $rutacer = \storage_path().'/app/public/'.Filament::getTenant()->archivocer;
+        $rutakey = \storage_path().'/app/public/'.Filament::getTenant()->archivokey;
+        $fielpass = Filament::getTenant()->fielpass;
+        $request = new Request();
+        $request->replace([
+            'inicio' => $data['Inicio'],
+            'final' => $data['Final'],
+            'version' => $data['Versión'],
+            'solicita' => $solicita,
+            'rutacer' => $rutacer,
+            'rutakey' => $rutakey,
+            'fielpass' => $fielpass
+
+        ]);
+        $resultado = app(DescargaSAT::class)->solicitud($request);
+        list($codigo,$mensaje) = explode('|',$resultado);
+        if($codigo == 'Exito')
+        {
+            Solicitudes::create([
+                'request_id'=>$mensaje,
+                'status'=>'Pendiente',
+                'message'=>'',
+                'xml_type'=>'',
+                'ini_date'=>$data['Inicio'],
+                'ini_hour'=>'00:00:00',
+                'end_date'=>$data['Final'],
+                'end_hour'=>'00:00:00',
+                'user_tax'=>$solicita,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            $this->revisa_solicitud($mensaje,$solicita,$rutacer,$rutakey,$fielpass);
+            Notification::make()
+                ->title('Solicitud Enviada')
+                ->body($resultado)
+                ->success()
+                ->send();
+        }
+        else
+        {
+            Notification::make()
+            ->title('Solicitud Erronea')
+            ->body($resultado)
+            ->warning()
+            ->send();
+        }
+
+    }
+
+    public function revisa_solicitud($solicitud,$solicita,$rutacer,$rutakey,$fielpass)
+    {
+        $request = new Request();
+        $request->replace([
+            'solicita' => $solicita,
+            'rutacer' => $rutacer,
+            'rutakey' => $rutakey,
+            'fielpass' => $fielpass,
+            'requestId' => $solicitud
+        ]);
+        $resultado = app(DescargaSAT::class)->verifica_solicitud($request);
+        list($codigo,$mensaje) = explode('|',$resultado);
+        if($codigo == 'Exito')
+        {
+
+            //$this->revisa_solicitud($mensaje,$solicita,$rutacer,$rutakey,$fielpass);
+            Notification::make()
+                ->title('Solicitud Enviada')
+                ->body($mensaje)
+                ->success()
+                ->send();
+        }
+        else
+        {
+            if($codigo == 'Proceso')
+            {
+                Notification::make()
+                    ->title('Solicitud En Proceso')
+                    ->body($mensaje)
+                    ->info()
+                    ->send();
+            }
+            else
+            {
+                Notification::make()
+                ->title('Solicitud Erronea')
+                ->body($mensaje)
+                ->warning()
+                ->send();
+            }
+        }
     }
 
     public function ProcesaArchivo($data)

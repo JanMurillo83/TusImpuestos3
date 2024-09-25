@@ -16,9 +16,10 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class XmlfilesResource extends Resource
 {
     protected static ?string $model = Xmlfiles::class;
-    protected static ?string $navigationGroup = 'Descargas CFDI';
-    protected static ?string $pluralLabel = 'Descargas CFDI';
+    protected static ?string $navigationGroup = 'Descargas CFDI1';
+    protected static ?string $pluralLabel = 'Descargas CFDI1';
     protected static ?string $label = 'CFDI';
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

@@ -13,7 +13,9 @@ class ListCatCuentas extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->label('Alta de Cuenta')
+                ->icon('fas-square-plus'),
         ];
     }
 }

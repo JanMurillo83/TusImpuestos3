@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CatCuentasResource\Pages;
 use App\Filament\Resources\CatCuentasResource\RelationManagers;
 use App\Models\CatCuentas;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,11 +14,14 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Navigation\NavigationGroup;
+use Illuminate\Database\Eloquent\Model;
 
 class CatCuentasResource extends Resource
 {
     protected static ?string $model = CatCuentas::class;
     protected static ?string $navigationGroup = 'Contabilidad';
+    protected static ?string $label = 'Cuenta Contable';
+    protected static ?string $pluralLabel = 'Cuentas Contables';
     //protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -27,21 +31,27 @@ class CatCuentasResource extends Resource
                 Forms\Components\TextInput::make('codigo')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('nombre')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->columnSpan(3),
                 Forms\Components\TextInput::make('acumula')
                     ->maxLength(255),
-                Forms\Components\TextInput::make('tipo')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('naturaleza')
+                Forms\Components\Select::make('tipo')
+                    ->options([
+                        'D'=>'Detalle',
+                        'A'=>'Acumulativa'
+                    ]),
+                Forms\Components\Select::make('naturaleza')
                     ->required()
-                    ->numeric()
-                    ->default(0),
+                    ->options([
+                        'D'=>'Deudora',
+                        'A'=>'Acreedora'
+                    ]),
                 Forms\Components\TextInput::make('csat')
+                    ->label('Clave SAT')
                     ->maxLength(255),
-                Forms\Components\TextInput::make('team_id')
-                    ->required()
-                    ->numeric(),
-            ]);
+                Forms\Components\Hidden::make('team_id')
+                    ->default(Filament::getTenant()->id),
+            ])->columns(4);
     }
 
     public static function table(Table $table): Table
@@ -49,29 +59,30 @@ class CatCuentasResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('codigo')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('acumula')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('tipo')
-                    ->searchable(),
+                    ->searchable()
+                    ->getStateUsing( function (Model $record){
+                        $curr = $record['tipo'];
+                        $neww = $curr;
+                        if($curr == 'D') $neww = 'Detalle';
+                        if($curr == 'A') $neww = 'Acumulativa';
+                        return $neww;
+                 }),
                 Tables\Columns\TextColumn::make('naturaleza')
-                    ->numeric()
-                    ->sortable(),
+                    ->getStateUsing( function (Model $record){
+                        $curr = $record['naturaleza'];
+                        $neww = $curr;
+                        if($curr == 'D') $neww = 'Deudora';
+                        if($curr == 'A') $neww = 'Acreedora';
+                        return $neww;
+                 }),
                 Tables\Columns\TextColumn::make('csat')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('team_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Clave SAT')
+                    ->searchable()
             ])
             ->filters([
                 //
@@ -80,9 +91,7 @@ class CatCuentasResource extends Resource
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+
             ]);
     }
 

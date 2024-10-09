@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Tus Impuestos',
             'taxid' => 'TUSIMPUESTOS',
         ]);
-        User::factory()->create([
+        User::create([
             'name' => 'Administrador',
             'email' => 'admin@tusimpuestos.com',
             'password'=>Hash::make('admin'),

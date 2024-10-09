@@ -11,7 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-
+        Schema::create('auxiliares_cat_polizas', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('auxiliares_id')->constrained();
+            $table->foreignId('cat_polizas_id')->constrained();
+            $table->timestamps();
+        });
     }
 
     /**

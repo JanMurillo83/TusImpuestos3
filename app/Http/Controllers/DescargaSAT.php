@@ -60,7 +60,7 @@ class DescargaSAT extends Controller
         }
         $query = $service->query($requestsol);
         if (! $query->getStatus()->isAccepted()) {
-            dd("Fallo al presentar la consulta: {$query->getStatus()->getMessage()}");
+            //dd("Fallo al presentar la consulta: {$query->getStatus()->getMessage()}");
             return 'Error|'.$query->getStatus()->getMessage();
         }
         return 'Exito|'.$query->getRequestId();

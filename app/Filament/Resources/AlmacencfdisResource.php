@@ -107,44 +107,57 @@ class AlmacencfdisResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('Serie')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('Folio')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('Fecha')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable()
+                    ->date('d-m-Y'),
                 Tables\Columns\TextColumn::make('Moneda')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('TipoDeComprobante')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('Emisor_Rfc')
                     ->label('RFC Emisor')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('Emisor_Nombre')
                     ->label('Nombre Emisor')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('Receptor_Rfc')
                     ->label('RFC Receptor')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('Receptor_Nombre')
                     ->label('Nombre Receptor')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('UUID')
                     ->label('UUID')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('Total')
-
+                    ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('Total')
+                    ->sortable()
+                    ->numeric(),
                 Tables\Columns\TextColumn::make('used')
                     ->label('Utilizado')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('xml_type')
                     ->label('Tipo')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('ejercicio')
-                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('periodo')
                     ->numeric()
+                    ->sortable()
             ])
             ->filters([
                 SelectFilter::make('ejercicio')
@@ -159,7 +172,7 @@ class AlmacencfdisResource extends Resource
                 Filter::make('xml_type_2')
                 ->label('Recibidos')
                 ->query(fn (Builder $query): Builder => $query->where('xml_type', 'Recibidos')),
-                Filter::make('TipoDeComprobante_1')
+                /*Filter::make('TipoDeComprobante_1')
                 ->label('Ingresos')
                 ->query(fn (Builder $query): Builder => $query->where('TipoDeComprobante', 'I')),
                 Filter::make('TipoDeComprobante_2')
@@ -167,7 +180,7 @@ class AlmacencfdisResource extends Resource
                 ->query(fn (Builder $query): Builder => $query->where('TipoDeComprobante', 'N')),
                 Filter::make('TipoDeComprobante_3')
                 ->label('Pagos')
-                ->query(fn (Builder $query): Builder => $query->where('TipoDeComprobante', 'P'))
+                ->query(fn (Builder $query): Builder => $query->where('TipoDeComprobante', 'P'))*/
             ])
             ->actions([
                 Action::make('ContabilizarE')
@@ -180,9 +193,11 @@ class AlmacencfdisResource extends Resource
                         Forms\Components\Select::make('forma')
                             ->label('Forma de Pago')
                             ->options([
-                                'Bancario'=>'Movimiento Bancario',
+                                'Bancario'=>'Cuentas por Cobrar',
                                 'Efectivo'=>'Efectivo'
                             ])
+                            ->default('Bancario')
+                            ->disabled()
                             ->required()
                     ])
                     ->action(function(Model $record,$data){
@@ -274,7 +289,7 @@ class AlmacencfdisResource extends Resource
         $cffecha1 = $record['Fecha'];
         //dd($cffecha1);
         list($cffecha,$cfhora) = explode('T',$cffecha1);
-        $forma = $data['forma'];
+        //$forma = $data['forma'];
         if($tipoxml == 'Emitidos'&&$tipocom == 'I')
         {
             $existe = CatCuentas::where('nombre',$nom_rec)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first();
@@ -308,7 +323,7 @@ class AlmacencfdisResource extends Resource
             }
             $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PV')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
             Almacencfdis::where('id',$record['id'])->update([
-                'metodo'=>$forma
+                'metodo'=>'Bancario'
             ]);
             $poliza = CatPolizas::create([
                 'tipo'=>'PV',

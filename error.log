@@ -1,0 +1,233 @@
+[Fri Oct 11 11:50:34.639668 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.67:56398] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 11:50:51.916070 2024] [cgi:error] [pid 4832:tid 2080] [client 185.224.128.67:55504] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 12:11:42.672270 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.83:56746] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 14:07:26.928116 2024] [cgi:error] [pid 4832:tid 2080] [client 185.224.128.83:48080] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 16:35:22.823836 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.67:46606] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 16:35:37.345595 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.67:51518] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 19:27:28.017410 2024] [cgi:error] [pid 4832:tid 2076] [client 185.224.128.83:50382] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 21:30:12.650061 2024] [cgi:error] [pid 4832:tid 2076] [client 185.224.128.67:57152] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 21:30:32.017872 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.67:49336] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 11 22:20:17.000540 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.83:44636] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 00:41:59.218740 2024] [cgi:error] [pid 4832:tid 2076] [client 185.224.128.83:37590] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 02:23:32.621795 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.67:55412] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 02:23:57.184652 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.67:55032] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 03:51:23.951228 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.83:60618] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 05:17:31.637625 2024] [cgi:error] [pid 4832:tid 2076] [client 185.224.128.83:50738] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 05:37:36.096977 2024] [cgi:error] [pid 4832:tid 2032] [client 141.98.11.67:37332] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/hotspotlogin.cgi
+[Sat Oct 12 06:01:30.790682 2024] [cgi:error] [pid 4832:tid 2032] [client 141.98.11.67:41430] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/hotspotlogin.cgi
+[Sat Oct 12 09:02:46.755277 2024] [cgi:error] [pid 4832:tid 2076] [client 185.224.128.83:47422] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 09:34:43.793367 2024] [cgi:error] [pid 4832:tid 2032] [client 141.98.11.67:50438] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/hotspotlogin.cgi
+[Sat Oct 12 10:06:07.974069 2024] [cgi:error] [pid 4832:tid 2032] [client 185.224.128.83:55466] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Sat Oct 12 11:47:11.357434 2024] [cgi:error] [pid 4832:tid 2032] [client 141.98.11.67:41912] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/hotspotlogin.cgi
+[Sat Oct 12 11:54:16.708865 2024] [cgi:error] [pid 4832:tid 2032] [client 141.98.11.67:49294] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/hotspotlogin.cgi
+[Sat Oct 12 12:54:31.605891 2024] [cgi:error] [pid 4832:tid 2080] [client 141.98.11.67:60250] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/hotspotlogin.cgi
+[Mon Oct 14 11:46:45.559124 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.83:38752] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 12:31:16.629679 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.67:59388] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 12:31:47.493688 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.67:58680] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 15:28:07.327310 2024] [cgi:error] [pid 4684:tid 2084] [client 185.224.128.83:46944] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 18:57:51.196133 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.83:60356] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 21:46:58.806891 2024] [php:notice] [pid 4684:tid 2080] [client 192.168.1.1:40117] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Mon Oct 14 21:47:01.198567 2024] [php:notice] [pid 4684:tid 2080] [client 192.168.1.1:40117] Proceso|La Solicitud se sigue Procesando, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Mon Oct 14 22:09:17.635126 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:42718] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 22:41:18.023631 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.67:53760] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 22:41:29.479321 2024] [cgi:error] [pid 4684:tid 2080] [client 185.224.128.67:54416] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 23:45:55.205294 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:47652] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 14 23:57:26.981200 2024] [cgi:error] [pid 4684:tid 2076] [client 5.181.190.29:42222] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 03:02:03.466835 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:58920] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 03:43:39.259816 2024] [core:error] [pid 4684:tid 2076] [client 116.169.58.243:34330] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Tue Oct 15 05:02:16.826557 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:49084] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 05:07:17.721219 2024] [authz_core:error] [pid 4684:tid 2100] [client 91.243.50.206:57426] AH01630: client denied by server configuration: C:/NC/TusImpuestos3/public/server-status
+[Tue Oct 15 06:39:05.507273 2024] [php:notice] [pid 4684:tid 2076] [client 192.168.1.1:46132] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:07.510305 2024] [php:notice] [pid 4684:tid 2076] [client 192.168.1.1:46132] Proceso|La Solicitud se sigue Procesando, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:08.979055 2024] [php:notice] [pid 4684:tid 2076] [client 192.168.1.1:46132] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:10.604436 2024] [php:notice] [pid 4684:tid 2076] [client 192.168.1.1:46132] Proceso|La Solicitud se sigue Procesando, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:14.530705 2024] [php:notice] [pid 4684:tid 2076] [client 192.168.1.1:46132] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:17.252558 2024] [php:notice] [pid 4684:tid 2076] [client 192.168.1.1:46132] Proceso|La Solicitud se sigue Procesando, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:19.455266 2024] [php:notice] [pid 4684:tid 2080] [client 192.168.1.1:46136] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:25.663451 2024] [php:notice] [pid 4684:tid 2080] [client 192.168.1.1:46136] Proceso|La Solicitud se sigue Procesando, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 06:39:29.404352 2024] [php:notice] [pid 4684:tid 2080] [client 192.168.1.1:46136] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 08:21:21.309421 2024] [cgi:error] [pid 4684:tid 2080] [client 185.224.128.83:36894] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 09:08:47.129495 2024] [core:error] [pid 4684:tid 2076] [client 8.220.210.24:52604] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Tue Oct 15 09:08:47.754496 2024] [core:error] [pid 4684:tid 2076] [client 8.220.210.24:52608] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Tue Oct 15 09:45:49.031101 2024] [cgi:error] [pid 4684:tid 2080] [client 193.37.32.182:65335] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/wp-login.php
+[Tue Oct 15 10:36:54.896574 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.83:41818] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 12:37:11.677973 2024] [cgi:error] [pid 4684:tid 2076] [client 5.181.190.29:57492] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 13:11:05.058631 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:35792] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 13:39:03.873496 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:57014] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 13:39:08.694720 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.67:60930] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 14:29:02.405947 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:46672] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 15:30:56.704050 2024] [php:notice] [pid 4684:tid 2084] [client 192.168.1.1:6442] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 15:30:59.196603 2024] [php:notice] [pid 4684:tid 2084] [client 192.168.1.1:6442] Proceso|La Solicitud se sigue Procesando, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 17:14:47.214101 2024] [php:notice] [pid 4684:tid 2084] [client 192.168.1.1:12376] Aqui si funciona 1, referer: http://tusimpuestos.vip/main/2/solicitudes
+[Tue Oct 15 17:27:14.166112 2024] [cgi:error] [pid 4684:tid 2084] [client 5.181.190.29:60808] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 18:01:37.325126 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:55960] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 20:03:57.373963 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.83:35972] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 21:54:28.370241 2024] [core:error] [pid 4684:tid 2100] [client 8.220.240.109:51010] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Tue Oct 15 21:54:28.922930 2024] [core:error] [pid 4684:tid 2100] [client 8.220.240.109:51026] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Tue Oct 15 22:52:45.794246 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.67:58372] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 15 22:53:00.104495 2024] [cgi:error] [pid 4684:tid 2080] [client 185.224.128.67:54114] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 01:12:02.795701 2024] [cgi:error] [pid 4684:tid 2080] [client 185.224.128.83:38136] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 01:31:41.936088 2024] [core:error] [pid 4684:tid 2080] [client 8.220.201.94:44332] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Wed Oct 16 01:31:42.465436 2024] [core:error] [pid 4684:tid 2080] [client 8.220.201.94:44338] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Wed Oct 16 02:52:09.611880 2024] [core:error] [pid 4684:tid 2080] [client 8.216.85.239:41198] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Wed Oct 16 03:37:01.479970 2024] [cgi:error] [pid 4684:tid 2080] [client 185.224.128.83:42942] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 03:39:14.207805 2024] [cgi:error] [pid 4684:tid 2080] [client 185.224.128.67:47322] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 03:39:23.819234 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.67:60212] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 05:42:24.306661 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.83:46808] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 08:23:34.570204 2024] [cgi:error] [pid 4684:tid 2084] [client 185.224.128.67:55456] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 08:23:50.356536 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.67:54138] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 08:37:59.281356 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.83:44994] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 10:18:05.201275 2024] [cgi:error] [pid 4684:tid 2084] [client 185.224.128.83:47484] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 10:35:17.095208 2024] [cgi:error] [pid 4684:tid 2080] [client 167.172.190.8:59284] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/authLogin.cgi
+[Wed Oct 16 13:32:50.141788 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:35726] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 13:50:15.989942 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:37158] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 13:50:20.669665 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.67:47580] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 16:09:34.179639 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:56334] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 20:07:49.273784 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:60222] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 21:25:48.559649 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:48346] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 23:11:28.837969 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.67:52248] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 16 23:11:44.604374 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:52560] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 00:37:39.218263 2024] [cgi:error] [pid 4684:tid 2072] [client 185.224.128.83:43974] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 01:18:21.744063 2024] [authz_core:error] [pid 4684:tid 2072] [client 47.128.117.193:43534] AH01630: client denied by server configuration: C:/xampp/phpMyAdmin/
+[Thu Oct 17 02:27:41.670631 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:38578] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 02:40:22.538162 2024] [core:error] [pid 4684:tid 2076] (20023)The given path was above the root path: [client 15.237.250.23:58079] AH00127: Cannot map GET /C:/Program%20Files/Git/.env HTTP/1.1 to file
+[Thu Oct 17 06:02:57.987981 2024] [core:error] [pid 4684:tid 2104] [client 179.43.168.146:60212] AH10244: invalid URI path (/cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts)
+[Thu Oct 17 06:03:09.805295 2024] [authz_core:error] [pid 4684:tid 2104] [client 179.43.168.146:46500] AH01630: client denied by server configuration: C:/NC/TusImpuestos3/public/server-status
+[Thu Oct 17 06:05:40.423939 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.83:35738] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 06:40:18.108650 2024] [core:error] [pid 4684:tid 2104] [client 8.220.201.94:59546] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Thu Oct 17 06:40:18.844227 2024] [core:error] [pid 4684:tid 2104] [client 8.220.201.94:59548] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Thu Oct 17 07:21:19.756044 2024] [core:error] [pid 4684:tid 2104] [client 42.98.73.250:45240] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Thu Oct 17 07:21:24.654185 2024] [core:error] [pid 4684:tid 2104] [client 42.98.73.250:48892] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Thu Oct 17 07:50:21.164337 2024] [core:error] [pid 4684:tid 2104] [client 8.220.201.94:37558] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Thu Oct 17 07:50:22.234081 2024] [core:error] [pid 4684:tid 2104] [client 8.220.201.94:37566] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Thu Oct 17 08:00:48.717884 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.83:55396] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 09:04:37.211508 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:53358] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 09:04:50.992104 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:42138] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 10:57:06.701920 2024] [cgi:error] [pid 4684:tid 2072] [client 185.224.128.83:40986] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 12:24:08.528193 2024] [core:error] [pid 4684:tid 2104] [client 110.41.43.231:43342] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Thu Oct 17 12:24:16.456211 2024] [core:error] [pid 4684:tid 2104] [client 110.41.43.231:41614] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Thu Oct 17 12:55:20.862958 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.83:35014] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 13:38:56.482732 2024] [core:error] [pid 4684:tid 2104] [client 45.148.10.235:33418] AH10244: invalid URI path (/cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts)
+[Thu Oct 17 13:38:58.004203 2024] [authz_core:error] [pid 4684:tid 2104] [client 45.148.10.235:33448] AH01630: client denied by server configuration: C:/NC/TusImpuestos3/public/server-status
+[Thu Oct 17 16:40:15.823302 2024] [cgi:error] [pid 4684:tid 2072] [client 185.224.128.83:58734] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 18:18:41.509119 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.83:56592] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 20:59:05.687766 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:51138] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 21:10:02.806726 2024] [cgi:error] [pid 4684:tid 2092] [client 5.181.190.29:46472] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 17 21:21:48.895103 2024] [authz_core:error] [pid 4684:tid 2092] [client 5.8.11.202:49973] AH01630: client denied by server configuration: C:/NC/TusImpuestos3/public/server-status
+[Thu Oct 17 22:46:03.275212 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:50872] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 00:13:33.120730 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:35636] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 00:13:40.025322 2024] [cgi:error] [pid 4684:tid 2072] [client 185.224.128.67:40290] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 01:55:23.624830 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:53800] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 02:18:27.777977 2024] [cgi:error] [pid 4684:tid 2092] [client 5.181.190.29:40788] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 03:34:10.600084 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.83:47578] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 04:12:30.211777 2024] [cgi:error] [pid 4684:tid 2092] [client 188.165.243.189:62420] malformed header from script 'php-cgi.exe': Bad header: <b>Security Alert!</b> The PHP
+[Fri Oct 18 04:20:36.046694 2024] [cgi:error] [pid 4684:tid 2092] [client 188.165.243.189:55374] malformed header from script 'php-cgi.exe': Bad header: <b>Security Alert!</b> The PHP
+[Fri Oct 18 04:48:47.348708 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:39618] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 04:49:00.708028 2024] [cgi:error] [pid 4684:tid 2092] [client 185.224.128.67:36216] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 07:10:42.101779 2024] [cgi:error] [pid 4684:tid 2072] [client 185.224.128.83:44542] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 08:32:38.692333 2024] [cgi:error] [pid 4684:tid 2092] [client 5.181.190.29:53296] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 09:36:17.782497 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.83:47586] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 11:06:18.302818 2024] [core:error] [pid 4684:tid 2104] [client 8.220.210.24:49788] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Fri Oct 18 11:06:18.781667 2024] [core:error] [pid 4684:tid 2104] [client 8.220.210.24:49798] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Fri Oct 18 12:36:35.686446 2024] [cgi:error] [pid 4684:tid 2104] [client 185.224.128.83:57958] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 13:55:58.317232 2024] [cgi:error] [pid 4684:tid 2072] [client 185.224.128.83:38764] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 14:56:33.932813 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.67:59170] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 14:57:47.764345 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.67:58632] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 17:31:29.534286 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.83:57788] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 17:37:33.294846 2024] [cgi:error] [pid 4684:tid 2100] [client 5.181.190.29:47014] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 19:07:18.430757 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.83:40012] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 19:09:27.198023 2024] [cgi:error] [pid 4684:tid 2100] [client 185.224.128.67:54530] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 19:09:43.078366 2024] [cgi:error] [pid 4684:tid 2076] [client 185.224.128.67:34914] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Fri Oct 18 20:53:06.413155 2024] [cgi:error] [pid 4684:tid 2100] [client 5.181.190.29:45090] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 09:40:10.315032 2024] [cgi:error] [pid 4848:tid 2096] [client 5.181.190.29:54704] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 10:48:56.777190 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.83:39490] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 12:49:55.652307 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.83:35642] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 14:36:18.021261 2024] [core:error] [pid 4848:tid 2084] [client 130.61.223.170:48088] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Mon Oct 21 14:36:20.073171 2024] [core:error] [pid 4848:tid 2084] [client 130.61.223.170:50084] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Mon Oct 21 15:27:26.703405 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.67:43552] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 15:27:43.661317 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.67:35086] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 15:56:21.296976 2024] [core:error] [pid 4848:tid 2080] [client 36.139.63.123:57502] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Mon Oct 21 15:56:52.935354 2024] [core:error] [pid 4848:tid 2080] [client 36.139.63.123:57888] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Mon Oct 21 17:17:23.831476 2024] [cgi:error] [pid 4848:tid 2080] [client 185.224.128.83:51614] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 20:18:09.620702 2024] [cgi:error] [pid 4848:tid 2080] [client 185.224.128.67:38320] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 20:18:18.457718 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.67:51552] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 20:27:11.311860 2024] [cgi:error] [pid 4848:tid 2080] [client 5.181.190.29:33906] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 20:30:10.135682 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.83:46238] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Mon Oct 21 20:51:49.898488 2024] [cgi:error] [pid 4848:tid 2084] [client 185.191.126.248:35232] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Mon Oct 21 21:54:12.847470 2024] [cgi:error] [pid 4848:tid 2076] [client 185.191.126.248:35578] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Mon Oct 21 22:20:18.108385 2024] [cgi:error] [pid 4848:tid 2076] [client 185.224.128.83:57642] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 00:57:34.697958 2024] [cgi:error] [pid 4848:tid 2076] [client 185.224.128.67:59494] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 00:57:49.453148 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.67:48800] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 03:34:31.389513 2024] [cgi:error] [pid 4848:tid 2076] [client 185.224.128.83:54872] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 05:16:34.775917 2024] [cgi:error] [pid 4848:tid 2128] [client 5.181.190.29:35882] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 05:56:17.909697 2024] [cgi:error] [pid 4848:tid 2128] [client 185.191.126.248:42510] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Tue Oct 22 06:34:01.793983 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.83:58130] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 09:21:08.805505 2024] [cgi:error] [pid 4848:tid 2084] [client 5.181.190.29:48564] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 11:08:27.497769 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.67:47234] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 11:08:37.847172 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.67:55766] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 12:58:38.623202 2024] [cgi:error] [pid 4848:tid 2076] [client 185.224.128.83:47720] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 13:12:05.997424 2024] [cgi:error] [pid 4848:tid 2096] [client 185.191.126.248:42144] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Tue Oct 22 15:08:44.915966 2024] [core:error] [pid 4848:tid 2076] [client 75.119.150.231:34398] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Tue Oct 22 15:08:46.855778 2024] [core:error] [pid 4848:tid 2076] [client 75.119.150.231:34402] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Tue Oct 22 15:14:17.784507 2024] [cgi:error] [pid 4848:tid 2076] [client 5.181.190.29:38898] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 15:58:23.733245 2024] [cgi:error] [pid 4848:tid 2080] [client 185.224.128.67:55682] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 15:58:48.952504 2024] [cgi:error] [pid 4848:tid 2080] [client 185.224.128.67:48590] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 16:47:32.868864 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.83:52152] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 18:10:39.195316 2024] [cgi:error] [pid 4848:tid 2080] [client 185.224.128.83:59974] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 21:25:28.268848 2024] [core:error] [pid 4848:tid 2096] [client 117.186.238.82:56034] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Tue Oct 22 21:25:29.794840 2024] [core:error] [pid 4848:tid 2096] [client 117.186.238.82:57140] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Tue Oct 22 21:38:33.498820 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.83:53648] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 21:57:53.253704 2024] [cgi:error] [pid 4848:tid 2096] [client 5.181.190.29:54242] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 23:04:44.771851 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.83:33074] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Tue Oct 22 23:33:33.834959 2024] [cgi:error] [pid 4848:tid 2128] [client 185.191.126.248:54448] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Wed Oct 23 01:08:59.990109 2024] [cgi:error] [pid 4848:tid 2128] [client 185.191.126.248:58528] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Wed Oct 23 01:48:36.617880 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.67:35392] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 01:49:35.842691 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.67:38064] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 02:15:00.270293 2024] [cgi:error] [pid 4848:tid 2096] [client 185.191.126.248:55656] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Wed Oct 23 02:23:13.584128 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.83:60432] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 04:38:13.899176 2024] [cgi:error] [pid 4848:tid 2096] [client 5.181.190.29:37890] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 04:51:36.541638 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.83:46110] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 06:13:59.393837 2024] [core:error] [pid 4848:tid 2096] [client 117.186.238.82:49516] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Wed Oct 23 06:14:00.062575 2024] [core:error] [pid 4848:tid 2096] [client 117.186.238.82:50330] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Wed Oct 23 06:45:19.138971 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.67:52020] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 06:45:48.755195 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.67:34306] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 07:45:42.139576 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.83:37528] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 10:19:54.069376 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.83:41218] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 12:10:07.863194 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.67:52836] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 12:10:14.636110 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.67:52852] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 13:24:00.280049 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.83:32812] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 15:02:02.297293 2024] [cgi:error] [pid 4848:tid 2128] [client 185.224.128.83:49808] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 15:10:53.621593 2024] [cgi:error] [pid 4848:tid 2128] [client 5.181.190.29:43302] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 15:11:23.186046 2024] [core:error] [pid 4848:tid 2128] [client 179.43.168.146:39296] AH10244: invalid URI path (/cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts)
+[Wed Oct 23 15:16:04.791142 2024] [core:error] [pid 4848:tid 2128] [client 130.61.39.230:59218] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Wed Oct 23 15:16:06.626766 2024] [core:error] [pid 4848:tid 2128] [client 130.61.39.230:33772] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Wed Oct 23 16:22:39.461409 2024] [cgi:error] [pid 4848:tid 2072] [client 185.191.126.248:43178] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/ViewLog.asp
+[Wed Oct 23 18:45:58.584055 2024] [cgi:error] [pid 4848:tid 2072] [client 185.224.128.83:47854] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 19:49:29.455580 2024] [cgi:error] [pid 4848:tid 2076] [client 185.16.38.232:51874] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 20:24:49.996017 2024] [cgi:error] [pid 4848:tid 2080] [client 185.224.128.83:39456] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Wed Oct 23 21:56:34.684905 2024] [core:error] [pid 4848:tid 2128] [client 77.221.156.122:40504] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Wed Oct 23 21:56:35.377578 2024] [core:error] [pid 4848:tid 2128] [client 77.221.156.122:40508] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Wed Oct 23 23:48:03.836536 2024] [cgi:error] [pid 4848:tid 2084] [client 185.16.38.232:54396] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 00:02:16.736906 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.83:60904] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 00:16:23.191313 2024] [core:error] [pid 4848:tid 2084] [client 103.100.211.145:52866] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Thu Oct 24 00:16:28.851280 2024] [core:error] [pid 4848:tid 2084] [client 103.100.211.145:56876] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Thu Oct 24 01:28:12.339238 2024] [cgi:error] [pid 4848:tid 2084] [client 5.181.190.29:60938] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 02:07:43.080624 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.83:34434] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 02:34:51.382247 2024] [core:error] [pid 4848:tid 2084] [client 176.228.217.95:13768] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Thu Oct 24 02:34:53.742541 2024] [core:error] [pid 4848:tid 2084] [client 176.228.217.95:30570] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Thu Oct 24 03:41:30.233107 2024] [core:error] [pid 4848:tid 2084] [client 43.156.41.165:49860] AH10244: invalid URI path (/cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh)
+[Thu Oct 24 03:42:03.026292 2024] [core:error] [pid 4848:tid 2084] [client 43.156.41.165:55232] AH10244: invalid URI path (/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh)
+[Thu Oct 24 04:20:38.094947 2024] [cgi:error] [pid 4848:tid 2084] [client 185.16.38.232:51744] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 05:07:40.635896 2024] [cgi:error] [pid 4848:tid 2096] [client 185.224.128.83:36966] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 06:29:27.826650 2024] [cgi:error] [pid 4848:tid 2096] [client 161.35.220.22:64642] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/authLogin.cgi
+[Thu Oct 24 06:50:14.564593 2024] [cgi:error] [pid 4848:tid 2084] [client 45.156.129.120:33358] malformed header from script 'php-cgi.exe': Bad header: <b>Security Alert!</b> The PHP
+[Thu Oct 24 06:50:14.705220 2024] [cgi:error] [pid 4848:tid 2084] [client 45.156.129.120:33360] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/php-cgi.exe
+[Thu Oct 24 06:50:35.040338 2024] [cgi:error] [pid 4848:tid 2084] [client 45.156.129.120:59537] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/main.pl
+[Thu Oct 24 06:51:27.410259 2024] [core:error] [pid 4848:tid 2084] [client 45.156.129.121:46073] AH10244: invalid URI path (/icons/.%%32%65/.%%32%65/apache2/icons/non-existant-image.png)
+[Thu Oct 24 06:51:27.566516 2024] [core:error] [pid 4848:tid 2084] [client 45.156.129.122:39441] AH10244: invalid URI path (/icons/.%%32%65/.%%32%65/apache2/icons/sphere1.png)
+[Thu Oct 24 06:51:27.769641 2024] [core:error] [pid 4848:tid 2084] [client 45.156.129.123:53063] AH10244: invalid URI path (/icons/.%2e/%2e%2e/apache2/icons/sphere1.png)
+[Thu Oct 24 06:51:28.082142 2024] [cgi:error] [pid 4848:tid 2080] [client 45.156.129.121:47581] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/authLogin.cgi
+[Thu Oct 24 07:08:08.648701 2024] [cgi:error] [pid 4848:tid 2084] [client 185.224.128.83:59754] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 07:32:01.403553 2024] [cgi:error] [pid 4848:tid 2084] [client 185.16.38.232:57396] AH02811: script not found or unable to stat: C:/xampp/cgi-bin/luci
+[Thu Oct 24 08:28:52.243044 2024] [core:error] [pid 4848:tid 2084] [client 179.43.168.146:56946] AH10244: invalid URI path (/cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts)
+[Thu Oct 24 08:29:03.248637 2024] [authz_core:error] [pid 4848:tid 2084] [client 179.43.168.146:58838] AH01630: client denied by server configuration: C:/NC/TusImpuestos3/public/server-status

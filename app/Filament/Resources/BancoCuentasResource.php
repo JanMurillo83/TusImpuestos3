@@ -138,8 +138,8 @@ class BancoCuentasResource extends Resource
                     ->readOnly(),
                 Forms\Components\Hidden::make('tax_id')
                     ->default(Filament::getTenant()->taxid),
-                Forms\Components\TextInput::make('cuenta')
-                    ->maxLength(255),
+                Forms\Components\Hidden::make('cuenta')
+                    ->default(''),
                 Forms\Components\Hidden::make('team_id')
                     ->required()
                     ->default(Filament::getTenant()->id),

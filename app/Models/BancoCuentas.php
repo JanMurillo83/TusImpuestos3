@@ -8,7 +8,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Class BancoCuenta
  *
@@ -35,4 +35,8 @@ class BancoCuentas extends Model
 		'cuenta',
         'team_id'
 	];
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 }

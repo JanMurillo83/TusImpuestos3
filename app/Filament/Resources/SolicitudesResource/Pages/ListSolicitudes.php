@@ -21,6 +21,7 @@ use App\Models\Xmlfiles;
 use Filament\Notifications\Notification;
 use App\Http\Controllers\DescargaSAT;
 use Filament\Forms\Components\Hidden;
+use Illuminate\Container\Attributes\Storage;
 use Illuminate\Http\Request;
 
 
@@ -84,8 +85,9 @@ class ListSolicitudes extends ListRecords
                         ->default('Recibidos'),
                     FileUpload::make('archivozip')
                         ->label('Seleccione el Archivo a Importar')
-                        ->acceptedFileTypes(['application/zip'])
-                        ->storeFiles(false)
+                       // ->acceptedFileTypes(['multipart/x-zip'])
+                        //->storeFiles(false)
+                        ->maxSize(8096)
                 ])->modalWidth(MaxWidth::ExtraSmall)
                 ->action(function($livewire,$data){
 
@@ -476,21 +478,38 @@ class ListSolicitudes extends ListRecords
         //------------------------------------------------
         $tiposol = $data['tipo'];
         $tipo = $data['tipo'];
-        $archivos = $data['archivos'];
-        $archivo = \storage_path().'/app/public/zipimportas/'.$archivos;
-        $desfile = \storage_path().'/app/public/zipimportas/'.$archivos->getClientOriginalName().'/';
-        $zip = new \ZipArchive;
-        $msj = '';
-        $ncount = 0;
-        if ($zip->open($archivo) === TRUE) {
-            $zip->extractTo($desfile);
-            $zip->close();
-            $this->ProcesaArchivo2($desfile,$tiposol);
-            $ncount++;
-            $msj = $ncount.' Archivos Procesados';
-        } else {
-            $msj = 'Error al extrae Archivos';
-            return;
+        $archivos = $data['archivozip'];
+        $ext = pathinfo($archivos, PATHINFO_EXTENSION);
+        $archivo = \storage_path().'/app/public/'.$archivos;
+        $desfile = \storage_path().'/app/public/zipimportas/';
+        if($ext == 'zip')
+        {
+            $zip = new \ZipArchive;
+            $msj = '';
+            $ncount = 0;
+            if ($zip->open($archivo) === TRUE) {
+                $zip->extractTo($desfile);
+                $zip->close();
+                $ncount = $this->ProcesaArchivoZ_F($desfile,$tiposol);
+                $msj = $ncount.' Archivos Procesados';
+            } else {
+                $msj = 'Error al extrae Archivos';
+                Notification::make()
+                    ->title('Extracción de Archivos')
+                    ->body($msj)
+                    ->info()
+                    ->send();
+                return;
+            }
+        }
+        else{
+            $msj = 'Tipo de Archivo NO valido';
+                Notification::make()
+                    ->title('Extracción de Archivos')
+                    ->body($msj)
+                    ->info()
+                    ->send();
+                return;
         }
         Solicitudes::create([
             'request_id'=>'Importacion',
@@ -510,13 +529,15 @@ class ListSolicitudes extends ListRecords
             ->info()
             ->send();
         //------------------------------------------------
-        /*$NoArchivos = count($archivos);
-        $team  = Filament::getTenant()->id;
-        $taxid = Filament::getTenant()->taxid;
+    }
+
+    public function ProcesaArchivoZ_F($archivo,$tiposol)
+    {
+        $files = array_diff(scandir($archivo), array('.', '..'));
         $contador = 0;
-        for($i = 0;$i<$NoArchivos;$i++)
+        foreach($files as $desfile)
         {
-            $file =$archivos[$i]->path();
+            $file = \storage_path().'/app/public/zipimportas/'.$desfile;
             $xmlContents = \file_get_contents($file);
             $cfdi = Cfdi::newFromString($xmlContents);
             $comprobante = $cfdi->getNode();
@@ -553,7 +574,10 @@ class ListSolicitudes extends ListRecords
             $fech = $comprobante['Fecha'];
             list($fechacom,$horacom) = explode('T',$fech);
             list($aniocom,$mescom,$diacom) =explode('-',$fechacom);
-            if($tipo == 'Emitidos')
+            $taxid = Filament::getTenant()->rfc;
+            $tipo = $tiposol;
+            $team= Filament::getTenant()->id;
+            if($tiposol == 'Emitidos')
             {
                 if($emisor['Rfc'] == $taxid)
                 {
@@ -580,7 +604,7 @@ class ListSolicitudes extends ListRecords
                         'content'=>$xmlContenido,
                         'user_tax'=>$emisor['Rfc'],
                         'used'=>'NO',
-                        'xml_type'=>$tipo,
+                        'xml_type'=>$tiposol,
                         'periodo'=>intval($mescom),
                         'ejercicio'=>intval($aniocom),
                         'team_id'=>$team
@@ -595,7 +619,6 @@ class ListSolicitudes extends ListRecords
                         'solicitud'=>'Importacion',
                         'team_id'=>$team
                     ]);
-                    $contador++;
                 }
             }
             else
@@ -640,10 +663,10 @@ class ListSolicitudes extends ListRecords
                         'solicitud'=>'Importacion',
                         'team_id'=>$team
                     ]);
-                    $contador++;
                 }
             }
-
-        }*/
+            $contador++;
+        }
+        return $contador;
     }
 }

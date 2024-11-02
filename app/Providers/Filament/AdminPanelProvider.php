@@ -74,12 +74,12 @@ class AdminPanelProvider extends PanelProvider
                 MenuItem::make()->label('Cambio de Periodo')
                 ->url(fn (): string => CamPer::getUrl())
                 ->icon('fas-calendar-check'),
-            ])
-            ->renderHook(
+            ]);
+            /*->renderHook(
                 // This line tells us where to render it
                 'panels::body.end',
                 // This is the view that will be rendered
                 fn () => view('customFooter'),
-            );
+            );*/
     }
 }

@@ -574,7 +574,7 @@ class ListSolicitudes extends ListRecords
             $fech = $comprobante['Fecha'];
             list($fechacom,$horacom) = explode('T',$fech);
             list($aniocom,$mescom,$diacom) =explode('-',$fechacom);
-            $taxid = Filament::getTenant()->rfc;
+            $taxid = Filament::getTenant()->taxid;
             $tipo = $tiposol;
             $team= Filament::getTenant()->id;
             if($tiposol == 'Emitidos')

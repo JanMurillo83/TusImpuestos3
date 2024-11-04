@@ -8,6 +8,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Class Movbanco
@@ -50,6 +51,12 @@ class Movbancos extends Model
 		'concepto',
 		'contabilizada',
 		'movbancoscol',
+        'ejercicio',
+        'periodo',
         'team_id'
 	];
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 }

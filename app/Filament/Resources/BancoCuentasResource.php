@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 class BancoCuentasResource extends Resource
 {
     protected static ?string $model = BancoCuentas::class;
-    protected static ?string $navigationGroup = 'Contabilidad';
+    protected static ?string $navigationGroup = 'Bancos';
     protected static ?string $label = 'Cuenta Bancaria';
     protected static ?string $pluralLabel = 'Cuentas Bancarias';
 

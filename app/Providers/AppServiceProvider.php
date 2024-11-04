@@ -36,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
                     ->icon('fas-scale-balanced')
                     ->collapsed(),
                 NavigationGroup::make()
+                    ->label('Bancos')
+                    ->icon('fas-building-columns')
+                    ->collapsed(),
+                NavigationGroup::make()
                     ->label('Facturacion')
                     ->icon('fas-file-invoice-dollar')
                     ->collapsed(),

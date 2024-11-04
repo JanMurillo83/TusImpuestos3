@@ -20,6 +20,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
 
 class CatPolizasResource extends Resource
 {
@@ -162,16 +163,21 @@ class CatPolizasResource extends Resource
                 Tables\Columns\TextColumn::make('concepto')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('cargos')
-                    ->numeric()
-                    ->sortable(),
+                    ->formatStateUsing(function (string $state) {
+                        $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        return $formatter->formatCurrency($state, 'MXN');
+                    }),
                 Tables\Columns\TextColumn::make('abonos')
-                    ->numeric()
-                    ->sortable(),
+                    ->formatStateUsing(function (string $state) {
+                        $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        return $formatter->formatCurrency($state, 'MXN');
+                    }),
                 Tables\Columns\TextColumn::make('periodo')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('ejercicio')
-                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('referencia')
                     ->searchable()

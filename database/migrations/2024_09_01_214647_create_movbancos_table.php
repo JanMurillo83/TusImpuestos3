@@ -13,15 +13,15 @@ return new class extends Migration
     {
         Schema::create('movbancos', function (Blueprint $table) {
             $table->id();
-            $table->dateTime('fecha');
-            $table->string('tax_id');
-            $table->string('tipo');
-            $table->string('tercero');
-            $table->string('cuenta');
-            $table->string('factura');
-            $table->string('uuid');
-            $table->decimal('importe', 18, 8);
-            $table->string('concepto');
+            $table->dateTime('fecha')->nullable();
+            $table->string('tax_id')->nullable();
+            $table->string('tipo')->nullable();
+            $table->string('tercero')->nullable();
+            $table->string('cuenta')->nullable();
+            $table->string('factura')->nullable();
+            $table->string('uuid')->nullable();
+            $table->decimal('importe', 18, 8)->nullable();
+            $table->string('concepto')->nullable();
             $table->string('contabilizada', 45)->default('NO');
             $table->string('movbancoscol', 45)->nullable();
             $table->integer('ejercicio')->nullable();

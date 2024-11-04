@@ -6,12 +6,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "ariaieboy/filament-currency": "^1.8",
+        "ariaieboy/filament-currency": "^1.10",
         "eclipxe/cfdiutils": "^2.29",
+        "eightynine/filament-excel-import": "^3.1",
         "filament/filament": "^3.2",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
         "owenvoke/blade-fontawesome": "^2.6",
+        "pelmered/filament-money-field": "^1.4",
         "phpcfdi/sat-ws-descarga-masiva": "^0.5.4"
     },
     "require-dev": {

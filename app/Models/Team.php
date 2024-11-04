@@ -14,9 +14,17 @@ class Team extends Model
     {
         return $this->belongsToMany(CatPolizas::class);
     }
+    public function catCuentas(): BelongsToMany
+    {
+        return $this->belongsToMany(CatCuentas::class);
+    }
     public function bancoCuentas(): BelongsToMany
     {
         return $this->belongsToMany(BancoCuentas::class);
+    }
+    public function movbancos(): BelongsToMany
+    {
+        return $this->belongsToMany(Movbancos::class);
     }
 
 }

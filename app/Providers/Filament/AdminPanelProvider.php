@@ -22,6 +22,14 @@ use App\Http\Middleware\ApplyTenantScopes;
 use App\Models\Team;
 use Filament\Navigation\MenuItem;
 use App\Filament\Pages\Paginas\CamPer;
+use App\Filament\Pages\Registrocfdi;
+use App\Filament\Resources\AlmacencfdisResource;
+use Dotenv\Util\Str;
+use Filament\Navigation\NavigationBuilder;
+use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
+use Filament\Pages\Dashboard;
+use Filament\Pages\Page;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -46,11 +54,13 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class
             ])
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -74,12 +84,7 @@ class AdminPanelProvider extends PanelProvider
                 MenuItem::make()->label('Cambio de Periodo')
                 ->url(fn (): string => CamPer::getUrl())
                 ->icon('fas-calendar-check'),
-            ]);
-            /*->renderHook(
-                // This line tells us where to render it
-                'panels::body.end',
-                // This is the view that will be rendered
-                fn () => view('customFooter'),
-            );*/
+            ])->sidebarFullyCollapsibleOnDesktop()
+            ->sidebarWidth('14rem');
     }
 }

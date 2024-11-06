@@ -17,9 +17,22 @@ use CfdiUtils\Cfdi;
 use Filament\Facades\Filament;
 use App\Models\Almacencfdis;
 use Filament\Tables\Filters\Layout;
+use Filament\Actions;
+use Filament\Resources\Pages\Page;
+
 class ListAlmacencfdis extends ListRecords
 {
     protected static string $resource = AlmacencfdisResource::class;
-
+    protected function getHeaderActions(): array
+    {
+        return [
+            /*Actions\CreateAction::make()
+            ->label('Agregar')
+            ->icon('fas-plus')
+            ->createAnother(false),
+            Action::make('Registro')
+            ->url(AlmacencfdisResource::getUrl('registro'))*/
+        ];
+    }
 }
 

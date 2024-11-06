@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Clusters\Operscfdi;
 use App\Filament\Resources\SolicitudesResource\Pages;
 use App\Filament\Resources\SolicitudesResource\RelationManagers;
 use App\Models\Solicitudes;
@@ -26,7 +27,7 @@ use CfdiUtils\Cfdi;
 class SolicitudesResource extends Resource
 {
     protected static ?string $model = Solicitudes::class;
-    protected static ?string $navigationGroup = 'Descargas CFDI';
+    protected static ?string $cluster = Operscfdi::class;
     protected static ?string $pluralLabel = 'Descargas CFDI';
     protected static ?string $label = 'CFDI';
 

@@ -4,7 +4,12 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Filament\Facades\Filament;
+use Filament\Navigation\NavigationBuilder;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
+use Illuminate\View\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Filament::serving(function () {
+         Filament::serving(function () {
             Filament::registerNavigationGroups([
                 NavigationGroup::make()
                     ->label('Descargas CFDI')
@@ -29,7 +34,6 @@ class AppServiceProvider extends ServiceProvider
                     ->collapsed(),
                 NavigationGroup::make()
                      ->label('CFDI')
-                     ->icon('fas-laptop-file')
                      ->collapsed(),
                 NavigationGroup::make()
                     ->label('Contabilidad')
@@ -45,5 +49,9 @@ class AppServiceProvider extends ServiceProvider
                     ->collapsed(),
             ]);
         });
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::SIDEBAR_NAV_START,
+            fn (): View => view('periodoview'),
+        );
     }
 }

@@ -151,6 +151,13 @@ class CatPolizasResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+        ->query(
+            CatPolizas::where('team_id',Filament::getTenant()->id)
+                ->where('periodo',Filament::getTenant()->periodo)
+                ->where('ejercicio',Filament::getTenant()->ejercicio)
+                ->orderBy('tipo', 'ASC')
+                ->orderBy('folio', 'ASC')
+            )
             ->columns([
                 Tables\Columns\TextColumn::make('tipo')
                     ->searchable(),

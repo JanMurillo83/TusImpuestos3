@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Clusters\Operscfdi;
 use App\Filament\Resources\AlmacencfdisResource\Pages;
 use App\Filament\Resources\AlmacencfdisResource\RelationManagers;
 use App\Models\Almacencfdis;
@@ -24,16 +25,22 @@ use Illuminate\Database\Eloquent\Model;
 use Filament\Support\Enums\MaxWidth;
 use App\Http\Controllers\Funciones;
 use App\Models\Auxiliares;
+use DateTime;
+use Doctrine\DBAL\Schema\Schema;
 use Illuminate\Http\Request;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\TernaryFilter;
+
 class AlmacencfdisResource extends Resource
 {
     protected static ?string $model = Almacencfdis::class;
-    protected static ?string $navigationGroup = 'CFDI';
+    protected static ?string $cluster = Operscfdi::class;
     protected static ?string $pluralLabel = 'Almacen CFDI';
     protected static ?string $label = 'CFDI';
 
@@ -121,7 +128,8 @@ class AlmacencfdisResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('TipoDeComprobante')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('Emisor_Rfc')
                     ->label('RFC Emisor')
                     ->searchable()
@@ -144,7 +152,12 @@ class AlmacencfdisResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('Total')
                     ->sortable()
-                    ->numeric(),
+                    ->numeric()
+                    ->formatStateUsing(function (string $state) {
+                        $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        return $formatter->formatCurrency($state, 'MXN');
+                    }),
                 Tables\Columns\TextColumn::make('used')
                     ->label('Utilizado')
                     ->searchable()
@@ -166,22 +179,27 @@ class AlmacencfdisResource extends Resource
                 SelectFilter::make('periodo')
                 ->options(['1'=>'Enero','2'=>'Febrero','3'=>'Marzo','4'=>'Abril','5'=>'Mayo','6'=>'Junio','7'=>'Julio','8'=>'Agosto','9'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'])
                 ->attribute('periodo'),
-                Filter::make('xml_type_1')
-                ->label('Emitidos')
-                ->query(fn (Builder $query): Builder => $query->where('xml_type', 'Emitidos')),
-                Filter::make('xml_type_2')
-                ->label('Recibidos')
-                ->query(fn (Builder $query): Builder => $query->where('xml_type', 'Recibidos')),
-                /*Filter::make('TipoDeComprobante_1')
-                ->label('Ingresos')
-                ->query(fn (Builder $query): Builder => $query->where('TipoDeComprobante', 'I')),
-                Filter::make('TipoDeComprobante_2')
-                ->label('Nomina')
-                ->query(fn (Builder $query): Builder => $query->where('TipoDeComprobante', 'N')),
-                Filter::make('TipoDeComprobante_3')
-                ->label('Pagos')
-                ->query(fn (Builder $query): Builder => $query->where('TipoDeComprobante', 'P'))*/
-            ])
+                SelectFilter::make('xml_type')
+                ->label('Tipo de CFDI')
+                ->options(['Emitidos'=>'Emitidos','Recibidos'=>'Recibidos'])
+                //->query(fn (Builder $query): Builder => $query->where('xml_type', 'Emitidos'))
+                ->attribute('xml_type'),
+                Filter::make('Fecha CFDI')
+                ->form([
+                    DatePicker::make('fecha_i')
+                        ->label('F.Inicial'),
+                    DatePicker::make('fecha_f')
+                        ->label('F.Final')
+
+                ])->columnSpan(2)->columns(2)
+                ->query(function (Builder $query, array $data): Builder {
+                    return $query
+                        ->when(
+                            $data['fecha_i']&&$data['fecha_f'],
+                            fn (Builder $query,$date): Builder => $query->whereDate('Fecha','>=', $data['fecha_i'])->whereDate('Fecha','<=',$data['fecha_f'])
+                        );
+                })
+            ], layout: FiltersLayout::AboveContent)->filtersFormColumns(5)
             ->actions([
                 Action::make('ContabilizarE')
                     ->label('')
@@ -263,6 +281,7 @@ class AlmacencfdisResource extends Resource
     {
         return [
             'index' => Pages\ListAlmacencfdis::route('/'),
+            'registro' => Pages\Cfdiregistro::route('/registro'),
             //'create' => Pages\CreateAlmacencfdis::route('/create'),
             //'edit' => Pages\EditAlmacencfdis::route('/{record}/edit'),
         ];

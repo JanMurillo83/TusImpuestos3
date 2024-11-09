@@ -6,9 +6,9 @@ use Filament\Clusters\Cluster;
 
 class Rececfdi extends Cluster
 {
-    protected static ?string $title = 'CFDI Recibidos';
+    protected static ?string $title = 'Registro de CFDI Recibidos';
     protected static ?string $navigationIcon = 'fas-diagram-predecessor';
-    protected static ?string $navigationGroup = 'CFDI';
+    protected static ?string $navigationGroup = 'Registro CFDI';
     protected static ?string $sidebarWidth = '15rem';
     protected static ?int $navigationSort = 2;
 }

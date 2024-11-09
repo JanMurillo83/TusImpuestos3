@@ -37,7 +37,7 @@ class cfdirn extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Rececfdi::class;
-    protected static ?string $title = 'CFDI Recibidos Egreso';
+    protected static ?string $title = 'Notas de Credito';
     protected static string $view = 'filament.clusters.rececfdi.pages.cfdirn';
     public function table(Table $table): Table
     {

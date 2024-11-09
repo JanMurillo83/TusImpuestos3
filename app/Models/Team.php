@@ -26,5 +26,9 @@ class Team extends Model
     {
         return $this->belongsToMany(Movbancos::class);
     }
+    public function productos(): BelongsToMany
+    {
+        return $this->belongsToMany(Productos::class);
+    }
 
 }

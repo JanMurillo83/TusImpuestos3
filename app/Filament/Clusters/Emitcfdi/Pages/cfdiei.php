@@ -37,7 +37,7 @@ class cfdiei extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Emitcfdi::class;
-    protected static ?string $title = 'CFDI Emitidos Ingreso';
+    protected static ?string $title = 'Facturas';
     protected static string $view = 'filament.clusters.emitcfdi.pages.cfdiei';
     public function table(Table $table): Table
     {

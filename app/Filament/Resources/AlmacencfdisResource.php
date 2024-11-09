@@ -40,8 +40,8 @@ use Filament\Tables\Filters\TernaryFilter;
 class AlmacencfdisResource extends Resource
 {
     protected static ?string $model = Almacencfdis::class;
-    protected static ?string $cluster = Operscfdi::class;
-    protected static ?string $pluralLabel = 'Almacen CFDI';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?string $pluralLabel = 'Visor de Documentos Digitales';
     protected static ?string $label = 'CFDI';
 
     public static function form(Form $form): Form

@@ -8,6 +8,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Class Tercero
@@ -41,4 +42,8 @@ class Terceros extends Model
 		'tax_id',
         'team_id'
 	];
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 }

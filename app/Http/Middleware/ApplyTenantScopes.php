@@ -18,7 +18,7 @@ use App\Models\Saldoscuentas;
 use App\Models\Solicitudes;
 use App\Models\Team;
 use App\Models\Terceros;
-use Aapp\Models\User;
+use App\Models\User;
 use Closure;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;

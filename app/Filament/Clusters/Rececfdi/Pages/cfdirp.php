@@ -37,7 +37,7 @@ class cfdirp extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Rececfdi::class;
-    protected static ?string $title = 'CFDI Recibidos Pagos';
+    protected static ?string $title = 'Comprobantes de Pago';
     protected static string $view = 'filament.clusters.rececfdi.pages.cfdirp';
     public function table(Table $table): Table
     {

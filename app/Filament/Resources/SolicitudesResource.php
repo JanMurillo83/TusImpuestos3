@@ -27,9 +27,11 @@ use CfdiUtils\Cfdi;
 class SolicitudesResource extends Resource
 {
     protected static ?string $model = Solicitudes::class;
-    protected static ?string $cluster = Operscfdi::class;
+    protected static ?string $navigationGroup = 'Operaciones CFDI';
     protected static ?string $pluralLabel = 'Descargas CFDI';
     protected static ?string $label = 'CFDI';
+    protected static ?string $navigationIcon = 'fas-download';
+
 
     public static function form(Form $form): Form
     {

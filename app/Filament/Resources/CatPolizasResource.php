@@ -28,6 +28,7 @@ class CatPolizasResource extends Resource
     protected static ?string $navigationGroup = 'Contabilidad';
     protected static ?string $label = 'Poliza';
     protected static ?string $pluralLabel = 'Polizas';
+    protected static ?string $navigationIcon ='fas-scale-balanced';
 
     public static function form(Form $form): Form
     {

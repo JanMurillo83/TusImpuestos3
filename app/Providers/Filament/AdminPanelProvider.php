@@ -85,6 +85,6 @@ class AdminPanelProvider extends PanelProvider
                 ->url(fn (): string => CamPer::getUrl())
                 ->icon('fas-calendar-check'),
             ])->sidebarFullyCollapsibleOnDesktop()
-            ->sidebarWidth('14rem');
+            ->sidebarWidth('18rem');
     }
 }

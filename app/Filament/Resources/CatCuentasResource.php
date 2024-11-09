@@ -22,7 +22,7 @@ class CatCuentasResource extends Resource
     protected static ?string $navigationGroup = 'Contabilidad';
     protected static ?string $label = 'Cuenta Contable';
     protected static ?string $pluralLabel = 'Cuentas Contables';
-    //protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon ='fas-list-ol';
 
     public static function form(Form $form): Form
     {

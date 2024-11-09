@@ -29,5 +29,7 @@ class DatabaseSeeder extends Seeder
             'team_id'=>1,
             'user_id'=>1
         ]);
+        $this->call(Cvesatseeder::class);
+        $this->call(UnidProdSeeder::class);
     }
 }

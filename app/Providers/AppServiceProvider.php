@@ -29,23 +29,16 @@ class AppServiceProvider extends ServiceProvider
          Filament::serving(function () {
             Filament::registerNavigationGroups([
                 NavigationGroup::make()
-                    ->label('Descargas CFDI')
-                    ->icon('fas-download')
-                    ->collapsed(),
-                NavigationGroup::make()
-                     ->label('CFDI')
+                     ->label('Operaciones CFDI')
                      ->collapsed(),
                 NavigationGroup::make()
                     ->label('Contabilidad')
-                    ->icon('fas-scale-balanced')
                     ->collapsed(),
                 NavigationGroup::make()
                     ->label('Bancos')
-                    ->icon('fas-building-columns')
                     ->collapsed(),
                 NavigationGroup::make()
-                    ->label('Facturacion')
-                    ->icon('fas-file-invoice-dollar')
+                    ->label('Administracion')
                     ->collapsed(),
             ]);
         });

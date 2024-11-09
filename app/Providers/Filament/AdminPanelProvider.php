@@ -76,6 +76,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->tenantRegistration(RegisterTeam::class)
+            ->maxContentWidth('full')
             ->tenant(Team::class)
             ->tenantMiddleware([
                 ApplyTenantScopes::class,

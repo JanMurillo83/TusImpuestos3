@@ -3,6 +3,7 @@
 namespace App\Filament\Pages\Tenancy;
 
 use App\Models\CatCuentas;
+use App\Models\Regimenes;
 use App\Models\Team;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -10,6 +11,12 @@ use Filament\Forms\Form;
 use Filament\Pages\Tenancy\RegisterTenant;
 use Illuminate\Support\Facades\DB;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Tabs\Tab;
 use Illuminate\Support\Facades\Auth;
 
 class RegisterTeam extends RegisterTenant
@@ -23,14 +30,18 @@ class RegisterTeam extends RegisterTenant
     {
         return $form
             ->schema([
+                Tabs::make()
+                ->tabs([
+                    Tab::make('Generales')
+                    ->schema([
                 TextInput::make('name')
                     ->label('Razon Social'),
                 TextInput::make('taxid')
                     ->label('RFC'),
                 FileUpload::make('archivokey')
-                    ->label('Archivo KEY'),
+                    ->label('Archivo KEY FIEL'),
                 FileUpload::make('archivocer')
-                    ->label('Archivo CER'),
+                    ->label('Archivo CER FIEL'),
                 TextInput::make('fielpass')
                     ->label('Password Fiel')
                     ->password(),
@@ -42,6 +53,138 @@ class RegisterTeam extends RegisterTenant
                     ->label('Ejercicio de Trabajo')
                     ->numeric()
                     ->default(2024)
+                ]),
+                Tab::make('Bancos')
+                ->schema([
+                Section::make('Bancos')
+                ->schema([
+                    Select::make('clave')
+                    ->required()
+                    ->searchable()
+                    ->options([
+                        '002'=> '002- BANAMEX',
+                        '006'=> '006- BANCOMEXT',
+                        '009'=> '009- BANOBRAS',
+                        '012'=> '012- BBVA BANCOMER',
+                        '014'=> '014- SANTANDER',
+                        '019'=> '019- BANJERCITO',
+                        '021'=> '021- HSBC',
+                        '030'=> '030- BAJIO',
+                        '032'=> '032- IXE',
+                        '036'=> '036- INBURSA',
+                        '037'=> '037- INTERACCIONES',
+                        '042'=> '042- MIFEL',
+                        '044'=> '044- SCOTIABANK',
+                        '058'=> '058- BANREGIO',
+                        '059'=> '059- INVEX',
+                        '060'=> '060- BANSI',
+                        '062'=> '062- AFIRME',
+                        '072'=> '072- BANORTE',
+                        '102'=> '102- THE ROYAL BANK',
+                        '103'=> '103- AMERICAN EXPRESS',
+                        '106'=> '106- BAMSA',
+                        '108'=> '108- TOKYO',
+                        '110'=> '110- JP MORGAN',
+                        '112'=> '112- BMONEX',
+                        '113'=> '113- VE POR MAS',
+                        '116'=> '116- ING',
+                        '124'=> '124- DEUTSCHE',
+                        '126'=> '126- CREDIT SUISSE',
+                        '127'=> '127- AZTECA',
+                        '128'=> '128- AUTOFIN',
+                        '129'=> '129- BARCLAYS',
+                        '130'=> '130- COMPARTAMOS',
+                        '131'=> '131- BANCO FAMSA',
+                        '132'=> '132- BMULTIVA',
+                        '133'=> '133- ACTINVER',
+                        '134'=> '134- WAL-MART',
+                        '135'=> '135- NAFIN',
+                        '136'=> '136- INTERBANCO',
+                        '137'=> '137- BANCOPPEL',
+                        '138'=> '138- ABC CAPITAL',
+                        '139'=> '139- UBS BANK',
+                        '140'=> '140- CONSUBANCO',
+                        '141'=> '141- VOLKSWAGEN',
+                        '143'=> '143- CIBANCO',
+                        '145'=> '145- BBASE',
+                        '166'=> '166- BANSEFI',
+                        '168'=> '168- HIPOTECARIA',
+                        '600'=> '600- MONEXCB',
+                        '601'=> '601- GBM',
+                        '602'=> '602- MASARI',
+                        '605'=> '605- VALUE',
+                        '606'=> '606- ESTRUCTURADORES',
+                        '607'=> '607- TIBER',
+                        '608'=> '608- VECTOR',
+                        '610'=> '610- B&B',
+                        '614'=> '614- ACCIVAL',
+                        '615'=> '615- MERRILL LYNCH',
+                        '616'=> '616- FINAMEX',
+                        '617'=> '617- VALMEX',
+                        '618'=> '618- UNICA',
+                        '619'=> '619- MAPFRE',
+                        '620'=> '620- PROFUTURO',
+                        '621'=> '621- CB ACTINVER',
+                        '622'=> '622- OACTIN',
+                        '623'=> '623- SKANDIA',
+                        '626'=> '626- CBDEUTSCHE',
+                        '627'=> '627- ZURICH',
+                        '628'=> '628- ZURICHVI',
+                        '629'=> '629- SU CASITA',
+                        '630'=> '630- CB INTERCAM',
+                        '631'=> '631- CI BOLSA',
+                        '632'=> '632- BULLTICK CB',
+                        '633'=> '633- STERLING',
+                        '634'=> '634- FINCOMUN',
+                        '636'=> '636- HDI SEGUROS',
+                        '637'=> '637- ORDER',
+                        '638'=> '638- AKALA',
+                        '640'=> '640- CB JPMORGAN',
+                        '642'=> '642- REFORMA',
+                        '646'=> '646- STP',
+                        '647'=> '647- TELECOMM',
+                        '648'=> '648- EVERCORE',
+                        '649'=> '649- SKANDIA',
+                        '651'=> '651- SEGMTY',
+                        '652'=> '652- ASEA',
+                        '653'=> '653- KUSPIT',
+                        '655'=> '655- SOFIEXPRESS',
+                        '656'=> '656- UNAGRA',
+                        '659'=> '659- OPCIONES EMPRESARIALES DEL NORESTE',
+                        '901'=> '901- CLS',
+                        '902'=> '902- INDEVAL',
+                        '670'=> '670- LIBERTAD',
+                        '999'=> '999- NA',
+
+                    ]),
+                TextInput::make('banco')
+                    ->maxLength(255)
+                    ->label('Descripcion')
+                    ->columnSpan(3)
+                    ->required(),
+                TextInput::make('codigo')
+                ->default('10201000')
+                    ->maxLength(255)
+                    ->readOnly()
+                ])->columnSpanFull()
+                ]),
+                Tab::make('Facturacion')
+                    ->schema([
+                        Select::make('regimen')
+                            ->searchable()
+                            ->label('Regimen Fiscal')
+                            ->options(Regimenes::all()->pluck('mostrar','clave')),
+                        TextInput::make('codigopos')
+                            ->label('Codigo Postal'),
+                        FileUpload::make('csdkey')
+                            ->label('CSD KEY'),
+                        FileUpload::make('csdcer')
+                            ->label('CSD CER'),
+                        TextInput::make('csdpass')
+                            ->label('Password CSD')
+                            ->password(),
+                    ])
+                ])
             ]);
     }
 
@@ -53,6 +196,18 @@ class RegisterTeam extends RegisterTenant
             'user_id'=>$usid,
             'team_id'=>$team->getKey()
         ]);
+        $ban = DB::table('banco_cuentas')->insertGetId([
+            'clave'=>$data['clave'],
+            'banco'=>$data['banco'],
+            'codigo'=>$data['codigo'],
+            'tax_id'=>$data['taxid'],
+            'cuenta'=>$data['codigo'],
+            'team_id'=>$team->getKey()
+        ]);
+        DB::table('banco_cuentas_team')->insert([
+            'banco_cuentas_id'=>$ban,
+            'team_id'=>$team->getKey()
+        ]);
         //---------------------------------------------
         $empresa =$team->getKey();
         $data = [
@@ -62,6 +217,7 @@ class RegisterTeam extends RegisterTenant
             ['codigo'=>'10100000','nombre'=>'Caja','acumula'=>'10001000','tipo'=>'A','naturaleza'=>'D','csat'=>'101','team_id'=>$empresa],
             ['codigo'=>'10101000','nombre'=>'Caja y Efectivo','acumula'=>'10100000','tipo'=>'A','naturaleza'=>'D','csat'=>'101.01','team_id'=>$empresa],
             ['codigo'=>'10200000','nombre'=>'Bancos','acumula'=>'10001000','tipo'=>'A','naturaleza'=>'D','csat'=>'102','team_id'=>$empresa],
+            ['codigo'=>'10201000','nombre'=>$data['banco'],'acumula'=>'10200000','tipo'=>'D','naturaleza'=>'D','csat'=>'102.01','team_id'=>$empresa],
             ['codigo'=>'10300000','nombre'=>'Inversiones','acumula'=>'10001000','tipo'=>'A','naturaleza'=>'D','csat'=>'103','team_id'=>$empresa],
             ['codigo'=>'10400000','nombre'=>'Otros instrumentos financieros','acumula'=>'10001000','tipo'=>'A','naturaleza'=>'D','csat'=>'104','team_id'=>$empresa],
             ['codigo'=>'10500000','nombre'=>'Clientes','acumula'=>'10001000','tipo'=>'A','naturaleza'=>'D','csat'=>'105','team_id'=>$empresa],

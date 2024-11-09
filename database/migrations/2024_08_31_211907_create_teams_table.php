@@ -20,6 +20,11 @@ return new class extends Migration
             $table->integer('periodo')->nullable();
             $table->integer('ejercicio')->nullable();
             $table->string('fielpass')->nullable();
+            $table->string('regimen')->nullable();
+            $table->string('codigopos')->nullable();
+            $table->string('csdkey')->nullable();
+            $table->string('csdcer')->nullable();
+            $table->string('csdpass')->nullable();
             $table->timestamps();
         });
         Schema::create('team_user', function (Blueprint $table) {

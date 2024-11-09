@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Team extends Model
 {
     use HasFactory;
-    protected $fillable =['name','taxid','archivokey','archivocer','fielpass','periodo','ejercicio'];
+    protected $fillable =['name','taxid','archivokey','archivocer','fielpass','periodo',
+    'ejercicio','regimen','codigopos','csdkey','csdcer','csdpass'];
     public function catPolizas(): BelongsToMany
     {
         return $this->belongsToMany(CatPolizas::class);

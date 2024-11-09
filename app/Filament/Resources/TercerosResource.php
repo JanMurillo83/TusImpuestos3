@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TercerosResource\Pages;
 use App\Filament\Resources\TercerosResource\RelationManagers;
+use App\Models\Regimenes;
 use App\Models\Terceros;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -30,10 +32,11 @@ class TercerosResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('nombre')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('tipo')
-                    ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->columnSpan(3),
+                Forms\Components\Select::make('tipo')
+                    ->label('Tipo de Tercero')
+                    ->options(['Cliente','Proveedor','Deudor','Acreedor']),
                 Forms\Components\TextInput::make('cuenta')
                     ->required()
                     ->maxLength(255),
@@ -47,12 +50,16 @@ class TercerosResource extends Resource
                 Forms\Components\TextInput::make('contacto')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('tax_id')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('team_id')
-                    ->required()
-                    ->numeric(),
-            ]);
+                Forms\Components\Select::make('regimen')
+                    ->searchable()
+                    ->label('Regimen Fiscal')
+                    ->columnSpan(2)
+                    ->options(Regimenes::all()->pluck('mostrar','clave')),
+                Forms\Components\Hidden::make('tax_id')
+                    ->default(Filament::getTenant()->taxid),
+                Forms\Components\Hidden::make('team_id')
+                    ->default(Filament::getTenant()->id),
+            ])->columns(4);
     }
 
     public static function table(Table $table): Table

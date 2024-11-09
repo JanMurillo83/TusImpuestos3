@@ -39,6 +39,8 @@ class Terceros extends Model
 		'telefono',
 		'correo',
 		'contacto',
+        'regimen',
+        'codigopos',
 		'tax_id',
         'team_id'
 	];

@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('telefono');
             $table->string('correo');
             $table->string('contacto');
+            $table->string('regimen')->nullable();
+            $table->string('codigopos')->nullable();
             $table->string('tax_id')->nullable();
             $table->foreignId('team_id')->constrained()->nullable();
             $table->timestamps();

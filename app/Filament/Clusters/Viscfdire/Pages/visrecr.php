@@ -30,6 +30,10 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
 
 class visrecr extends Page implements HasForms, HasTable
 {
@@ -138,41 +142,48 @@ class visrecr extends Page implements HasForms, HasTable
                 })
             ], layout: FiltersLayout::AboveContent)->filtersFormColumns(5)
             ->actions([
-                Action::make('ContabilizarR')
-                    ->label('')
-                    ->tooltip('Contabilizar')
-                    ->icon('fas-scale-balanced')
-                    ->modalWidth(MaxWidth::ExtraSmall)
-                    ->form([
-                        Select::make('rubrogas')
-                            ->label('Rubro del Gasto')
-                            ->required()
-                            ->live()
-                            ->options([
-                               '50100000' => 'Costo de Ventas',
-                               '60200000' => 'Gastos de Venta',
-                               '60300000' => 'Gastos de Administracion',
-                               '70100000' => 'Gastos Financieros',
-                               '70200000' => 'Productos Financieros'
-                            ]),
-                        Select::make('detallegas')
-                            ->label('Rubro del Gasto')
-                            ->required()
-                            ->options(function(Get $get) {
-                                return
-                                CatCuentas::where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
-                            }),
-                        Select::make('forma')
-                            ->label('Forma de Pago')
-                            ->options([
-                                'CXP'=>'Cuenta por Pagar',
-                                'PAG'=>'Pagado'
+                ViewAction::make()
+                ->label('Expediente')
+                ->icon('fas-folder-tree')
+                ->infolist(function($infolist,$record){
+                    $pols = DB::table('cat_polizas')->where('uuid',$record->UUID)->get();
+                    $nopols = count($pols);
+                    if($nopols == 0)
+                    {
+                        return $infolist
+                        ->schema([
+                            TextEntry::make('No')
+                            ->label('No Existen Polizas para este UUID'),
+                        ]);
+                    }
+                    else{
+
+                        $encabezado []= ['UUID'=>$record->UUID,
+                        'Fecha'=>$record->Fecha,'Emisor'=>$record->Emisor_Rfc,
+                        'Receptor'=>$record->Receptor_Rfc,'Polizas'=>$pols];
+                        //dd($encabezado);
+                        return $infolist
+                        ->state($encabezado[0])
+                        ->schema([
+                            Section::make()
+                            ->schema([
+                            TextEntry::make('UUID')
+                            ->columnSpan(2)->label('UUID'),
+                            TextEntry::make('Fecha'),
+                            TextEntry::make('Emisor'),
+                            TextEntry::make('Receptor')])->columns(5),
+                            Section::make()
+                            ->schema([
+                                RepeatableEntry::make('Polizas')
+                                ->schema([
+                                    TextEntry::make('fecha'),
+                                    TextEntry::make('tipo'),
+                                    TextEntry::make('folio')
+                                ])->columns(3)
                             ])
-                            ->required()
-                    ])
-                    ->action(function(Model $record,$data){
-                        Self::contabiliza_r($record,$data);
-                    })
+                        ])->columns(5);
+                }
+                })
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
                 /*BulkActionGroup::make([

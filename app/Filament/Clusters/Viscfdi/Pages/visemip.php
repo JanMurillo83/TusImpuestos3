@@ -30,6 +30,10 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
 
 class visemip extends Page implements HasForms, HasTable
 {
@@ -138,23 +142,47 @@ class visemip extends Page implements HasForms, HasTable
                 })
             ], layout: FiltersLayout::AboveContent)->filtersFormColumns(5)
             ->actions([
-                Action::make('ContabilizarE')
-                ->label('')
-                ->tooltip('Contabilizar')
-                ->icon('fas-scale-balanced')
-                ->modalWidth(MaxWidth::ExtraSmall)
-                ->form([
-                    Select::make('forma')
-                        ->label('Forma de Pago')
-                        ->options([
-                            'Bancario'=>'Cuentas por Cobrar',
-                            'Efectivo'=>'Efectivo'
-                        ])
-                        ->default('Bancario')
-                        ->disabled()
-                        ->required()
-                ])->action(function(Model $record,$data){
-                        Self::contabiliza_e($record,$data);
+                ViewAction::make()
+                ->label('Expediente')
+                ->icon('fas-folder-tree')
+                ->infolist(function($infolist,$record){
+                    $pols = DB::table('cat_polizas')->where('uuid',$record->UUID)->get();
+                    $nopols = count($pols);
+                    if($nopols == 0)
+                    {
+                        return $infolist
+                        ->schema([
+                            TextEntry::make('No')
+                            ->label('No Existen Polizas para este UUID'),
+                        ]);
+                    }
+                    else{
+
+                        $encabezado []= ['UUID'=>$record->UUID,
+                        'Fecha'=>$record->Fecha,'Emisor'=>$record->Emisor_Rfc,
+                        'Receptor'=>$record->Receptor_Rfc,'Polizas'=>$pols];
+                        //dd($encabezado);
+                        return $infolist
+                        ->state($encabezado[0])
+                        ->schema([
+                            Section::make()
+                            ->schema([
+                            TextEntry::make('UUID')
+                            ->columnSpan(2)->label('UUID'),
+                            TextEntry::make('Fecha'),
+                            TextEntry::make('Emisor'),
+                            TextEntry::make('Receptor')])->columns(5),
+                            Section::make()
+                            ->schema([
+                                RepeatableEntry::make('Polizas')
+                                ->schema([
+                                    TextEntry::make('fecha'),
+                                    TextEntry::make('tipo'),
+                                    TextEntry::make('folio')
+                                ])->columns(3)
+                            ])
+                        ])->columns(5);
+                }
                 })
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([

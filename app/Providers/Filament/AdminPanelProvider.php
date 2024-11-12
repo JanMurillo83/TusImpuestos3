@@ -24,6 +24,8 @@ use Filament\Navigation\MenuItem;
 use App\Filament\Pages\Paginas\CamPer;
 use App\Filament\Pages\Registrocfdi;
 use App\Filament\Resources\AlmacencfdisResource;
+use App\Filament\Resources\AlmacencfdisResource\Pages\CfdiRec;
+use App\Filament\Resources\AlmacencfdisResource\Pages\ListAlmacencfdis;
 use Dotenv\Util\Str;
 use Filament\Navigation\NavigationBuilder;
 use Filament\Navigation\NavigationGroup;

@@ -16,10 +16,15 @@ use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Get;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -64,6 +69,16 @@ class visrecf extends Page implements HasForms, HasTable
                 TextColumn::make('Moneda')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('TipoCambio')
+                    ->label('T.C.')
+                    ->numeric()
+                    ->searchable()
+                    ->sortable()
+                    ->formatStateUsing(function (string $state) {
+                        $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        return $formatter->formatCurrency($state, 'MXN');
+                    }),
                 TextColumn::make('TipoDeComprobante')
                     ->searchable()
                     ->sortable()
@@ -138,82 +153,62 @@ class visrecf extends Page implements HasForms, HasTable
                 })
             ], layout: FiltersLayout::AboveContent)->filtersFormColumns(5)
             ->actions([
-                Action::make('ContabilizarR')
-                    ->label('')
-                    ->tooltip('Contabilizar')
-                    ->icon('fas-scale-balanced')
-                    ->modalWidth(MaxWidth::ExtraSmall)
-                    ->form([
-                        Select::make('rubrogas')
-                            ->label('Rubro del Gasto')
-                            ->required()
-                            ->live()
-                            ->options([
-                               '50100000' => 'Costo de Ventas',
-                               '60200000' => 'Gastos de Venta',
-                               '60300000' => 'Gastos de Administracion',
-                               '70100000' => 'Gastos Financieros',
-                               '70200000' => 'Productos Financieros'
-                            ]),
-                        Select::make('detallegas')
-                            ->label('Rubro del Gasto')
-                            ->required()
-                            ->options(function(Get $get) {
-                                return
-                                CatCuentas::where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
-                            }),
-                        Select::make('forma')
-                            ->label('Forma de Pago')
-                            ->options([
-                                'CXP'=>'Cuenta por Pagar',
-                                'PAG'=>'Pagado'
+                ViewAction::make()
+                ->label('Expediente')
+                ->icon('fas-folder-tree')
+                ->infolist(function($infolist,$record){
+                    $pols = DB::table('cat_polizas')->where('uuid',$record->UUID)->get();
+                    $nopols = count($pols);
+                    if($nopols == 0)
+                    {
+                        return $infolist
+                        ->schema([
+                            TextEntry::make('No')
+                            ->label('No Existen Polizas para este UUID'),
+                        ]);
+                    }
+                    else{
+
+                        $encabezado []= ['UUID'=>$record->UUID,
+                        'Fecha'=>$record->Fecha,'Emisor'=>$record->Emisor_Rfc,
+                        'Receptor'=>$record->Receptor_Rfc,'Polizas'=>$pols];
+                        //dd($encabezado);
+                        return $infolist
+                        ->state($encabezado[0])
+                        ->schema([
+                            Section::make()
+                            ->schema([
+                            TextEntry::make('UUID')
+                            ->columnSpan(2)->label('UUID'),
+                            TextEntry::make('Fecha'),
+                            TextEntry::make('Emisor'),
+                            TextEntry::make('Receptor')])->columns(5),
+                            Section::make()
+                            ->schema([
+                                RepeatableEntry::make('Polizas')
+                                ->schema([
+                                    TextEntry::make('fecha'),
+                                    TextEntry::make('tipo'),
+                                    TextEntry::make('folio')
+                                ])->columns(3)
                             ])
-                            ->required()
-                    ])
-                    ->action(function(Model $record,$data){
-                        Self::contabiliza_r($record,$data);
-                    })
+                        ])->columns(5);
+                }
+                })
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
-               /* BulkActionGroup::make([
-                Action::make('ContabilizarR')
-                ->label('Contabilizar')
-                ->tooltip('Contabilizar')
-                ->icon('fas-scale-balanced')
-                ->modalWidth(MaxWidth::ExtraSmall)
-                ->form([
-                    Select::make('rubrogas')
-                        ->label('Rubro del Gasto')
-                        ->required()
-                        ->live()
-                        ->options([
-                           '50100000' => 'Costo de Ventas',
-                           '60200000' => 'Gastos de Venta',
-                           '60300000' => 'Gastos de Administracion',
-                           '70100000' => 'Gastos Financieros',
-                           '70200000' => 'Productos Financieros'
-                        ]),
-                    Select::make('detallegas')
-                        ->label('Rubro del Gasto')
-                        ->required()
-                        ->options(function(Get $get) {
-                            return
-                            CatCuentas::where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
-                        }),
-                    Select::make('forma')
-                        ->label('Forma de Pago')
-                        ->options([
-                            'CXP'=>'Cuenta por Pagar',
-                            'PAG'=>'Pagado'
-                        ])
-                        ->required()
-                ])
-                ->action(function(Model $record,$data){
-                    Self::contabiliza_r($record,$data);
-                })
-                ])*/
             ]);
     }
+
+   /* public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                TextEntry::make('UUID'),
+                TextEntry::make('ejercicio'),
+                TextEntry::make('periodo'),
+            ]);
+    }*/
 
     public static function contabiliza_r($record,$data)
     {

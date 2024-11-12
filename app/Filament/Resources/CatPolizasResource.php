@@ -6,10 +6,15 @@ use App\Filament\Resources\CatPolizasResource\Pages;
 use App\Filament\Resources\CatPolizasResource\RelationManagers;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use DateTime;
 use Filament\Facades\Filament;
 use Filament\Forms;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -18,6 +23,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Support\RawJs;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
@@ -34,6 +40,15 @@ class CatPolizasResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\DatePicker::make('fecha')
+                    ->required()
+                    ->default(function(){
+                        $fecha = new DateTime();
+                        $dia = Carbon::now()->format('d');
+                        $fecha->setDate(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, intval($dia));
+                        //dd($fecha);
+                        return date_format($fecha,'Y-m-d');
+                    }),
                 Forms\Components\Select::make('tipo')
                     ->required()
                     ->live()
@@ -58,16 +73,8 @@ class CatPolizasResource extends Resource
                     ->required()
                     ->numeric()
                     ->readOnly(),
-                Forms\Components\DatePicker::make('fecha')
-                    ->required()
-                    ->default(function(){
-                        $fecha = new DateTime();
-                        $dia = Carbon::now()->format('d');
-                        $fecha->setDate(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, intval($dia));
-                        //dd($fecha);
-                        return date_format($fecha,'Y-m-d');
-                    }),
-                Forms\Components\TextInput::make('cargos')
+
+               /* Forms\Components\TextInput::make('cargos')
                     ->required()
                     ->numeric()
                     ->default(0)
@@ -76,7 +83,10 @@ class CatPolizasResource extends Resource
                         $valor = collect($get('partidas'))->pluck('cargo')->sum();
                         Self::updateTotals($get,$set);
                         return floatval($valor);
-                    }),
+                    })
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
+                    ->prefix('$'),
                 Forms\Components\TextInput::make('abonos')
                     ->required()
                     ->numeric()
@@ -86,13 +96,20 @@ class CatPolizasResource extends Resource
                         $valor = collect($get('partidas'))->pluck('abono')->sum();
                         Self::updateTotals($get,$set);
                         return floatval($valor);
-                    }),
+                    })
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
+                    ->prefix('$'),*/
                 Forms\Components\TextInput::make('concepto')
                     ->required()
                     ->maxLength(255)
                     ->columnSpan(4),
                 Forms\Components\TextInput::make('referencia')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->formatStateUsing(function(string $state){
+                        $state = 'F-'.$state;
+                        return $state;
+                    }),
                 Forms\Components\Hidden::make('periodo')
                     ->default(Filament::getTenant()->periodo),
                 Forms\Components\Hidden::make('ejercicio')
@@ -104,40 +121,48 @@ class CatPolizasResource extends Resource
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id)
                     ->required(),
-                Forms\Components\Repeater::make('partidas')
-                    ->relationship()
+                    TableRepeater::make('partidas')
+                    ->relationship('partidas')
+                    ->headers([
+                        Header::make('codigo')->width('250px'),
+                        Header::make('cargo')->width('100px'),
+                        Header::make('abono')->width('100px'),
+                        Header::make('factura')->width('100px'),
+                        Header::make('concepto')->width('300px'),
+                    ])
                     ->schema([
-                        Forms\Components\Select::make('codigo')
-                            ->options(
-                                DB::table('PolCuentas')->where('team_id',Filament::getTenant()->id)->orderBy('codigo')->pluck('mostrar','codigo')
-                            )
-                            ->searchable()
-                            ->columnSpan(2)
-                            ->live()
-                            ->afterStateUpdated(function(Get $get,Set $set){
-                                $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
-                                $nom = $cuenta[0]->nombre;
-                                $set('cuenta',$nom);
-                                $set('concepto',$get('../../concepto'));
-                            }),
-                        Forms\Components\Hidden::make('cuenta'),
-                        Forms\Components\Hidden::make('factura')
-                            ->default(''),
-                        Forms\Components\TextInput::make('concepto')
-                            ->columnSpan(3),
-                        Forms\Components\TextInput::make('cargo')
+                        Select::make('codigo')
+                        ->options(
+                            DB::table('PolCuentas')->where('team_id',Filament::getTenant()->id)->orderBy('codigo')->pluck('mostrar','codigo')
+                        )
+                        ->searchable()
+                        ->columnSpan(2)
+                        ->live()
+                        ->afterStateUpdated(function(Get $get,Set $set){
+                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
+                            $nom = $cuenta[0]->nombre;
+                            $set('cuenta',$nom);
+                            $set('concepto',$get('../../concepto'));
+                        }),
+                        TextInput::make('cargo')
                             ->numeric()
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
                             ->default(0)
-                            ->live(onBlur:true),
-                        Forms\Components\TextInput::make('abono')
+                            ->live(onBlur:true)
+                            ->prefix('$'),
+                        TextInput::make('abono')
                             ->numeric()
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
                             ->default(0)
-                            ->live(onBlur:true),
-                        Forms\Components\Hidden::make('team_id')
+                            ->live(onBlur:true)
+                            ->prefix('$'),
+                        TextInput::make('factura'),
+                        TextInput::make('concepto'),
+                        Hidden::make('team_id')
                             ->default(Filament::getTenant()->id)
-                    ])->columnSpanFull()->columns(7)
-                    ->addActionLabel('Agregar')
-                    ->extraAttributes(['style' => 'font-size:0.4em;padding:0.1em;'])
+                    ])->columnSpanFull()->streamlined()
             ])->columns(5);
     }
 
@@ -160,15 +185,18 @@ class CatPolizasResource extends Resource
                 ->orderBy('folio', 'ASC')
             )
             ->columns([
+                Tables\Columns\TextColumn::make('fecha')
+                ->dateTime('d-m-Y')
+                ->sortable(),
                 Tables\Columns\TextColumn::make('tipo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('folio')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('fecha')
-                    ->dateTime('d-m-Y')
-                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('concepto')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('referencia')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('cargos')
                     ->formatStateUsing(function (string $state) {
@@ -184,12 +212,13 @@ class CatPolizasResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('periodo')
                     ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('ejercicio')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('referencia')
-                    ->searchable()
+                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('ejercicio')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('referencia')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('uuid')
                     ->label('UUID')
                     ->searchable()

@@ -5,8 +5,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MovbancosResource\Pages;
 use App\Filament\Resources\MovbancosResource\RelationManagers;
 use App\Models\Almacencfdis;
+use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
+use App\Models\CatPolizas;
 use App\Models\Movbancos;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
+use Carbon\Carbon;
 use CfdiUtils\Elements\Cfdi33\Comprobante;
 use Filament\Facades\Filament;
 use Filament\Forms;
@@ -21,15 +26,23 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Get;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action as ActionsAction;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Set;
+use Filament\Infolists\Components\Actions as ComponentsActions;
+use Filament\Infolists\Components\Actions\Action as ComponentsActionsAction;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Enums\ActionsPosition;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\Summarizers\Sum;
+use Illuminate\Support\Facades\DB;
+use phpDocumentor\Reflection\Types\Parent_;
 use PhpOffice\PhpSpreadsheet\Calculation\MathTrig\Sum as MathTrigSum;
 
 class MovbancosResource extends Resource
@@ -38,7 +51,6 @@ class MovbancosResource extends Resource
     protected static ?string $navigationGroup = 'Bancos';
     protected static ?string $label = 'Movimiento Bancario';
     protected static ?string $pluralLabel = 'Movimientos Bancarios';
-
     public static function form(Form $form): Form
     {
         return $form
@@ -175,7 +187,13 @@ class MovbancosResource extends Resource
                                     return $record->importe;
                                 }),
                                 TextInput::make('importefactu')
+                                ->visible(false)
                                 ->label('Importe Facturas')
+                                ->placeholder(function (Get $get,Set $set) {
+                                    $valor = collect($get('Facturas'))->pluck('Importe')->sum();
+                                    //Self::updateTotals($get,$set);
+                                    return floatval($valor);
+                                })
                                 ->readOnly()
                                 ->numeric()
                                 ->prefix('$')
@@ -188,64 +206,81 @@ class MovbancosResource extends Resource
                                         '3'=>'Prestamo Recibido',
                                         '4'=>'Otros Ingresos'
                                     ])->columnSpan(2),
-                                Repeater::make('Facturas')
-                                    ->columnSpanFull()
-                                    ->itemLabel(fn (array $state): ?string => $state['UUID'] ?? null)
-                                    ->collapsible()
-                                    ->collapsed()
-                                    ->reorderable(false)
-                                    ->columns(4)
+                                    TableRepeater::make('Facturas')
+                                    ->headers([
+                                        Header::make('Factura')->width('100px'),
+                                        Header::make('Emisor')->width('100px'),
+                                        Header::make('Receptor')->width('100px'),
+                                        Header::make('Importe')->width('100px'),
+                                        //Header::make('Idd')->width('50px')
+                                    ])
                                     ->schema([
-                                        Select::make('Comprobante')
-                                            ->searchable()
-                                            ->options(
-                                                function(){
-                                                    $movimientos = Almacencfdis::where('xml_type','Emitidos')->get();
-                                                    $regresar = [];
-                                                    foreach($movimientos as $movimiento)
-                                                    {
-                                                        $idm = $movimiento->id;
-                                                        $dats = 'Serie:'.$movimiento->Serie.' Folio:'.$movimiento->Folio.' UUID:'.$movimiento->UUID.' Receptor:'.$movimiento->Receptor_Nombre.' Importe:'.$movimiento->Total;
-                                                        $datss = [$idm=>$dats];
-                                                        array_push($regresar,$datss);
-                                                    }
-                                                    return $regresar;
-                                                }
-                                            )
-                                            ->afterStateUpdated(function(Get $get,Set $set){
-                                                $f = $get('Comprobante');
-                                                $dt = Almacencfdis::where('id',$f)->get();
-                                                //dd($dt);
-                                                if(isset($dt[0]))
-                                                {
-                                                    $set('Fecha',$dt[0]->Fecha);
-                                                    $set('Factura',$dt[0]->Serie.$dt[0]->Folio);
-                                                    $set('Receptor',$dt[0]->Receptor_Nombre);
-                                                    $set('Importe',$dt[0]->Total);
-                                                    $set('UUID',$dt[0]->UUID);
-                                                    Self::sumas($get,$set);
-                                                }
-                                                else
-                                                {
-                                                    $set('Fecha','');
-                                                    $set('Factura','');
-                                                    $set('Receptor','');
-                                                    $set('Importe','');
-                                                    $set('UUID','');
-                                                }
+                                        TextInput::make('Factura')
+                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                            $factura = $get('Factura');
+                                            $facts = DB::table('almacencfdis')->where('id',$factura)->get();
+                                            $fac = $facts[0];
+                                            $set('Emisor',$fac->Emisor_Rfc);
+                                            $set('Receptor',$fac->Receptor_Rfc);
+                                            $set('Importe',$fac->Total);
+                                            $set('FacId',$fac->id);
+                                        })->live(onBlur:true)
+                                        ->suffixAction(
+                                            ActionsAction::make('SelF')
+                                            ->label('')
+                                            ->icon('fas-magnifying-glass')
+                                            ->infolist(function($infolist, Set $set, Get $get,$data){
+                                                $comp = DB::table('almacencfdis')->get();
+                                                //->where(['TipoDeComprobante'=>'I','xml_type'=>'Emitidos'])->get();
+                                                $datos [] =['Titulo'=>'Comprobantes Fiscales','Facturas'=>$comp];
+                                                return $infolist
+                                                ->state($datos[0])
+                                                ->schema([
+                                                    TextEntry::make('Titulo'),
+                                                    RepeatableEntry::make('Facturas')
+                                                    ->schema([
+                                                        TextEntry::make('Fecha')->date('d-m-y'),
+                                                        TextEntry::make('Serie'),
+                                                        TextEntry::make('Folio'),
+                                                        TextEntry::make('Emisor_Rfc'),
+                                                        TextEntry::make('Receptor_Rfc'),
+                                                        TextEntry::make('Total')->numeric(),
+                                                        TextEntry::make('id')->numeric()
+                                                        ->label('')
+                                                        ->formatStateUsing(function($state){
+                                                            $state = '';
+                                                            return $state;
+                                                        })
+                                                        ->suffixAction(
+                                                            ComponentsActionsAction::make('Sel')
+                                                            ->label('')
+                                                            ->icon('fas-check')
+                                                            ->action(function(ComponentsActions\Action $action)use($get,$set,$data){
+                                                                $val = ($action->getComponent()->getState());
+                                                                $set('Factura',$val);
+                                                                $facts = DB::table('almacencfdis')->where('id',$val)->get();
+                                                                $fac = $facts[0];
+                                                                $set('Factura','F-'.$fac->Serie.$fac->Folio);
+                                                                $set('Emisor',$fac->Emisor_Rfc);
+                                                                $set('Receptor',$fac->Receptor_Rfc);
+                                                                $set('Importe',$fac->Total);
+                                                                $set('FacId',$fac->id);
+                                                                $set('UUID',$fac->UUID);
+                                                                //self::sumas($get,$set,$data);
+                                                            })->close()
+                                                        ),
+                                                        TextEntry::make('UUID')->visible(false),
+                                                    ])->columns(7)
+                                                ]);
                                             })
-                                            ->live(onBlur: true)
-                                            ->columnSpanFull(),
-                                            TextInput::make('Fecha')
-                                            ->readOnly(),
-                                            TextInput::make('Factura')
-                                            ->readOnly(),
-                                            Hidden::make('UUID'),
-                                            TextInput::make('Receptor')
-                                            ->readOnly(),
-                                            TextInput::make('Importe')
-                                            ->readOnly(),
-                                        ])
+                                        ),
+                                        TextInput::make('Emisor')->readOnly(),
+                                        TextInput::make('Receptor')->readOnly(),
+                                        TextInput::make('Importe')->readOnly()
+                                        ->numeric()->prefix('$'),
+                                        Hidden::make('FacId'),
+                                        Hidden::make('UUID')
+                                    ])->columnSpanFull()
                             ])->columns(4);
                         })
                         ->modalWidth('7xl')
@@ -253,28 +288,126 @@ class MovbancosResource extends Resource
                         ->label('Procesar')
                         ->accessSelectedRecords()
                         ->icon('fas-check-to-slot')
-                        ->action(function (Model $record,$data) {
-                            Self::procesa_e_f($record,$data);
+                        ->action(function (Model $record,$data,Get $get, Set $set) {
+                            Self::procesa_e_f($record,$data,$get,$set);
                         }),
                     Action::make('procesa_s')
-                        ->form([
+                    ->form(function(Form $form){
+                        return $form
+                        ->schema([
+                            TextInput::make('importe')
+                            ->label('Importe Movimiento')
+                            ->readOnly()
+                            ->numeric()
+                            ->prefix('$')
+                            ->default(function(Model $record){
+                                return $record->importe;
+                            }),
+                            TextInput::make('importefactu')
+                            ->visible(false)
+                            ->label('Importe Facturas')
+                            ->placeholder(function (Get $get,Set $set) {
+                                $valor = collect($get('Facturas'))->pluck('Importe')->sum();
+                                //Self::updateTotals($get,$set);
+                                return floatval($valor);
+                            })
+                            ->readOnly()
+                            ->numeric()
+                            ->prefix('$')
+                            ->default(0),
                             Select::make('Movimiento')
-                            ->options([
-                                '1'=>'Pago de Factura',
-                                '2'=>'Reembolso de Gastos',
-                                '3'=>'Compra de Activo',
-                                '4'=>'Prestamo Entregado',
-                                '5'=>'Gasto No deducible'
-                            ]),
-
-                        ])->modalWidth(MaxWidth::Small)
-                        ->visible(fn ($record) => $record->tipo == 'S')
-                        ->label('Procesar')
-                        ->accessSelectedRecords()
-                        ->icon('fas-check-to-slot')
-                        ->action(function (Model $record) {
-                            Self::procesa_s_f($this,$record);
-                        })
+                                ->required()
+                                ->options([
+                                    '1'=>'Cobro de Factura',
+                                    '2'=>'Cobro no identificado',
+                                    '3'=>'Prestamo Recibido',
+                                    '4'=>'Otros Ingresos'
+                                ])->columnSpan(2),
+                                TableRepeater::make('Facturas')
+                                ->headers([
+                                    Header::make('Factura')->width('100px'),
+                                    Header::make('Emisor')->width('100px'),
+                                    Header::make('Receptor')->width('100px'),
+                                    Header::make('Importe')->width('100px'),
+                                    //Header::make('Idd')->width('50px')
+                                ])
+                                ->schema([
+                                    TextInput::make('Factura')
+                                    ->afterStateUpdated(function(Get $get,Set $set){
+                                        $factura = $get('Factura');
+                                        $facts = DB::table('almacencfdis')->where('id',$factura)->get();
+                                        $fac = $facts[0];
+                                        $set('Emisor',$fac->Emisor_Rfc);
+                                        $set('Receptor',$fac->Receptor_Rfc);
+                                        $set('Importe',$fac->Total);
+                                        $set('FacId',$fac->id);
+                                    })->live(onBlur:true)
+                                    ->suffixAction(
+                                        ActionsAction::make('SelF')
+                                        ->label('')
+                                        ->icon('fas-magnifying-glass')
+                                        ->infolist(function($infolist, Set $set, Get $get,$data){
+                                            $comp = DB::table('almacencfdis')->get();
+                                            //->where(['TipoDeComprobante'=>'I','xml_type'=>'Emitidos'])->get();
+                                            $datos [] =['Titulo'=>'Comprobantes Fiscales','Facturas'=>$comp];
+                                            return $infolist
+                                            ->state($datos[0])
+                                            ->schema([
+                                                TextEntry::make('Titulo'),
+                                                RepeatableEntry::make('Facturas')
+                                                ->schema([
+                                                    TextEntry::make('Fecha')->date('d-m-y'),
+                                                    TextEntry::make('Serie'),
+                                                    TextEntry::make('Folio'),
+                                                    TextEntry::make('Emisor_Rfc'),
+                                                    TextEntry::make('Receptor_Rfc'),
+                                                    TextEntry::make('Total')->numeric(),
+                                                    TextEntry::make('id')->numeric()
+                                                    ->label('')
+                                                    ->formatStateUsing(function($state){
+                                                        $state = '';
+                                                        return $state;
+                                                    })
+                                                    ->suffixAction(
+                                                        ComponentsActionsAction::make('Sel')
+                                                        ->label('')
+                                                        ->icon('fas-check')
+                                                        ->action(function(ComponentsActions\Action $action)use($get,$set,$data){
+                                                            $val = ($action->getComponent()->getState());
+                                                            $set('Factura',$val);
+                                                            $facts = DB::table('almacencfdis')->where('id',$val)->get();
+                                                            $fac = $facts[0];
+                                                            $set('Factura','F-'.$fac->Serie.$fac->Folio);
+                                                            $set('Emisor',$fac->Emisor_Rfc);
+                                                            $set('Receptor',$fac->Receptor_Rfc);
+                                                            $set('Importe',$fac->Total);
+                                                            $set('FacId',$fac->id);
+                                                            $set('UUID',$fac->UUID);
+                                                            //self::sumas($get,$set,$data);
+                                                        })->close()
+                                                    ),
+                                                    TextEntry::make('UUID')->visible(false),
+                                                ])->columns(7)
+                                            ]);
+                                        })
+                                    ),
+                                    TextInput::make('Emisor')->readOnly(),
+                                    TextInput::make('Receptor')->readOnly(),
+                                    TextInput::make('Importe')->readOnly()
+                                    ->numeric()->prefix('$'),
+                                    Hidden::make('FacId'),
+                                    Hidden::make('UUID')
+                                ])->columnSpanFull()
+                        ])->columns(4);
+                    })
+                    ->modalWidth('7xl')
+                    ->visible(fn ($record) => $record->tipo == 'E')
+                    ->label('Procesar')
+                    ->accessSelectedRecords()
+                    ->icon('fas-check-to-slot')
+                    ->action(function (Model $record,$data,Get $get, Set $set) {
+                        Self::procesa_s_f($record,$data,$get,$set);
+                    })
                 ])->color('primary')
             ])->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
@@ -284,26 +417,146 @@ class MovbancosResource extends Resource
             ]);
     }
 
-    public static function sumas(Get $get,Set $set) :void
+    public static function sumas(Get $get,Set $set,$data) :void
     {
-        $f = collect($get('Facturas'))->pluck('Importe')->sum();
-        dd($f);
-        if(isset($f))
-        {
-            $set('../../importefactu',$f);
-        }
-        else{
-            $set('../../importefactu',0);
-        }
+        //dd($data);
+        $col = array_column($get('../../Facturas'),'Importe');
+        $suma = array_sum($col);
+        $set('importefactu',$suma);
     }
     public static function procesa_e_f($record,$data)
     {
-        dd($data);
+
+        $facts =$data['Facturas'];
+        //dd($facts[0]);
+        DB::table('movbancos')->where('id',$record->id)->update([
+            'tercero'=>$facts[0]['Receptor'],
+            'factura'=>$facts[0]['Factura'],
+            'uuid'=>$facts[0]['UUID'],
+            'contabilizada'=>'SI'
+        ]);
+        $fss = DB::table('almacencfdis')->where('id',$facts[0]['FacId'])->get();
+        $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->get();
+        $ter = DB::table('terceros')->where('rfc',$facts[0]['Receptor'])->get();
+        $nom = $fss[0]->Receptor_Nombre;
+        //-------------------------------------------------------------------
+        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Ig')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+        $poliza = CatPolizas::create([
+            'tipo'=>'Ig',
+            'folio'=>$nopoliza,
+            'fecha'=>$record->fecha,
+            'concepto'=>$nom,
+            'cargos'=>$record->importe,
+            'abonos'=>$record->importe,
+            'periodo'=>Filament::getTenant()->periodo,
+            'ejercicio'=>Filament::getTenant()->ejercicio,
+            'referencia'=>$facts[0]['Factura'],
+            'uuid'=>$facts[0]['UUID'],
+            'tiposat'=>'Ig',
+            'team_id'=>Filament::getTenant()->id
+        ]);
+        $polno = $poliza['id'];
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$ban[0]->codigo,
+                'cuenta'=>$ban[0]->cuenta,
+                'concepto'=>$nom,
+                'cargo'=>$record->importe,
+                'abono'=>0,
+                'factura'=>$facts[0]['Factura'],
+                'nopartida'=>1,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$ter[0]->cuenta,
+                'cuenta'=>$ter[0]->nombre,
+                'concepto'=>$nom,
+                'cargo'=>0,
+                'abono'=>$record->importe,
+                'factura'=>$facts[0]['Factura'],
+                'nopartida'=>2,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+        Notification::make('Concluido')
+        ->title('Proceso Concluido')
+        ->success()
+        ->send();
     }
 
     public static function procesa_s_f($record,$data)
     {
-        dd($data['Movimiento']);
+        $facts =$data['Facturas'];
+        //dd($facts[0]);
+        DB::table('movbancos')->where('id',$record->id)->update([
+            'tercero'=>$facts[0]['Receptor'],
+            'factura'=>$facts[0]['Factura'],
+            'uuid'=>$facts[0]['UUID'],
+            'contabilizada'=>'SI'
+        ]);
+        $fss = DB::table('almacencfdis')->where('id',$facts[0]['FacId'])->get();
+        $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->get();
+        $ter = DB::table('terceros')->where('rfc',$facts[0]['Receptor'])->get();
+        $nom = $fss[0]->Receptor_Nombre;
+        //-------------------------------------------------------------------
+        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+        $poliza = CatPolizas::create([
+            'tipo'=>'Eg',
+            'folio'=>$nopoliza,
+            'fecha'=>$record->fecha,
+            'concepto'=>$nom,
+            'cargos'=>$record->importe,
+            'abonos'=>$record->importe,
+            'periodo'=>Filament::getTenant()->periodo,
+            'ejercicio'=>Filament::getTenant()->ejercicio,
+            'referencia'=>$facts[0]['Factura'],
+            'uuid'=>$facts[0]['UUID'],
+            'tiposat'=>'Eg',
+            'team_id'=>Filament::getTenant()->id
+        ]);
+        $polno = $poliza['id'];
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$ban[0]->codigo,
+                'cuenta'=>$ban[0]->cuenta,
+                'concepto'=>$nom,
+                'cargo'=>0,
+                'abono'=>$record->importe,
+                'factura'=>$facts[0]['Factura'],
+                'nopartida'=>1,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$ter[0]->cuenta,
+                'cuenta'=>$ter[0]->nombre,
+                'concepto'=>$nom,
+                'cargo'=>$record->importe,
+                'abono'=>0,
+                'factura'=>$facts[0]['Factura'],
+                'nopartida'=>2,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+        Notification::make('Concluido')
+        ->title('Proceso Concluido')
+        ->success()
+        ->send();
     }
 
     public static function getRelations(): array

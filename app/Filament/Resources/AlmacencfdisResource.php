@@ -280,8 +280,9 @@ class AlmacencfdisResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAlmacencfdis::route('/'),
+            //'index' => Pages\ListAlmacencfdis::route('/'),
             'registro' => Pages\Cfdiregistro::route('/registro'),
+            //'cfdi1'=> Pages\CfdiRec::route('/')
             //'create' => Pages\CreateAlmacencfdis::route('/create'),
             //'edit' => Pages\EditAlmacencfdis::route('/{record}/edit'),
         ];
@@ -348,13 +349,13 @@ class AlmacencfdisResource extends Resource
                 'tipo'=>'PV',
                 'folio'=>$nopoliza,
                 'fecha'=>$cffecha,
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargos'=>$total,
                 'abonos'=>$total,
                 'periodo'=>$cfperiodo,
                 'ejercicio'=>$cfejercicio,
                 'referencia'=>$serie.$folio,
-                'uuid'=>$uuid,
+                'uuid'=>$serie.$folio,
                 'tiposat'=>'Dr',
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -363,10 +364,10 @@ class AlmacencfdisResource extends Resource
                 'cat_polizas_id'=>$polno,
                 'codigo'=>$ctaclie,
                 'cuenta'=>$nom_rec,
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>$total,
                 'abono'=>0,
-                'factura'=>$uuid,
+                'factura'=>$serie.$folio,
                 'nopartida'=>1,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -378,10 +379,10 @@ class AlmacencfdisResource extends Resource
                 'cat_polizas_id'=>$polno,
                 'codigo'=>'20901000',
                 'cuenta'=>'IVA trasladado no cobrado',
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>0,
                 'abono'=>$iva,
-                'factura'=>$uuid,
+                'factura'=>$serie.$folio,
                 'nopartida'=>2,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -393,10 +394,10 @@ class AlmacencfdisResource extends Resource
                 'cat_polizas_id'=>$polno,
                 'codigo'=>'40101000',
                 'cuenta'=>'Ventas',
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>0,
                 'abono'=>$subtotal,
-                'factura'=>$uuid,
+                'factura'=>$serie.$folio,
                 'nopartida'=>3,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -473,13 +474,13 @@ class AlmacencfdisResource extends Resource
                 'tipo'=>'PG',
                 'folio'=>$nopoliza,
                 'fecha'=>$cffecha,
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargos'=>$total,
                 'abonos'=>$total,
                 'periodo'=>$cfperiodo,
                 'ejercicio'=>$cfejercicio,
                 'referencia'=>$serie.$folio,
-                'uuid'=>$uuid,
+                'uuid'=>$serie.$folio,
                 'tiposat'=>'Dr',
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -488,10 +489,10 @@ class AlmacencfdisResource extends Resource
                 'cat_polizas_id'=>$polno,
                 'codigo'=>$ctaclie,
                 'cuenta'=>$nom_rec,
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>0,
                 'abono'=>$total,
-                'factura'=>$uuid,
+                'factura'=>$serie.$folio,
                 'nopartida'=>1,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -503,10 +504,10 @@ class AlmacencfdisResource extends Resource
                 'cat_polizas_id'=>$polno,
                 'codigo'=>'11901000',
                 'cuenta'=>'IVA trasladado no cobrado',
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>$iva,
                 'abono'=>0,
-                'factura'=>$uuid,
+                'factura'=>$serie.$folio,
                 'nopartida'=>2,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -518,10 +519,10 @@ class AlmacencfdisResource extends Resource
                 'cat_polizas_id'=>$polno,
                 'codigo'=>$ctagas,
                 'cuenta'=>'Ventas',
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>$subtotal,
                 'abono'=>0,
-                'factura'=>$uuid,
+                'factura'=>$serie.$folio,
                 'nopartida'=>3,
                 'team_id'=>Filament::getTenant()->id
             ]);

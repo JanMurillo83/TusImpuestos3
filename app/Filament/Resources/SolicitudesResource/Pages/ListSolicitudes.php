@@ -562,6 +562,14 @@ class ListSolicitudes extends ListRecords
             }
             else
             {
+                if(!isset($pagoscom)) {
+					$pagostot = floatval(0.00);
+					$subtotal = floatval(0.00);
+					$traslado = floatval(0.00);
+					$retencion = floatval(0.00);
+					$total = floatval(0.00);
+					$tipocambio = 1;
+				}
                 $pagostot = $pagoscom->searchNode('pago20:Totales');
                 $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
                 $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);

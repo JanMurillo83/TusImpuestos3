@@ -106,7 +106,7 @@ class CatPolizasResource extends Resource
                     ->columnSpan(4),
                 Forms\Components\TextInput::make('referencia')
                     ->maxLength(255)
-                    ->formatStateUsing(function(string $state){
+                    ->formatStateUsing(function(?string $state){
                         $state = 'F-'.$state;
                         return $state;
                     }),
@@ -199,13 +199,13 @@ class CatPolizasResource extends Resource
                 Tables\Columns\TextColumn::make('referencia')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('cargos')
-                    ->formatStateUsing(function (string $state) {
+                    ->formatStateUsing(function (?string $state) {
                         $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
                 Tables\Columns\TextColumn::make('abonos')
-                    ->formatStateUsing(function (string $state) {
+                    ->formatStateUsing(function (?string $state) {
                         $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');

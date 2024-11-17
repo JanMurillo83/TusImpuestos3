@@ -46,7 +46,7 @@ class CamPer extends Page
             ->title(' Periodo de Trabajo Actualizado')
             ->success()
             ->send();
-            redirect('/'.Filament::getTenant()->id);
+            redirect('/main/'.Filament::getTenant()->id);
     }
 
 }

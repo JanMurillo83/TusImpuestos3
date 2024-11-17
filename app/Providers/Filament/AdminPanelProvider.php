@@ -27,11 +27,13 @@ use App\Filament\Resources\AlmacencfdisResource;
 use App\Filament\Resources\AlmacencfdisResource\Pages\CfdiRec;
 use App\Filament\Resources\AlmacencfdisResource\Pages\ListAlmacencfdis;
 use Dotenv\Util\Str;
+use Filament\Actions\Action;
 use Filament\Navigation\NavigationBuilder;
 use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Pages\Page;
+use Filament\View\PanelsRenderHook;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -86,8 +88,12 @@ class AdminPanelProvider extends PanelProvider
             ->tenantMenuItems([
                 MenuItem::make()->label('Cambio de Periodo')
                 ->url(fn (): string => CamPer::getUrl())
-                ->icon('fas-calendar-check'),
-            ])->sidebarFullyCollapsibleOnDesktop()
-            ->sidebarWidth('18rem');
+                ->icon('fas-calendar-check')
+
+            ])->topNavigation()
+            ->maxContentWidth('full')
+            ->viteTheme('resources/css/filament/admin/theme.css');;
+            /*->sidebarFullyCollapsibleOnDesktop()
+            ->sidebarWidth('18rem');*/
     }
 }

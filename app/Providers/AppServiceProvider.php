@@ -7,6 +7,8 @@ use Filament\Facades\Filament;
 use Filament\Navigation\NavigationBuilder;
 use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
+use Filament\Support\Assets\Css;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\View\View;
@@ -43,8 +45,9 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
         FilamentView::registerRenderHook(
-            PanelsRenderHook::SIDEBAR_NAV_START,
-            fn (): View => view('periodoview'),
+            PanelsRenderHook::FOOTER,
+            fn (): View => view('customFooter'),
         );
+
     }
 }

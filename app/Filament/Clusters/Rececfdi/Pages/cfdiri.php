@@ -3,13 +3,14 @@
 namespace App\Filament\Clusters\Rececfdi\Pages;
 
 use App\Filament\Clusters\Rececfdi;
+use App\Livewire\CambiaFechas;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
+use Carbon\Carbon;
 use Filament\Facades\Filament;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
@@ -30,6 +31,10 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Filament\Actions\Action as MAction;
+use Filament\Forms\Components\Actions\Action as ActionsAction;
+use Filament\Tables\Actions\HeaderActionsPosition;
+use Illuminate\Database\Query\Builder;
 
 class cfdiri extends Page implements HasForms, HasTable
 {
@@ -39,6 +44,49 @@ class cfdiri extends Page implements HasForms, HasTable
     protected static ?string $cluster = Rececfdi::class;
     protected static ?string $title = 'Facturas';
     protected static string $view = 'filament.clusters.rececfdi.pages.cfdiri';
+    protected static ?string $headerActionsposition = 'bottom';//HeaderActionsPosition::Bottom;
+
+    public function getHeaderWidgets() :array
+    {
+        return[
+           // CambiaFechas::class,
+        ];
+    }
+
+    public function getHeaderActions() : array
+    {
+        return [
+            MAction::make('Cambiar Fechas')
+                    ->form([
+                        DatePicker::make('fechai')->label('Fecha Inicial')
+                            ->default(Carbon::now()),
+                        DatePicker::make('fechaf')->label('Fecha Final')
+                            ->default(Carbon::now())
+                    ])->action(function($data){
+                            /*$this->table->modifyQueryUsing(
+                                function(Builder $builder) use($data)
+                                {
+                                    $query = $builder->getQuery();
+                                    $query->whereBetween('Fecha',[$data['fechai'],'fechaf']);
+                                });*/
+                            $query = $this->table->getQuery();
+                            $this->table->modifyQueryUsing(function(Builder $builder)use($data,$query) :Builder {
+                                /*return Almacencfdis::where('team_id',Filament::getTenant()->id)
+                                    ->where('xml_type','Recibidos')
+                                    ->where('TipoDeComprobante','I')
+                                    ->where('used','NO')
+                                    ->where('Fecha','>',Carbon::createFromDate($data['fechai']))
+                                    ->where('Fecha','<',Carbon::createFromDate($data['fechaf']))
+                                    ->orderBy('Fecha', 'ASC');*/
+                                    return $query->whereBetween('Fecha',[$data['fechai'],$data['fechaf']]);
+                            }
+                            );
+                            //dd($this->table->getQuery());
+                            $this->resetTable();
+                        })->close(),
+        ];
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -47,8 +95,6 @@ class cfdiri extends Page implements HasForms, HasTable
                 ->where('xml_type','Recibidos')
                 ->where('TipoDeComprobante','I')
                 ->where('used','NO')
-                ->where('periodo',Filament::getTenant()->periodo)
-                ->where('ejercicio',Filament::getTenant()->ejercicio)
                 ->orderBy('Fecha', 'ASC')
                 )
             ->columns([
@@ -114,30 +160,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 TextColumn::make('periodo')
                     ->numeric()
                     ->sortable()
-            ])
-            ->filters([
-                SelectFilter::make('ejercicio')
-                ->options(['2020'=>'2020','2021'=>'2021','2022'=>'2022','2023'=>'2023','2024'=>'2024','2025'=>'2025','2026'=>'2026'])
-                ->attribute('ejercicio'),
-                SelectFilter::make('periodo')
-                ->options(['1'=>'Enero','2'=>'Febrero','3'=>'Marzo','4'=>'Abril','5'=>'Mayo','6'=>'Junio','7'=>'Julio','8'=>'Agosto','9'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'])
-                ->attribute('periodo'),
-                Filter::make('Fecha CFDI')
-                ->form([
-                    DatePicker::make('fecha_i')
-                        ->label('F.Inicial'),
-                    DatePicker::make('fecha_f')
-                        ->label('F.Final')
-
-                ])->columnSpan(2)->columns(2)
-                ->query(function (Builder $query, array $data): Builder {
-                    return $query
-                        ->when(
-                            $data['fecha_i']&&$data['fecha_f'],
-                            fn (Builder $query,$date): Builder => $query->whereDate('Fecha','>=', $data['fecha_i'])->whereDate('Fecha','<=',$data['fecha_f'])
-                        );
-                })
-            ], layout: FiltersLayout::AboveContent)->filtersFormColumns(5)
+                ])
             ->actions([
                 Action::make('ContabilizarR')
                     ->label('')
@@ -206,14 +229,11 @@ class cfdiri extends Page implements HasForms, HasTable
                         ->options([
                             'CXP'=>'Cuenta por Pagar',
                             'PAG'=>'Pagado'
-                        ])
-                        ->required()
-                ])
+                        ])->required()])
                 ->action(function(Model $record,$data){
-                    Self::contabiliza_r($record,$data);
-                })
-                ])
-            ]);
+                    Self::contabiliza_r($record,$data);})])])
+                ->striped()->defaultPaginationPageOption(6)
+                ->paginated([6, 'all']);
     }
 
     public static function contabiliza_r($record,$data)

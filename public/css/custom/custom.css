@@ -1,0 +1,21 @@
+.compact_table {
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+    border-radius: 0% !important;
+}
+
+.flex {
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    gap: 3px !important;
+}
+.fi-tabs {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+}
+
+.fi-header-heading {
+    font-size: 1.5rem !important;
+}

@@ -24,8 +24,9 @@ return new class extends Migration
             $table->string('referencia')->nullable();
             $table->string('uuid')->nullable();
             $table->string('tiposat')->nullable();
-            $table->foreignId('team_id')->constrained()->nullable();
+            $table->foreignId('team_id')->constrained();
             $table->timestamps();
+
         });
         Schema::create('cat_polizas_team', function (Blueprint $table) {
             $table->id();
@@ -40,6 +41,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cat_polizas_nima831222hz9');
+        Schema::dropIfExists('cat_polizas');
     }
 };

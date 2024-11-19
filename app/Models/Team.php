@@ -31,5 +31,21 @@ class Team extends Model
     {
         return $this->belongsToMany(Productos::class);
     }
+    public function movinventarios(): BelongsToMany
+    {
+        return $this->belongsToMany(Movinventarios::class);
+    }
+    public function compras(): BelongsToMany
+    {
+        return $this->belongsToMany(Compras::class);
+    }
+    public function facturas(): BelongsToMany
+    {
+        return $this->belongsToMany(Compras::class);
+    }
+    public function terceros(): BelongsToMany
+    {
+        return $this->belongsToMany(Terceros::class);
+    }
 
 }

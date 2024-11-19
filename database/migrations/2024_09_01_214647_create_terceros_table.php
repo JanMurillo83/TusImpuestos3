@@ -26,7 +26,7 @@ return new class extends Migration
             $table->foreignId('team_id')->constrained()->nullable();
             $table->timestamps();
         });
-        Schema::create('terceros_team', function (Blueprint $table) {
+        Schema::create('team_terceros', function (Blueprint $table) {
             $table->id();
             $table->foreignId('terceros_id')->constrained();
             $table->foreignId('team_id')->constrained();

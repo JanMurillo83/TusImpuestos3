@@ -39,6 +39,7 @@ return new class extends Migration
             $table->string('metodo')->nullable();
             $table->integer('ejercicio')->nullable();
             $table->integer('periodo')->nullable();
+            $table->text('notas')->nullable();
             $table->foreignId('team_id')->constrained()->nullable();
             $table->timestamps();
         });

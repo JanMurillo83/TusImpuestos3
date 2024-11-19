@@ -16,5 +16,6 @@ class Auxiliares extends Model
     'abono',
     'factura',
     'nopartida',
+    'uuid',
     'team_id'];
 }

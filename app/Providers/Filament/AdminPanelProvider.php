@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Clusters\ContReportes;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -34,6 +35,8 @@ use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Pages\Page;
 use Filament\View\PanelsRenderHook;
+use EightyNine\Reports\ReportsPlugin;
+use SolutionForest\FilamentSimpleLightBox\SimpleLightBoxPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -62,7 +65,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class
+                //Widgets\AccountWidget::class
             ])
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->middleware([
@@ -90,10 +93,15 @@ class AdminPanelProvider extends PanelProvider
                 ->url(fn (): string => CamPer::getUrl())
                 ->icon('fas-calendar-check')
 
-            ])->topNavigation()
+            ])
+            ->topNavigation()
             ->maxContentWidth('full')
-            ->viteTheme('resources/css/filament/admin/theme.css');;
-            /*->sidebarFullyCollapsibleOnDesktop()
-            ->sidebarWidth('18rem');*/
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->plugins([
+                ReportsPlugin::make()
+                ->navigationGroup('Contabilidad'),
+                SimpleLightBoxPlugin::make()
+                //->cluster(ContReportes::class)
+            ]);
     }
 }

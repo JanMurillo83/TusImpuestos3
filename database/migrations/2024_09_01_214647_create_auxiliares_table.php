@@ -20,7 +20,8 @@ return new class extends Migration
             $table->decimal('abono', 18, 8);
             $table->string('factura')->nullable();
             $table->integer('nopartida')->nullable();
-            $table->integer('cat_polizas_id')->default(0);
+            $table->integer('cat_polizas_id')->default(0)->onDelete('cascade');
+            $table->string('uuid')->nullable();
             $table->foreignId('team_id')->constrained()->nullable();
             $table->timestamps();
         });

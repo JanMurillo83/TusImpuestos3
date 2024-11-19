@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateCatPolizas extends CreateRecord
 {
@@ -31,6 +32,24 @@ class CreateCatPolizas extends CreateRecord
                 $this->closeActionModal();
 
             })->size('lg');
+    }
+    protected function afterCreate(): void
+    {
+        $partidas = $this->record['partidas'];
+        $cargos = 0;
+        $abonos = 0;
+        $part = 0;
+        foreach($partidas as $partida)
+        {
+            $part++;
+            $partida['cat_polizas_id'] = $this->record->getKey();
+            $partida['nopartida'] = $part;
+            $cargos += $partida['cargo'];
+            $abonos += $partida['abono'];
+        }
+        $this->record['cargos'] = $cargos;
+        $this->record['abonos'] = $abonos;
+        $this->record->save();
     }
     protected function getCancelFormAction(): Action
     {

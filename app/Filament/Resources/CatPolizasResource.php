@@ -73,8 +73,11 @@ class CatPolizasResource extends Resource
                     ->required()
                     ->numeric()
                     ->readOnly(),
-
-               /* Forms\Components\TextInput::make('cargos')
+                Forms\Components\Hidden::make('cargos')
+                    ->default(0.00),
+                Forms\Components\Hidden::make('abonos')
+                    ->default(0.00),
+                 /*Forms\Components\TextInput::make('cargos')
                     ->required()
                     ->numeric()
                     ->default(0)
@@ -106,10 +109,7 @@ class CatPolizasResource extends Resource
                     ->columnSpan(4),
                 Forms\Components\TextInput::make('referencia')
                     ->maxLength(255)
-                    ->formatStateUsing(function(?string $state){
-                        $state = 'F-'.$state;
-                        return $state;
-                    }),
+                    ->prefix('F-'),
                 Forms\Components\Hidden::make('periodo')
                     ->default(Filament::getTenant()->periodo),
                 Forms\Components\Hidden::make('ejercicio')
@@ -127,7 +127,8 @@ class CatPolizasResource extends Resource
                         Header::make('codigo')->width('250px'),
                         Header::make('cargo')->width('100px'),
                         Header::make('abono')->width('100px'),
-                        Header::make('factura')->width('100px'),
+                        Header::make('factura')->width('100px')
+                        ->label('Referencia'),
                         Header::make('concepto')->width('300px'),
                     ])
                     ->schema([
@@ -147,21 +148,27 @@ class CatPolizasResource extends Resource
                         TextInput::make('cargo')
                             ->numeric()
                             ->mask(RawJs::make('$money($input)'))
-                            ->stripCharacters(',')
+                            ->stripCharacters([',','$'])
                             ->default(0)
                             ->live(onBlur:true)
                             ->prefix('$'),
                         TextInput::make('abono')
                             ->numeric()
                             ->mask(RawJs::make('$money($input)'))
-                            ->stripCharacters(',')
+                            ->stripCharacters([',','$'])
                             ->default(0)
                             ->live(onBlur:true)
                             ->prefix('$'),
-                        TextInput::make('factura'),
+                        TextInput::make('factura')
+                        ->label('Referencia')
+                        ->prefix('F-'),
                         TextInput::make('concepto'),
-                        Hidden::make('team_id')
-                            ->default(Filament::getTenant()->id)
+                        Hidden::make('team_id')->default(Filament::getTenant()->id),
+                        Hidden::make('cuenta'),
+                        Hidden::make('cat_polizas_id')
+                        ->default(0),
+                        Hidden::make('nopartida')
+                        ->default(0),
                     ])->columnSpanFull()->streamlined()
             ])->columns(5);
     }
@@ -197,7 +204,8 @@ class CatPolizasResource extends Resource
                 Tables\Columns\TextColumn::make('concepto')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('referencia')
-                    ->searchable(),
+                    ->searchable()
+                    ->prefix('F-'),
                 Tables\Columns\TextColumn::make('cargos')
                     ->formatStateUsing(function (?string $state) {
                         $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
@@ -217,8 +225,6 @@ class CatPolizasResource extends Resource
                 Tables\Columns\TextColumn::make('ejercicio')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('referencia')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('uuid')
                     ->label('UUID')
                     ->searchable()
@@ -239,13 +245,16 @@ class CatPolizasResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                ->label('')
+                ->icon(null),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    //Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])->striped()->defaultPaginationPageOption(8)
+            ->paginated([8, 'all']);
     }
 
     public static function getRelations(): array
@@ -264,3 +273,4 @@ class CatPolizasResource extends Resource
         ];
     }
 }
+

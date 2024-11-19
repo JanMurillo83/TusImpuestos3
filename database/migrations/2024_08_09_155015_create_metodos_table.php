@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('auxiliares_cat_polizas', function (Blueprint $table) {
+        Schema::create('metodos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('auxiliares_id')->constrained();
-            $table->foreignId('cat_polizas_id')->constrained();
+            $table->string('clave')->nullable();
+            $table->string('descripcion')->nullable();
+            $table->string('mostrar')->nullable();
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('metodos');
     }
 };

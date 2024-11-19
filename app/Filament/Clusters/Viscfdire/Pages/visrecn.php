@@ -8,18 +8,27 @@ use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
+use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Get;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -30,10 +39,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Filament\Tables\Actions\ViewAction;
-use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\TextEntry;
 
 class visrecn extends Page implements HasForms, HasTable
 {
@@ -46,105 +51,157 @@ class visrecn extends Page implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                Almacencfdis::where('team_id',Filament::getTenant()->id)
-                ->where('xml_type','Recibidos')
-                ->where('TipoDeComprobante','E')
-                ->where('periodo',Filament::getTenant()->periodo)
-                ->where('ejercicio',Filament::getTenant()->ejercicio)
-                ->orderBy('Fecha', 'ASC')
-                )
-            ->columns([
-                TextColumn::make('Serie')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('Folio')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('Fecha')
-                    ->searchable()
-                    ->sortable()
-                    ->date('d-m-Y'),
-                TextColumn::make('Moneda')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('TipoDeComprobante')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('Receptor_Rfc')
-                    ->label('RFC Receptor')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('Receptor_Nombre')
-                    ->label('Nombre Receptor')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('Emisor_Rfc')
-                    ->label('RFC Emisor')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('Emisor_Nombre')
-                    ->label('Nombre Emisor')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('UUID')
-                    ->label('UUID')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('Total')
-                    ->sortable()
-                    ->numeric()
-                    ->formatStateUsing(function (string $state) {
-                        $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
-                        return $formatter->formatCurrency($state, 'MXN');
-                    }),
-                TextColumn::make('used')
-                    ->label('Utilizado')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('xml_type')
-                    ->label('Tipo')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('ejercicio')
-                    ->sortable(),
-                TextColumn::make('periodo')
-                    ->numeric()
-                    ->sortable()
+        ->query(
+            Almacencfdis::where('team_id',Filament::getTenant()->id)
+            ->where('xml_type','Recibidos')
+            ->where('TipoDeComprobante','E')
+             )
+        ->columns([
+            TextColumn::make('id')
+                ->label('#')
+                ->rowIndex()
+                ->sortable(),
+            TextColumn::make('Fecha')
+                ->searchable()
+                ->sortable()
+                ->date('d-m-Y'),
+            TextColumn::make('Serie')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('Folio')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('Moneda')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('TipoDeComprobante')
+                ->searchable()
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('Receptor_Rfc')
+                ->label('RFC Receptor')
+                ->searchable()
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('Receptor_Nombre')
+                ->label('Nombre Receptor')
+                ->searchable()
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('Emisor_Rfc')
+                ->label('RFC Emisor')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('Emisor_Nombre')
+                ->label('Nombre Emisor')
+                ->searchable()
+                ->sortable()
+                ->limit(20),
+            TextColumn::make('Moneda')
+                ->label('Moneda')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('TipoCambio')
+                ->label('T.C.')
+                ->sortable()
+                ->numeric()
+                ->formatStateUsing(function (string $state) {
+                    if($state <= 0) $state = 1;
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                    return $formatter->formatCurrency($state, 'MXN');
+                }),
+            TextColumn::make('Total')
+                ->sortable()
+                ->numeric()
+                ->formatStateUsing(function (string $state) {
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                    return $formatter->formatCurrency($state, 'MXN');
+                }),
+            TextColumn::make('notas')
+                ->label('Referencia')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('used')
+                ->label('Asociado')
+                ->searchable()
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: false),
+            TextColumn::make('UUID')
+                ->label('UUID')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('MetodoPago')
+                ->label('Forma de Pago')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('xml_type')
+                ->label('Tipo')
+                ->searchable()
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('ejercicio')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('periodo')
+                ->numeric()
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true)
             ])
-            ->filters([
-                SelectFilter::make('ejercicio')
-                ->options(['2020'=>'2020','2021'=>'2021','2022'=>'2022','2023'=>'2023','2024'=>'2024','2025'=>'2025','2026'=>'2026'])
-                ->attribute('ejercicio'),
-                SelectFilter::make('periodo')
-                ->options(['1'=>'Enero','2'=>'Febrero','3'=>'Marzo','4'=>'Abril','5'=>'Mayo','6'=>'Junio','7'=>'Julio','8'=>'Agosto','9'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'])
-                ->attribute('periodo'),
-                Filter::make('Fecha CFDI')
-                ->form([
-                    DatePicker::make('fecha_i')
-                        ->label('F.Inicial'),
-                    DatePicker::make('fecha_f')
-                        ->label('F.Final')
-
-                ])->columnSpan(2)->columns(2)
-                ->query(function (Builder $query, array $data): Builder {
-                    return $query
-                        ->when(
-                            $data['fecha_i']&&$data['fecha_f'],
-                            fn (Builder $query,$date): Builder => $query->whereDate('Fecha','>=', $data['fecha_i'])->whereDate('Fecha','<=',$data['fecha_f'])
-                        );
-                })
-            ], layout: FiltersLayout::AboveContent)->filtersFormColumns(5)
+            ->striped()->defaultPaginationPageOption(8)
+                ->paginated([8, 'all'])
+                ->filters([
+                    Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('Fecha_Inicial')
+                        ->default(function(){
+                            $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo;
+                            $Fecha_Inicial = Carbon::make('first day of'.$ldom);
+                            return $Fecha_Inicial->format('Y-m-d');
+                        }),
+                        DatePicker::make('Fecha_Final')
+                        ->default(function(){
+                            $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo;
+                            $Fecha_Inicial = Carbon::make('last day of'.$ldom);
+                            return $Fecha_Inicial->format('Y-m-d');
+                        }),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['Fecha_Inicial'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('Fecha', '>=', $date),
+                            )
+                            ->when(
+                                $data['Fecha_Final'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('Fecha', '<=', $date),);
+                            })
+                ],layout: FiltersLayout::Modal)
+                ->filtersTriggerAction(
+                    fn (Action $action) => $action
+                        ->button()
+                        ->label('Cambiar Periodo'),
+                )
+                ->deferFilters()
+                ->defaultSort('Fecha', 'asc')
+                ->recordAction('Notas')
             ->actions([
+                EditAction::make('Notas')
+                        ->label('')
+                        ->icon(null)
+                        ->modalHeading('Referecnia')
+                        ->form([
+                            Textarea::make('notas')
+                            ->label('Referencia')
+                    ])
+                    ->action(function(Model $record,$data){
+                        $record['notas'] = $data['notas'];
+                        $record->save();
+                    }),
+                ActionGroup::make([
                 ViewAction::make()
                 ->label('Expediente')
-                ->icon('fas-folder-tree')
                 ->infolist(function($infolist,$record){
                     $pols = DB::table('cat_polizas')->where('uuid',$record->UUID)->get();
                     $nopols = count($pols);
@@ -184,47 +241,21 @@ class visrecn extends Page implements HasForms, HasTable
                         ])->columns(5);
                 }
                 })
+                ])
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
-                /*BulkActionGroup::make([
-                Action::make('ContabilizarR')
-                ->label('Contabilizar')
-                ->tooltip('Contabilizar')
-                ->icon('fas-scale-balanced')
-                ->modalWidth(MaxWidth::ExtraSmall)
-                ->form([
-                    Select::make('rubrogas')
-                        ->label('Rubro del Gasto')
-                        ->required()
-                        ->live()
-                        ->options([
-                           '50100000' => 'Costo de Ventas',
-                           '60200000' => 'Gastos de Venta',
-                           '60300000' => 'Gastos de Administracion',
-                           '70100000' => 'Gastos Financieros',
-                           '70200000' => 'Productos Financieros'
-                        ]),
-                    Select::make('detallegas')
-                        ->label('Rubro del Gasto')
-                        ->required()
-                        ->options(function(Get $get) {
-                            return
-                            CatCuentas::where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
-                        }),
-                    Select::make('forma')
-                        ->label('Forma de Pago')
-                        ->options([
-                            'CXP'=>'Cuenta por Pagar',
-                            'PAG'=>'Pagado'
-                        ])
-                        ->required()
-                ])
-                ->action(function(Model $record,$data){
-                    Self::contabiliza_r($record,$data);
-                })
-                ])*/
             ]);
     }
+
+   /* public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                TextEntry::make('UUID'),
+                TextEntry::make('ejercicio'),
+                TextEntry::make('periodo'),
+            ]);
+    }*/
 
     public static function contabiliza_r($record,$data)
     {

@@ -13,7 +13,10 @@ class ListTerceros extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+            ->label('Agregar')
+            ->icon('fas-plus')
+            ->createAnother(false),
         ];
     }
 }

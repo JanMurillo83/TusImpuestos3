@@ -8,10 +8,11 @@ use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
+use Carbon\Carbon;
 use Filament\Facades\Filament;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -19,17 +20,21 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Filament\Tables\Actions\BulkAction;
+use Filament\Tables\Actions\EditAction;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Date;
+use stdClass;
 
 class cfdieo extends Page implements HasForms, HasTable
 {
@@ -39,6 +44,10 @@ class cfdieo extends Page implements HasForms, HasTable
     protected static ?string $cluster = Emitcfdi::class;
     protected static ?string $title = 'Recibos de Nomina';
     protected static string $view = 'filament.clusters.emitcfdi.pages.cfdieo';
+    protected static ?string $headerActionsposition = 'bottom';
+    public ?Date $Fecha_Inicial = null;
+    public ?Date $Fecha_Final = null;
+
     public function table(Table $table): Table
     {
         return $table
@@ -47,21 +56,22 @@ class cfdieo extends Page implements HasForms, HasTable
                 ->where('xml_type','Emitidos')
                 ->where('TipoDeComprobante','N')
                 ->where('used','NO')
-                ->where('periodo',Filament::getTenant()->periodo)
-                ->where('ejercicio',Filament::getTenant()->ejercicio)
-                ->orderBy('Fecha', 'ASC')
-                )
+                 )
             ->columns([
+                TextColumn::make('id')
+                    ->label('#')
+                    ->rowIndex()
+                    ->sortable(),
+                TextColumn::make('Fecha')
+                    ->searchable()
+                    ->sortable()
+                    ->date('d-m-Y'),
                 TextColumn::make('Serie')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('Folio')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('Fecha')
-                    ->searchable()
-                    ->sortable()
-                    ->date('d-m-Y'),
                 TextColumn::make('Moneda')
                     ->searchable()
                     ->sortable(),
@@ -76,7 +86,8 @@ class cfdieo extends Page implements HasForms, HasTable
                 TextColumn::make('Receptor_Nombre')
                     ->label('Nombre Receptor')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->limit(20),
                 TextColumn::make('Emisor_Rfc')
                     ->label('RFC Emisor')
                     ->searchable()
@@ -86,11 +97,22 @@ class cfdieo extends Page implements HasForms, HasTable
                     ->label('Nombre Emisor')
                     ->searchable()
                     ->sortable()
+                    ->limit(20)
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('UUID')
-                    ->label('UUID')
+                TextColumn::make('Moneda')
+                    ->label('Moneda')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('TipoCambio')
+                    ->label('T.C.')
+                    ->sortable()
+                    ->numeric()
+                    ->formatStateUsing(function (string $state) {
+                        if($state <= 0) $state = 1;
+                        $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        return $formatter->formatCurrency($state, 'MXN');
+                    }),
                 TextColumn::make('Total')
                     ->sortable()
                     ->numeric()
@@ -99,46 +121,50 @@ class cfdieo extends Page implements HasForms, HasTable
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
+                TextColumn::make('notas')
+                    ->label('Referencia')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('used')
-                    ->label('Utilizado')
+                    ->label('Asociado')
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('UUID')
+                    ->label('UUID')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('MetodoPago')
+                    ->label('Forma de Pago')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('xml_type')
                     ->label('Tipo')
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('ejercicio')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('periodo')
                     ->numeric()
                     ->sortable()
-            ])
-            ->filters([
-                SelectFilter::make('ejercicio')
-                ->options(['2020'=>'2020','2021'=>'2021','2022'=>'2022','2023'=>'2023','2024'=>'2024','2025'=>'2025','2026'=>'2026'])
-                ->attribute('ejercicio'),
-                SelectFilter::make('periodo')
-                ->options(['1'=>'Enero','2'=>'Febrero','3'=>'Marzo','4'=>'Abril','5'=>'Mayo','6'=>'Junio','7'=>'Julio','8'=>'Agosto','9'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'])
-                ->attribute('periodo'),
-                Filter::make('Fecha CFDI')
-                ->form([
-                    DatePicker::make('fecha_i')
-                        ->label('F.Inicial'),
-                    DatePicker::make('fecha_f')
-                        ->label('F.Final')
-
-                ])->columnSpan(2)->columns(2)
-                ->query(function (Builder $query, array $data): Builder {
-                    return $query
-                        ->when(
-                            $data['fecha_i']&&$data['fecha_f'],
-                            fn (Builder $query,$date): Builder => $query->whereDate('Fecha','>=', $data['fecha_i'])->whereDate('Fecha','<=',$data['fecha_f'])
-                        );
-                })
-            ], layout: FiltersLayout::AboveContent)->filtersFormColumns(5)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                ])
+                ->recordAction('Notas')
             ->actions([
+                EditAction::make('Notas')
+                ->label('')
+                ->icon(null)
+                ->modalHeading('Referecnia')
+                ->form([
+                    Textarea::make('notas')
+                    ->label('Referencia')
+                ])
+                ->action(function(Model $record,$data){
+                    $record['notas'] = $data['notas'];
+                    $record->save();
+                }),
                 Action::make('ContabilizarE')
                 ->label('')
                 ->tooltip('Contabilizar')
@@ -159,27 +185,65 @@ class cfdieo extends Page implements HasForms, HasTable
                 })
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
-                BulkActionGroup::make([
-                    Action::make('ContabilizarE')
-                    ->label('Contabilizar')
-                    ->tooltip('Contabilizar')
-                    ->icon('fas-scale-balanced')
-                    ->modalWidth(MaxWidth::ExtraSmall)
-                    ->form([
-                        Select::make('forma')
-                            ->label('Forma de Pago')
-                            ->options([
-                                'Bancario'=>'Cuentas por Cobrar',
-                                'Efectivo'=>'Efectivo'
-                            ])
-                            ->default('Bancario')
-                            ->disabled()
-                            ->required()
-                    ])->action(function(Model $record,$data){
-                            Self::contabiliza_r($record,$data);
-                    })
+                BulkAction::make('multi_Contabilizar')
+                ->label('')
+                ->tooltip('Contabilizar')
+                ->icon('fas-scale-balanced')
+                ->modalWidth(MaxWidth::ExtraSmall)
+                ->form([
+                    Select::make('forma')
+                        ->label('Forma de Pago')
+                        ->options([
+                            'Bancario'=>'Cuentas por Cobrar',
+                            'Efectivo'=>'Efectivo'
+                        ])
+                        ->default('Bancario')
+                        ->disabled()
+                        ->required()
                 ])
-            ]);
+                ->action(function(Collection $records,array $data,$livewire){
+                    foreach($records as $record){
+                        Self::contabiliza_e($record,$data,$livewire);
+                    }
+                })
+
+                ])
+                ->striped()->defaultPaginationPageOption(8)
+                ->paginated([8, 'all'])
+                ->filters([
+                    Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('Fecha_Inicial')
+                        ->default(function(){
+                            $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo;
+                            $Fecha_Inicial = Carbon::make('first day of'.$ldom);
+                            return $Fecha_Inicial->format('Y-m-d');
+                        }),
+                        DatePicker::make('Fecha_Final')
+                        ->default(function(){
+                            $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo;
+                            $Fecha_Inicial = Carbon::make('last day of'.$ldom);
+                            return $Fecha_Inicial->format('Y-m-d');
+                        }),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['Fecha_Inicial'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('Fecha', '>=', $date),
+                            )
+                            ->when(
+                                $data['Fecha_Final'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('Fecha', '<=', $date),);
+                            })
+                ],layout: FiltersLayout::Modal)
+                ->filtersTriggerAction(
+                    fn (Action $action) => $action
+                        ->button()
+                        ->label('Cambiar Periodo'),
+                )
+                ->deferFilters()
+                ->defaultSort('Fecha', 'asc');
     }
 
     public static function contabiliza_e($record,$data)
@@ -243,7 +307,7 @@ class cfdieo extends Page implements HasForms, HasTable
                 'tipo'=>'PV',
                 'folio'=>$nopoliza,
                 'fecha'=>$cffecha,
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargos'=>$total,
                 'abonos'=>$total,
                 'periodo'=>$cfperiodo,
@@ -258,26 +322,12 @@ class cfdieo extends Page implements HasForms, HasTable
                 'cat_polizas_id'=>$polno,
                 'codigo'=>$ctaclie,
                 'cuenta'=>$nom_rec,
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>$total,
                 'abono'=>0,
-                'factura'=>$uuid,
+                'factura'=>$serie.$folio,
                 'nopartida'=>1,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>'20901000',
-                'cuenta'=>'IVA trasladado no cobrado',
-                'concepto'=>$nom_rec.' '.$serie.$folio,
-                'cargo'=>0,
-                'abono'=>$iva,
-                'factura'=>$uuid,
-                'nopartida'=>2,
+                'uuid'=>$uuid,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -288,13 +338,31 @@ class cfdieo extends Page implements HasForms, HasTable
                 'cat_polizas_id'=>$polno,
                 'codigo'=>'40101000',
                 'cuenta'=>'Ventas',
-                'concepto'=>$nom_rec.' '.$serie.$folio,
+                'concepto'=>$nom_rec,
                 'cargo'=>0,
                 'abono'=>$subtotal,
-                'factura'=>$uuid,
-                'nopartida'=>3,
+                'factura'=>$serie.$folio,
+                'nopartida'=>2,
+                'uuid'=>$uuid,
                 'team_id'=>Filament::getTenant()->id
             ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>'20901000',
+                'cuenta'=>'IVA trasladado no cobrado',
+                'concepto'=>$nom_rec,
+                'cargo'=>0,
+                'abono'=>$iva,
+                'factura'=>$serie.$folio,
+                'nopartida'=>3,
+                'uuid'=>$uuid,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+
             DB::table('auxiliares_cat_polizas')->insert([
                 'auxiliares_id'=>$aux['id'],
                 'cat_polizas_id'=>$polno

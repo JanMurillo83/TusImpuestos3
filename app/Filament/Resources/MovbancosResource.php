@@ -13,6 +13,7 @@ use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use CfdiUtils\Elements\Cfdi33\Comprobante;
+use CfdiUtils\SumasPagos20\Decimal;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
@@ -27,6 +28,7 @@ use Filament\Forms\Get;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action as ActionsAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
@@ -40,7 +42,10 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Enums\ActionsPosition;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\Summarizers\Range;
 use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
 use phpDocumentor\Reflection\Types\Parent_;
 use PhpOffice\PhpSpreadsheet\Calculation\MathTrig\Sum as MathTrigSum;
@@ -51,6 +56,8 @@ class MovbancosResource extends Resource
     protected static ?string $navigationGroup = 'Bancos';
     protected static ?string $label = 'Movimiento Bancario';
     protected static ?string $pluralLabel = 'Movimientos Bancarios';
+    public ?float $saldo_cuenta = 0;
+    public ?float $saldo_cuenta_act = 0;
     public static function form(Form $form): Form
     {
         return $form
@@ -115,12 +122,28 @@ class MovbancosResource extends Resource
                     ->default(Filament::getTenant()->taxid),
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id),
+                Forms\Components\Hidden::make('actual')
+                    ->default(0),
             ])->columns(4);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->heading(function($table,$livewire){
+                $record = $table->getRecords();
+                $sdos = DB::table('saldosbancos')
+                    ->where('cuenta',$record[0]->cuenta)
+                    ->where('ejercicio',Filament::getTenant()->ejercicio)
+                    ->where('periodo',Filament::getTenant()->periodo)->get();
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        $valor = $formatter->formatCurrency($sdos[0]->inicial, 'MXN');
+                    $livewire->saldo_cuenta = floatval($sdos[0]->inicial);
+                    $livewire->saldo_cuenta_act = floatval($sdos[0]->inicial);
+                    $valor2 = $formatter->formatCurrency($livewire->saldo_cuenta_act, 'MXN');
+                return 'Saldo Inicial del Periodo: '.$valor;
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('fecha')
                     ->dateTime('d-m-Y')
@@ -131,8 +154,8 @@ class MovbancosResource extends Resource
                     ->sortable()
                     ->state(function($record):string {
                         $v='';
-                        if($record->tipo == 'E') $v = 'Entrada';
-                        if($record->tipo == 'S') $v = 'Salida';
+                        if($record->tipo == 'E') $v = 'Ingreso';
+                        if($record->tipo == 'S') $v = 'Egreso';
                         return $v;
                     }),
                 Tables\Columns\TextColumn::make('tercero')
@@ -144,7 +167,8 @@ class MovbancosResource extends Resource
                     ->state(function($record):string {
                         $clientes = BancoCuentas::where('id',$record->cuenta)->get();
                         return $clientes[0]->banco;
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('factura')
                     ->searchable()
                     ->sortable(),
@@ -162,14 +186,22 @@ class MovbancosResource extends Resource
                 Tables\Columns\TextColumn::make('contabilizada')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('ejercicio')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('periodo')
-                    ->numeric()
-                    ->sortable(),
-            ])
-            ->filters([
-                //
+                Tables\Columns\TextColumn::make('Saldo')
+                    ->sortable()
+                    ->searchable()
+                    ->getStateUsing(function($record,$livewire){
+                        $tipo = $record->tipo;
+                        if($tipo == 'E')
+                            $livewire->saldo_cuenta_act = $livewire->saldo_cuenta_act + ($record->importe / 3);
+                        else
+                            $livewire->saldo_cuenta_act = $livewire->saldo_cuenta_act - ($record->importe / 3);
+                        return $livewire->saldo_cuenta_act;
+                    })
+                    ->formatStateUsing(function (string $state) {
+                        $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        return $formatter->formatCurrency($state, 'MXN');
+                    })
             ])
             ->actions([
                 ActionGroup::make([
@@ -260,7 +292,7 @@ class MovbancosResource extends Resource
                                                                 $set('Factura',$val);
                                                                 $facts = DB::table('almacencfdis')->where('id',$val)->get();
                                                                 $fac = $facts[0];
-                                                                $set('Factura','F-'.$fac->Serie.$fac->Folio);
+                                                                $set('Factura',$fac->Serie.$fac->Folio);
                                                                 $set('Emisor',$fac->Emisor_Rfc);
                                                                 $set('Receptor',$fac->Receptor_Rfc);
                                                                 $set('Importe',$fac->Total);
@@ -377,7 +409,7 @@ class MovbancosResource extends Resource
                                                             $set('Factura',$val);
                                                             $facts = DB::table('almacencfdis')->where('id',$val)->get();
                                                             $fac = $facts[0];
-                                                            $set('Factura','F-'.$fac->Serie.$fac->Folio);
+                                                            $set('Factura',$fac->Serie.$fac->Folio);
                                                             $set('Emisor',$fac->Emisor_Rfc);
                                                             $set('Receptor',$fac->Receptor_Rfc);
                                                             $set('Importe',$fac->Total);
@@ -401,7 +433,7 @@ class MovbancosResource extends Resource
                         ])->columns(4);
                     })
                     ->modalWidth('7xl')
-                    ->visible(fn ($record) => $record->tipo == 'E')
+                    ->visible(fn ($record) => $record->tipo == 'S')
                     ->label('Procesar')
                     ->accessSelectedRecords()
                     ->icon('fas-check-to-slot')
@@ -414,7 +446,42 @@ class MovbancosResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])->striped()->defaultPaginationPageOption(6)
+            ->paginated([6, 'all'])
+            ->filters([
+                Filter::make('created_at')
+                ->form([
+                    DatePicker::make('Fecha_Inicial')
+                    ->default(function(){
+                        $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo;
+                        $Fecha_Inicial = Carbon::make('first day of'.$ldom);
+                        return $Fecha_Inicial->format('Y-m-d');
+                    }),
+                    DatePicker::make('Fecha_Final')
+                    ->default(function(){
+                        $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo;
+                        $Fecha_Inicial = Carbon::make('last day of'.$ldom);
+                        return $Fecha_Inicial->format('Y-m-d');
+                    }),
+                ])
+                ->query(function (Builder $query, array $data): Builder {
+                    return $query
+                        ->when(
+                            $data['Fecha_Inicial'],
+                            fn (Builder $query, $date): Builder => $query->whereDate('Fecha', '>=', $date),
+                        )
+                        ->when(
+                            $data['Fecha_Final'],
+                            fn (Builder $query, $date): Builder => $query->whereDate('Fecha', '<=', $date),);
+                        })
+            ],layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Cambiar Periodo'),
+            )
+            ->deferFilters()
+            ->defaultSort('Fecha', 'asc');;
     }
 
     public static function sumas(Get $get,Set $set,$data) :void

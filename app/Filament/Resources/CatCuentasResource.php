@@ -84,11 +84,16 @@ class CatCuentasResource extends Resource
                     ->label('Clave SAT')
                     ->searchable()
             ])
+            ->defaultSort('codigo', 'asc')
+            ->striped()->defaultPaginationPageOption(8)
+            ->paginated([8, 'all'])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                ->label('')
+                ->icon(null),
             ])
             ->bulkActions([
 

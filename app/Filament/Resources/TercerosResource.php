@@ -36,7 +36,8 @@ class TercerosResource extends Resource
                     ->columnSpan(3),
                 Forms\Components\Select::make('tipo')
                     ->label('Tipo de Tercero')
-                    ->options(['Cliente','Proveedor','Deudor','Acreedor']),
+                    ->options(['Cliente'=>'Cliente','Proveedor'=>'Proveedor',
+                    'Deudor'=>'Deudor','Acreedor'=>'Acreedor']),
                 Forms\Components\TextInput::make('cuenta')
                     ->required()
                     ->maxLength(255),
@@ -59,6 +60,10 @@ class TercerosResource extends Resource
                     ->default(Filament::getTenant()->taxid),
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id),
+                Forms\Components\TextInput::make('codigopos')
+                    ->label('Codigo Postal')
+                    ->required()
+                    ->maxLength(255),
             ])->columns(4);
     }
 
@@ -81,10 +86,12 @@ class TercerosResource extends Resource
                 Tables\Columns\TextColumn::make('contacto')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('tax_id')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('team_id')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -118,8 +125,8 @@ class TercerosResource extends Resource
     {
         return [
             'index' => Pages\ListTerceros::route('/'),
-            'create' => Pages\CreateTerceros::route('/create'),
-            'edit' => Pages\EditTerceros::route('/{record}/edit'),
+            //'create' => Pages\CreateTerceros::route('/create'),
+            //'edit' => Pages\EditTerceros::route('/{record}/edit'),
         ];
     }
 }

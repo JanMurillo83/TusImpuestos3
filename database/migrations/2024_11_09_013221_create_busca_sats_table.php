@@ -12,6 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        DB::statement('DROP VIEW IF EXISTS `busca_sat`');
+        DB::statement('DROP VIEW IF EXISTS `PolCuentas`');
         DB::statement('CREATE VIEW `busca_sat` AS SELECT `cvesats`.`clave` AS `clave`,
         CONCAT(`cvesats`.`clave`,\'-\', `cvesats`.`descripcion`) AS `nombre`
         FROM `cvesats`');
@@ -26,7 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-       DB::statement('DROP VIEW `busca_sat`');
-       DB::statement('DROP VIEW `PolCuentas`');
+
     }
 };

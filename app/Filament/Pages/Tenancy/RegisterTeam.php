@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Tenancy;
 
 use App\Models\CatCuentas;
 use App\Models\Regimenes;
+use App\Models\Saldosbanco;
 use App\Models\Team;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -163,9 +164,14 @@ class RegisterTeam extends RegisterTenant
                     ->columnSpan(3)
                     ->required(),
                 TextInput::make('codigo')
-                ->default('10201000')
+                    ->default('10201000')
                     ->maxLength(255)
-                    ->readOnly()
+                    ->readOnly(),
+                TextInput::make('inicial')
+                    ->label('Saldo Inicial')
+                    ->default(0)
+                    ->numeric()
+                    ->prefix('$')
                 ])->columnSpanFull()
                 ]),
                 Tab::make('Facturacion')
@@ -208,6 +214,20 @@ class RegisterTeam extends RegisterTenant
             'banco_cuentas_id'=>$ban,
             'team_id'=>$team->getKey()
         ]);
+        $bandata = [
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>1],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>2],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>3],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>4],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>5],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>6],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>7],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>8],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>9],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>10],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>11],
+            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>12]];
+        Saldosbanco::insert($bandata);
         //---------------------------------------------
         $empresa =$team->getKey();
         $data = [
@@ -421,6 +441,26 @@ class RegisterTeam extends RegisterTenant
             ['codigo'=>'70204000','nombre'=>'Intereses a favor bancarios nacional','acumula'=>'70200000','tipo'=>'A','naturaleza'=>'A','csat'=>'702.04','team_id'=>$empresa]];
             CatCuentas::insert($data);
         //---------------------------------------------------
+        $dis = DB::table('seriesfacs')->insertGetId([
+            'serie'=>'O',
+            'tipo'=>'Compra',
+            'folio'=>0,
+            'team_id'=>$empresa
+        ]);
+        DB::table('seriesfac_team')->insert([
+            'seriesfac_id'=>$dis,
+            'team_id'=>$empresa
+        ]);
+        $dis = DB::table('seriesfacs')->insertGetId([
+            'serie'=>'F',
+            'tipo'=>'Factura',
+            'folio'=>0,
+            'team_id'=>$empresa
+        ]);
+        DB::table('seriesfac_team')->insert([
+            'seriesfac_id'=>$dis,
+            'team_id'=>$empresa
+        ]);
         return $team;
     }
     protected function getFotterActions(): array

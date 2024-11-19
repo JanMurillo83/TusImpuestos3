@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 
@@ -130,12 +131,18 @@ class BancoCuentasResource extends Resource
                     ->columnSpan(3),
                 Forms\Components\TextInput::make('codigo')
                 ->default( function(){
-                    $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','10200000')->max('codigo')) + 1;
-                    if($nuecta == 1) $nuecta = '10201000';
+                    $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','10200000')->max('codigo'));
+                    $nu_1 = substr($nuecta,0,5);
+                    $nu_2 = intval($nu_1) + 1;
+                    $nuecta = $nu_2.'000';
+                    if($nuecta == 0) $nuecta = '10201000';
                     return $nuecta;
                 })
                     ->maxLength(255)
                     ->readOnly(),
+                Forms\Components\TextInput::make('inicial')
+                    ->label('Saldo Inicial')
+                    ->default(0),
                 Forms\Components\Hidden::make('tax_id')
                     ->default(Filament::getTenant()->taxid),
                 Forms\Components\Hidden::make('cuenta')
@@ -143,6 +150,9 @@ class BancoCuentasResource extends Resource
                 Forms\Components\Hidden::make('team_id')
                     ->required()
                     ->default(Filament::getTenant()->id),
+                Forms\Components\Hidden::make('ejercicio')
+                    ->required()
+                    ->default(Filament::getTenant()->ejercicio),
             ])->columns(4);
     }
 
@@ -156,13 +166,88 @@ class BancoCuentasResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('codigo')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('Inicial')
+                ->getStateUsing(function(Model $record){
+                    $sdos =DB::table('saldosbancos')
+                    ->where('cuenta',$record->id)
+                    ->where('periodo',Filament::getTenant()->periodo)
+                    ->where('ejercicio',Filament::getTenant()->ejercicio)
+                    ->get();
+                    if(isset($sdos[0])){
+                        return $sdos[0]->inicial;
+                    }
+                    else{
+                        return 0;
+                    }
+                })->formatStateUsing(function (?string $state) {
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                    return $formatter->formatCurrency($state, 'MXN');
+                }),
+                Tables\Columns\TextColumn::make('Ingresos')
+                ->getStateUsing(function(Model $record){
+                    $sdos =DB::table('saldosbancos')
+                    ->where('cuenta',$record->id)
+                    ->where('periodo',Filament::getTenant()->periodo)
+                    ->where('ejercicio',Filament::getTenant()->ejercicio)
+                    ->get();
+                    if(isset($sdos[0])){
+                        return $sdos[0]->ingresos;
+                    }
+                    else{
+                        return 0;
+                    }
+                })->formatStateUsing(function (?string $state) {
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                    return $formatter->formatCurrency($state, 'MXN');
+                }),
+                Tables\Columns\TextColumn::make('Egresos')
+                ->getStateUsing(function(Model $record){
+                    $sdos =DB::table('saldosbancos')
+                    ->where('cuenta',$record->id)
+                    ->where('periodo',Filament::getTenant()->periodo)
+                    ->where('ejercicio',Filament::getTenant()->ejercicio)
+                    ->get();
+                    if(isset($sdos[0])){
+                        return $sdos[0]->egresos;
+                    }
+                    else{
+                        return 0;
+                    }
+                })->formatStateUsing(function (?string $state) {
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                    return $formatter->formatCurrency($state, 'MXN');
+                }),
+                Tables\Columns\TextColumn::make('Actual')
+                ->getStateUsing(function(Model $record){
+                    $sdos =DB::table('saldosbancos')
+                    ->where('cuenta',$record->id)
+                    ->where('periodo',Filament::getTenant()->periodo)
+                    ->where('ejercicio',Filament::getTenant()->ejercicio)
+                    ->get();
+                    if(isset($sdos[0])){
+                        return $sdos[0]->actual;
+                    }
+                    else{
+                        return 0;
+                    }
+                })->formatStateUsing(function (?string $state) {
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                    return $formatter->formatCurrency($state, 'MXN');
+                }),
                 Tables\Columns\TextColumn::make('tax_id')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('cuenta')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('team_id')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -181,7 +266,8 @@ class BancoCuentasResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                 ]),
-            ]);
+            ])->striped()->defaultPaginationPageOption(8)
+            ->paginated([8, 'all']);
     }
 
     public static function getRelations(): array

@@ -21,3 +21,6 @@
 .fi-ta-cell > div:has(.flex) {
     @apply py-0.5;
 }
+html {
+    font-size: 0.9em !important;
+}

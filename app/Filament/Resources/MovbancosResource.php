@@ -133,14 +133,14 @@ class MovbancosResource extends Resource
             ->heading(function($table,$livewire){
                 $record = $table->getRecords();
                 $sdos = DB::table('saldosbancos')
-                    ->where('cuenta',$record[0]->cuenta)
+                    ->where('cuenta',$record[0]->cuenta ?? 1)
                     ->where('ejercicio',Filament::getTenant()->ejercicio)
                     ->where('periodo',Filament::getTenant()->periodo)->get();
                     $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
-                        $valor = $formatter->formatCurrency($sdos[0]->inicial, 'MXN');
-                    $livewire->saldo_cuenta = floatval($sdos[0]->inicial);
-                    $livewire->saldo_cuenta_act = floatval($sdos[0]->inicial);
+                        $valor = $formatter->formatCurrency($sdos[0]->inicial ?? 0, 'MXN');
+                    $livewire->saldo_cuenta = floatval($sdos[0]->inicial ?? 0);
+                    $livewire->saldo_cuenta_act = floatval($sdos[0]->inicial ?? 0);
                     $valor2 = $formatter->formatCurrency($livewire->saldo_cuenta_act, 'MXN');
                 return 'Saldo Inicial del Periodo: '.$valor;
             })

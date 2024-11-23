@@ -31,12 +31,12 @@ return new class extends Migration
             $table->foreignId('team_id')->constrained();
             $table->timestamps();
         });
-        /*Schema::create('auxiliares_cat_polizas', function (Blueprint $table) {
+        Schema::create('auxiliares_cat_polizas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('auxiliares_id')->constrained();
-            $table->foreignId('cat_polizas_id')->constrained();
+            $table->integer('auxiliares_id');
+            $table->integer('cat_polizas_id');
             $table->timestamps();
-        });*/
+        });
     }
 
     /**

@@ -234,8 +234,7 @@ class MovbancosResource extends Resource
                                     ->required()
                                     ->options([
                                         '1'=>'Cobro de Factura',
-                                        '2'=>'Cobro no identificado',
-                                        '3'=>'Prestamo Recibido',
+                                        '2'=>'Prestamo',
                                         '4'=>'Otros Ingresos'
                                     ])->columnSpan(2),
                                     TableRepeater::make('Facturas')
@@ -336,7 +335,7 @@ class MovbancosResource extends Resource
                                 ->options([
                                     '1'=>'Cobro de Factura',
                                     '2'=>'Cobro no identificado',
-                                    '3'=>'Prestamo Recibido',
+                                    '3'=>'Prestamo',
                                     '4'=>'Otros Ingresos'
                                 ])->columnSpan(2),
                                 TableRepeater::make('Facturas')

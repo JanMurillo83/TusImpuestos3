@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class TercerosResource extends Resource
 {
     protected static ?string $model = Terceros::class;
-    protected static ?string $navigationGroup = 'Administracion';
+    protected static ?string $navigationGroup = 'Contabilidad';
     protected static ?string $label = 'Tercero';
     protected static ?string $pluralLabel = 'Terceros';
     protected static ?string $navigationIcon = 'fas-users';

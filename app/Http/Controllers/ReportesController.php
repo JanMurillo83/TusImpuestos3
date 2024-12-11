@@ -26,7 +26,7 @@ class ReportesController extends Controller
         $campo2 = 'c'.$periodo;
         $campo3 = 'a'.$periodo;
         $campo4 = 's'.$periodo;
-        $catac = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo1,2,'en_US')) inicial,CONCAT('$',FORMAT($campo2,2,'en_US')) cargos,CONCAT('$',FORMAT($campo3,2,'en_US')) abonos,CONCAT('$',FORMAT($campo4,2,'en_US')) final FROM saldoscuentas");
+        $catac = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo1,2,'en_US')) inicial,CONCAT('$',FORMAT($campo2,2,'en_US')) cargos,CONCAT('$',FORMAT($campo3,2,'en_US')) abonos,CONCAT('$',FORMAT($campo4,2,'en_US')) final FROM saldoscuentas ORDER BY codigo");
         $totales = DB::select("SELECT
         CONCAT('$',FORMAT(SUM(IF(naturaleza = 'D',$campo1,($campo1*-1))),2,'en_US')) inicial,
         CONCAT('$',FORMAT(SUM($campo2),2,'en_US')) cargos,
@@ -71,10 +71,10 @@ class ReportesController extends Controller
         $campo1 = 'c'.$periodo;
         $campo2 = 'a'.$periodo;
         $campo3 = 's'.$periodo;
-        $catac = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '10001000' AND team_id = $tax_id");
-        $cataf = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '10002000' AND team_id = $tax_id");
-        $catpa = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '20001000' AND team_id = $tax_id");
-        $catca = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '30000000' AND team_id = $tax_id");
+        $catac = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '10001000' AND team_id = $tax_id ORDER BY codigo");
+        $cataf = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '10002000' AND team_id = $tax_id ORDER BY codigo");
+        $catpa = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '20001000' AND team_id = $tax_id ORDER BY codigo");
+        $catca = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo3,2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '30000000' AND team_id = $tax_id ORDER BY codigo");
         //-------------------------------------
         $catacs = DB::select("SELECT CONCAT('$',FORMAT(SUM($campo3),2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '10001000' AND team_id = $tax_id");
         $catafs = DB::select("SELECT CONCAT('$',FORMAT(SUM($campo3),2,'en_US')) saldo FROM saldoscuentas WHERE n1 = '10002000' AND team_id = $tax_id");

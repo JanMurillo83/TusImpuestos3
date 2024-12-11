@@ -58,6 +58,7 @@ return new class extends Migration
             $table->decimal('s10', 18, 8)->default(0);
             $table->decimal('s11', 18, 8)->default(0);
             $table->decimal('s12', 18, 8)->default(0);
+            $table->string('naturaleza')->nullable();
             $table->foreignId('team_id')->constrained()->nullable();
             $table->timestamps();
         });

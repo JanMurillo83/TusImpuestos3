@@ -284,7 +284,7 @@ class cfdieo extends Page implements HasForms, HasTable
                     'codigo'=>$nuecta,
                     'acumula'=>'10501000',
                     'tipo'=>'D',
-                    'naturaleza'=>'A',
+                    'naturaleza'=>'D',
                 ]);
                 Terceros::create([
                     'rfc'=>$rfc_rec,

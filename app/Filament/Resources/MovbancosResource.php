@@ -279,7 +279,6 @@ class MovbancosResource extends Resource
                                             })
                                             ])->action(function(Set $set,$data){
                                                 $idd = $data['selcfdi'];
-                                                $set('Factura',$idd);
                                                 $facts = DB::table('almacencfdis')->where('id',$idd)->get();
                                                 $fac = $facts[0];
                                                 $set('Factura',$fac->Serie.$fac->Folio);
@@ -361,49 +360,32 @@ class MovbancosResource extends Resource
                                         ActionsAction::make('SelF')
                                         ->label('')
                                         ->icon('fas-magnifying-glass')
-                                        ->infolist(function($infolist, Set $set, Get $get,$data){
-                                            $comp = DB::table('almacencfdis')->get();
-                                            //->where(['TipoDeComprobante'=>'I','xml_type'=>'Emitidos'])->get();
-                                            $datos [] =['Titulo'=>'Comprobantes Fiscales','Facturas'=>$comp];
-                                            return $infolist
-                                            ->state($datos[0])
-                                            ->schema([
-                                                TextEntry::make('Titulo'),
-                                                RepeatableEntry::make('Facturas')
-                                                ->schema([
-                                                    TextEntry::make('Fecha')->date('d-m-y'),
-                                                    TextEntry::make('Serie'),
-                                                    TextEntry::make('Folio'),
-                                                    TextEntry::make('Emisor_Rfc'),
-                                                    TextEntry::make('Receptor_Rfc'),
-                                                    TextEntry::make('Total')->numeric(),
-                                                    TextEntry::make('id')->numeric()
-                                                    ->label('')
-                                                    ->formatStateUsing(function($state){
-                                                        $state = '';
-                                                        return $state;
-                                                    })
-                                                    ->suffixAction(
-                                                        ComponentsActionsAction::make('Sel')
-                                                        ->label('')
-                                                        ->icon('fas-check')
-                                                        ->action(function(ComponentsActions\Action $action)use($get,$set,$data){
-                                                            $val = ($action->getComponent()->getState());
-                                                            $set('Factura',$val);
-                                                            $facts = DB::table('almacencfdis')->where('id',$val)->get();
-                                                            $fac = $facts[0];
-                                                            $set('Factura',$fac->Serie.$fac->Folio);
-                                                            $set('Emisor',$fac->Emisor_Rfc);
-                                                            $set('Receptor',$fac->Receptor_Rfc);
-                                                            $set('Importe',$fac->Total);
-                                                            $set('FacId',$fac->id);
-                                                            $set('UUID',$fac->UUID);
-                                                            //self::sumas($get,$set,$data);
-                                                        })->close()
-                                                    ),
-                                                    TextEntry::make('UUID')->visible(false),
-                                                ])->columns(7)
-                                            ]);
+                                        ->form([
+                                            Select::make('selcfdi')
+                                            ->searchable()
+                                            ->label('CFDI')
+                                            ->options(
+                                                function(){
+                                                    $cfdis = DB::table('almacencfdis')->where(['team_id'=>Filament::getTenant()->id,'xml_type'=>'Recibidos'])
+                                                    ->select('id',DB::Raw("concat('Factura: ',serie,folio,'  Fecha: ',
+                                                    DATE_FORMAT(fecha,'%d-%m-%Y'),'  Emisor: ',Emisor_Nombre,
+                                                    '  Importe: $',FORMAT(Total,2)) CFDI"))->get();
+                                                    $resultado =[];
+                                                    foreach($cfdis as $cfdi)
+                                                    {
+                                                        array_push($resultado,[$cfdi->id=>$cfdi->CFDI]);
+                                                    }
+                                                    return $resultado;
+                                        })
+                                        ])->action(function(Set $set,$data){
+                                            $idd = $data['selcfdi'];
+                                            $facts = DB::table('almacencfdis')->where('id',$idd)->get();
+                                            $fac = $facts[0];
+                                            $set('Factura',$fac->Serie.$fac->Folio);
+                                            $set('Emisor',$fac->Emisor_Rfc);
+                                            $set('Receptor',$fac->Receptor_Rfc);
+                                            $set('Importe',$fac->Total);
+                                            $set('FacId',$fac->id);
                                         })
                                     ),
                                     TextInput::make('Emisor')->readOnly(),
@@ -547,15 +529,15 @@ class MovbancosResource extends Resource
         $facts =$data['Facturas'];
         //dd($facts[0]);
         DB::table('movbancos')->where('id',$record->id)->update([
-            'tercero'=>$facts[0]['Receptor'],
+            'tercero'=>$facts[0]['Emisor'],
             'factura'=>$facts[0]['Factura'],
             'uuid'=>$facts[0]['UUID'],
             'contabilizada'=>'SI'
         ]);
         $fss = DB::table('almacencfdis')->where('id',$facts[0]['FacId'])->get();
         $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->get();
-        $ter = DB::table('terceros')->where('rfc',$facts[0]['Receptor'])->get();
-        $nom = $fss[0]->Receptor_Nombre;
+        $ter = DB::table('terceros')->where('rfc',$facts[0]['Emisor'])->get();
+        $nom = $fss[0]->Emisor_Nombre;
         //-------------------------------------------------------------------
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
         $poliza = CatPolizas::create([

@@ -441,6 +441,48 @@ class RegisterTeam extends RegisterTenant
             ['codigo'=>'70204000','nombre'=>'Intereses a favor bancarios nacional','acumula'=>'70200000','tipo'=>'A','naturaleza'=>'A','csat'=>'702.04','team_id'=>$empresa]];
             CatCuentas::insert($data);
         //---------------------------------------------------
+        $data = [
+            ['clave'=>'1','descripcion'=>'Compras','tipo'=>'Entrada','tercero'=>'P','signo'=>1,'team_id'=>$empresa],
+            ['clave'=>'2','descripcion'=>'Inventario Inicial','tipo'=>'Entrada','tercero'=>'N','signo'=>1,'team_id'=>$empresa],
+            ['clave'=>'3','descripcion'=>'Inventario Fisico','tipo'=>'Entrada','tercero'=>'N','signo'=>1,'team_id'=>$empresa],
+            ['clave'=>'4','descripcion'=>'Ajustes','tipo'=>'Entrada','tercero'=>'N','signo'=>1,'team_id'=>$empresa],
+            ['clave'=>'5','descripcion'=>'Devolucion','tipo'=>'Entrada','tercero'=>'C','signo'=>1,'team_id'=>$empresa],
+            ['clave'=>'6','descripcion'=>'Ventas','tipo'=>'Salida','tercero'=>'C','signo'=>-1,'team_id'=>$empresa],
+            ['clave'=>'7','descripcion'=>'Inventario Fisico','tipo'=>'Salida','tercero'=>'N','signo'=>-1,'team_id'=>$empresa],
+            ['clave'=>'8','descripcion'=>'Mermas','tipo'=>'Salida','tercero'=>'N','signo'=>-1,'team_id'=>$empresa],
+            ['clave'=>'9','descripcion'=>'Muestras','tipo'=>'Salida','tercero'=>'C','signo'=>-1,'team_id'=>$empresa],
+            ['clave'=>'10','descripcion'=>'Devolucion','tipo'=>'salida','tercero'=>'P','signo'=>-1,'team_id'=>$empresa]
+        ];
+        DB::table('conceptosmis')->insert($data);
+        DB::table('lineasprods')->insert(['clave'=>'1','descripcion'=>'General','team_id'=>$empresa]);
+        DB::table('esquemasimps')->insert(
+            ['clave'=>'1','descripcion'=>'Iva General','iva'=>16,'retiva'=>0,'retisr'=>0,'ieps'=>0,
+            'team_id'=>$empresa],
+            ['clave'=>'1','descripcion'=>'Iva Tasa 0','iva'=>0,'retiva'=>0,'retisr'=>0,'ieps'=>0,
+            'team_id'=>$empresa],
+            ['clave'=>'1','descripcion'=>'Iva Fronterizo','iva'=>8,'retiva'=>0,'retisr'=>0,'ieps'=>0,
+            'team_id'=>$empresa]
+        );
+        DB::table('clientes')->insert([
+            'clave'=>'1','nombre'=>'Publico en General','rfc'=>'XAXX010101000',
+            'regimen'=>'616','codigo'=>'00000',
+            'direccion'=>'','telefono'=>'','correo'=>'',
+            'descuento'=>0,'lista'=>1,'contacto'=>'',
+            'team_id'=>$empresa
+        ]);
+        DB::table('datos_fiscales')->insert([
+            'nombre'=>'Nieto Consulting',
+            'rfc'=>'XAXX010101000',
+            'regimen'=>'616',
+            'codigo'=>'12345',
+            'cer'=>'',
+            'key'=>'',
+            'csdpass'=>'',
+            'logo'=>'',
+            'logo64'=>'',
+            'team_id'=>$empresa
+        ]);
+        //---------------------------------------------------
         $dis = DB::table('seriesfacs')->insertGetId([
             'serie'=>'O',
             'tipo'=>'Compra',

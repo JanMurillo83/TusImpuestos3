@@ -63,8 +63,8 @@ class NotasventaResource extends Resource
         return $form
         ->columns(6)
         ->schema([
+            Hidden::make('team_id')->default(Filament::getTenant()->id),
             Split::make([
-                Hidden::make('team_id')->default(Filament::getTenant()->id),
                 Fieldset::make('Nota de Venta')
                     ->schema([
                         Forms\Components\Hidden::make('id'),

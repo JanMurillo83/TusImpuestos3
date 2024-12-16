@@ -162,10 +162,14 @@ class ReportesController extends Controller
         $utigast = $saldov - $saldoc -$saldog;
         $resultado = $saldov - $saldoc -$saldog -$saldor;
         $pasmasres = $pasres + $resultado;
-        $saldores = DB::select("SELECT CONCAT('$',FORMAT($resultado,2,'en_US')) saldo FROM saldoscuentas WHERE team_id = $tax_id LIMIT 1");
+        /*$saldores = DB::select("SELECT CONCAT('$',FORMAT($resultado,2,'en_US')) saldo FROM saldoscuentas WHERE team_id = $tax_id LIMIT 1");
         $saldopre = DB::select("SELECT CONCAT('$',FORMAT($pasmasres,2,'en_US')) saldo FROM saldoscuentas WHERE team_id = $tax_id LIMIT 1");
         $utilidadbruta = DB::select("SELECT CONCAT('$',FORMAT($utibruta,2,'en_US')) saldo FROM saldoscuentas WHERE team_id = $tax_id LIMIT 1");
-        $utilidadgasto = DB::select("SELECT CONCAT('$',FORMAT($utigast,2,'en_US')) saldo FROM saldoscuentas WHERE team_id = $tax_id LIMIT 1");
+        $utilidadgasto = DB::select("SELECT CONCAT('$',FORMAT($utigast,2,'en_US')) saldo FROM saldoscuentas WHERE team_id = $tax_id LIMIT 1");*/
+        $saldores = '$'.number_format($resultado,2,'.',',');
+        $saldopre = '$'.number_format($pasmasres,2,'.',',');
+        $utilidadbruta = '$'.number_format($utibruta,2,'.',',');
+        $utilidadgasto = '$'.number_format($utigast,2,'.',',');
         $data = [
         'titulo' => 'Estado de Resultados',
         'datos'=>$catac,
@@ -177,15 +181,15 @@ class ReportesController extends Controller
         'datos4'=>$catca,
         'datos4final'=>$catcas[0]->saldo,
         'datos5final'=>$catsumac[0]->saldo,
-        'datos6final'=>$saldopre[0]->saldo,
-        'datos7final'=>$saldores[0]->saldo,
+        'datos6final'=>$saldopre,
+        'datos7final'=>$saldores,
         'tax_id'=>Filament::getTenant()->taxid,
         'fecha'=>$currentDate,
         'ejercicio'=>$ejercicio,
         'periodo'=>$periodo,
-        'utilidadbruta'=>$utilidadbruta[0]->saldo,
-        'utilidadgral'=>$utilidadgasto[0]->saldo,
-        'resultado'=>$saldores[0]->saldo,
+        'utilidadbruta'=>$utilidadbruta,
+        'utilidadgral'=>$utilidadgasto,
+        'resultado'=>$saldores,
         ];
         $pdf = SnappyPdf::loadView('Reportes/edores',$data);
         $nombre = public_path('Reportes/edore_'.Filament::getTenant()->id.'_'.$periodo.'_'.$ejercicio.'.pdf');

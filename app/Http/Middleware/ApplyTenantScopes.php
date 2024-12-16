@@ -6,12 +6,21 @@ use App\Models\Activosfijos;
 use App\Models\Almacencfdis;
 use App\Models\BancoCuentas;
 use App\Models\CatBancos;
+use App\Models\Clientes;
+use App\Models\Compras;
 use App\Models\Contribuyentes;
+use App\Models\Cotizaciones;
 use App\Models\CuentasGastos;
 use App\Models\Cuentasxcs;
 use App\Models\Cuentasxpagars;
+use App\Models\Facturas;
+use App\Models\Inventario;
 use App\Models\Movbancos;
+use App\Models\Movinventario;
+use App\Models\Notasventa;
+use App\Models\Ordenes;
 use App\Models\Prestamos;
+use App\Models\Proveedores;
 use App\Models\RubroGastos;
 use App\Models\SaldosBancos;
 use App\Models\Saldoscuentas;
@@ -45,6 +54,15 @@ class ApplyTenantScopes
         Saldoscuentas::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         Solicitudes::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         Terceros::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Clientes::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Inventario::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Movinventario::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Cotizaciones::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Notasventa::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Facturas::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Ordenes::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Compras::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        Proveedores::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
 
         return $next($request);
     }

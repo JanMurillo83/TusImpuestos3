@@ -108,7 +108,8 @@ class CatPolizasResource extends Resource
                     ->schema([
                         Select::make('codigo')
                         ->options(
-                            DB::table('PolCuentas')->where('team_id',Filament::getTenant()->id)->orderBy('codigo')->pluck('mostrar','codigo')
+                            DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                            ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->orderBy('codigo')->pluck('mostrar','codigo')
                         )
                         ->searchable()
                         ->columnSpan(2)

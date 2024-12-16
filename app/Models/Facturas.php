@@ -2,26 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\ParCotizaciones;
-use \Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Facturas extends Model
 {
-    use HasFactory;
-
-    protected $fillable = ['serie', 'folio', 'clave_doc', 'cve_clie', 'cve_vend', 'fecha_doc',
-        'fecha_can', 'subtotal', 'impuesto1', 'impuesto2', 'impuesto3', 'impuesto4',
-        'descuento', 'total', 'por_im1', 'por_im2', 'por_im3', 'por_im4', 'por_des',
-        'condiciones', 'observaciones', 'dir_entrega', 'dat_fiscal', 'estado',
-        'timbrado', 'fecha_tim', 'xml', 'metodo','forma', 'uuid', 'usocfdi',
-        'traslados','retenciones','pdf_file','emisor','team_id'];
-
-    public function Partidas(): HasMany
+    protected $fillable = ['serie','folio','docto','fecha','clie','nombre','esquema','subtotal',
+    'iva','retiva','retisr','ieps','total','observa','estado','metodo',
+    'forma','uso','uuid','condiciones','vendedor','anterior','timbrado','xml','fecha_tim','team_id'];
+    public function partidas(): HasMany
     {
-        return $this->hasMany(related: ParFacturas::class);
+        return $this->hasMany(related: FacturasPartidas::class);
 
     }
     public function team(): BelongsTo
@@ -29,5 +21,3 @@ class Facturas extends Model
         return $this->belongsTo(Team::class);
     }
 }
-
-

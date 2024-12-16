@@ -77,32 +77,6 @@ class CatPolizasResource extends Resource
                     ->default(0.00),
                 Forms\Components\Hidden::make('abonos')
                     ->default(0.00),
-                 /*Forms\Components\TextInput::make('cargos')
-                    ->required()
-                    ->numeric()
-                    ->default(0)
-                    ->readOnly()
-                    ->placeholder(function (Get $get,Set $set) {
-                        $valor = collect($get('partidas'))->pluck('cargo')->sum();
-                        Self::updateTotals($get,$set);
-                        return floatval($valor);
-                    })
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->prefix('$'),
-                Forms\Components\TextInput::make('abonos')
-                    ->required()
-                    ->numeric()
-                    ->default(0)
-                    ->readOnly()
-                    ->placeholder(function (Get $get,Set $set) {
-                        $valor = collect($get('partidas'))->pluck('abono')->sum();
-                        Self::updateTotals($get,$set);
-                        return floatval($valor);
-                    })
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->prefix('$'),*/
                 Forms\Components\TextInput::make('concepto')
                     ->required()
                     ->maxLength(255)
@@ -247,7 +221,9 @@ class CatPolizasResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()
                 ->label('')
-                ->icon(null),
+                ->icon(null)
+                ->modalSubmitActionLabel('Grabar')
+                ->modalWidth('7xl')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -268,8 +244,8 @@ class CatPolizasResource extends Resource
     {
         return [
             'index' => Pages\ListCatPolizas::route('/'),
-            'create' => Pages\CreateCatPolizas::route('/create'),
-            'edit' => Pages\EditCatPolizas::route('/{record}/edit'),
+            //'create' => Pages\CreateCatPolizas::route('/create'),
+            //'edit' => Pages\EditCatPolizas::route('/{record}/edit'),
         ];
     }
 }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "82130da5fc78dd647426d967e6cd7637",
+    "content-hash": "34c6bba16cc1f0e69671b7cc7ae43838",
     "packages": [
         {
             "name": "akaunting/laravel-money",
@@ -5510,6 +5510,59 @@
                 "source": "https://github.com/phpcfdi/cfdi-cleaner/tree/v1.3.4"
             },
             "time": "2024-10-07T16:30:45+00:00"
+        },
+        {
+            "name": "phpcfdi/cfdi-expresiones",
+            "version": "v3.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpcfdi/cfdi-expresiones.git",
+                "reference": "29243c9810b7ec226f491b14c93432669c48facc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpcfdi/cfdi-expresiones/zipball/29243c9810b7ec226f491b14c93432669c48facc",
+                "reference": "29243c9810b7ec226f491b14c93432669c48facc",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-mbstring": "*",
+                "php": ">=7.3"
+            },
+            "require-dev": {
+                "ext-json": "*",
+                "phpunit/phpunit": "^9.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpCfdi\\CfdiExpresiones\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Carlos C Soto",
+                    "email": "eclipxe13@gmail.com",
+                    "homepage": "https://eclipxe.com.mx/"
+                }
+            ],
+            "description": "Genera expresiones de CFDI 4.0, CFDI 3.3, CFDI 3.2, RET 1.0 y RET 2.0",
+            "homepage": "https://github.com/phpcfdi/cfdi-expresiones",
+            "keywords": [
+                "cfdi",
+                "phpcfdi",
+                "sat"
+            ],
+            "support": {
+                "issues": "https://github.com/phpcfdi/cfdi-expresiones/issues",
+                "source": "https://github.com/phpcfdi/cfdi-expresiones"
+            },
+            "time": "2022-06-27T17:02:05+00:00"
         },
         {
             "name": "phpcfdi/cfditopdf",

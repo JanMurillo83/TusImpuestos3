@@ -14,8 +14,11 @@ class ListCatPolizas extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Nueva Poliza')
-                ->icon('fas-square-plus'),
+            ->createAnother(false)
+            ->label('Agregar')
+            ->icon('fas-plus')
+            ->modalSubmitActionLabel('Grabar')
+            ->modalWidth('7xl'),
         ];
     }
 }

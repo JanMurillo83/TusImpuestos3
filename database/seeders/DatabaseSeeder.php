@@ -243,5 +243,145 @@ class DatabaseSeeder extends Seeder
             ['codigo'=>'70201000','nombre'=>'Utilidad cambiaria','acumula'=>'70200000','tipo'=>'A','naturaleza'=>'A','csat'=>'702.01','team_id'=>$empresa],
             ['codigo'=>'70204000','nombre'=>'Intereses a favor bancarios nacional','acumula'=>'70200000','tipo'=>'A','naturaleza'=>'A','csat'=>'702.04','team_id'=>$empresa]];
             CatCuentas::insert($data);
+            //---------------------------------------------------------------------
+            $data = [
+                ['clave'=>'1','descripcion'=>'Compras','tipo'=>'Entrada','tercero'=>'P','signo'=>1,'team_id'=>1],
+                ['clave'=>'2','descripcion'=>'Inventario Inicial','tipo'=>'Entrada','tercero'=>'N','signo'=>1,'team_id'=>1],
+                ['clave'=>'3','descripcion'=>'Inventario Fisico','tipo'=>'Entrada','tercero'=>'N','signo'=>1,'team_id'=>1],
+                ['clave'=>'4','descripcion'=>'Ajustes','tipo'=>'Entrada','tercero'=>'N','signo'=>1,'team_id'=>1],
+                ['clave'=>'5','descripcion'=>'Devolucion','tipo'=>'Entrada','tercero'=>'C','signo'=>1,'team_id'=>1],
+                ['clave'=>'6','descripcion'=>'Ventas','tipo'=>'Salida','tercero'=>'C','signo'=>-1,'team_id'=>1],
+                ['clave'=>'7','descripcion'=>'Inventario Fisico','tipo'=>'Salida','tercero'=>'N','signo'=>-1,'team_id'=>1],
+                ['clave'=>'8','descripcion'=>'Mermas','tipo'=>'Salida','tercero'=>'N','signo'=>-1,'team_id'=>1],
+                ['clave'=>'9','descripcion'=>'Muestras','tipo'=>'Salida','tercero'=>'C','signo'=>-1,'team_id'=>1],
+                ['clave'=>'10','descripcion'=>'Devolucion','tipo'=>'salida','tercero'=>'P','signo'=>-1,'team_id'=>1]
+            ];
+            DB::table('conceptosmis')->insert($data);
+            DB::table('lineasprods')->insert(['clave'=>'1','descripcion'=>'General','team_id'=>1]);
+            DB::table('esquemasimps')->insert(
+                ['clave'=>'1','descripcion'=>'Iva General','iva'=>16,'retiva'=>0,'retisr'=>0,'ieps'=>0,
+                'team_id'=>1],
+                ['clave'=>'1','descripcion'=>'Iva Tasa 0','iva'=>0,'retiva'=>0,'retisr'=>0,'ieps'=>0,
+                'team_id'=>1],
+                ['clave'=>'1','descripcion'=>'Iva Fronterizo','iva'=>8,'retiva'=>0,'retisr'=>0,'ieps'=>0,
+                'team_id'=>1]
+            );
+            DB::table('clientes')->insert([
+                'clave'=>'1','nombre'=>'Publico en General','rfc'=>'XAXX010101000',
+                'regimen'=>'616','codigo'=>'00000',
+                'direccion'=>'','telefono'=>'','correo'=>'',
+                'descuento'=>0,'lista'=>1,'contacto'=>'',
+                'team_id'=>1
+            ]);
+            DB::table('datos_fiscales')->insert([
+                'nombre'=>'Nieto Consulting',
+                'rfc'=>'XAXX010101000',
+                'regimen'=>'616',
+                'codigo'=>'12345',
+                'cer'=>'',
+                'key'=>'',
+                'csdpass'=>'',
+                'logo'=>'',
+                'logo64'=>'',
+                'team_id'=>1
+            ]);
+            $date = new DateTime('now', new DateTimeZone('America/Mexico_City'));
+            //DB::table('regimenes')->truncate();
+            $csvFile = fopen(base_path('public/Fseeders/Regimenes.csv'), "r");
+            $firstline = true;
+            while (($data = fgetcsv($csvFile, 200000, ",")) !== FALSE) {
+            if (!$firstline) {
+
+                DB::table('regimenes')->insert([
+                    'clave' => $data['0'],
+                    'descripcion' => $data['1'],
+                    'mostrar' => $data['2'],
+                    'created_at' => $date,
+                    'updated_at' => $date
+                ]);
+            }
+                $firstline = false;
+            }
+            fclose($csvFile);
+            $csvFile = fopen(public_path('Fseeders/Formas.csv'), "r");
+            $firstline = true;
+            while (($data = fgetcsv($csvFile, 200000, ",")) !== FALSE) {
+            if (!$firstline) {
+
+                DB::table('formas')->insert([
+                    'clave' => $data['0'],
+                    'descripcion' => $data['1'],
+                    'mostrar' => $data['2'],
+                    'created_at' => $date,
+                    'updated_at' => $date
+                ]);
+            }
+                $firstline = false;
+            }
+            fclose($csvFile);
+            $csvFile = fopen(public_path('Fseeders/Metodos.csv'), "r");
+            $firstline = true;
+            while (($data = fgetcsv($csvFile, 200000, ",")) !== FALSE) {
+            if (!$firstline) {
+
+                DB::table('metodos')->insert([
+                    'clave' => $data['0'],
+                    'descripcion' => $data['1'],
+                    'mostrar' => $data['2'],
+                    'created_at' => $date,
+                    'updated_at' => $date
+                ]);
+            }
+                $firstline = false;
+            }
+            fclose($csvFile);
+            $csvFile = fopen(public_path('Fseeders/Usos.csv'), "r");
+            $firstline = true;
+            while (($data = fgetcsv($csvFile, 200000, ",")) !== FALSE) {
+            if (!$firstline) {
+
+                DB::table('usos')->insert([
+                    'clave' => $data['0'],
+                    'descripcion' => $data['1'],
+                    'mostrar' => $data['2'],
+                    'created_at' => $date,
+                    'updated_at' => $date
+                ]);
+            }
+                $firstline = false;
+            }
+            fclose($csvFile);
+            $csvFile = fopen(public_path('Fseeders/Unidades.csv'), "r");
+            $firstline = true;
+            while (($data = fgetcsv($csvFile, 200000, ",")) !== FALSE) {
+            if (!$firstline) {
+
+                DB::table('unidades')->insert([
+                    'clave' => $data['0'],
+                    'descripcion' => $data['1'],
+                    'mostrar' => $data['2'],
+                    'created_at' => $date,
+                    'updated_at' => $date
+                ]);
+            }
+                $firstline = false;
+            }
+            fclose($csvFile);
+            $csvFile = fopen(public_path('Fseeders/CveSAT.csv'), "r");
+            $firstline = true;
+            while (($data = fgetcsv($csvFile, 200000, ",")) !== FALSE) {
+            if (!$firstline) {
+
+                DB::table('claves')->insert([
+                    'clave' => $data['0'],
+                    'descripcion' => $data['1'],
+                    'mostrar' => $data['2'],
+                    'created_at' => $date,
+                    'updated_at' => $date
+                ]);
+            }
+                $firstline = false;
+            }
+            fclose($csvFile);
     }
 }

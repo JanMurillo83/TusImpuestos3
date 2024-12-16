@@ -547,7 +547,7 @@ class MovbancosResource extends Resource
                                         if($get('Movimiento')== 2||$get('Movimiento')== 4) return true;
                                         else return false;
                                     })
-                                    ->options(Terceros::where('tipo','Deudor')->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                                    ->options(Terceros::where('tipo','Acreedor')->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
                                     ->createOptionForm(function($form){
                                         return $form
                                         ->schema([
@@ -1119,7 +1119,7 @@ class MovbancosResource extends Resource
 
     public static function procesa_s_f($record,$data)
     {
-        $facts =$data['Facturas'];
+        $facts =$data['Facturas'] ?? [['Emisor'=>'','Factura'=>'','UUID'=>'','FacId'=>0]];
         $tmov = $data['Movimiento'];
         DB::table('movbancos')->where('id',$record->id)->update([
             'tercero'=>$facts[0]['Emisor'],
@@ -1130,7 +1130,7 @@ class MovbancosResource extends Resource
         $fss = DB::table('almacencfdis')->where('id',$facts[0]['FacId'])->get();
         $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->get();
         $ter = DB::table('terceros')->where('rfc',$facts[0]['Emisor'])->get();
-        $nom = $fss[0]->Emisor_Nombre;
+        $nom = $fss[0]->Emisor_Nombre ?? '';
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
         //-------------------------------------------------------------------
         if($tmov == 1)

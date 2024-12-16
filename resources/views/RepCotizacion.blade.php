@@ -1,23 +1,25 @@
 <?php
+use Filament\Facades\Filament;
     $orden = DB::table('cotizaciones')->where('id',$idorden)->get();
     $orden = $orden[0];
     $partidas = DB::table('cotizaciones_partidas')->where('cotizaciones_id',$idorden)->get();
     $prove = DB::table('clientes')->where('id',$orden->clie)->get();
     $prove = $prove[0];
-
+    $logo = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->get()[0]->logo64 ?? '';
 ?>
 <!DOCTYPE html>
 <html>
     <head>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-        <title>Orden de Compra</title>
+        <script src="{{public_path('js/jquery-3.7.1.js')}}"></script>
+        <link href="{{public_path('dist/css/bootstrap.css')}}" rel="stylesheet">
+        <script src="{{public_path('dist/js/bootstrap.bundle.js')}}"></script>
+        <title>Cotizaciones</title>
     </head>
     <body>
         <div class="container mt-5">
             <div class="row">
                 <div class="text-start col-2">
-                    <img src="{{asset('images/logoNCTR.png')}}" alt="NcPos" width="200px">
+                    <img src="{{$logo}}" alt="Logo" width="200px">
                 </div>
                 <div class="text-center col-7">
                     <h5>COTIZACION</h5>

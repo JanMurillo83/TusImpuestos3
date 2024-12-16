@@ -406,12 +406,14 @@ class FacturasResource extends Resource
                                         $cfdiData = (new CfdiDataBuilder)->build($comprobante);
                                         $pdf = SnappyPdf::loadView('RepFactura',['idorden'=>$idorden,'cfdiData'=>$cfdiData]);
                                         $pdf->setOption("footer-right", "Pagina [page] de [topage]")
+                                        ->setOption("enable-local-file-access",true)
                                         ->setOption('encoding', 'utf-8')
                                         ->save($archivo);
                                     }
                                     else{
                                         $pdf = SnappyPdf::loadView('RepFacturaNT',['idorden'=>$idorden]);
                                         $pdf->setOption("footer-right", "Pagina [page] de [topage]")
+                                        ->setOption("enable-local-file-access",true)
                                         ->setOption('encoding', 'utf-8')
                                         ->save($archivo);
                                     }
@@ -570,6 +572,7 @@ class FacturasResource extends Resource
                         if(File::exists($archivo)) unlink($archivo);
                         SnappyPdf::loadView('RepFactura',['idorden'=>$idorden])
                             ->setOption("footer-right", "Pagina [page] de [topage]")
+                            ->setOption("enable-local-file-access",true)
                             ->setOption('encoding', 'utf-8')
                             ->save($archivo);
                         $ruta = env('APP_URL').'/Reportes/Factura.pdf';

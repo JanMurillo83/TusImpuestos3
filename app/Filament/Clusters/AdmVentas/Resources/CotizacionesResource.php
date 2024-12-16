@@ -347,6 +347,7 @@ class CotizacionesResource extends Resource
                                     SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
                                         ->setOption("footer-right", "Pagina [page] de [topage]")
                                         ->setOption('encoding', 'utf-8')
+                                        ->setOption("enable-local-file-access",true)
                                         ->save($archivo);
                                     $ruta = env('APP_URL').'/Reportes/Cotizacion.pdf';
                                     //dd($ruta);
@@ -506,6 +507,7 @@ class CotizacionesResource extends Resource
                         if(File::exists($archivo)) unlink($archivo);
                         SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
                             ->setOption("footer-right", "Pagina [page] de [topage]")
+                            ->setOption("enable-local-file-access",true)
                             ->setOption('encoding', 'utf-8')
                             ->save($archivo);
                         $ruta = env('APP_URL').'/Reportes/Cotizacion.pdf';

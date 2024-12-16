@@ -349,6 +349,7 @@ class NotasventaResource extends Resource
                                     if(File::exists($archivo)) unlink($archivo);
                                     SnappyPdf::loadView('RepNotaVenta',['idorden'=>$idorden])
                                         ->setOption("footer-right", "Pagina [page] de [topage]")
+                                        ->setOption("enable-local-file-access",true)
                                         ->setOption('encoding', 'utf-8')
                                         ->save($archivo);
                                     $ruta = env('APP_URL').'/Reportes/RepNotaVenta.pdf';
@@ -508,6 +509,7 @@ class NotasventaResource extends Resource
                         if(File::exists($archivo)) unlink($archivo);
                         SnappyPdf::loadView('RepNotaVenta',['idorden'=>$idorden])
                             ->setOption("footer-right", "Pagina [page] de [topage]")
+                            ->setOption("enable-local-file-access",true)
                             ->setOption('encoding', 'utf-8')
                             ->save($archivo);
                         $ruta = env('APP_URL').'/Reportes/Notadeventa.pdf';

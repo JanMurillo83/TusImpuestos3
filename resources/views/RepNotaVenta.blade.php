@@ -1,16 +1,18 @@
 <?php
+use Filament\Facades\Filament;
     $orden = DB::table('notasventas')->where('id',$idorden)->get();
     $orden = $orden[0];
     $partidas = DB::table('notasventa_partidas')->where('notasventa_id',$idorden)->get();
     $prove = DB::table('clientes')->where('id',$orden->clie)->get();
     $prove = $prove[0];
-
+    $logo = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->get()[0]->logo64 ?? '';
 ?>
 <!DOCTYPE html>
 <html>
     <head>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+        <script src="{{public_path('js/jquery-3.7.1.js')}}"></script>
+        <link href="{{public_path('dist/css/bootstrap.css')}}" rel="stylesheet">
+        <script src="{{public_path('dist/js/bootstrap.bundle.js')}}"></script>
         <title>NOTA DE VENTA</title>
     </head>
     <body>

@@ -61,7 +61,6 @@ class ListXmlfiles extends ListRecords
                         ->storeFiles(false)
                 ])->modalWidth(MaxWidth::ExtraSmall)
                 ->action(function($livewire,$data){
-
                     $livewire->ProcesaArchivo($data);
                 }),
                 Action::make('importar')

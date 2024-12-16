@@ -22,6 +22,7 @@ class BancoCuentasResource extends Resource
     protected static ?string $navigationGroup = 'Bancos';
     protected static ?string $label = 'Cuenta Bancaria';
     protected static ?string $pluralLabel = 'Cuentas Bancarias';
+    protected static ?string $navigationIcon ='fas-building-columns';
 
     public static function form(Form $form): Form
     {

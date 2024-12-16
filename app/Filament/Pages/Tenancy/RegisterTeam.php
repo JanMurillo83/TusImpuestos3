@@ -60,6 +60,7 @@ class RegisterTeam extends RegisterTenant
                 Section::make('Bancos')
                 ->schema([
                     Select::make('clave')
+                    ->columnSpanFull()
                     ->required()
                     ->searchable()
                     ->options([
@@ -172,8 +173,9 @@ class RegisterTeam extends RegisterTenant
                     ->default(0)
                     ->numeric()
                     ->prefix('$')
-                ])->columnSpanFull()
-                ]),
+                    ->columnSpan(2)
+                ])->columnSpanFull()->columns(3)
+                ])->columnSpanFull()->columns(3),
                 Tab::make('Facturacion')
                     ->schema([
                         Select::make('regimen')
@@ -483,7 +485,7 @@ class RegisterTeam extends RegisterTenant
             'team_id'=>$empresa
         ]);
         //---------------------------------------------------
-        $dis = DB::table('seriesfacs')->insertGetId([
+        /*$dis = DB::table('seriesfacs')->insertGetId([
             'serie'=>'O',
             'tipo'=>'Compra',
             'folio'=>0,
@@ -502,7 +504,7 @@ class RegisterTeam extends RegisterTenant
         DB::table('seriesfac_team')->insert([
             'seriesfac_id'=>$dis,
             'team_id'=>$empresa
-        ]);
+        ]);*/
         return $team;
     }
     protected function getFotterActions(): array

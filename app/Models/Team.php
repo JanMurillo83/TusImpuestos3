@@ -47,5 +47,9 @@ class Team extends Model
     {
         return $this->belongsToMany(Terceros::class);
     }
+    public function activosfijos(): BelongsToMany
+    {
+        return $this->belongsToMany(Activosfijos::class);
+    }
 
 }

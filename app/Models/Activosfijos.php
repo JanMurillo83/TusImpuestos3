@@ -8,6 +8,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Class Activosfijo
@@ -54,4 +55,8 @@ class Activosfijos extends Model
 		'cuentaact',
 		'team_id'
 	];
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 }

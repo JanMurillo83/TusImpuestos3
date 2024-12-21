@@ -6,20 +6,23 @@ use Filament\Facades\Filament;
     $prove = DB::table('clientes')->where('id',$orden->clie)->get();
     $prove = $prove[0];
     $logo = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->get()[0]->logo64 ?? '';
+    $jqs = asset('js/jquery-3.7.1.js');
+    $bstcs = asset('dist/css/bootstrap.css');
+    $bstjs = asset('dist/js/bootstrap.bundle.js');
 ?>
 <!DOCTYPE html>
 <html>
     <head>
-        <script src="{{public_path('js/jquery-3.7.1.js')}}"></script>
-        <link href="{{public_path('dist/css/bootstrap.css')}}" rel="stylesheet">
-        <script src="{{public_path('dist/js/bootstrap.bundle.js')}}"></script>
-        <title>NOTA DE VENTA</title>
+        <script src="{{$jqs}}"></script>
+        <link href="{{$bstcs}}" rel="stylesheet">
+        <script src="{{$bstjs}}"></script>
+        <title>Nota de Venta</title>
     </head>
     <body>
         <div class="container mt-5">
             <div class="row">
                 <div class="text-start col-2">
-                    <img src="{{asset('images/logoNCTR.png')}}" alt="NcPos" width="200px">
+                    <img src="{{$logo}}" alt="Logo" width="200px">
                 </div>
                 <div class="text-center col-7">
                     <h5>NOTA DE VENTA</h5>

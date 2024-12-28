@@ -26,14 +26,15 @@ class ReportesController extends Controller
         $campo2 = 'c'.$periodo;
         $campo3 = 'a'.$periodo;
         $campo4 = 's'.$periodo;
-        $catac = DB::select("SELECT codigo,nombre,CONCAT('$',FORMAT($campo1,2,'en_US')) inicial,CONCAT('$',FORMAT($campo2,2,'en_US')) cargos,CONCAT('$',FORMAT($campo3,2,'en_US')) abonos,CONCAT('$',FORMAT($campo4,2,'en_US')) final FROM saldoscuentas ORDER BY codigo");
+        $catac = DB::select("SELECT distinct codigo,nombre,CONCAT('$',FORMAT($campo1,2,'en_US')) inicial,CONCAT('$',FORMAT($campo2,2,'en_US')) cargos,CONCAT('$',FORMAT($campo3,2,'en_US')) abonos,CONCAT('$',FORMAT($campo4,2,'en_US')) final
+        FROM saldoscuentas WHERE team_id = $tax_id ORDER BY codigo");
         $totales = DB::select("SELECT
         CONCAT('$',FORMAT(SUM(IF(naturaleza = 'D',$campo1,($campo1*-1))),2,'en_US')) inicial,
         CONCAT('$',FORMAT(SUM($campo2),2,'en_US')) cargos,
         CONCAT('$',FORMAT(SUM($campo3),2,'en_US')) abonos,
         CONCAT('$',FORMAT(SUM(IF(naturaleza = 'D',$campo4,($campo4*-1))),2,'en_US')) final
         FROM saldoscuentas
-        WHERE codigo IN ('10001000','10002000','20001000','30000000','40000000','50000000','60000000','70000000')");
+        WHERE team_id = $tax_id AND codigo IN ('10001000','10002000','20001000','30000000','40000000','50000000','60000000','70000000')");
         $data = [
             'titulo' => 'Balanza de Comprobacion',
             'datos'=>$catac,
@@ -229,11 +230,10 @@ class ReportesController extends Controller
         $campo1 = 'c'.$periodo;
         $campo2 = 'a'.$periodo;
         $campo3 = 's'.$periodo;
-        DB::statement("INSERT INTO saldoscuentas (codigo,nombre,n1,n2,n3,n4,n5,n6,si,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,
+        DB::statement("INSERT INTO saldoscuentas (codigo,nombre,n1,n2,n3,si,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,
         a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,naturaleza,team_id)
-        SELECT c.codigo,c.nombre,COALESCE(c.acumula,-1) n1, COALESCE(u.acumula,-1) n2,
-        COALESCE(m.acumula,-1) n3, COALESCE(l.acumula,-1) n4,
-        COALESCE(l1.acumula,-1) n5, COALESCE(l2.acumula,-1) n6,0 si,
+        SELECT distinct c.codigo,c.nombre,COALESCE(c.acumula,-1) n1, COALESCE(u.acumula,-1) n2,
+        COALESCE(m.acumula,-1) n3,0 si,
         0 c1,0 c2,0 c3,0 c4,0 c5,0 c6,0 c7,0 c8,0 c9,0 c10,0 c11,0 c12,
         0 a1,0 a2,0 a3,0 a4,0 a5,0 a6,0 a7,0 a8,0 a9,0 a10,0 a11,0 a12,
         0 s1,0 s2,0 s3,0 s4,0 s5,0 s6,0 s7,0 s8,0 s9,0 s10,0 s11,0 s12,
@@ -241,9 +241,7 @@ class ReportesController extends Controller
         FROM cat_cuentas c
         LEFT JOIN cat_cuentas u ON u.codigo = c.acumula AND u.team_id = $empresa
         LEFT JOIN cat_cuentas m ON m.codigo = u.acumula AND m.team_id = $empresa
-        LEFT JOIN cat_cuentas l ON l.codigo = m.acumula AND l.team_id = $empresa
-        LEFT JOIN cat_cuentas l1 ON l1.codigo = l.acumula AND l1.team_id = $empresa
-        LEFT JOIN cat_cuentas l2 ON l2.codigo = l1.acumula AND l2.team_id = $empresa");
+        ORDER BY c.codigo");
 
         $saldos_mes = DB::select("SELECT a.codigo,c.nombre, sum(cargo) cargos, sum(abono) abonos,
         IF(c.naturaleza = 'D',sum(cargo)-sum(abono),sum(abono)-sum(cargo)) final,

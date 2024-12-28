@@ -25,6 +25,8 @@ return new class extends Migration
             $table->string('uuid')->nullable();
             $table->string('tiposat')->nullable();
             $table->foreignId('team_id')->constrained();
+            $table->integer('idcfdi')->nullable();
+            $table->integer('idmovb')->nullable();
             $table->timestamps();
 
         });

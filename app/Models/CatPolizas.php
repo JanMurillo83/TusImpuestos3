@@ -21,7 +21,9 @@ class CatPolizas extends Model
     'referencia',
     'uuid',
     'tiposat',
-    'team_id'];
+    'team_id',
+    'idcfdi',
+    'idmovb'];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

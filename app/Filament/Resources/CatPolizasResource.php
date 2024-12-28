@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Support\RawJs;
+use Filament\Tables\Enums\ActionsPosition;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
@@ -224,8 +225,27 @@ class CatPolizasResource extends Resource
                 ->label('')
                 ->icon(null)
                 ->modalSubmitActionLabel('Grabar')
-                ->modalWidth('7xl')
+                ->modalWidth('7xl'),
+                Tables\Actions\DeleteAction::make()
+                ->label('')->icon('fas-trash-can')
+                ->requiresConfirmation()
+                ->after(function($record){
+                    if($record->idmovb > 0){
+                        DB::table('movbancos')->where('id',$record->idmovb)->update([
+                            'tercero'=>null,
+                            'factura'=>null,
+                            'uuid'=>null,
+                            'contabilizada'=>'NO'
+                        ]);
+                    }
+                    if($record->idcfdi > 0){
+                        DB::table('almacencfdis')->where('id',$record->idcfdi)->update([
+                            'used'=>'NO'
+                        ]);
+                    }
+                })
             ])
+            ->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     //Tables\Actions\DeleteBulkAction::make(),

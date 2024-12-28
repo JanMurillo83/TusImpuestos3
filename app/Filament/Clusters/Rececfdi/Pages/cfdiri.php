@@ -190,10 +190,12 @@ class cfdiri extends Page implements HasForms, HasTable
                             }),
                         Select::make('forma')
                             ->label('Forma de Pago')
+                            ->default('CXP')
                             ->options([
                                 'CXP'=>'Cuenta por Pagar',
                                 'PAG'=>'Pagado'
                             ])
+                            ->disabled()
                             ->required()
                     ])
                     ->action(function(Model $record,$data,$livewire){
@@ -227,10 +229,12 @@ class cfdiri extends Page implements HasForms, HasTable
                         }),
                     Select::make('forma')
                         ->label('Forma de Pago')
+                        ->default('CXP')
                         ->options([
                             'CXP'=>'Cuenta por Pagar',
                             'PAG'=>'Pagado'
-                        ])->required()])
+                        ])
+                        ->disabled()->required()])
                 ->action(function(Collection $records,array $data,$livewire){
                     foreach($records as $record){
                         Self::contabiliza_r($record,$data,$livewire);
@@ -345,7 +349,8 @@ class cfdiri extends Page implements HasForms, HasTable
                 'referencia'=>$serie.$folio,
                 'uuid'=>$uuid,
                 'tiposat'=>'Dr',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idcfdi'=>$record->id
             ]);
             $polno = $poliza['id'];
             $aux = Auxiliares::create([

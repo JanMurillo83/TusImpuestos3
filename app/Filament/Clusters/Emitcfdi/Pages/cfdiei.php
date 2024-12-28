@@ -315,7 +315,8 @@ class cfdiei extends Page implements HasForms, HasTable
                 'referencia'=>$serie.$folio,
                 'uuid'=>$uuid,
                 'tiposat'=>'Dr',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idcfdi'=>$record->id
             ]);
             $polno = $poliza['id'];
             $aux = Auxiliares::create([

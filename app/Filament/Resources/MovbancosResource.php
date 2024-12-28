@@ -151,6 +151,7 @@ class MovbancosResource extends Resource
                     $valor2 = $formatter->formatCurrency($livewire->saldo_cuenta_act, 'MXN');
                 return 'Saldo Inicial del Periodo: '.$valor;
             })
+            ->paginated(false)
             ->columns([
                 Tables\Columns\TextColumn::make('fecha')
                     ->dateTime('d-m-Y')
@@ -212,7 +213,16 @@ class MovbancosResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
-                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\EditAction::make()
+                    ->visible(function($record){
+                        if($record->contabilizada == 'NO') return true;
+                        if($record->contabilizada == 'SI') return false;
+                    }),
+                    Tables\Actions\ViewAction::make()
+                    ->visible(function($record){
+                        if($record->contabilizada == 'SI') return true;
+                        if($record->contabilizada == 'NO') return false;
+                    }),
             //--------------------------------------------------------
                     Action::make('procesa_s')
                     ->form(function(Form $form){
@@ -260,19 +270,11 @@ class MovbancosResource extends Resource
                                 ])
                                 ->schema([
                                     Select::make('Factura')
-                                    ->options(
-                                        function(){
-                                            $cfdis = DB::table('almacencfdis')->where(['team_id'=>Filament::getTenant()->id,'xml_type'=>'Recibidos','used'=>'SI'])
+                                    ->searchable()
+                                    ->options(DB::table('almacencfdis')->where(['team_id'=>Filament::getTenant()->id,'xml_type'=>'Recibidos','used'=>'SI'])
                                             ->select('id',DB::Raw("concat('Factura: ',serie,folio,'  Fecha: ',
                                             DATE_FORMAT(fecha,'%d-%m-%Y'),'  Emisor: ',Emisor_Nombre,
-                                            '  Importe: $',FORMAT(Total,2)) CFDI"))->get();
-                                            $resultado =[];
-                                            foreach($cfdis as $cfdi)
-                                            {
-                                                array_push($resultado,[$cfdi->id=>$cfdi->CFDI]);
-                                            }
-                                            return $resultado;
-                                        })
+                                            '  Importe: $',FORMAT(Total,2)) CFDI"))->pluck('CFDI','id'))
                                     ->afterStateUpdated(function(Get $get,Set $set){
                                         $factura = $get('Factura');
                                         $facts = DB::table('almacencfdis')->where('id',$factura)->get();
@@ -281,13 +283,16 @@ class MovbancosResource extends Resource
                                         $set('Receptor',$fac->Receptor_Rfc);
                                         $set('Importe',$fac->Total);
                                         $set('FacId',$fac->id);
+                                        $set('UUID',$fac->UUID);
+                                        $set('desfactura',$fac->Serie.$fac->Folio);
                                     })->live(onBlur:true),
                                     TextInput::make('Emisor')->readOnly(),
                                     TextInput::make('Receptor')->readOnly(),
                                     TextInput::make('Importe')->readOnly()
                                     ->numeric()->prefix('$'),
                                     Hidden::make('FacId'),
-                                    Hidden::make('UUID')
+                                    Hidden::make('UUID'),
+                                    Hidden::make('desfactura')
                                 ])->columnSpanFull(),
                                 Fieldset::make('Activo Fijo')
                                 ->visible(function(Get $get){
@@ -668,23 +673,17 @@ class MovbancosResource extends Resource
                                 ])
                                 ->schema([
                                     Select::make('Factura')
+                                    ->searchable()
                                     ->required(function(Get $get){
                                         if($get('Movimiento') == 1) return true;
                                         else return false;
                                     })
                                     ->options(
-                                        function(){
-                                            $cfdis = DB::table('almacencfdis')->where(['team_id'=>Filament::getTenant()->id,'xml_type'=>'Emitidos','used'=>'SI'])
+                                        DB::table('almacencfdis')->where(['team_id'=>Filament::getTenant()->id,'xml_type'=>'Emitidos','used'=>'SI'])
                                             ->select('id',DB::Raw("concat('Factura: ',serie,folio,'  Fecha: ',
                                             DATE_FORMAT(fecha,'%d-%m-%Y'),'  Receptor: ',Receptor_Nombre,
-                                            '  Importe: $',FORMAT(Total,2)) CFDI"))->get();
-                                            $resultado =[];
-                                            foreach($cfdis as $cfdi)
-                                            {
-                                                array_push($resultado,[$cfdi->id=>$cfdi->CFDI]);
-                                            }
-                                            return $resultado;
-                                        })
+                                            '  Importe: $',FORMAT(Total,2)) CFDI"))->pluck('CFDI','id')
+                                        )
                                     ->afterStateUpdated(function(Get $get,Set $set){
                                         $factura = $get('Factura');
                                         $facts = DB::table('almacencfdis')->where('id',$factura)->get();
@@ -693,13 +692,18 @@ class MovbancosResource extends Resource
                                         $set('Receptor',$fac->Receptor_Rfc);
                                         $set('Importe',$fac->Total);
                                         $set('FacId',$fac->id);
+                                        $set('UUID',$fac->UUID);
+                                        $set('desuuid',$fac->UUID);
+                                        $set('desfactura',$fac->Serie.$fac->Folio);
                                     })->live(onBlur:true),
                                     TextInput::make('Emisor')->readOnly(),
                                     TextInput::make('Receptor')->readOnly(),
                                     TextInput::make('Importe')->readOnly()
                                     ->numeric()->prefix('$'),
                                     Hidden::make('FacId'),
-                                    Hidden::make('UUID')
+                                    Hidden::make('UUID'),
+                                    Hidden::make('desfactura'),
+                                    Hidden::make('desuuid'),
                                 ])->columnSpanFull(),
                                 Fieldset::make('Tercero')
                                 ->visible(function(Get $get){
@@ -795,8 +799,7 @@ class MovbancosResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ])->striped()->defaultPaginationPageOption(6)
-            ->paginated([6, 'all'])
+            ])->striped()
             ->filters([
                 Filter::make('created_at')
                 ->form([
@@ -847,7 +850,7 @@ class MovbancosResource extends Resource
         //dd($facts[0]);
         DB::table('movbancos')->where('id',$record->id)->update([
             'tercero'=>$facts[0]['Receptor'] ?? 'N/A',
-            'factura'=>$facts[0]['Factura'] ?? 'N/A',
+            'factura'=>$facts[0]['desfactura'] ?? 'N/A',
             'uuid'=>$facts[0]['UUID'] ?? 'N/A',
             'contabilizada'=>'SI'
         ]);
@@ -868,10 +871,11 @@ class MovbancosResource extends Resource
                 'abonos'=>$record->importe,
                 'periodo'=>Filament::getTenant()->periodo,
                 'ejercicio'=>Filament::getTenant()->ejercicio,
-                'referencia'=>$facts[0]['Factura'],
+                'referencia'=>$facts[0]['desfactura'],
                 'uuid'=>$facts[0]['UUID'],
                 'tiposat'=>'Ig',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
             ]);
             $polno = $poliza['id'];
                 $aux = Auxiliares::create([
@@ -881,7 +885,7 @@ class MovbancosResource extends Resource
                     'concepto'=>$nom,
                     'cargo'=>0,
                     'abono'=>$record->importe,
-                    'factura'=>$facts[0]['Factura'],
+                    'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>1,
                     'team_id'=>Filament::getTenant()->id
                 ]);
@@ -896,7 +900,7 @@ class MovbancosResource extends Resource
                     'concepto'=>$nom,
                     'cargo'=>0,
                     'abono'=>($record->importe /1.16) * 0.16,
-                    'factura'=>$facts[0]['Factura'],
+                    'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>2,
                     'team_id'=>Filament::getTenant()->id
                 ]);
@@ -911,7 +915,7 @@ class MovbancosResource extends Resource
                     'concepto'=>$nom,
                     'cargo'=>($record->importe /1.16) * 0.16,
                     'abono'=>0,
-                    'factura'=>$facts[0]['Factura'],
+                    'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>3,
                     'team_id'=>Filament::getTenant()->id
                 ]);
@@ -926,7 +930,7 @@ class MovbancosResource extends Resource
                     'concepto'=>$nom,
                     'cargo'=>$record->importe,
                     'abono'=>0,
-                    'factura'=>$facts[0]['Factura'],
+                    'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>4,
                     'team_id'=>Filament::getTenant()->id
                 ]);
@@ -949,7 +953,8 @@ class MovbancosResource extends Resource
                     'referencia'=>'N/I',
                     'uuid'=>'',
                     'tiposat'=>'Ig',
-                    'team_id'=>Filament::getTenant()->id
+                    'team_id'=>Filament::getTenant()->id,
+                    'idmovb'=>$record->id
                 ]);
                 $polno = $poliza['id'];
                     $aux = Auxiliares::create([
@@ -1028,7 +1033,8 @@ class MovbancosResource extends Resource
                     'referencia'=>'Prestamo',
                     'uuid'=>'',
                     'tiposat'=>'Ig',
-                    'team_id'=>Filament::getTenant()->id
+                    'team_id'=>Filament::getTenant()->id,
+                    'idmovb'=>$record->id
                 ]);
                 $polno = $poliza['id'];
                     $aux = Auxiliares::create([
@@ -1076,7 +1082,8 @@ class MovbancosResource extends Resource
                         'referencia'=>'Otros Ingresos',
                         'uuid'=>'',
                         'tiposat'=>'Ig',
-                        'team_id'=>Filament::getTenant()->id
+                        'team_id'=>Filament::getTenant()->id,
+                        'idmovb'=>$record->id
                     ]);
                     $polno = $poliza['id'];
                         $aux = Auxiliares::create([
@@ -1123,7 +1130,7 @@ class MovbancosResource extends Resource
         $tmov = $data['Movimiento'];
         DB::table('movbancos')->where('id',$record->id)->update([
             'tercero'=>$facts[0]['Emisor'],
-            'factura'=>$facts[0]['Factura'],
+            'factura'=>$facts[0]['desfactura'],
             'uuid'=>$facts[0]['UUID'],
             'contabilizada'=>'SI'
         ]);
@@ -1144,10 +1151,11 @@ class MovbancosResource extends Resource
                 'abonos'=>$record->importe,
                 'periodo'=>Filament::getTenant()->periodo,
                 'ejercicio'=>Filament::getTenant()->ejercicio,
-                'referencia'=>$facts[0]['Factura'],
+                'referencia'=>$facts[0]['desfactura'],
                 'uuid'=>$facts[0]['UUID'],
                 'tiposat'=>'Eg',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
             ]);
             $polno = $poliza['id'];
             $aux = Auxiliares::create([
@@ -1157,7 +1165,7 @@ class MovbancosResource extends Resource
                 'concepto'=>$nom,
                 'cargo'=>$record->importe,
                 'abono'=>0,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>1,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1167,12 +1175,12 @@ class MovbancosResource extends Resource
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>'10801000',
+                'codigo'=>'11801000',
                 'cuenta'=>'IVA acreditable pagado',
                 'concepto'=>$nom,
                 'cargo'=>($record->importe /1.16) * 0.16,
                 'abono'=>0,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>2,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1182,12 +1190,12 @@ class MovbancosResource extends Resource
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>'10901000',
+                'codigo'=>'11901000',
                 'cuenta'=>'IVA pendiente de pago',
                 'concepto'=>$nom,
                 'cargo'=>0,
                 'abono'=>($record->importe /1.16) * 0.16,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>3,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1202,7 +1210,7 @@ class MovbancosResource extends Resource
                 'concepto'=>$nom,
                 'cargo'=>0,
                 'abono'=>$record->importe,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>4,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1224,10 +1232,11 @@ class MovbancosResource extends Resource
                 'abonos'=>$record->importe,
                 'periodo'=>Filament::getTenant()->periodo,
                 'ejercicio'=>Filament::getTenant()->ejercicio,
-                'referencia'=>$facts[0]['Factura'],
+                'referencia'=>$facts[0]['desfactura'],
                 'uuid'=>$facts[0]['UUID'],
                 'tiposat'=>'Eg',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
             ]);
             $polno = $poliza['id'];
             $aux = Auxiliares::create([
@@ -1237,7 +1246,7 @@ class MovbancosResource extends Resource
                 'concepto'=>'Reembolso de gastos',
                 'cargo'=>$record->importe,
                 'abono'=>0,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>1,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1247,12 +1256,12 @@ class MovbancosResource extends Resource
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>'10801000',
+                'codigo'=>'11801000',
                 'cuenta'=>'IVA acreditable pagado',
                 'concepto'=>'Reembolso de gastos',
                 'cargo'=>($record->importe /1.16) * 0.16,
                 'abono'=>0,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>2,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1262,12 +1271,12 @@ class MovbancosResource extends Resource
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>'10901000',
+                'codigo'=>'11901000',
                 'cuenta'=>'IVA pendiente de pago',
                 'concepto'=>'Reembolso de gastos',
                 'cargo'=>0,
                 'abono'=>($record->importe /1.16) * 0.16,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>3,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1282,7 +1291,7 @@ class MovbancosResource extends Resource
                 'concepto'=>'Reembolso de gastos',
                 'cargo'=>0,
                 'abono'=>$record->importe,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>4,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1302,10 +1311,11 @@ class MovbancosResource extends Resource
                 'abonos'=>$record->importe,
                 'periodo'=>Filament::getTenant()->periodo,
                 'ejercicio'=>Filament::getTenant()->ejercicio,
-                'referencia'=>$facts[0]['Factura'],
+                'referencia'=>$facts[0]['desfactura'],
                 'uuid'=>$facts[0]['UUID'],
                 'tiposat'=>'Eg',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
             ]);
             $polno = $poliza['id'];
             $aux = Auxiliares::create([
@@ -1315,7 +1325,7 @@ class MovbancosResource extends Resource
                 'concepto'=>'Pago Activo Fijo',
                 'cargo'=>$record->importe,
                 'abono'=>0,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>1,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1325,12 +1335,12 @@ class MovbancosResource extends Resource
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>'10801000',
+                'codigo'=>'11801000',
                 'cuenta'=>'IVA acreditable pagado',
                 'concepto'=>'Pago Activo Fijo',
                 'cargo'=>($record->importe /1.16) * 0.16,
                 'abono'=>0,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>2,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1340,12 +1350,12 @@ class MovbancosResource extends Resource
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>'10901000',
+                'codigo'=>'11901000',
                 'cuenta'=>'IVA pendiente de pago',
                 'concepto'=>'Pago Activo Fijo',
                 'cargo'=>0,
                 'abono'=>($record->importe /1.16) * 0.16,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>3,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1360,7 +1370,7 @@ class MovbancosResource extends Resource
                 'concepto'=>'Pago Activo Fijo',
                 'cargo'=>0,
                 'abono'=>$record->importe,
-                'factura'=>$facts[0]['Factura'],
+                'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>4,
                 'team_id'=>Filament::getTenant()->id
             ]);
@@ -1384,7 +1394,8 @@ class MovbancosResource extends Resource
                 'referencia'=>'Prestamo',
                 'uuid'=>'',
                 'tiposat'=>'Eg',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
             ]);
             $polno = $poliza['id'];
                 $aux = Auxiliares::create([
@@ -1432,7 +1443,8 @@ class MovbancosResource extends Resource
                 'referencia'=>'Gasto no Deducible',
                 'uuid'=>'',
                 'tiposat'=>'Eg',
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
             ]);
             $polno = $poliza['id'];
                 $aux = Auxiliares::create([

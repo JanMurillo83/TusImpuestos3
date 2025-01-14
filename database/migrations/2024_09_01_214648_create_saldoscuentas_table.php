@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('saldoscuentas', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo');
-            $table->string('nombre');
-            $table->string('n1');
-            $table->string('n2');
-            $table->string('n3');
-            $table->string('n4');
-            $table->string('n5');
-            $table->string('n6');
+            $table->string('codigo')->nullable();
+            $table->string('nombre')->nullable();
+            $table->string('n1')->nullable();
+            $table->string('n2')->nullable();
+            $table->string('n3')->nullable();
+            $table->string('n4')->nullable();
+            $table->string('n5')->nullable();
+            $table->string('n6')->nullable();
             $table->decimal('si', 18, 8)->default(0);
             $table->decimal('c1', 18, 8)->default(0);
             $table->decimal('c2', 18, 8)->default(0);
@@ -59,6 +59,7 @@ return new class extends Migration
             $table->decimal('s11', 18, 8)->default(0);
             $table->decimal('s12', 18, 8)->default(0);
             $table->string('naturaleza')->nullable();
+            $table->integer('ejercicio');
             $table->foreignId('team_id')->constrained()->nullable();
             $table->timestamps();
         });

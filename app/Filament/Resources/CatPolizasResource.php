@@ -28,6 +28,8 @@ use Filament\Tables\Enums\ActionsPosition;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Section;
 
 class CatPolizasResource extends Resource
 {
@@ -41,6 +43,16 @@ class CatPolizasResource extends Resource
     {
         return $form
             ->schema([
+                Section::make()
+                ->columns([
+                    'default' => 5,
+                    'sm' => 2,
+                    'md' => 2,
+                    'lg' => 5,
+                    'xl' => 5,
+                    '2xl' => 5,
+                ])
+                ->schema([
                 Forms\Components\DatePicker::make('fecha')
                     ->required()
                     ->default(function(){
@@ -96,6 +108,16 @@ class CatPolizasResource extends Resource
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id)
                     ->required(),
+                ]),
+                Section::make()
+                ->columns([
+                    'default' => 5,
+                    'sm' => 5,
+                    'md' => 5,
+                    'lg' => 5,
+                    'xl' => 5,
+                    '2xl' => 5,
+                ])->schema([
                     TableRepeater::make('partidas')
                     ->relationship('partidas')
                     ->headers([
@@ -145,8 +167,14 @@ class CatPolizasResource extends Resource
                         ->default(0),
                         Hidden::make('nopartida')
                         ->default(0),
-                    ])->columnSpanFull()->streamlined()
-            ])->columns(5);
+                    ])->columnSpan('full')->streamlined()
+                    ])
+                    ]);
+            /*->columns([
+                'sm' => 1,
+                'xl' => 5,
+                '2xl' => 5,
+            ]);*/
     }
 
     public static function updateTotals(Get $get, Set $set)

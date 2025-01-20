@@ -295,9 +295,9 @@ class cfdiro extends Page implements HasForms, HasTable
         $cfejercicio = $record['ejercicio'];
         $cffecha1 = $record['Fecha'];
         list($cffecha,$cfhora) = explode('T',$cffecha1);
-        $forma = $data['forma'];
+        $forma = $data['forma'] ?? 'CXP';
         $ctagas = $data['detallegas'];
-        if($tipoxml == 'Recibidos'&&$tipocom == 'I')
+        if($tipoxml == 'Recibidos'&&$tipocom == 'N')
         {
             $existe = CatCuentas::where('nombre',$nom_rec)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first();
             if($existe)

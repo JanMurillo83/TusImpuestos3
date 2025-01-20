@@ -268,7 +268,7 @@ class cfdieo extends Page implements HasForms, HasTable
         //dd($cffecha1);
         list($cffecha,$cfhora) = explode('T',$cffecha1);
         $forma = 'CXC';
-        if($tipoxml == 'Emitidos'&&$tipocom == 'I')
+        if($tipoxml == 'Emitidos'&&$tipocom == 'N')
         {
             $existe = CatCuentas::where('nombre',$nom_rec)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first();
             if($existe)

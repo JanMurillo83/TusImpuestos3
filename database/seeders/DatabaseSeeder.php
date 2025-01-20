@@ -285,6 +285,21 @@ class DatabaseSeeder extends Seeder
                 'logo64'=>'',
                 'team_id'=>1
             ]);
+            DB::table('listareportes')->insert([
+                'nombre'=>'Balanza',
+                'descripcion'=>'Balanza de Comprobacion',
+                'tipo'=>'Contabilidad'
+            ]);
+            DB::table('listareportes')->insert([
+                'nombre'=>'Balance',
+                'descripcion'=>'Balance General',
+                'tipo'=>'Contabilidad'
+            ]);
+            DB::table('listareportes')->insert([
+                'nombre'=>'Estado',
+                'descripcion'=>'Estado de Resultados',
+                'tipo'=>'Contabilidad'
+            ]);
             $date = new DateTime('now', new DateTimeZone('America/Mexico_City'));
             //DB::table('regimenes')->truncate();
             $csvFile = fopen(base_path('public/Fseeders/Regimenes.csv'), "r");

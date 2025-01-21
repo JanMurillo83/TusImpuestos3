@@ -104,7 +104,7 @@ class ListareportesResource extends Resource
                     $empresa = Filament::getTenant()->id;
                     $periodo = $data['periodo'];
                     $ejercicio =$data['ejercicio'];
-                    $this->contabilizar($empresa,$periodo,$ejercicio);
+                    $livewire->contabilizar($empresa,$periodo,$ejercicio);
                     switch($record->nombre)
                     {
                         case 'Balanza':

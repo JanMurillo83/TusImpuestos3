@@ -300,7 +300,7 @@ class cfdiri extends Page implements HasForms, HasTable
         $cfejercicio = $record['ejercicio'];
         $cffecha1 = $record['Fecha'];
         list($cffecha,$cfhora) = explode('T',$cffecha1);
-        $forma = $data['forma'];
+        $forma = $data['forma'] ?? 'CXP';
         $ctagas = $data['detallegas'];
         if($tipoxml == 'Recibidos'&&$tipocom == 'I')
         {

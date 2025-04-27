@@ -98,10 +98,6 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth('full')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->plugins([
-                ReportsPlugin::make()
-                ->navigationGroup('Contabilidad'),
-                SimpleLightBoxPlugin::make()
-                //->cluster(ContReportes::class)
             ]);
     }
 }

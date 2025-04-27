@@ -282,6 +282,7 @@ class cfdiri extends Page implements HasForms, HasTable
 
     public static function contabiliza_r($record,$data,$livewire)
     {
+       //dd($record);
         $tipoxml = $record['xml_type'];
         $tipocom = $record['TipoDeComprobante'];
         $rfc_rec = $record['Receptor_Rfc'];
@@ -302,6 +303,7 @@ class cfdiri extends Page implements HasForms, HasTable
         list($cffecha,$cfhora) = explode('T',$cffecha1);
         $forma = $data['forma'] ?? 'CXP';
         $ctagas = $data['detallegas'];
+        if($tipoc == null||$tipoc == ''||$tipoc ==0) $tipoc = 1;
         if($tipoxml == 'Recibidos'&&$tipocom == 'I')
         {
             $existe = CatCuentas::where('nombre',$nom_emi)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first();
@@ -342,8 +344,8 @@ class cfdiri extends Page implements HasForms, HasTable
                 'folio'=>$nopoliza,
                 'fecha'=>$cffecha,
                 'concepto'=>$nom_emi,
-                'cargos'=>$total,
-                'abonos'=>$total,
+                'cargos'=>$total * $tipoc,
+                'abonos'=>$total * $tipoc,
                 'periodo'=>$cfperiodo,
                 'ejercicio'=>$cfejercicio,
                 'referencia'=>$serie.$folio,
@@ -359,7 +361,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 'cuenta'=>$nom_emi,
                 'concepto'=>$nom_emi,
                 'cargo'=>0,
-                'abono'=>$total,
+                'abono'=>$total * $tipoc,
                 'factura'=>$serie.$folio,
                 'nopartida'=>1,
                 'uuid'=>$uuid,
@@ -374,7 +376,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 'codigo'=>$ctagas,
                 'cuenta'=>'Ventas',
                 'concepto'=>$nom_emi,
-                'cargo'=>$subtotal,
+                'cargo'=>$subtotal * $tipoc,
                 'abono'=>0,
                 'factura'=>$serie.$folio,
                 'nopartida'=>2,
@@ -390,7 +392,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 'codigo'=>'11901000',
                 'cuenta'=>'IVA trasladado no cobrado',
                 'concepto'=>$nom_emi,
-                'cargo'=>$iva,
+                'cargo'=>$iva * $tipoc,
                 'abono'=>0,
                 'factura'=>$serie.$folio,
                 'nopartida'=>3,
@@ -405,6 +407,43 @@ class cfdiri extends Page implements HasForms, HasTable
                 'used'=> 'SI',
                 'metodo'=>$forma
             ]);
+            if($record['Moneda'] == 'USD'||$record['Moneda'] == 'usd'||$record['Moneda']=='Usd'){
+                DB::table('usd_movs')->insert([
+                    'xml_id'=>$record->id,
+                    'poliza'=>$polno,
+                    'subtotalusd'=>$subtotal,
+                    'ivausd'=>$iva,
+                    'totalusd'=>$total,
+                    'subtotalmxn'=>$subtotal * $tipoc,
+                    'ivamxn'=>$iva * $tipoc,
+                    'totalmxn'=>$total * $tipoc,
+                    'tcambio'=>$tipoc,
+                    'uuid'=>$uuid,
+                    'referencia'=>$serie.$folio
+                ]);
+            }
+            DB::table('ingresos_egresos')->insert([
+                'xml_id'=>$record->id,
+                'poliza'=>$polno,
+                'subtotalusd'=>$subtotal,
+                'ivausd'=>$iva,
+                'totalusd'=>$total,
+                'subtotalmxn'=>$subtotal * $tipoc,
+                'ivamxn'=>$iva * $tipoc,
+                'totalmxn'=>$total * $tipoc,
+                'tcambio'=>$tipoc,
+                'uuid'=>$uuid,
+                'referencia'=>$serie.$folio,
+                'pendientemxn'=>$total * $tipoc,
+                'pendienteusd'=>$total,
+                'pagadousd'=>0,
+                'pagadomxn'=>0,
+                'tipo'=>0,
+                'periodo'=>$cfperiodo,
+                'ejercicio'=>$cfejercicio,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+
             Notification::make()
                 ->title('Contabilizar')
                 ->body('Poliza '.$nopoliza.' Generada Correctamente')

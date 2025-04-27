@@ -16,6 +16,9 @@
         $receptor = $cfdiData->receptor();
         $tfd = $cfdiData->timbreFiscalDigital();
     }
+    else{
+
+    }
     $logo = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->get()[0]->logo64 ?? '';
 ?>
 <!DOCTYPE html>

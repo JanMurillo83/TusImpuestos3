@@ -132,7 +132,7 @@ class CatPolizasResource extends Resource
                         Select::make('codigo')
                         ->options(
                             DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                            ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->orderBy('codigo')->pluck('mostrar','codigo')
+                            ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
                         )
                         ->searchable()
                         ->columnSpan(2)

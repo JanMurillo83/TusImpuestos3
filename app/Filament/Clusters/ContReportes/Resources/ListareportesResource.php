@@ -6,6 +6,7 @@ use App\Filament\Clusters\ContReportes;
 use App\Filament\Clusters\ContReportes\Resources\ListareportesResource\Pages;
 use App\Filament\Clusters\ContReportes\Resources\ListareportesResource\RelationManagers;
 use App\Http\Controllers\NuevoReportes;
+use App\Http\Controllers\ReportesController;
 use App\Models\Auxiliares;
 use App\Models\CatPolizas;
 use App\Models\Listareportes;
@@ -26,15 +27,17 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Torgodly\Html2Media\Tables\Actions\Html2MediaAction;
 
 class ListareportesResource extends Resource
 {
     protected static ?string $model = Listareportes::class;
     protected static ?string $navigationIcon = 'fas-print';
-    protected static ?string $cluster = ContReportes::class;
-    protected static bool $isScopedToTenant = false;
+    //protected static ?string $cluster = ContReportes::class;
+    //protected static bool $isScopedToTenant = false;
     protected static ?string $label = 'Reporte';
     protected static ?string $pluralLabel = 'Reportes';
+    public static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {
@@ -63,64 +66,15 @@ class ListareportesResource extends Resource
                 Tables\Columns\TextColumn::make('ruta')
                     ->visible(false),
                 Tables\Columns\TextColumn::make('tipo')
-            ])
-            ->filters([
-                //
-            ])
-            ->recordUrl(null)
-            ->recordAction('Reporte')
-            ->actions([
-                Action::make('Reporte')
-                ->label('')
-                ->form([
-                    Section::make('Filtro')
-                        ->schema([
-                            Select::make('periodo')
-                            ->options([1=>1,2=>2,3=>3,4=>4,5=>5,6=>6,7=>7,8=>8,9=>9,10=>10,11=>11,12=>12]
-                            )->default(Filament::getTenant()->periodo),
-                            Select::make('ejercicio')
-                            ->options(function()
-                            {
-                                $ant = Filament::getTenant()->ejercicio;
-                                $f = $ant - 10;
-                                $t = $ant + 11;
-                                $pers = [];
-                                for($i=$f;$i<$t;$i++)
-                                {
-                                    $pers[$i] =$i;
-                                }
-                                return $pers;
-                            })
-                            ->default(Filament::getTenant()->ejercicio),
-                            Toggle::make('ConS')->label('Solo con Saldos')
-                            ->visible(function($record){
-                                if($record->nombre == 'Balanza') return true;
-                                else return false;
-                            }),
-                        ])->columns(2)
-                ])
-                ->modalWidth('md')->modalSubmitActionLabel('Generar')
-                ->action(function($data,$livewire,$record){
-                    $empresa = Filament::getTenant()->id;
-                    $periodo = $data['periodo'];
-                    $ejercicio =$data['ejercicio'];
-                    $livewire->contabilizar($empresa,$periodo,$ejercicio);
-                    switch($record->nombre)
-                    {
-                        case 'Balanza':
-                            $page = env('APP_URL').'reportes/contabilidad/balanza?empresa='.$empresa.'&periodo='.$periodo.'&ejercicio='.$ejercicio;
-                        break;
-                        case 'Balance':
-                            $page = env('APP_URL').'reportes/contabilidad/balance?empresa='.$empresa.'&periodo='.$periodo.'&ejercicio='.$ejercicio;
-                        break;
-                        case 'Estado':
-                            $page = env('APP_URL').'reportes/contabilidad/estado?empresa='.$empresa.'&periodo='.$periodo.'&ejercicio='.$ejercicio;
-                        break;
-                    }
-                    $livewire->js('window.open("'.$page.'","socialPopupWindow")');
-                })
-            ])
-            ->actionsPosition(ActionsPosition::BeforeCells);
+            ])->headerActions([
+                Html2MediaAction::make('Balance General')
+                    ->button()
+                    ->preview()
+                    ->print(false)
+                    ->savePdf()
+                    ->filename('Balance General')
+                    ->content(fn()=>view('BalanceGral',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio]))
+            ],Tables\Actions\HeaderActionsPosition::Bottom);
     }
 
     public static function getRelations(): array

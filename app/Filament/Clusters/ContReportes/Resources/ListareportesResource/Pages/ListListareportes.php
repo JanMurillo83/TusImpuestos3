@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 class ListListareportes extends ListRecords
 {
     protected static string $resource = ListareportesResource::class;
+    public static bool $shouldRegisterNavigation = false;
     public $funciones = NuevoReportes::class;
     protected function getHeaderActions(): array
     {

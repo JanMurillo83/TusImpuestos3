@@ -1,8 +1,7 @@
 <?php
 use Carbon\Carbon;
-$empresa = $_GET['empresa'];
-$ejercicio = $_GET['ejercicio'];
-$periodo = $_GET['periodo'];
+use \Illuminate\Support\Facades\DB;
+
 $empresas = DB::table('teams')->where('id',$empresa)->get()[0];
 if($periodo == 1) $ini = 'si'; else $ini = 'si';
 $ca = 'c'.$periodo;

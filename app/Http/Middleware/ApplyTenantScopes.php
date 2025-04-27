@@ -15,6 +15,7 @@ use App\Models\Cuentasxcs;
 use App\Models\Cuentasxpagars;
 use App\Models\Facturas;
 use App\Models\Inventario;
+use App\Models\Listareportes;
 use App\Models\Movbancos;
 use App\Models\Movinventario;
 use App\Models\Notasventa;
@@ -63,7 +64,7 @@ class ApplyTenantScopes
         Ordenes::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         Compras::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         Proveedores::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
-
+        Listareportes::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         return $next($request);
     }
 }

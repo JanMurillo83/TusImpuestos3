@@ -265,7 +265,7 @@ class cfdiei extends Page implements HasForms, HasTable
         $cfperiodo = $record['periodo'];
         $cfejercicio = $record['ejercicio'];
         $cffecha1 = $record['Fecha'];
-        //dd($cffecha1);
+        if($tipoc == null||$tipoc == ''||$tipoc ==0) $tipoc = 1;
         list($cffecha,$cfhora) = explode('T',$cffecha1);
         $forma = 'CXC';
         if($tipoxml == 'Emitidos'&&$tipocom == 'I')
@@ -371,6 +371,42 @@ class cfdiei extends Page implements HasForms, HasTable
             DB::table('almacencfdis')->where('id',$record->id)->update([
                 'used'=> 'SI',
                 'metodo'=>$forma
+            ]);
+            if($record['Moneda'] == 'USD'||$record['Moneda'] == 'usd'||$record['Moneda']=='Usd'){
+                DB::table('usd_movs')->insert([
+                    'xml_id'=>$record->id,
+                    'poliza'=>$polno,
+                    'subtotalusd'=>$subtotal,
+                    'ivausd'=>$iva,
+                    'totalusd'=>$total,
+                    'subtotalmxn'=>$subtotal * $tipoc,
+                    'ivamxn'=>$iva * $tipoc,
+                    'totalmxn'=>$total * $tipoc,
+                    'tcambio'=>$tipoc,
+                    'uuid'=>$uuid,
+                    'referencia'=>$serie.$folio
+                ]);
+            }
+            DB::table('ingresos_egresos')->insert([
+                'xml_id'=>$record->id,
+                'poliza'=>$polno,
+                'subtotalusd'=>$subtotal,
+                'ivausd'=>$iva,
+                'totalusd'=>$total,
+                'subtotalmxn'=>$subtotal * $tipoc,
+                'ivamxn'=>$iva * $tipoc,
+                'totalmxn'=>$total * $tipoc,
+                'tcambio'=>$tipoc,
+                'uuid'=>$uuid,
+                'referencia'=>$serie.$folio,
+                'pendientemxn'=>$total * $tipoc,
+                'pendienteusd'=>$total,
+                'pagadousd'=>0,
+                'pagadomxn'=>0,
+                'tipo'=>1,
+                'periodo'=>$cfperiodo,
+                'ejercicio'=>$cfejercicio,
+                'team_id'=>Filament::getTenant()->id
             ]);
             Notification::make()
                 ->title('Contabilizar')

@@ -52,4 +52,9 @@ class Team extends Model
         return $this->belongsToMany(Activosfijos::class);
     }
 
+    public function historicoTcs(): BelongsToMany
+    {
+        return $this->belongsToMany(HistoricoTc::class);
+    }
+
 }

@@ -17,6 +17,7 @@ use App\Models\Metodos;
 use App\Models\Movinventario;
 use App\Models\Notasventa;
 use App\Models\NotasventaPartidas;
+use App\Models\Team;
 use App\Models\Usos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -651,38 +652,40 @@ class FacturasResource extends Resource
                         $data = $record;
                         $factura = $data->id;
                         $receptor = $data->clie;
-                        $res = app(TimbradoController::class)->TimbrarFactura($factura,$receptor);
-                        $resultado = json_decode($res);
-                        $codigores = $resultado->codigo;
-                        if($codigores == "200")
-                        {
-                            $date = new DateTime('now', new DateTimeZone('America/Mexico_City'));
-                            $facturamodel = Facturas::find($factura);
-                            $facturamodel->timbrado = 'SI';
-                            $facturamodel->xml = $resultado->cfdi;
-                            $facturamodel->fecha_tim = $date;
-                            $facturamodel->save();
-                            $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura,$resultado->cfdi,"F");
-                            $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: '.$res2;
-                            Notification::make()
-                                ->success()
-                                ->title('Factura Timbrada Correctamente')
-                                ->body($mensaje_graba)
-                                ->duration(2000)
-                                ->send();
-                        }
-                       else{
-                            $mensaje_tipo = "2";
-                            $mensaje_graba = $resultado->mensaje;
-                            Notification::make()
-                                ->warning()
-                                ->title('Error al Timbrar el Documento')
-                                ->body($mensaje_graba)
-                                ->persistent()
-                                ->send();
+                        $emp = Team::where('id',Filament::getTenant()->id)->first();
+                        if($emp->archivokey != null) {
+                            $res = app(TimbradoController::class)->TimbrarFactura($factura, $receptor);
+                            $resultado = json_decode($res);
+                            $codigores = $resultado->codigo;
+                            if ($codigores == "200") {
+                                $date = new DateTime('now', new DateTimeZone('America/Mexico_City'));
+                                $facturamodel = Facturas::find($factura);
+                                $facturamodel->timbrado = 'SI';
+                                $facturamodel->xml = $resultado->cfdi;
+                                $facturamodel->fecha_tim = $date;
+                                $facturamodel->save();
+                                $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
+                                $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
+                                Notification::make()
+                                    ->success()
+                                    ->title('Factura Timbrada Correctamente')
+                                    ->body($mensaje_graba)
+                                    ->duration(2000)
+                                    ->send();
+                            } else {
+                                $mensaje_tipo = "2";
+                                $mensaje_graba = $resultado->mensaje;
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Error al Timbrar el Documento')
+                                    ->body($mensaje_graba)
+                                    ->persistent()
+                                    ->send();
+                            }
+                            $livewire->callImprimir($record);
                         }
                     //------------------------------------------
-                    $livewire->callImprimir($record);
+
                 })
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([

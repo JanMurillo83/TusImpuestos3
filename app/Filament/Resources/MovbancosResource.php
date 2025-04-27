@@ -4,12 +4,14 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MovbancosResource\Pages;
 use App\Filament\Resources\MovbancosResource\RelationManagers;
+use App\Livewire\IngEgWidget;
 use App\Models\Activosfijos;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\IngresosEgresos;
 use App\Models\Movbancos;
 use App\Models\Regimenes;
 use App\Models\Terceros;
@@ -23,6 +25,7 @@ use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\Colors\Color;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,6 +68,9 @@ class MovbancosResource extends Resource
     protected static ?string $navigationIcon ='fas-money-bill-transfer';
     public ?float $saldo_cuenta = 0;
     public ?float $saldo_cuenta_act = 0;
+    public static ?array $selected_records = [];
+
+
     public static function form(Form $form): Form
     {
         return $form
@@ -88,11 +94,14 @@ class MovbancosResource extends Resource
                                         ->options(BancoCuentas::where('team_id',Filament::getTenant()->id)->pluck('banco','id')),
                                 Forms\Components\TextInput::make('importe')
                                         ->required()
-                                        ->numeric(),
+                                        ->numeric()->prefix('$'),
+                                Forms\Components\Select::make('moneda')
+                                ->options(['MXN'=>'MXN','USD'=>'USD'])
+                                ->default('MXN'),
                                 Forms\Components\TextInput::make('concepto')
                                         ->required()
                                         ->maxLength(255)
-                                        ->columnSpanFull(),
+                                        ->columnSpan(3),
                                 Forms\Components\TextInput::make('ejercicio')
                                         ->default(Filament::getTenant()->ejercicio),
                                 Forms\Components\TextInput::make('periodo')
@@ -189,6 +198,7 @@ class MovbancosResource extends Resource
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
+                Tables\Columns\TextColumn::make('moneda'),
                 Tables\Columns\TextColumn::make('concepto')
                     ->sortable()
                     ->searchable(),
@@ -225,6 +235,10 @@ class MovbancosResource extends Resource
                     }),
             //--------------------------------------------------------
                     Action::make('procesa_s')
+                        ->visible(function($record){
+                            if($record->contabilizada == 'SI') return false;
+                            if($record->contabilizada == 'NO'&&$record->tipo == 'S') return true;
+                        })
                     ->form(function(Form $form){
                         return $form
                         ->schema([
@@ -236,10 +250,14 @@ class MovbancosResource extends Resource
                             ->default(function(Model $record){
                                 return $record->importe;
                             }),
+                            TextInput::make('moneda')
+                                ->default(function(Model $record){
+                                    return $record->moneda;
+                                })->readOnly(),
                             TextInput::make('importefactu')
                             ->visible(false)
                             ->label('Importe Facturas')
-                            ->placeholder(function (Get $get,Set $set) {
+                            ->placeholder(function (Get $get) {
                                 $valor = collect($get('Facturas'))->pluck('Importe')->sum();
                                 return floatval($valor);
                             })
@@ -263,7 +281,7 @@ class MovbancosResource extends Resource
                                     if($mov == 1||$mov == 2||$mov == 3) return true;
                                     else return false;
                                 })->headers([
-                                    Header::make('Factura')->width('100px'),
+                                    Header::make('Factura')->width('300px'),
                                     Header::make('Emisor')->width('100px'),
                                     Header::make('Receptor')->width('100px'),
                                     Header::make('Importe')->width('100px')
@@ -271,20 +289,68 @@ class MovbancosResource extends Resource
                                 ->schema([
                                     Select::make('Factura')
                                     ->searchable()
-                                    ->options(DB::table('almacencfdis')->where(['team_id'=>Filament::getTenant()->id,'xml_type'=>'Recibidos','used'=>'SI'])
-                                            ->select('id',DB::Raw("concat('Factura: ',serie,folio,'  Fecha: ',
-                                            DATE_FORMAT(fecha,'%d-%m-%Y'),'  Emisor: ',Emisor_Nombre,
-                                            '  Importe: $',FORMAT(Total,2)) CFDI"))->pluck('CFDI','id'))
+                                    ->options(function (){
+                                        $ing_ret = IngresosEgresos::where('team_id',Filament::getTenant()->id)->where('tipo',0)->where('pendientemxn','>',0)->get();
+                                        $data = [];
+                                        foreach ($ing_ret as $item){
+                                            $tot = '$'.number_format($item->totalmxn,2);
+                                            $pend = '$'.number_format($item->pendientemxn,2);
+                                            $monea = 'MXN';
+                                            $alm = Almacencfdis::where('id',$item->xml_id)->first();
+                                            if($item->tcambio > 1) {
+                                                $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+                                                $monea = 'USD';
+                                                $tot = '$'.number_format(($item->totalusd),2);
+                                                $pend = '$'.number_format(($item->pendienteusd),2);
+                                            }
+                                            else{
+                                                $monea = 'MXN';
+                                                $tot = '$'.number_format($item->totalmxn,2);
+                                                $pend = '$'.number_format($item->pendientemxn,2);
+                                            }
+                                            $column = "
+                                            <table>
+                                                <tr>
+                                                    <th style='padding: 10px'>Tercero</th>
+                                                    <th style='padding: 10px'>Referencia</th>
+                                                    <th style='padding: 10px'>Importe</th>
+                                                    <th style='padding: 10px'>Pendiente</th>
+                                                    <th style='padding: 10px'>Moneda</th>
+                                                </tr>
+                                                <tr>
+                                                <td class='border' style='padding: 10px'>$alm->Emisor_Nombre</td>
+                                                    <td class='border' style='padding: 10px'>$item->referencia</td>
+                                                    <td class='border' style='padding: 10px'>$tot</td>
+                                                    <td class='border' style='padding: 10px'>$pend</td>
+                                                    <td class='border' style='padding: 10px'>$monea</td>
+                                                </tr>
+                                            </table>";
+                                            $data[] = [
+                                                $item->id.'|'.$item->xml_id => $column
+                                            ];
+                                        }
+                                        //dd($data);
+                                        return $data;
+                                    })->allowHtml(true)
                                     ->afterStateUpdated(function(Get $get,Set $set){
-                                        $factura = $get('Factura');
+                                        $factu = $get('Factura');
+                                        $factur = explode('|',$factu);
+                                        $ingeng = $factur[0];
+                                        $factura = $factur[1];
                                         $facts = DB::table('almacencfdis')->where('id',$factura)->get();
                                         $fac = $facts[0];
+                                        $tc_n = 1;
+                                        if($fac->Moneda != 'MXN')
+                                        {
+                                            $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+                                        }
                                         $set('Emisor',$fac->Emisor_Rfc);
                                         $set('Receptor',$fac->Receptor_Rfc);
-                                        $set('Importe',$fac->Total);
+                                        $set('Importe',$fac->Total * $tc_n);
                                         $set('FacId',$fac->id);
                                         $set('UUID',$fac->UUID);
                                         $set('desfactura',$fac->Serie.$fac->Folio);
+                                        $set('ingengid',$ingeng);
                                     })->live(onBlur:true),
                                     TextInput::make('Emisor')->readOnly(),
                                     TextInput::make('Receptor')->readOnly(),
@@ -292,7 +358,8 @@ class MovbancosResource extends Resource
                                     ->numeric()->prefix('$'),
                                     Hidden::make('FacId'),
                                     Hidden::make('UUID'),
-                                    Hidden::make('desfactura')
+                                    Hidden::make('desfactura'),
+                                    Hidden::make('ingengid')
                                 ])->columnSpanFull(),
                                 Fieldset::make('Activo Fijo')
                                 ->visible(function(Get $get){
@@ -620,7 +687,6 @@ class MovbancosResource extends Resource
                         ])->columns(4);
                     })
                     ->modalWidth('7xl')
-                    ->visible(fn ($record) => $record->tipo == 'S')
                     ->label('Procesar')
                     ->accessSelectedRecords()
                     ->icon('fas-check-to-slot')
@@ -629,7 +695,12 @@ class MovbancosResource extends Resource
                     }),
                 //--------------------------------------------------------------------
                 Action::make('procesa_e')
+                    ->visible(function($record){
+                        if($record->contabilizada == 'SI') return false;
+                        if($record->contabilizada == 'NO'&&$record->tipo == 'E') return true;
+                    })
                     ->form(function(Form $form){
+
                         return $form
                         ->schema([
                             TextInput::make('importe')
@@ -666,36 +737,77 @@ class MovbancosResource extends Resource
                                     else return false;
                                 })
                                 ->headers([
-                                    Header::make('Factura')->width('100px'),
+                                    Header::make('Factura')->width('200px'),
                                     Header::make('Emisor')->width('100px'),
                                     Header::make('Receptor')->width('100px'),
                                     Header::make('Importe')->width('100px')
                                 ])
                                 ->schema([
                                     Select::make('Factura')
-                                    ->searchable()
-                                    ->required(function(Get $get){
-                                        if($get('Movimiento') == 1) return true;
-                                        else return false;
-                                    })
-                                    ->options(
-                                        DB::table('almacencfdis')->where(['team_id'=>Filament::getTenant()->id,'xml_type'=>'Emitidos','used'=>'SI'])
-                                            ->select('id',DB::Raw("concat('Factura: ',serie,folio,'  Fecha: ',
-                                            DATE_FORMAT(fecha,'%d-%m-%Y'),'  Receptor: ',Receptor_Nombre,
-                                            '  Importe: $',FORMAT(Total,2)) CFDI"))->pluck('CFDI','id')
-                                        )
-                                    ->afterStateUpdated(function(Get $get,Set $set){
-                                        $factura = $get('Factura');
-                                        $facts = DB::table('almacencfdis')->where('id',$factura)->get();
-                                        $fac = $facts[0];
-                                        $set('Emisor',$fac->Emisor_Rfc);
-                                        $set('Receptor',$fac->Receptor_Rfc);
-                                        $set('Importe',$fac->Total);
-                                        $set('FacId',$fac->id);
-                                        $set('UUID',$fac->UUID);
-                                        $set('desuuid',$fac->UUID);
-                                        $set('desfactura',$fac->Serie.$fac->Folio);
-                                    })->live(onBlur:true),
+                                        ->searchable()
+                                        ->options(function (){
+                                            $ing_ret = IngresosEgresos::where('team_id',Filament::getTenant()->id)->where('tipo',1)->where('pendientemxn','>',0)->get();
+                                            $data = [];
+                                            foreach ($ing_ret as $item){
+                                                $alm = Almacencfdis::where('id',$item->xml_id)->first();
+                                                $tot = '$'.number_format($item->totalmxn,2);
+                                                $pend = '$'.number_format($item->pendientemxn,2);
+                                                $monea = 'MXN';
+                                                if($item->tcambio > 1) {
+                                                    $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+                                                    $monea = 'USD';
+                                                    $tot = '$'.number_format(($item->totalusd),2);
+                                                    $pend = '$'.number_format(($item->pendienteusd),2);
+                                                }
+                                                else{
+                                                    $monea = 'MXN';
+                                                    $tot = '$'.number_format($item->totalmxn,2);
+                                                    $pend = '$'.number_format($item->pendientemxn,2);
+                                                }
+                                                $column = "
+                                            <table>
+                                                <tr>
+                                                    <th style='padding: 10px'>Tercero</th>
+                                                    <th style='padding: 10px'>Referencia</th>
+                                                    <th style='padding: 10px'>Importe</th>
+                                                    <th style='padding: 10px'>Pendiente</th>
+                                                    <th style='padding: 10px'>Moneda</th>
+                                                </tr>
+                                                <tr>
+                                                    <td class='border' style='padding: 10px'>$alm->Receptor_Nombre</td>
+                                                    <td class='border' style='padding: 10px'>$item->referencia</td>
+                                                    <td class='border' style='padding: 10px'>$tot</td>
+                                                    <td class='border' style='padding: 10px'>$pend</td>
+                                                    <td class='border' style='padding: 10px'>$monea</td>
+                                                </tr>
+                                            </table>";
+                                                $data[] = [
+                                                    $item->id.'|'.$item->xml_id => $column
+                                                ];
+                                            }
+                                            //dd($data);
+                                            return $data;
+                                        })->allowHtml(true)
+                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                            $factu = $get('Factura');
+                                            $factur = explode('|',$factu);
+                                            $ingeng = $factur[0];
+                                            $factura = $factur[1];
+                                            $facts = DB::table('almacencfdis')->where('id',$factura)->get();
+                                            $fac = $facts[0];
+                                            $tc_n = 1;
+                                            if($fac->Moneda != 'MXN')
+                                            {
+                                                $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+                                            }
+                                            $set('Emisor',$fac->Emisor_Rfc);
+                                            $set('Receptor',$fac->Receptor_Rfc);
+                                            $set('Importe',$fac->Total * $tc_n);
+                                            $set('FacId',$fac->id);
+                                            $set('UUID',$fac->UUID);
+                                            $set('desfactura',$fac->Serie.$fac->Folio);
+                                            $set('ingengid',$ingeng);
+                                        })->live(onBlur:true),
                                     TextInput::make('Emisor')->readOnly(),
                                     TextInput::make('Receptor')->readOnly(),
                                     TextInput::make('Importe')->readOnly()
@@ -704,6 +816,7 @@ class MovbancosResource extends Resource
                                     Hidden::make('UUID'),
                                     Hidden::make('desfactura'),
                                     Hidden::make('desuuid'),
+                                    Hidden::make('ingengid'),
                                 ])->columnSpanFull(),
                                 Fieldset::make('Tercero')
                                 ->visible(function(Get $get){
@@ -785,7 +898,6 @@ class MovbancosResource extends Resource
                         ])->columns(4);
                     })
                     ->modalWidth('7xl')
-                    ->visible(fn ($record) => $record->tipo == 'E')
                     ->label('Procesar')
                     ->accessSelectedRecords()
                     ->modalSubmitActionLabel('Grabar')
@@ -860,6 +972,29 @@ class MovbancosResource extends Resource
         if($data['Movimiento'] == 1) $nom = $fss[0]->Receptor_Nombre;
         //-------------------------------------------------------------------
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Ig')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+        $facts[0]['ingengid'];
+        $pags = DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])->get()[0];
+        $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+        $npagusd = $pags->pagadousd + $record->importe;
+        $npendusd = $pags->pendienteusd - $record->importe;
+        $npag = $pags->pagadomxn + $record->importe;
+        $npend = $pags->pendientemxn - $record->importe;
+        if($fss[0]->Moneda == 'USD') {
+            $npag = $pags->pagadomxn + ($record->importe * $tc_n);
+            $npend = $pags->pendientemxn - ($record->importe * $tc_n);
+        }
+        else{
+            $tc_n = 1;
+        }
+        if($npend < 0) $npend = 0;
+        if($npendusd < 0) $npendusd = 0;
+        DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])
+            ->update([
+                'pagadomxn' => $npag,
+                'pendientemxn' => $npend,
+                'pagadousd' => $npagusd,
+                'pendienteusd' => $npendusd,
+            ]);
         if($data['Movimiento'] == 1)
         {
             $poliza = CatPolizas::create([
@@ -1126,6 +1261,7 @@ class MovbancosResource extends Resource
 
     public static function procesa_s_f($record,$data)
     {
+        //dd($data);
         $facts =$data['Facturas'] ?? [['Emisor'=>'','Factura'=>'','UUID'=>'','FacId'=>0]];
         $tmov = $data['Movimiento'];
         DB::table('movbancos')->where('id',$record->id)->update([
@@ -1139,6 +1275,29 @@ class MovbancosResource extends Resource
         $ter = DB::table('terceros')->where('rfc',$facts[0]['Emisor'])->get();
         $nom = $fss[0]->Emisor_Nombre ?? '';
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+        $facts[0]['ingengid'];
+        $pags = DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])->get()[0];
+        $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+        $npagusd = $pags->pagadousd + $record->importe;
+        $npendusd = $pags->pendienteusd - $record->importe;
+        $npag = $pags->pagadomxn + $record->importe;
+        $npend = $pags->pendientemxn - $record->importe;
+        if($fss[0]->Moneda == 'USD') {
+            $npag = $pags->pagadomxn + ($record->importe * $tc_n);
+            $npend = $pags->pendientemxn - ($record->importe * $tc_n);
+        }
+        else{
+            $tc_n = 1;
+        }
+        if($npend < 0) $npend = 0;
+        if($npendusd < 0) $npendusd = 0;
+        DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])
+        ->update([
+            'pagadomxn' => $npag,
+            'pendientemxn' => $npend,
+            'pagadousd' => $npagusd,
+            'pendienteusd' => $npendusd,
+        ]);
         //-------------------------------------------------------------------
         if($tmov == 1)
         {
@@ -1147,8 +1306,8 @@ class MovbancosResource extends Resource
                 'folio'=>$nopoliza,
                 'fecha'=>$record->fecha,
                 'concepto'=>$nom,
-                'cargos'=>$record->importe,
-                'abonos'=>$record->importe,
+                'cargos'=>$record->importe * $tc_n,
+                'abonos'=>$record->importe * $tc_n,
                 'periodo'=>Filament::getTenant()->periodo,
                 'ejercicio'=>Filament::getTenant()->ejercicio,
                 'referencia'=>$facts[0]['desfactura'],
@@ -1163,7 +1322,7 @@ class MovbancosResource extends Resource
                 'codigo'=>$ter[0]->cuenta,
                 'cuenta'=>$ter[0]->nombre,
                 'concepto'=>$nom,
-                'cargo'=>$record->importe,
+                'cargo'=>$record->importe * $tc_n,
                 'abono'=>0,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>1,
@@ -1178,7 +1337,7 @@ class MovbancosResource extends Resource
                 'codigo'=>'11801000',
                 'cuenta'=>'IVA acreditable pagado',
                 'concepto'=>$nom,
-                'cargo'=>($record->importe /1.16) * 0.16,
+                'cargo'=>(($record->importe * $tc_n) /1.16) * 0.16,
                 'abono'=>0,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>2,
@@ -1194,7 +1353,7 @@ class MovbancosResource extends Resource
                 'cuenta'=>'IVA pendiente de pago',
                 'concepto'=>$nom,
                 'cargo'=>0,
-                'abono'=>($record->importe /1.16) * 0.16,
+                'abono'=>(($record->importe* $tc_n) /1.16) * 0.16,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>3,
                 'team_id'=>Filament::getTenant()->id
@@ -1209,7 +1368,7 @@ class MovbancosResource extends Resource
                 'cuenta'=>$ban[0]->cuenta,
                 'concepto'=>$nom,
                 'cargo'=>0,
-                'abono'=>$record->importe,
+                'abono'=>$record->importe* $tc_n,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>4,
                 'team_id'=>Filament::getTenant()->id
@@ -1218,6 +1377,75 @@ class MovbancosResource extends Resource
                 'auxiliares_id'=>$aux['id'],
                 'cat_polizas_id'=>$polno
             ]);
+            if($record->moneda=='USD'){
+                $impnue = $record->importe * $tc_n;
+                $imp_ant = $record->importe * $fss[0]->TipoCambio;
+                $difer = $impnue - $imp_ant;
+                if($difer > 0) {
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '70101000',
+                        'cuenta' => 'Perdida Cambiaria',
+                        'concepto' => $nom,
+                        'cargo' => $difer,
+                        'abono' => 0,
+                        'factura' => $facts[0]['desfactura'],
+                        'nopartida' => 5,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo'=>$ter[0]->cuenta,
+                        'cuenta'=>$ter[0]->nombre,
+                        'concepto' => $nom,
+                        'cargo' => 0,
+                        'abono' => $difer,
+                        'factura' => $facts[0]['desfactura'],
+                        'nopartida' => 6,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
+                else{
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '70201000',
+                        'cuenta' => 'Utilidad Cambiaria',
+                        'concepto' => $nom,
+                        'cargo' => 0,
+                        'abono' => $difer,
+                        'factura' => $facts[0]['desfactura'],
+                        'nopartida' => 5,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo'=>$ter[0]->cuenta,
+                        'cuenta'=>$ter[0]->nombre,
+                        'concepto' => $nom,
+                        'cargo' => $difer,
+                        'abono' => 0,
+                        'factura' => $facts[0]['desfactura'],
+                        'nopartida' => 6,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
+            }
 
         }
         if($tmov == 2)
@@ -1484,6 +1712,10 @@ class MovbancosResource extends Resource
         ->send();
     }
 
+
+    public static function setFactData(){
+
+    }
     public static function getRelations(): array
     {
         return [

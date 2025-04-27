@@ -223,21 +223,22 @@ class ReportesController extends Controller
         $request->session()->put('UserYear',$request->ejercicio);
         return "Parametros Establecidos";
     }
-    public function actualiza_saldos($tax_id,$periodo,$ejercicio)
+    public function actualiza_saldos($periodo,$ejercicio)
     {
         $empresa = Filament::getTenant()->id;
-        DB::statement("DELETE FROM saldoscuentas WHERE id > 0 AND team_id = $empresa");
+        DB::statement("DELETE FROM auxiliares WHERE id > 0 AND team_id = $empresa AND cat_polizas_id NOT IN (SELECT id FROM cat_polizas WHERE team_id = $empresa)");
+        DB::statement("DELETE FROM saldoscuentas WHERE id > 0 AND team_id = $empresa ");
         $campo1 = 'c'.$periodo;
         $campo2 = 'a'.$periodo;
         $campo3 = 's'.$periodo;
         DB::statement("INSERT INTO saldoscuentas (codigo,nombre,n1,n2,n3,si,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,
-        a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,naturaleza,team_id)
+        a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,naturaleza,ejercicio,team_id)
         SELECT distinct c.codigo,c.nombre,COALESCE(c.acumula,-1) n1, COALESCE(u.acumula,-1) n2,
         COALESCE(m.acumula,-1) n3,0 si,
         0 c1,0 c2,0 c3,0 c4,0 c5,0 c6,0 c7,0 c8,0 c9,0 c10,0 c11,0 c12,
         0 a1,0 a2,0 a3,0 a4,0 a5,0 a6,0 a7,0 a8,0 a9,0 a10,0 a11,0 a12,
         0 s1,0 s2,0 s3,0 s4,0 s5,0 s6,0 s7,0 s8,0 s9,0 s10,0 s11,0 s12,
-        c.naturaleza, $empresa
+        c.naturaleza,$ejercicio, $empresa
         FROM cat_cuentas c
         LEFT JOIN cat_cuentas u ON u.codigo = c.acumula AND u.team_id = $empresa
         LEFT JOIN cat_cuentas m ON m.codigo = u.acumula AND m.team_id = $empresa

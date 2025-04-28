@@ -146,18 +146,22 @@ class MovbancosResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->heading(function($table,$livewire){
+            ->heading(function(Table $table,$livewire){
                 $record = $table->getRecords();
-                $sdos = DB::table('saldosbancos')
-                    ->where('cuenta',$record[0]->cuenta ?? 1)
-                    ->where('ejercicio',Filament::getTenant()->ejercicio)
-                    ->where('periodo',Filament::getTenant()->periodo)->get();
-                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
-                        $valor = $formatter->formatCurrency($sdos[0]->inicial ?? 0, 'MXN');
-                    $livewire->saldo_cuenta = floatval($sdos[0]->inicial ?? 0);
-                    $livewire->saldo_cuenta_act = floatval($sdos[0]->inicial ?? 0);
-                    $valor2 = $formatter->formatCurrency($livewire->saldo_cuenta_act, 'MXN');
+                $query = $table->getQuery();
+                $text = vsprintf(str_replace(array('?'), array('\'%s\''), $query->toSql()), $query->getBindings());
+                $text2 = explode('=',$text);
+                $text3 = substr($text2[1],2,1);
+                    $q_cuenta = $record[0]->cuenta ?? $text3;
+                    $q_periodo = Filament::getTenant()->periodo ?? 1;
+                    $q_ejercicio = Filament::getTenant()->ejercicio ?? 2020;
+                    $sdos_ac = DB::select("SELECT cuenta,
+                    (SUM(inicial) + (SELECT SUM(importe) FROM movbancos WHERE periodo < $q_periodo AND ejercicio = $q_ejercicio AND tipo = 'E' and cuenta = $q_cuenta) - (SELECT SUM(importe) FROM movbancos WHERE periodo < $q_periodo AND ejercicio = $q_ejercicio AND tipo = 'S' and cuenta = 2)) saldo
+                    FROM  saldosbancos WHERE cuenta = $q_cuenta GROUP BY cuenta");
+                        $valo = floatval($sdos_ac[0]->saldo ?? 0);
+                        $valor ='$ '. number_format($valo,2).' MXN';
+                    $livewire->saldo_cuenta = floatval($sdos_ac[0]->saldo ?? 0);
+                    $livewire->saldo_cuenta_act = floatval($sdos_ac[0]->saldo ?? 0);
                 return 'Saldo Inicial del Periodo: '.$valor;
             })
             ->paginated(false)

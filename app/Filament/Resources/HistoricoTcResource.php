@@ -35,7 +35,7 @@ class HistoricoTcResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(function (){
-                        return DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+                        return DB::table('historico_tcs')->latest('id')->first()->tipo_cambio ?? 0;
                     }),
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id),

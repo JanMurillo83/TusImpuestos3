@@ -273,7 +273,9 @@ class MovbancosResource extends Resource
                                     '2'=>'Reembolso de Gastos',
                                     '3'=>'Compra de Activo',
                                     '4'=>'Prestamo',
-                                    '5'=>'Gasto no Deducible'
+                                    '5'=>'Gasto no Deducible',
+                                    '6'=>'Pago de Nomina',
+                                    '7'=>'Anticipo agencia aduanal'
                                 ])->columnSpan(2),
                                 TableRepeater::make('Facturas')
                                 ->visible(function(Get $get){
@@ -683,7 +685,67 @@ class MovbancosResource extends Resource
                                         $rec = Terceros::where('id',$recor)->get()[0];
                                         return $rec->nombre.'|'.$rec->cuenta;
                                     })
-                                ])
+                                ]),
+                            Fieldset::make('Pago de Nomina')
+                                ->visible(function(Get $get){
+                                    if($get('Movimiento')== 6) return true;
+                                    else return false;
+                                })
+                            ->schema([
+                                Select::make('nom_reggasto_cta')->label('Registro del Gasto')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('nom_reggasto')->numeric()->prefix('$')->hiddenLabel()->default(fn(Get $get)=>$get('importe')),
+                                Select::make('nom_retisr_cta')->label('Retencion de ISR')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('nom_retisr')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('nom_retimss_cta')->label('Retencion IMSS')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('nom_retimss')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('nom_infonavit_cta')->label('Credito Infonavit')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('nom_infonavit')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('nom_presempre_cta')->label('Prestamo Empresa')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('nom_presempre')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('nom_banco_cta')->label('Cuenta Bancaria')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable()
+                                    ->default(function ($record){
+                                        return BancoCuentas::where('id',$record->cuenta)->get()[0]->codigo;
+                                    }),
+                                TextInput::make('nom_banco')->numeric()->prefix('$')->hiddenLabel()->default(fn(Get $get)=>$get('importe')),
+                            ])->columnSpan(3)->columns(3),
+                            Fieldset::make('Anticipo agencia aduanal')
+                            ->visible(function(Get $get){
+                                if($get('Movimiento')== 7) return true;
+                                else return false;
+                            })
+                            ->schema([
+                                Select::make('aduana_dta_cta')->label('DTA')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('aduana_dta')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('aduana_ivaprv_cta')->label('IVA/PRV')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('aduana_ivaprv')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('aduana_igi_cta')->label('IGI/EGE')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('aduana_igi')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('aduana_prv_cta')->label('PRV')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('aduana_prv')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('aduana_iva_cta')->label('IVA')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('aduana_iva')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('aduana_pagos_cta')->label('Pagos en el Extranjero')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                TextInput::make('aduana_pagos')->numeric()->prefix('$')->hiddenLabel()->default(0),
+                                Select::make('aduana_bancos_cta')->label('Cuenta Bancaria')->inlineLabel()->columnSpan(2)
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable()
+                                    ->default(function ($record){
+                                        return BancoCuentas::where('id',$record->cuenta)->get()[0]->codigo;
+                                    }),
+                                TextInput::make('aduana_bancos')->numeric()->prefix('$')->hiddenLabel()->default(fn(Get $get)=>$get('importe')),
+                                Forms\Components\FileUpload::make('aduana_xml')->label('Asociar XML')->inlineLabel()->columnSpan(2)
+                            ])->columnSpan(3)->columns(3)
                         ])->columns(4);
                     })
                     ->modalWidth('7xl')
@@ -1705,6 +1767,239 @@ class MovbancosResource extends Resource
                     'auxiliares_id'=>$aux['id'],
                     'cat_polizas_id'=>$polno
                 ]);
+        }
+        if($tmov == 6)
+        {
+            $poliza = CatPolizas::create([
+                'tipo'=>'Eg',
+                'folio'=>$nopoliza,
+                'fecha'=>$record->fecha,
+                'concepto'=>'Pago de Nomina',
+                'cargos'=>$record->importe,
+                'abonos'=>$record->importe,
+                'periodo'=>Filament::getTenant()->periodo,
+                'ejercicio'=>Filament::getTenant()->ejercicio,
+                'referencia'=>'Pago de Nomina',
+                'uuid'=>'',
+                'tiposat'=>'Eg',
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
+            ]);
+            $polno = $poliza['id'];
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['nom_reggasto_cta'],
+                'cuenta'=>'Registro del Gasto',
+                'concepto'=>'Registro del Gasto',
+                'cargo'=>$data['nom_reggasto'],
+                'abono'=>0,
+                'factura'=>'Pago de Nomina',
+                'nopartida'=>1,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['nom_retisr_cta'],
+                'cuenta'=>'Retencion de ISR',
+                'concepto'=>'Retencion de ISR',
+                'cargo'=>$data['nom_retisr'],
+                'abono'=>0,
+                'factura'=>'Pago de Nomina',
+                'nopartida'=>2,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['nom_retimss_cta'],
+                'cuenta'=>'Retencion IMSS',
+                'concepto'=>'Retencion IMSS',
+                'cargo'=>$data['nom_retimss'],
+                'abono'=>0,
+                'factura'=>'Pago de Nomina',
+                'nopartida'=>3,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['nom_infonavit_cta'],
+                'cuenta'=>'Credito Infonavit',
+                'concepto'=>'Credito Infonavit',
+                'cargo'=>$data['nom_infonavit'],
+                'abono'=>0,
+                'factura'=>'Pago de Nomina',
+                'nopartida'=>4,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['nom_presempre_cta'],
+                'cuenta'=>'Prestamo Empresa',
+                'concepto'=>'Prestamo Empresa',
+                'cargo'=>$data['nom_presempre'],
+                'abono'=>0,
+                'factura'=>'Pago de Nomina',
+                'nopartida'=>5,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['nom_banco_cta'],
+                'cuenta'=>$ban[0]->cuenta,
+                'concepto'=>'Pago de Nomina',
+                'cargo'=>0,
+                'abono'=>$record->importe,
+                'factura'=>'Pago de Nomina',
+                'nopartida'=>6,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+        }
+        if($tmov == 7)
+        {
+            $poliza = CatPolizas::create([
+                'tipo'=>'Eg',
+                'folio'=>$nopoliza,
+                'fecha'=>$record->fecha,
+                'concepto'=>'Anticipo gastos adunales',
+                'cargos'=>$record->importe,
+                'abonos'=>$record->importe,
+                'periodo'=>Filament::getTenant()->periodo,
+                'ejercicio'=>Filament::getTenant()->ejercicio,
+                'referencia'=>'Anticipo gastos adunales',
+                'uuid'=>'',
+                'tiposat'=>'Eg',
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
+            ]);
+            $polno = $poliza['id'];
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['aduana_dta_cta'],
+                'cuenta'=>'DTA',
+                'concepto'=>'DTA',
+                'cargo'=>$data['aduana_dta'],
+                'abono'=>0,
+                'factura'=>'Anticipo gastos adunales',
+                'nopartida'=>1,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['aduana_ivaprv_cta'],
+                'cuenta'=>'IVA/PRV',
+                'concepto'=>'IVA/PRV',
+                'cargo'=>$data['aduana_ivaprv'],
+                'abono'=>0,
+                'factura'=>'Anticipo gastos adunales',
+                'nopartida'=>2,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['aduana_igi_cta'],
+                'cuenta'=>'IGI/EGE',
+                'concepto'=>'IGI/EGE',
+                'cargo'=>$data['aduana_igi'],
+                'abono'=>0,
+                'factura'=>'Anticipo gastos adunales',
+                'nopartida'=>3,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['aduana_prv_cta'],
+                'cuenta'=>'PRV',
+                'concepto'=>'PRV',
+                'cargo'=>$data['aduana_prv'],
+                'abono'=>0,
+                'factura'=>'Anticipo gastos adunales',
+                'nopartida'=>4,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['aduana_iva_cta'],
+                'cuenta'=>'IVA',
+                'concepto'=>'IVA',
+                'cargo'=>$data['aduana_iva'],
+                'abono'=>0,
+                'factura'=>'Anticipo gastos adunales',
+                'nopartida'=>5,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['aduana_pagos_cta'],
+                'cuenta'=>'Pagos en el Extranjero',
+                'concepto'=>'Pagos en el Extranjero',
+                'cargo'=>$data['aduana_pagos'],
+                'abono'=>0,
+                'factura'=>'Anticipo gastos adunales',
+                'nopartida'=>6,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
+            $aux = Auxiliares::create([
+                'cat_polizas_id'=>$polno,
+                'codigo'=>$data['nom_banco_cta'],
+                'cuenta'=>$ban[0]->cuenta,
+                'concepto'=>'Anticipo gastos adunales',
+                'cargo'=>0,
+                'abono'=>$record->importe,
+                'factura'=>'Anticipo gastos adunales',
+                'nopartida'=>7,
+                'team_id'=>Filament::getTenant()->id
+            ]);
+            DB::table('auxiliares_cat_polizas')->insert([
+                'auxiliares_id'=>$aux['id'],
+                'cat_polizas_id'=>$polno
+            ]);
         }
         Notification::make('Concluido')
         ->title('Proceso Concluido. Poliza Eg'.$nopoliza.' Grabada')

@@ -148,10 +148,10 @@ class MovbancosResource extends Resource
         return $table
             ->heading(function(Table $table,$livewire){
                 $record = $table->getRecords();
-                $query = $table->getQuery();
-                $text = vsprintf(str_replace(array('?'), array('\'%s\''), $query->toSql()), $query->getBindings());
-                $text2 = explode('=',$text);
-                $text3 = substr($text2[1],2,1);
+                $text1 = DB::table('banco_cuentas')->where('team_id',Filament::getTenant()->id)->get();
+                $text2 = count($text1);
+                $text3 = 1;
+                if($text2 > 0) $text3 = $text1[0]->cuenta;
                     $q_cuenta = $record[0]->cuenta ?? $text3;
                     $q_periodo = Filament::getTenant()->periodo ?? 1;
                     $q_ejercicio = Filament::getTenant()->ejercicio ?? 2020;

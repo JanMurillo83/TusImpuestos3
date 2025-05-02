@@ -89,6 +89,7 @@ class ReportesConta extends Page implements HasForms
                 ->content(fn()=>
                 view('EdoreNew',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
                 )->visible(false)
+                ->modalWidth('7xl')
         ];
     }
 }

@@ -265,9 +265,9 @@ class visemif extends Page implements HasForms, HasTable
         $rfc_emi = $record['Emisor_Rfc'];
         $nom_rec = $record['Receptor_Nombre'];
         $nom_emi = $record['Emisor_Nombre'];
-        $subtotal = $record['SubTotal'];
+        $subtotal = $record['SubTotal'] - $record['Descuento'];
         $iva = $record['TotalImpuestosTrasladados'];
-        $total = $record['Total'];
+        $total = $record['Total'] - $record['Descuento'];
         $tipoc = $record['TipoCambio'];
         $metodo = $record['MetodoPago'];
         $serie = $record['Serie'];

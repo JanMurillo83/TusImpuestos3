@@ -2,6 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\BalanceExport;
+use App\Exports\BalanzaExport;
+use App\Exports\EdoreExport;
 use App\Http\Controllers\ReportesController;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
@@ -54,6 +57,35 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('Estado de Resultados')->visible(false);
                         })
                 ])
+                ]),
+                Fieldset::make('Reportes Excel')
+                ->schema([
+                    Actions::make([
+                        Actions\Action::make('Balance_General_xls')
+                        ->label('Balance General')
+                        ->action(function (){
+                            $empresa = Filament::getTenant()->id;
+                            $periodo = Filament::getTenant()->periodo;
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            return (new BalanceExport($empresa,$periodo,$ejercicio))->download('BalanceGeneral.xlsx');
+                        }),
+                        Actions\Action::make('Balanza_General_xls')
+                            ->label('Balanza de Comprobación')
+                            ->action(function (){
+                                $empresa = Filament::getTenant()->id;
+                                $periodo = Filament::getTenant()->periodo;
+                                $ejercicio = Filament::getTenant()->ejercicio;
+                                return (new BalanzaExport($empresa,$periodo,$ejercicio))->download('BalanzaComprobacion.xlsx');
+                            }),
+                        Actions\Action::make('EstadoResultados_xls')
+                            ->label('Estado de Resultados')
+                            ->action(function (){
+                                $empresa = Filament::getTenant()->id;
+                                $periodo = Filament::getTenant()->periodo;
+                                $ejercicio = Filament::getTenant()->ejercicio;
+                                return (new EdoreExport($empresa,$periodo,$ejercicio))->download('EstadoResultados.xlsx');
+                            })
+                    ])
                 ])
             ]);
     }

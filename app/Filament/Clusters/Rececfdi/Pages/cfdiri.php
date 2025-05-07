@@ -289,6 +289,7 @@ class cfdiri extends Page implements HasForms, HasTable
         $rfc_emi = $record['Emisor_Rfc'];
         $nom_rec = $record['Receptor_Nombre'];
         $nom_emi = $record['Emisor_Nombre'];
+        $descuento = $record['Descuento'];
         $subtotal = $record['SubTotal'];
         $iva = $record['TotalImpuestosTrasladados'];
         $total = $record['Total'];
@@ -339,13 +340,16 @@ class cfdiri extends Page implements HasForms, HasTable
             Almacencfdis::where('id',$record['id'])->update([
                 'metodo'=>$forma
             ]);
+            $ntotal = floatval($total);
+            $nsubtotal = floatval($subtotal) - floatval($descuento);
+            //dd($ntotal,$nsubtotal,$total,$subtotal);
             $poliza = CatPolizas::create([
                 'tipo'=>'PG',
                 'folio'=>$nopoliza,
                 'fecha'=>$cffecha,
                 'concepto'=>$nom_emi,
-                'cargos'=>$total * $tipoc,
-                'abonos'=>$total * $tipoc,
+                'cargos'=>$ntotal * $tipoc,
+                'abonos'=>$ntotal * $tipoc,
                 'periodo'=>$cfperiodo,
                 'ejercicio'=>$cfejercicio,
                 'referencia'=>$serie.$folio,
@@ -361,7 +365,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 'cuenta'=>$nom_emi,
                 'concepto'=>$nom_emi,
                 'cargo'=>0,
-                'abono'=>$total * $tipoc,
+                'abono'=>$ntotal * $tipoc,
                 'factura'=>$serie.$folio,
                 'nopartida'=>1,
                 'uuid'=>$uuid,
@@ -376,7 +380,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 'codigo'=>$ctagas,
                 'cuenta'=>'Ventas',
                 'concepto'=>$nom_emi,
-                'cargo'=>$subtotal * $tipoc,
+                'cargo'=>$nsubtotal * $tipoc,
                 'abono'=>0,
                 'factura'=>$serie.$folio,
                 'nopartida'=>2,
@@ -411,12 +415,12 @@ class cfdiri extends Page implements HasForms, HasTable
                 DB::table('usd_movs')->insert([
                     'xml_id'=>$record->id,
                     'poliza'=>$polno,
-                    'subtotalusd'=>$subtotal,
+                    'subtotalusd'=>$nsubtotal,
                     'ivausd'=>$iva,
-                    'totalusd'=>$total,
-                    'subtotalmxn'=>$subtotal * $tipoc,
+                    'totalusd'=>$ntotal,
+                    'subtotalmxn'=>$nsubtotal * $tipoc,
                     'ivamxn'=>$iva * $tipoc,
-                    'totalmxn'=>$total * $tipoc,
+                    'totalmxn'=>$ntotal * $tipoc,
                     'tcambio'=>$tipoc,
                     'uuid'=>$uuid,
                     'referencia'=>$serie.$folio
@@ -425,17 +429,17 @@ class cfdiri extends Page implements HasForms, HasTable
             DB::table('ingresos_egresos')->insert([
                 'xml_id'=>$record->id,
                 'poliza'=>$polno,
-                'subtotalusd'=>$subtotal,
+                'subtotalusd'=>$nsubtotal,
                 'ivausd'=>$iva,
-                'totalusd'=>$total,
-                'subtotalmxn'=>$subtotal * $tipoc,
+                'totalusd'=>$ntotal,
+                'subtotalmxn'=>$nsubtotal * $tipoc,
                 'ivamxn'=>$iva * $tipoc,
                 'totalmxn'=>$total * $tipoc,
                 'tcambio'=>$tipoc,
                 'uuid'=>$uuid,
                 'referencia'=>$serie.$folio,
-                'pendientemxn'=>$total * $tipoc,
-                'pendienteusd'=>$total,
+                'pendientemxn'=>$ntotal * $tipoc,
+                'pendienteusd'=>$ntotal,
                 'pagadousd'=>0,
                 'pagadomxn'=>0,
                 'tipo'=>0,

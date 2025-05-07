@@ -230,6 +230,7 @@ class ListSolicitudes extends ListRecords
             $xmlContents = \file_get_contents($file);
             $cfdi = Cfdi::newFromString($xmlContents);
             $comprobante = $cfdi->getNode();
+
             $emisor = $comprobante->searchNode('cfdi:Emisor');
             $receptor = $comprobante->searchNode('cfdi:Receptor');
             $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
@@ -237,13 +238,16 @@ class ListSolicitudes extends ListRecords
             $impuestos = $comprobante->searchNode('cfdi:Impuestos');
             $tipocom = $comprobante['TipoDeComprobante'];
             $subtotal = 0;
+            $descuento = 0;
             $traslado = 0;
             $retencion = 0;
             $total = 0;
             $tipocambio = 0;
             if($tipocom != 'P')
             {
+
                 $subtotal = floatval($comprobante['SubTotal']);
+                $descuento = floatval($comprobante['Descuento']);
                 if(isset($impuestos['TotalImpuestosTrasladados']))$traslado = floatval($impuestos['TotalImpuestosTrasladados']);
                 if(isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
                 $total = floatval($comprobante['Total']);
@@ -287,6 +291,7 @@ class ListSolicitudes extends ListRecords
                             'UUID'=>$tfd['UUID'],
                             'Total'=>$total,
                             'SubTotal'=>$subtotal,
+                            'Descuento'=>$descuento,
                             'TipoCambio'=> $tipocambio,
                             'TotalImpuestosTrasladados'=>$traslado,
                             'TotalImpuestosRetenidos'=>$retencion,
@@ -336,6 +341,7 @@ class ListSolicitudes extends ListRecords
                             'UUID'=>$tfd['UUID'],
                             'Total'=>$total,
                             'SubTotal'=>$subtotal,
+                            'Descuento'=>$descuento,
                             'TipoCambio'=> $tipocambio,
                             'TotalImpuestosTrasladados'=>$traslado,
                             'TotalImpuestosRetenidos'=>$retencion,
@@ -402,6 +408,7 @@ class ListSolicitudes extends ListRecords
             $impuestos = $comprobante->searchNode('cfdi:Impuestos');
             $tipocom = $comprobante['TipoDeComprobante'];
             $subtotal = 0;
+            $descuento = 0;
             $traslado = 0;
             $retencion = 0;
             $total = 0;
@@ -409,6 +416,7 @@ class ListSolicitudes extends ListRecords
             if($tipocom != 'P')
             {
                 $subtotal = floatval($comprobante['SubTotal']);
+                $descuento = floatval($comprobante['Descuento']);
                 if(isset($impuestos['TotalImpuestosTrasladados']))$traslado = floatval($impuestos['TotalImpuestosTrasladados']);
                 if(isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
                 $total = floatval($comprobante['Total']);
@@ -453,6 +461,7 @@ class ListSolicitudes extends ListRecords
                         'UUID'=>$tfd['UUID'],
                         'Total'=>$total,
                         'SubTotal'=>$subtotal,
+                        'Descuento'=>$descuento,
                         'TipoCambio'=> $tipocambio,
                         'TotalImpuestosTrasladados'=>$traslado,
                         'TotalImpuestosRetenidos'=>$retencion,
@@ -554,6 +563,7 @@ class ListSolicitudes extends ListRecords
             $xmlContents = \file_get_contents($file);
             $cfdi = Cfdi::newFromString($xmlContents);
             $comprobante = $cfdi->getNode();
+            //dd($comprobante);
             $emisor = $comprobante->searchNode('cfdi:Emisor');
             $receptor = $comprobante->searchNode('cfdi:Receptor');
             $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
@@ -561,6 +571,7 @@ class ListSolicitudes extends ListRecords
             $impuestos = $comprobante->searchNode('cfdi:Impuestos');
             $tipocom = $comprobante['TipoDeComprobante'];
             $subtotal = 0;
+            $descuento = 0;
             $traslado = 0;
             $retencion = 0;
             $total = 0;
@@ -568,6 +579,7 @@ class ListSolicitudes extends ListRecords
             if($tipocom != 'P')
             {
                 $subtotal = floatval($comprobante['SubTotal']);
+                $descuento = floatval($comprobante['Descuento']);
                 if(isset($impuestos['TotalImpuestosTrasladados']))$traslado = floatval($impuestos['TotalImpuestosTrasladados']);
                 if(isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
                 $total = floatval($comprobante['Total']);
@@ -622,6 +634,7 @@ class ListSolicitudes extends ListRecords
                         'UUID'=>$tfd['UUID'],
                         'Total'=>$total,
                         'SubTotal'=>$subtotal,
+                        'Descuento'=>$descuento,
                         'TipoCambio'=> $tipocambio,
                         'TotalImpuestosTrasladados'=>$traslado,
                         'TotalImpuestosRetenidos'=>$retencion,
@@ -670,6 +683,7 @@ class ListSolicitudes extends ListRecords
                         'UUID'=>$tfd['UUID'],
                         'Total'=>$total,
                         'SubTotal'=>$subtotal,
+                        'Descuento'=>$descuento,
                         'TipoCambio'=> $tipocambio,
                         'TotalImpuestosTrasladados'=>$traslado,
                         'TotalImpuestosRetenidos'=>$retencion,

@@ -233,6 +233,7 @@ class SolicitudesResource extends Resource
             $impuestos = $comprobante->searchNode('cfdi:Impuestos');
             $tipocom = $comprobante['TipoDeComprobante'];
             $subtotal = 0;
+            $descuento = 0;
             $traslado = 0;
             $retencion = 0;
             $total = 0;
@@ -240,6 +241,7 @@ class SolicitudesResource extends Resource
             if($tipocom != 'P')
             {
                 $subtotal = floatval($comprobante['SubTotal']);
+                $descuento = floatval($comprobante['Descuento']);
                 if(isset($impuestos['TotalImpuestosTrasladados']))$traslado = floatval($impuestos['TotalImpuestosTrasladados']);
                 if(isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
                 $total = floatval($comprobante['Total']);
@@ -280,6 +282,7 @@ class SolicitudesResource extends Resource
                         'UUID'=>$tfd['UUID'],
                         'Total'=>$total,
                         'SubTotal'=>$subtotal,
+                        'Descuento'=>$descuento,
                         'TipoCambio'=> $tipocambio,
                         'TotalImpuestosTrasladados'=>$traslado,
                         'TotalImpuestosRetenidos'=>$retencion,
@@ -325,6 +328,7 @@ class SolicitudesResource extends Resource
                             'UUID'=>$tfd['UUID'],
                             'Total'=>$total,
                             'SubTotal'=>$subtotal,
+                            'Descuento'=>$descuento,
                             'TipoCambio'=> $tipocambio,
                             'TotalImpuestosTrasladados'=>$traslado,
                             'TotalImpuestosRetenidos'=>$retencion,

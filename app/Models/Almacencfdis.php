@@ -49,6 +49,7 @@ class Almacencfdis extends Model
 	protected $casts = [
 		'Total' => 'float',
 		'SubTotal' => 'float',
+        'Descuento' => 'float',
 		'TipoCambio' => 'float',
 		'TotalImpuestosTrasladados' => 'float',
 		'TotalImpuestosRetenidos' => 'float'
@@ -71,6 +72,7 @@ class Almacencfdis extends Model
 		'UUID',
 		'Total',
 		'SubTotal',
+        'Descuento',
 		'TipoCambio',
 		'TotalImpuestosTrasladados',
 		'TotalImpuestosRetenidos',

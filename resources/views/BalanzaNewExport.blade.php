@@ -41,7 +41,6 @@ $saldo5 = 0;
 <div class="container">
     <div class="row mt-5">
         <div class="col-3">
-            <img src="{{asset('images/MainLogo.png')}}" alt="Tus-Impuestos" width="120px">
         </div>
         <div class="col-6">
             <center>
@@ -71,41 +70,36 @@ $saldo5 = 0;
                         <?php $cod = intval(substr($cuenta->codigo,0,3));
                         $saldo = 0;
                         $saldo_ant = 0;
-                        $saldof = 0;
                         if($cuenta->naturaleza == 'D') {
                             $saldo = $cuenta->cargos - $cuenta->abonos;
                             $saldo_ant = $cuenta->cargos_ant - $cuenta->abonos_ant;
-
+                            $saldo3+=$saldo;
                             $saldo4+=$saldo_ant;
-                            $saldof = $saldo_ant + $saldo;
-                            $saldo3+=$saldof;
                         }else{
                             $saldo = ($cuenta->abonos - $cuenta->cargos);
                             $saldo_ant = ($cuenta->abonos_ant - $cuenta->cargos_ant);
-
+                            $saldo3-=$saldo;
                             $saldo4-=$saldo_ant;
-                            $saldof = $saldo_ant + $saldo;
-                            $saldo3-=$saldof;
                         }
-                            $saldo1 += $cuenta->cargos;
-                            $saldo2 += $cuenta->abonos;
+                        $saldo1 += $cuenta->cargos;
+                        $saldo2 += $cuenta->abonos;
                         ?>
-                        <tr>
-                            <td>{{$cuenta->codigo}}</td>
-                            <td>{{$cuenta->nombre}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_ant,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($cuenta->cargos,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($cuenta->abonos,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldof,2)}}</td>
-                        </tr>
+                    <tr>
+                        <td>{{$cuenta->codigo}}</td>
+                        <td>{{$cuenta->nombre}}</td>
+                        <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_ant,2)}}</td>
+                        <td style="text-align: end; justify-content: end">{{'$'.number_format($cuenta->cargos,2)}}</td>
+                        <td style="text-align: end; justify-content: end">{{'$'.number_format($cuenta->abonos,2)}}</td>
+                        <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
+                    </tr>
                 @endforeach
-                        <tr>
-                            <td colspan="2" style="font-weight: bold">Totales</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo4,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo1,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo2,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo3,2)}}</td>
-                        </tr>
+                <tr>
+                    <td colspan="2" style="font-weight: bold">Totales</td>
+                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo4,2)}}</td>
+                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo1,2)}}</td>
+                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo2,2)}}</td>
+                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo3,2)}}</td>
+                </tr>
             </table>
         </div>
     </div>

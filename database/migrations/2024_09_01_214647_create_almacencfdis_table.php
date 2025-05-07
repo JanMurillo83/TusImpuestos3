@@ -29,6 +29,7 @@ return new class extends Migration
             $table->string('UUID')->nullable();
             $table->decimal('Total', 18, 8)->nullable();
             $table->decimal('SubTotal', 18, 8)->nullable();
+            $table->decimal('Descuento', 18, 8)->nullable();
             $table->decimal('TipoCambio', 18, 8)->nullable();
             $table->decimal('TotalImpuestosTrasladados', 18, 8)->nullable();
             $table->decimal('TotalImpuestosRetenidos', 18, 8)->nullable();

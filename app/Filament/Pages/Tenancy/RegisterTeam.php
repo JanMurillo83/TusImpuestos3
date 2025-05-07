@@ -6,6 +6,7 @@ use App\Models\CatCuentas;
 use App\Models\Regimenes;
 use App\Models\Saldosbanco;
 use App\Models\Team;
+use Carbon\Carbon;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
@@ -353,14 +354,14 @@ class RegisterTeam extends RegisterTenant
             ['codigo'=>'21610000','nombre'=>'Impuestos retenidos de IVA','acumula'=>'21600000','tipo'=>'D','naturaleza'=>'A','csat'=>'216.1','team_id'=>$empresa],
             ['codigo'=>'30000000','nombre'=>'Capital','acumula'=>'0','tipo'=>'A','naturaleza'=>'A','csat'=>'0','team_id'=>$empresa],
             ['codigo'=>'30100000','nombre'=>'Capital Social','acumula'=>'30000000','tipo'=>'A','naturaleza'=>'A','csat'=>'301','team_id'=>$empresa],
-            ['codigo'=>'30101000','nombre'=>'Socio 1','acumula'=>'30100000','tipo'=>'A','naturaleza'=>'A','csat'=>'301.01','team_id'=>$empresa],
-            ['codigo'=>'30102000','nombre'=>'Socio 2','acumula'=>'30100000','tipo'=>'A','naturaleza'=>'A','csat'=>'301.01','team_id'=>$empresa],
-            ['codigo'=>'30103000','nombre'=>'Aportaciones p fut aumentos de capital','acumula'=>'30100000','tipo'=>'A','naturaleza'=>'A','csat'=>'301.03','team_id'=>$empresa],
+            ['codigo'=>'30101000','nombre'=>'Socio 1','acumula'=>'30100000','tipo'=>'D','naturaleza'=>'A','csat'=>'301.01','team_id'=>$empresa],
+            ['codigo'=>'30102000','nombre'=>'Socio 2','acumula'=>'30100000','tipo'=>'D','naturaleza'=>'A','csat'=>'301.01','team_id'=>$empresa],
+            ['codigo'=>'30103000','nombre'=>'Aportaciones p fut aumentos de capital','acumula'=>'30100000','tipo'=>'D','naturaleza'=>'A','csat'=>'301.03','team_id'=>$empresa],
             ['codigo'=>'30200000','nombre'=>'Patrimonio','acumula'=>'30000000','tipo'=>'A','naturaleza'=>'A','csat'=>'302','team_id'=>$empresa],
-            ['codigo'=>'30201000','nombre'=>'Patrimonio','acumula'=>'30200000','tipo'=>'A','naturaleza'=>'A','csat'=>'302.01','team_id'=>$empresa],
-            ['codigo'=>'30202000','nombre'=>'Aportacion patrimonial','acumula'=>'30200000','tipo'=>'A','naturaleza'=>'A','csat'=>'302.02','team_id'=>$empresa],
+            ['codigo'=>'30201000','nombre'=>'Patrimonio','acumula'=>'30200000','tipo'=>'A','naturaleza'=>'D','csat'=>'302.01','team_id'=>$empresa],
+            ['codigo'=>'30202000','nombre'=>'Aportacion patrimonial','acumula'=>'30200000','tipo'=>'D','naturaleza'=>'A','csat'=>'302.02','team_id'=>$empresa],
             ['codigo'=>'30300000','nombre'=>'Reserva Legal','acumula'=>'30000000','tipo'=>'A','naturaleza'=>'A','csat'=>'303','team_id'=>$empresa],
-            ['codigo'=>'30301000','nombre'=>'Reserva legal','acumula'=>'30300000','tipo'=>'A','naturaleza'=>'A','csat'=>'303.01','team_id'=>$empresa],
+            ['codigo'=>'30301000','nombre'=>'Reserva legal','acumula'=>'30300000','tipo'=>'D','naturaleza'=>'A','csat'=>'303.01','team_id'=>$empresa],
             ['codigo'=>'40000000','nombre'=>'Ingresos','acumula'=>'0','tipo'=>'A','naturaleza'=>'A','csat'=>'0','team_id'=>$empresa],
             ['codigo'=>'40100000','nombre'=>'Ingresos','acumula'=>'40000000','tipo'=>'A','naturaleza'=>'A','csat'=>'401','team_id'=>$empresa],
             ['codigo'=>'40101000','nombre'=>'Ventas','acumula'=>'40100000','tipo'=>'D','naturaleza'=>'A','csat'=>'401.01','team_id'=>$empresa],
@@ -482,6 +483,11 @@ class RegisterTeam extends RegisterTenant
             'csdpass'=>'',
             'logo'=>'',
             'logo64'=>'',
+            'team_id'=>$empresa
+        ]);
+        DB::table('historico_tcs')->insert([
+            'fecha'=>Carbon::now(),
+            'tipo_cambio'=>1,
             'team_id'=>$empresa
         ]);
         //---------------------------------------------------

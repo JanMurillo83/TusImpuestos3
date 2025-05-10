@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Http;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\Fiel;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\FielRequestBuilder;
 use PhpCfdi\SatWsDescargaMasiva\Service;
@@ -116,5 +117,13 @@ class DescargaSAT extends Controller
             'status'=>'Archivo Descargado'
         ]);
         return 'Exito|'.$zipfile;
+    }
+
+    public function TipoDeCambioBMX()
+    {
+        $tipos =  Http::get('https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF343410/datos/oportuno?token=20b02a9041ec8ca36990451c242ce129fd655ab6ca8b7c65dd2a248c890b2d30')
+        ->withHeader("Accept", "application/json")
+        ->withHeader("Bmx-Token","20b02a9041ec8ca36990451c242ce129fd655ab6ca8b7c65dd2a248c890b2d30");
+        return $tipos;
     }
 }

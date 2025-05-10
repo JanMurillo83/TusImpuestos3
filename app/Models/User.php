@@ -27,7 +27,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         'name',
         'email',
         'password',
-        'team_id'
+        'team_id',
+        'is_admin'
     ];
 
     /**

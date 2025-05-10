@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Administrador',
             'email' => 'admin@tusimpuestos.com',
             'password'=>Hash::make('admin'),
+            'is_admin'=> 'SI',
             'team_id'=>1,
         ]);
         DB::table('team_user')->insert([

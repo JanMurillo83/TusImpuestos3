@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MovbancosResource\Pages;
 use App\Filament\Resources\MovbancosResource\RelationManagers;
+use App\Http\Controllers\DescargaSAT;
 use App\Livewire\IngEgWidget;
 use App\Models\Activosfijos;
 use App\Models\Almacencfdis;
@@ -302,9 +303,23 @@ class MovbancosResource extends Resource
                                             $tot = '$'.number_format($item->totalmxn,2);
                                             $pend = '$'.number_format($item->pendientemxn,2);
                                             $monea = 'MXN';
+                                            $tc_n = 1;
                                             $alm = Almacencfdis::where('id',$item->xml_id)->first();
                                             if($item->tcambio > 1) {
-                                                $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+                                                if(count(DB::table('historico_tcs')->where('fecha',Carbon::now())->get()) == 0) {
+                                                    $tip_cam = app(DescargaSAT::class)->TipoDeCambioBMX();
+                                                    if ($tip_cam->getStatusCode() === 200) {
+                                                        $vals = json_decode($tip_cam->getBody()->getContents());
+                                                        $tc_n = floatval($vals->bmx->series[0]->datos[0]->dato);
+                                                        DB::table('historico_tcs')->insert([
+                                                            'fecha' => Carbon::now(),
+                                                            'tipo_cambio' => $tc_n,
+                                                            'team_id' => Filament::getTenant()->id
+                                                        ]);
+                                                    } else {
+                                                        $tc_n = 1;
+                                                    }
+                                                }
                                                 $monea = 'USD';
                                                 $tot = '$'.number_format(($item->totalusd),2);
                                                 $pend = '$'.number_format(($item->pendienteusd),2);
@@ -1038,29 +1053,30 @@ class MovbancosResource extends Resource
         if($data['Movimiento'] == 1) $nom = $fss[0]->Receptor_Nombre;
         //-------------------------------------------------------------------
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Ig')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
-        $facts[0]['ingengid'];
-        $pags = DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])->get()[0];
-        $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
-        $npagusd = $pags->pagadousd + $record->importe;
-        $npendusd = $pags->pendienteusd - $record->importe;
-        $npag = $pags->pagadomxn + $record->importe;
-        $npend = $pags->pendientemxn - $record->importe;
-        if($fss[0]->Moneda == 'USD') {
-            $npag = $pags->pagadomxn + ($record->importe * $tc_n);
-            $npend = $pags->pendientemxn - ($record->importe * $tc_n);
+        if($data['Movimiento'] == 1) {
+            $ingengid = $facts[0]['ingengid'] ?? 0;
+            $pags = DB::table('ingresos_egresos')->where('id', $ingengid)->get()[0];
+            $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+            $npagusd = $pags->pagadousd + $record->importe;
+            $npendusd = $pags->pendienteusd - $record->importe;
+            $npag = $pags->pagadomxn + $record->importe;
+            $npend = $pags->pendientemxn - $record->importe;
+            if ($fss[0]->Moneda == 'USD') {
+                $npag = $pags->pagadomxn + ($record->importe * $tc_n);
+                $npend = $pags->pendientemxn - ($record->importe * $tc_n);
+            } else {
+                $tc_n = 1;
+            }
+            if ($npend < 0) $npend = 0;
+            if ($npendusd < 0) $npendusd = 0;
+            DB::table('ingresos_egresos')->where('id', $ingengid)
+                ->update([
+                    'pagadomxn' => $npag,
+                    'pendientemxn' => $npend,
+                    'pagadousd' => $npagusd,
+                    'pendienteusd' => $npendusd,
+                ]);
         }
-        else{
-            $tc_n = 1;
-        }
-        if($npend < 0) $npend = 0;
-        if($npendusd < 0) $npendusd = 0;
-        DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])
-            ->update([
-                'pagadomxn' => $npag,
-                'pendientemxn' => $npend,
-                'pagadousd' => $npagusd,
-                'pendienteusd' => $npendusd,
-            ]);
         if($data['Movimiento'] == 1)
         {
             $poliza = CatPolizas::create([
@@ -1332,7 +1348,7 @@ class MovbancosResource extends Resource
         $tmov = $data['Movimiento'];
         DB::table('movbancos')->where('id',$record->id)->update([
             'tercero'=>$facts[0]['Emisor'],
-            'factura'=>$facts[0]['desfactura'],
+            'factura'=>$facts[0]['desfactura'] ?? 'N/A',
             'uuid'=>$facts[0]['UUID'],
             'contabilizada'=>'SI'
         ]);
@@ -1341,29 +1357,31 @@ class MovbancosResource extends Resource
         $ter = DB::table('terceros')->where('rfc',$facts[0]['Emisor'])->get();
         $nom = $fss[0]->Emisor_Nombre ?? '';
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
-        $facts[0]['ingengid'];
-        $pags = DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])->get()[0];
-        $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
-        $npagusd = $pags->pagadousd + $record->importe;
-        $npendusd = $pags->pendienteusd - $record->importe;
-        $npag = $pags->pagadomxn + $record->importe;
-        $npend = $pags->pendientemxn - $record->importe;
-        if($fss[0]->Moneda == 'USD') {
-            $npag = $pags->pagadomxn + ($record->importe * $tc_n);
-            $npend = $pags->pendientemxn - ($record->importe * $tc_n);
+        if($tmov < 4) {
+            $ingegid = $facts[0]['ingengid'] ?? 0;
+            $pags = 0;
+            if (count(DB::table('ingresos_egresos')->where('id', $ingegid)->get()) > 0) $pags = DB::table('ingresos_egresos')->where('id', $ingegid)->get()[0];
+            $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
+            $npagusd = $pags->pagadousd + $record->importe;
+            $npendusd = $pags->pendienteusd - $record->importe;
+            $npag = $pags->pagadomxn + $record->importe;
+            $npend = $pags->pendientemxn - $record->importe;
+            if ($fss[0]->Moneda == 'USD') {
+                $npag = $pags->pagadomxn + ($record->importe * $tc_n);
+                $npend = $pags->pendientemxn - ($record->importe * $tc_n);
+            } else {
+                $tc_n = 1;
+            }
+            if ($npend < 0) $npend = 0;
+            if ($npendusd < 0) $npendusd = 0;
+            DB::table('ingresos_egresos')->where('id', $ingegid)
+                ->update([
+                    'pagadomxn' => $npag,
+                    'pendientemxn' => $npend,
+                    'pagadousd' => $npagusd,
+                    'pendienteusd' => $npendusd,
+                ]);
         }
-        else{
-            $tc_n = 1;
-        }
-        if($npend < 0) $npend = 0;
-        if($npendusd < 0) $npendusd = 0;
-        DB::table('ingresos_egresos')->where('id',$facts[0]['ingengid'])
-        ->update([
-            'pagadomxn' => $npag,
-            'pendientemxn' => $npend,
-            'pagadousd' => $npagusd,
-            'pendienteusd' => $npendusd,
-        ]);
         //-------------------------------------------------------------------
         if($tmov == 1)
         {

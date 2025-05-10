@@ -6,6 +6,7 @@ use App\Models\CatCuentas;
 use App\Models\Regimenes;
 use App\Models\Saldosbanco;
 use App\Models\Team;
+use App\Models\User;
 use Carbon\Carbon;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -23,11 +24,18 @@ use Illuminate\Support\Facades\Auth;
 
 class RegisterTeam extends RegisterTenant
 {
+
+    public static function canView() :bool
+    {
+        $uid = Filament::auth()->id();
+        if(User::where('id', $uid)->first()->is_admin == 'SI')
+            return true;
+        return false;
+    }
     public static function getLabel(): string
     {
         return 'Registro de Empresa';
     }
-
     public function form(Form $form): Form
     {
         return $form
@@ -202,7 +210,7 @@ class RegisterTeam extends RegisterTenant
         $team = Team::create($data);
         $usid = Auth::user()->id;
         DB::table('team_user')->insert([
-            'user_id'=>$usid,
+            'user_id'=>1,
             'team_id'=>$team->getKey()
         ]);
         $ban = DB::table('banco_cuentas')->insertGetId([

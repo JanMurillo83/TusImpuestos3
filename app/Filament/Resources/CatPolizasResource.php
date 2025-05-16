@@ -118,7 +118,7 @@ class CatPolizasResource extends Resource
                     'xl' => 5,
                     '2xl' => 5,
                 ])->schema([
-                    TableRepeater::make('partidas')
+                    TableRepeater::make('detalle')
                     ->relationship('partidas')
                     ->headers([
                         Header::make('codigo')->width('250px'),
@@ -253,10 +253,36 @@ class CatPolizasResource extends Resource
                 ->label('')
                 ->icon(null)
                 ->modalSubmitActionLabel('Grabar')
-                ->modalWidth('7xl'),
+                ->modalWidth('7xl')
+                ->after(function ($record){
+                    $id = $record->id;
+                    //DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->delete();
+                    $cat_aux = DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->get();
+                    $nopar = 1;
+                    foreach ($cat_aux as $c_a) {
+                        DB::table('auxiliares')->where('id',$c_a->auxiliares_id)->update([
+                            'cat_polizas_id'=>$id,
+                            'nopartida'=>$nopar
+                        ]);
+                        $nopar++;
+                    }
+                    $cargos = DB::table('auxiliares')->where('cat_polizas_id',$id)->sum('cargo');
+                    $abonos = DB::table('auxiliares')->where('cat_polizas_id',$id)->sum('abono');
+                    CatPolizas::where('id',$id)->update([
+                        'cargos'=>$cargos,
+                        'abonos'=>$abonos,
+                    ]);
+                }),
                 Tables\Actions\DeleteAction::make()
                 ->label('')->icon('fas-trash-can')
                 ->requiresConfirmation()
+                ->before(function ($record) {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                    DB::table('cat_polizas_team')
+                        ->where('cat_polizas_id',$record->id)->delete();
+                    DB::table('auxiliares')
+                        ->where('cat_polizas_id',$record->id)->delete();
+                })
                 ->after(function($record){
                     if($record->idmovb > 0){
                         DB::table('movbancos')->where('id',$record->idmovb)->update([
@@ -271,13 +297,40 @@ class CatPolizasResource extends Resource
                             'used'=>'NO'
                         ]);
                     }
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
                 })
             ])
             ->actionsPosition(ActionsPosition::BeforeColumns)
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //Tables\Actions\DeleteBulkAction::make(),
-                ]),
+            ->headerActions([
+                Tables\Actions\CreateAction::make()
+                    ->createAnother(false)
+                    ->label('Agregar')
+                    ->icon('fas-plus')
+                    ->modalSubmitActionLabel('Grabar')
+                    ->modalWidth('7xl')
+                    ->before(function ($data){
+                        $record = $data;
+                        //dd($record);
+                    })
+                    ->after(function ($record){
+                        $id = $record->id;
+                        //DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->delete();
+                        $cat_aux = DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->get();
+                        $nopar = 1;
+                        foreach ($cat_aux as $c_a) {
+                            DB::table('auxiliares')->where('id',$c_a->auxiliares_id)->update([
+                                'cat_polizas_id'=>$id,
+                                'nopartida'=>$nopar
+                            ]);
+                            $nopar++;
+                        }
+                        $cargos = DB::table('auxiliares')->where('cat_polizas_id',$id)->sum('cargo');
+                        $abonos = DB::table('auxiliares')->where('cat_polizas_id',$id)->sum('abono');
+                        CatPolizas::where('id',$id)->update([
+                            'cargos'=>$cargos,
+                            'abonos'=>$abonos,
+                        ]);
+                    }),
             ])->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all']);
     }

@@ -14,12 +14,7 @@ class ListCatPolizas extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
-            ->createAnother(false)
-            ->label('Agregar')
-            ->icon('fas-plus')
-            ->modalSubmitActionLabel('Grabar')
-            ->modalWidth('7xl'),
+
         ];
     }
 

@@ -911,7 +911,7 @@ class MovbancosResource extends Resource
                                         if($get('Movimiento')== 3) return true;
                                         else return false;
                                     })
-                                    ->options(Terceros::where('tipo','Deudor')->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                                    ->options(Terceros::select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
                                     ->createOptionForm(function($form){
                                         return $form
                                         ->schema([
@@ -1254,25 +1254,25 @@ class MovbancosResource extends Resource
                     'idmovb'=>$record->id
                 ]);
                 $polno = $poliza['id'];
+                $aux = Auxiliares::create([
+                    'cat_polizas_id'=>$polno,
+                    'codigo'=>$ban[0]->codigo,
+                    'cuenta'=>$ban[0]->cuenta,
+                    'concepto'=>'Prestamo',
+                    'cargo'=>$record->importe,
+                    'abono'=>0,
+                    'factura'=>'Prestamo',
+                    'nopartida'=>1,
+                    'team_id'=>Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id'=>$aux['id'],
+                    'cat_polizas_id'=>$polno
+                ]);
                     $aux = Auxiliares::create([
                         'cat_polizas_id'=>$polno,
                         'codigo'=>$dater[1],
                         'cuenta'=>$dater[0],
-                        'concepto'=>'Prestamo',
-                        'cargo'=>$record->importe,
-                        'abono'=>0,
-                        'factura'=>'Prestamo',
-                        'nopartida'=>1,
-                        'team_id'=>Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id'=>$aux['id'],
-                        'cat_polizas_id'=>$polno
-                    ]);
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id'=>$polno,
-                        'codigo'=>$ban[0]->codigo,
-                        'cuenta'=>$ban[0]->cuenta,
                         'concepto'=>'Prestamo',
                         'cargo'=>0,
                         'abono'=>$record->importe,
@@ -1284,6 +1284,7 @@ class MovbancosResource extends Resource
                         'auxiliares_id'=>$aux['id'],
                         'cat_polizas_id'=>$polno
                     ]);
+
                 }
                 if($data['Movimiento'] == 4)
                 {

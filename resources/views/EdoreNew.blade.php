@@ -1,25 +1,8 @@
 <?php
 use \Illuminate\Support\Facades\DB;
 $empresas = DB::table('teams')->where('id',$empresa)->get()[0];
-$cuentas = DB::select("SELECT codigo,nombre,
-    coalesce((SELECT sum(cargo) FROM auxiliares INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo = $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) cargos,
-    coalesce((SELECT sum(cargo) FROM auxiliares INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo < $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) cargos_ant,
-    coalesce((SELECT sum(abono) FROM auxiliares
-    INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo = $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) abonos,
-    coalesce((SELECT sum(abono) FROM auxiliares
-    INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo < $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) abonos_ant,
-    naturaleza,'NA' rubro FROM cat_cuentas
-    WHERE tipo = 'A' AND team_id = $empresa
-    AND substr(codigo,4,2) = '00' AND substr(codigo,1,3)
-    NOT IN('100','200','300','400','500','600','700','800','900')");
+$cuentas = DB::select("SELECT * FROM saldos_reportes
+    WHERE nivel = 1 AND team_id = $empresa AND (anterior+cargos+abonos+final) != 0 ");
 $fecha = \Carbon\Carbon::now();
 $saldo1 = 0;
 $saldo1_acum = 0;
@@ -77,17 +60,17 @@ $saldo5_acum = 0;
                         $saldo_acum = 0;
                         if($cuenta->naturaleza == 'D') {
                             $saldo = $cuenta->cargos - $cuenta->abonos;
-                            $saldo_acum = $cuenta->cargos_ant - $cuenta->abonos_ant;
+                            $saldo_acum = $cuenta->anterior;
                         }else{
                             $saldo = ($cuenta->abonos - $cuenta->cargos);
-                            $saldo_acum = ($cuenta->abonos_ant - $cuenta->cargos_ant);
+                            $saldo_acum = $cuenta->anterior;
                         }
                         ?>
                     @if($cod > 399&&$cod < 500)
                             <?php $saldo1+=$saldo; $saldo1_acum +=$saldo_acum?>
                         <tr>
                             <td>{{$cuenta->codigo}}</td>
-                            <td>{{$cuenta->nombre}}</td>
+                            <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum,2)}}</td>
                         </tr>
@@ -112,17 +95,17 @@ $saldo5_acum = 0;
                         $saldo_acum = 0;
                         if($cuenta->naturaleza == 'D') {
                             $saldo = $cuenta->cargos - $cuenta->abonos;
-                            $saldo_acum = $cuenta->cargos_ant - $cuenta->abonos_ant;
+                            $saldo_acum = $cuenta->anterior;
                         }else{
                             $saldo = ($cuenta->abonos - $cuenta->cargos);
-                            $saldo_acum = ($cuenta->abonos_ant - $cuenta->cargos_ant);
+                            $saldo_acum = $cuenta->anterior;
                         }
                         ?>
                     @if($cod > 499)
                             <?php $saldo2+=$saldo;$saldo2_acum+=$saldo_acum; ?>
                         <tr>
                             <td>{{$cuenta->codigo}}</td>
-                            <td>{{$cuenta->nombre}}</td>
+                            <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum,2)}}</td>
                         </tr>
@@ -135,8 +118,8 @@ $saldo5_acum = 0;
                 </tr>
                 <tr>
                     <td colspan="2" style="font-weight: bold;">Utilidad o Perdida:</td>
-                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-$saldo2)*-1,2)}}</td>
-                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1_acum-$saldo2_acum)*-1,2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-$saldo2),2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1_acum-$saldo2_acum),2)}}</td>
                 </tr>
             </table>
         </div>

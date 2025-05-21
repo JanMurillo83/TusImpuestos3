@@ -7,6 +7,7 @@ use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\Regimenes;
 use App\Models\Terceros;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
@@ -193,10 +194,84 @@ class cfdiri extends Page implements HasForms, HasTable
                             ->default('CXP')
                             ->options([
                                 'CXP'=>'Cuenta por Pagar',
-                                'PAG'=>'Pagado'
+                                'TER'=>'Pagado por Tercero'
                             ])
-                            ->disabled()
-                            ->required()
+                            ->live(onBlur: true)
+                            ->required(),
+                        Select::make('Tercero')
+                            ->searchable()
+                            ->visible(function(Get $get){
+                                if($get('forma')== 'TER') return true;
+                                else return false;
+                            })
+                            ->required(function(Get $get){
+                                if($get('forma')== 'TER') return true;
+                                else return false;
+                            })
+                            ->options(Terceros::select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                            ->createOptionForm(function($form){
+                                return $form
+                                    ->schema([
+                                        Forms\Components\TextInput::make('rfc')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('nombre')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpan(3),
+                                        Forms\Components\TextInput::make('tipo')
+                                            ->label('Tipo de Tercero')
+                                            ->default('Acreedor')
+                                            ->readOnly(),
+                                        Forms\Components\TextInput::make('cuenta')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->readOnly()
+                                            ->default(function(){
+                                                $nuecta = 20501000;
+                                                $rg = count(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20500000')->get() ?? 0);
+                                                if($rg > 0)
+                                                    $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20500000')->max('codigo')) + 1000;
+                                                return $nuecta;
+                                            }),
+                                        Forms\Components\TextInput::make('telefono')
+                                            ->tel()
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('correo')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('contacto')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\Select::make('regimen')
+                                            ->searchable()
+                                            ->label('Regimen Fiscal')
+                                            ->columnSpan(2)
+                                            ->options(Regimenes::all()->pluck('mostrar','clave')),
+                                        Forms\Components\Hidden::make('tax_id')
+                                            ->default(Filament::getTenant()->taxid),
+                                        Forms\Components\Hidden::make('team_id')
+                                            ->default(Filament::getTenant()->id),
+                                        Forms\Components\TextInput::make('codigopos')
+                                            ->label('Codigo Postal')
+                                            ->required()
+                                            ->maxLength(255),
+                                    ])->columns(4);
+                            })
+                            ->createOptionUsing(function(array $data){
+                                $recor = DB::table('terceros')->insertGetId($data);
+                                DB::table('cat_cuentas')->insert([
+                                    'nombre' =>  $data['nombre'],
+                                    'team_id' => Filament::getTenant()->id,
+                                    'codigo'=>$data['cuenta'],
+                                    'acumula'=>'20500000',
+                                    'tipo'=>'D',
+                                    'naturaleza'=>'A',
+                                ]);
+                                $rec = Terceros::where('id',$recor)->get()[0];
+                                return $rec->nombre.'|'.$rec->cuenta;
+                            })
                     ])
                     ->action(function(Model $record,$data,$livewire){
                         Self::contabiliza_r($record,$data,$livewire);
@@ -232,9 +307,85 @@ class cfdiri extends Page implements HasForms, HasTable
                         ->default('CXP')
                         ->options([
                             'CXP'=>'Cuenta por Pagar',
-                            'PAG'=>'Pagado'
+                            'TER'=>'Pagado por Tercero'
                         ])
-                        ->disabled()->required()])
+                        ->live(onBlur: true)
+                        ->required(),
+                    Select::make('Tercero')
+                        ->searchable()
+                        ->visible(function(Get $get){
+                            if($get('forma')== 'TER') return true;
+                            else return false;
+                        })
+                        ->required(function(Get $get){
+                            if($get('forma')== 'TER') return true;
+                            else return false;
+                        })
+                        ->options(Terceros::select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                        ->createOptionForm(function($form){
+                            return $form
+                                ->schema([
+                                    Forms\Components\TextInput::make('rfc')
+                                        ->required()
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('nombre')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->columnSpan(3),
+                                    Forms\Components\TextInput::make('tipo')
+                                        ->label('Tipo de Tercero')
+                                        ->default('Acreedor')
+                                        ->readOnly(),
+                                    Forms\Components\TextInput::make('cuenta')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->readOnly()
+                                        ->default(function(){
+                                            $nuecta = 20501000;
+                                            $rg = count(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20500000')->get() ?? 0);
+                                            if($rg > 0)
+                                                $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20500000')->max('codigo')) + 1000;
+                                            return $nuecta;
+                                        }),
+                                    Forms\Components\TextInput::make('telefono')
+                                        ->tel()
+                                        ->required()
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('correo')
+                                        ->required()
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('contacto')
+                                        ->required()
+                                        ->maxLength(255),
+                                    Forms\Components\Select::make('regimen')
+                                        ->searchable()
+                                        ->label('Regimen Fiscal')
+                                        ->columnSpan(2)
+                                        ->options(Regimenes::all()->pluck('mostrar','clave')),
+                                    Forms\Components\Hidden::make('tax_id')
+                                        ->default(Filament::getTenant()->taxid),
+                                    Forms\Components\Hidden::make('team_id')
+                                        ->default(Filament::getTenant()->id),
+                                    Forms\Components\TextInput::make('codigopos')
+                                        ->label('Codigo Postal')
+                                        ->required()
+                                        ->maxLength(255),
+                                ])->columns(4);
+                        })
+                        ->createOptionUsing(function(array $data){
+                            $recor = DB::table('terceros')->insertGetId($data);
+                            DB::table('cat_cuentas')->insert([
+                                'nombre' =>  $data['nombre'],
+                                'team_id' => Filament::getTenant()->id,
+                                'codigo'=>$data['cuenta'],
+                                'acumula'=>'20500000',
+                                'tipo'=>'D',
+                                'naturaleza'=>'A',
+                            ]);
+                            $rec = Terceros::where('id',$recor)->get()[0];
+                            return $rec->nombre.'|'.$rec->cuenta;
+                        })
+                ])
                 ->action(function(Collection $records,array $data,$livewire){
                     foreach($records as $record){
                         Self::contabiliza_r($record,$data,$livewire);
@@ -282,7 +433,6 @@ class cfdiri extends Page implements HasForms, HasTable
 
     public static function contabiliza_r($record,$data,$livewire)
     {
-       //dd($record);
         $tipoxml = $record['xml_type'];
         $tipocom = $record['TipoDeComprobante'];
         $rfc_rec = $record['Receptor_Rfc'];
@@ -343,70 +493,174 @@ class cfdiri extends Page implements HasForms, HasTable
             $ntotal = floatval($total);
             $nsubtotal = floatval($subtotal) - floatval($descuento);
             //dd($ntotal,$nsubtotal,$total,$subtotal);
-            $poliza = CatPolizas::create([
-                'tipo'=>'PG',
-                'folio'=>$nopoliza,
-                'fecha'=>$cffecha,
-                'concepto'=>$nom_emi,
-                'cargos'=>$ntotal * $tipoc,
-                'abonos'=>$ntotal * $tipoc,
-                'periodo'=>$cfperiodo,
-                'ejercicio'=>$cfejercicio,
-                'referencia'=>$serie.$folio,
-                'uuid'=>$uuid,
-                'tiposat'=>'Dr',
-                'team_id'=>Filament::getTenant()->id,
-                'idcfdi'=>$record->id
-            ]);
-            $polno = $poliza['id'];
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>$ctaclie,
-                'cuenta'=>$nom_emi,
-                'concepto'=>$nom_emi,
-                'cargo'=>0,
-                'abono'=>$ntotal * $tipoc,
-                'factura'=>$serie.$folio,
-                'nopartida'=>1,
-                'uuid'=>$uuid,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>$ctagas,
-                'cuenta'=>'Ventas',
-                'concepto'=>$nom_emi,
-                'cargo'=>$nsubtotal * $tipoc,
-                'abono'=>0,
-                'factura'=>$serie.$folio,
-                'nopartida'=>2,
-                'uuid'=>$uuid,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>'11901000',
-                'cuenta'=>'IVA trasladado no cobrado',
-                'concepto'=>$nom_emi,
-                'cargo'=>$iva * $tipoc,
-                'abono'=>0,
-                'factura'=>$serie.$folio,
-                'nopartida'=>3,
-                'uuid'=>$uuid,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
+            if($data['forma'] == 'CXP') {
+                $poliza = CatPolizas::create([
+                    'tipo' => 'PG',
+                    'folio' => $nopoliza,
+                    'fecha' => $cffecha,
+                    'concepto' => $nom_emi,
+                    'cargos' => $ntotal * $tipoc,
+                    'abonos' => $ntotal * $tipoc,
+                    'periodo' => $cfperiodo,
+                    'ejercicio' => $cfejercicio,
+                    'referencia' => $serie . $folio,
+                    'uuid' => $uuid,
+                    'tiposat' => 'Dr',
+                    'team_id' => Filament::getTenant()->id,
+                    'idcfdi' => $record->id
+                ]);
+                $polno = $poliza['id'];
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $ctaclie,
+                    'cuenta' => $nom_emi,
+                    'concepto' => $nom_emi,
+                    'cargo' => 0,
+                    'abono' => $ntotal * $tipoc,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 1,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $ctagas,
+                    'cuenta' => 'Ventas',
+                    'concepto' => $nom_emi,
+                    'cargo' => $nsubtotal * $tipoc,
+                    'abono' => 0,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 2,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => '11901000',
+                    'cuenta' => 'IVA trasladado no cobrado',
+                    'concepto' => $nom_emi,
+                    'cargo' => $iva * $tipoc,
+                    'abono' => 0,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 3,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+            }
+            else
+            {
+                $poliza = CatPolizas::create([
+                    'tipo' => 'PG',
+                    'folio' => $nopoliza,
+                    'fecha' => $cffecha,
+                    'concepto' => $nom_emi,
+                    'cargos' => $ntotal * $tipoc,
+                    'abonos' => $ntotal * $tipoc,
+                    'periodo' => $cfperiodo,
+                    'ejercicio' => $cfejercicio,
+                    'referencia' => $serie . $folio,
+                    'uuid' => $uuid,
+                    'tiposat' => 'Dr',
+                    'team_id' => Filament::getTenant()->id,
+                    'idcfdi' => $record->id
+                ]);
+                $polno = $poliza['id'];
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $ctagas,
+                    'cuenta' => $nom_emi,
+                    'concepto' => $nom_emi,
+                    'cargo' => $nsubtotal * $tipoc,
+                    'abono' => 0,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 1,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $ctagas,
+                    'cuenta' => $nom_emi,
+                    'concepto' => $nom_emi,
+                    'cargo' => $iva * $tipoc,
+                    'abono' => 0,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 2,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $ctaclie,
+                    'cuenta' => $nom_emi,
+                    'concepto' => $nom_emi,
+                    'cargo' => $ntotal * $tipoc,
+                    'abono' => 0,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 3,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $ctaclie,
+                    'cuenta' => $nom_emi,
+                    'concepto' => $nom_emi,
+                    'cargo' => 0,
+                    'abono' => $ntotal * $tipoc,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 4,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+                $terc = explode('|',$data['Tercero']);
+                $ter_nombre = $terc[0];
+                $ter_cuenta = $terc[1];
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $ter_cuenta,
+                    'cuenta' => $ter_nombre,
+                    'concepto' => $nom_emi,
+                    'cargo' => 0,
+                    'abono' => $ntotal * $tipoc,
+                    'factura' => $serie . $folio,
+                    'nopartida' => 5,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+            }
             DB::table('almacencfdis')->where('id',$record->id)->update([
                 'used'=> 'SI',
                 'metodo'=>$forma

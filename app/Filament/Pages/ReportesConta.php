@@ -35,7 +35,10 @@ class ReportesConta extends Page implements HasForms
                 Actions::make([
                   Actions\Action::make('Balance_General')
                       ->action(function (){
-                          (new \App\Http\Controllers\ReportesController)->actualiza_saldos(Filament::getTenant()->periodo,Filament::getTenant()->ejercicio);
+                          $ejercicio = Filament::getTenant()->ejercicio;
+                          $periodo = Filament::getTenant()->periodo;
+                          $team_id = Filament::getTenant()->id;
+                          (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                           $this->getAction('Balance General')->visible(true);
                           $this->replaceMountedAction('Balance General');
                           $this->getAction('Balance General')->visible(false);
@@ -43,7 +46,10 @@ class ReportesConta extends Page implements HasForms
                     Actions\Action::make('Balanza_General')
                         ->label('Balanza de Comprobacion')
                         ->action(function (){
-                            (new \App\Http\Controllers\ReportesController)->actualiza_saldos(Filament::getTenant()->periodo,Filament::getTenant()->ejercicio);
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             $this->getAction('Balanza General')->visible(true);
                             $this->replaceMountedAction('Balanza General');
                             $this->getAction('Balanza General')->visible(false);
@@ -51,7 +57,10 @@ class ReportesConta extends Page implements HasForms
                     Actions\Action::make('EdoRes')
                         ->label('Estado de Resultados')
                         ->action(function (){
-                            (new \App\Http\Controllers\ReportesController)->actualiza_saldos(Filament::getTenant()->periodo,Filament::getTenant()->ejercicio);
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             $this->getAction('Estado de Resultados')->visible(true);
                             $this->replaceMountedAction('Estado de Resultados');
                             $this->getAction('Estado de Resultados')->visible(false);

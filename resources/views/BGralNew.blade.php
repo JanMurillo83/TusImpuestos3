@@ -1,18 +1,9 @@
 <?php
 use \Illuminate\Support\Facades\DB;
     $empresas = DB::table('teams')->where('id',$empresa)->get()[0];
-    $cuentas = DB::select("SELECT codigo,nombre,
-    coalesce((SELECT sum(cargo) FROM auxiliares INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo = $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) cargos,
-    coalesce((SELECT sum(abono) FROM auxiliares
-    INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo = $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) abonos,
-    naturaleza,'NA' rubro FROM cat_cuentas
-    WHERE tipo = 'A' AND team_id = $empresa
-    AND substr(codigo,4,2) = '00' AND substr(codigo,1,3)
-    NOT IN('100','200','300','400','500','600','700','800','900')");
+    $cuentas = DB::select("SELECT * FROM saldos_reportes
+    WHERE nivel = 1 AND team_id = $empresa
+    AND (anterior+cargos+abonos) != 0");
     $fecha = \Carbon\Carbon::now();
     $saldo1 = 0;
     $saldo2 = 0;
@@ -72,7 +63,7 @@ use \Illuminate\Support\Facades\DB;
                                 <?php $saldo1+=$saldo; ?>
                             <tr>
                                 <td>{{$cuenta->codigo}}</td>
-                                <td>{{$cuenta->nombre}}</td>
+                                <td>{{$cuenta->cuenta}}</td>
                                 <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             </tr>
 
@@ -104,7 +95,7 @@ use \Illuminate\Support\Facades\DB;
                                 <?php $saldo2+=$saldo; ?>
                             <tr>
                                 <td>{{$cuenta->codigo}}</td>
-                                <td>{{$cuenta->nombre}}</td>
+                                <td>{{$cuenta->cuenta}}</td>
                                 <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             </tr>
                         @endif
@@ -141,7 +132,7 @@ use \Illuminate\Support\Facades\DB;
                                 <?php $saldo3+=$saldo; ?>
                             <tr>
                                 <td>{{$cuenta->codigo}}</td>
-                                <td>{{$cuenta->nombre}}</td>
+                                <td>{{$cuenta->cuenta}}</td>
                                 <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             </tr>
                         @endif
@@ -172,7 +163,7 @@ use \Illuminate\Support\Facades\DB;
                                 <?php $saldo4+=$saldo; ?>
                             <tr>
                                 <td>{{$cuenta->codigo}}</td>
-                                <td>{{$cuenta->nombre}}</td>
+                                <td>{{$cuenta->cuenta}}</td>
                                 <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             </tr>
                         @endif
@@ -185,17 +176,15 @@ use \Illuminate\Support\Facades\DB;
                 <table class="table border">
                     @foreach($cuentas as $cuenta)
                             <?php $cod = intval(substr($cuenta->codigo,0,3));
-                            $saldo = 0;
-                            if($cuenta->naturaleza == 'D') {
-                                $saldo = $cuenta->cargos - $cuenta->abonos;
-                            }else{
-                                $saldo = ($cuenta->abonos - $cuenta->cargos) * -1;
-                            }
 
+                            if($cod > 399) {
+                                if ($cuenta->naturaleza == 'A') {
+                                    $saldo5 += $cuenta->final;
+                                } else {
+                                    $saldo5 -= $cuenta->final;
+                                }
+                            }
                             ?>
-                        @if($cod > 399)
-                                <?php $saldo5+=$saldo; ?>
-                        @endif
                     @endforeach
                     <tr>
                         <td colspan="2" style="font-weight: bold;">Resultado del Ejercicio:</td>
@@ -203,7 +192,7 @@ use \Illuminate\Support\Facades\DB;
                     </tr>
                     <tr>
                         <td colspan="2" style="font-weight: bold;">Suma de Pasivo y Capital:</td>
-                        <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo3+$saldo4-$saldo5,2)}}</td>
+                        <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo3+$saldo4+$saldo5,2)}}</td>
                     </tr>
                 </table>
             </div>

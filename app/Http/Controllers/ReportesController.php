@@ -286,14 +286,14 @@ class ReportesController extends Controller
         }
     }
 
-    public function ContabilizaReporte($periodo,$ejercicio,$team_id)
+    public function ContabilizaReporte($ejercicio,$periodo,$team_id)
     {
         $polizas = CatPolizas::where('team_id',$team_id)->get();
         foreach($polizas as $poliza)
         {
             Auxiliares::where('cat_polizas_id',$poliza->id)->update([
-                'a_ejercicio'=>$ejercicio,
-                'a_periodo'=>$periodo,
+                'a_ejercicio'=>$poliza->ejercicio,
+                'a_periodo'=>$poliza->periodo,
             ]);
         }
         SaldosReportes::where('team_id',$team_id)->delete();

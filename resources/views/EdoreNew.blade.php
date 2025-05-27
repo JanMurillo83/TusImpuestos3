@@ -2,7 +2,7 @@
 use \Illuminate\Support\Facades\DB;
 $empresas = DB::table('teams')->where('id',$empresa)->get()[0];
 $cuentas = DB::select("SELECT * FROM saldos_reportes
-    WHERE nivel = 1 AND team_id = $empresa AND (anterior+cargos+abonos+final) != 0 ");
+    WHERE nivel = 1 AND team_id = $empresa AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ");
 $fecha = \Carbon\Carbon::now();
 $saldo1 = 0;
 $saldo1_acum = 0;
@@ -62,7 +62,7 @@ $saldo5_acum = 0;
                             $saldo = $cuenta->cargos - $cuenta->abonos;
                             $saldo_acum = $cuenta->anterior;
                         }else{
-                            $saldo = ($cuenta->abonos - $cuenta->cargos);
+                            $saldo = $cuenta->abonos - $cuenta->cargos;
                             $saldo_acum = $cuenta->anterior;
                         }
                         ?>
@@ -72,13 +72,14 @@ $saldo5_acum = 0;
                             <td>{{$cuenta->codigo}}</td>
                             <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum,2)}}</td>
+                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum + $saldo ,2)}}</td>
                         </tr>
                     @endif
                 @endforeach
                 <tr>
                     <td colspan="2" style="font-weight: bold;">Total de Ingresos:</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo1,2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo1 + $saldo1_acum,2)}}</td>
                 </tr>
             </table>
             <label style="font-weight: bold">Egresos</label>
@@ -114,12 +115,12 @@ $saldo5_acum = 0;
                 <tr>
                     <td colspan="2" style="font-weight: bold;">Total Egresos:</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo2,2)}}</td>
-                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo2_acum,2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo2+$saldo2_acum,2)}}</td>
                 </tr>
                 <tr>
                     <td colspan="2" style="font-weight: bold;">Utilidad o Perdida:</td>
-                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-$saldo2),2)}}</td>
-                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1_acum-$saldo2_acum),2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-($saldo2*-1)),2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-($saldo2*-1))+($saldo1_acum-($saldo2_acum*-1)),2)}}</td>
                 </tr>
             </table>
         </div>

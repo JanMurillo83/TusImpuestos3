@@ -57,7 +57,7 @@ use \Illuminate\Support\Facades\DB;
                             }else{
                                 $saldo = ($cuenta->abonos - $cuenta->cargos);
                             }
-
+                            $saldo+=$cuenta->anterior;
                             ?>
                         @if($cod < 150)
                                 <?php $saldo1+=$saldo; ?>
@@ -89,7 +89,7 @@ use \Illuminate\Support\Facades\DB;
                             }else{
                                 $saldo = ($cuenta->abonos - $cuenta->cargos);
                             }
-
+                            $saldo+=$cuenta->anterior;
                             ?>
                         @if($cod > 149&&$cod < 200)
                                 <?php $saldo2+=$saldo; ?>
@@ -126,7 +126,7 @@ use \Illuminate\Support\Facades\DB;
                             }else{
                                 $saldo = ($cuenta->abonos - $cuenta->cargos);
                             }
-
+                            $saldo+=$cuenta->anterior;
                             ?>
                         @if($cod > 199&&$cod < 300)
                                 <?php $saldo3+=$saldo; ?>
@@ -157,7 +157,7 @@ use \Illuminate\Support\Facades\DB;
                             }else{
                                 $saldo = ($cuenta->abonos - $cuenta->cargos);
                             }
-
+                            $saldo+=$cuenta->anterior;
                             ?>
                         @if($cod > 299&&$cod < 400)
                                 <?php $saldo4+=$saldo; ?>
@@ -184,6 +184,7 @@ use \Illuminate\Support\Facades\DB;
                                     $saldo5 -= $cuenta->final;
                                 }
                             }
+
                             ?>
                     @endforeach
                     <tr>

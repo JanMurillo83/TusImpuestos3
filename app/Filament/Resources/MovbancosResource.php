@@ -280,7 +280,8 @@ class MovbancosResource extends Resource
                                     '4'=>'Prestamo',
                                     '5'=>'Gasto no Deducible',
                                     '6'=>'Pago de Nomina',
-                                    '7'=>'Anticipo agencia aduanal'
+                                    '7'=>'Anticipo agencia aduanal',
+                                    '8'=>'Captura Manual'
                                 ])->columnSpan(2),
                                 TableRepeater::make('Facturas')
                                 ->visible(function(Get $get){
@@ -810,7 +811,8 @@ class MovbancosResource extends Resource
                                     '1'=>'Cobro de Factura',
                                     '2'=>'Cobro no identificado',
                                     '3'=>'Prestamo',
-                                    '4'=>'Otros Ingresos'
+                                    '4'=>'Otros Ingresos',
+                                    '5'=>'Captura Manual',
                                 ])->columnSpan(2),
                                 TableRepeater::make('Facturas')
                                 ->visible(function(Get $get){
@@ -1716,8 +1718,8 @@ class MovbancosResource extends Resource
                     'codigo'=>$dater[1],
                     'cuenta'=>$dater[0],
                     'concepto'=>'Prestamo',
-                    'cargo'=>0,
-                    'abono'=>$record->importe,
+                    'cargo'=>$record->importe,
+                    'abono'=>0,
                     'factura'=>'Prestamo',
                     'nopartida'=>1,
                     'team_id'=>Filament::getTenant()->id
@@ -1731,8 +1733,8 @@ class MovbancosResource extends Resource
                     'codigo'=>$ban[0]->codigo,
                     'cuenta'=>$ban[0]->cuenta,
                     'concepto'=>'Prestamo',
-                    'cargo'=>$record->importe,
-                    'abono'=>0,
+                    'cargo'=>0,
+                    'abono'=>$record->importe,
                     'factura'=>'Prestamo',
                     'nopartida'=>2,
                     'team_id'=>Filament::getTenant()->id

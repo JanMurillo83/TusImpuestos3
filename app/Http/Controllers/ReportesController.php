@@ -341,20 +341,22 @@ class ReportesController extends Controller
                 'team_id' => $team_id
             ]);
         }
-        $nivel_3 = DB::select("SELECT acumula, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
+        $nivel_3 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
         FROM saldos_reportes WHERE nivel = 3 AND team_id = $team_id GROUP BY acumula");
         foreach ($nivel_3 as $n_3) {
             SaldosReportes::where('codigo',$n_3->acumula)->update([
                 'cargos'=>$n_3->s_cargos,
-                'abonos'=>$n_3->s_abonos
+                'abonos'=>$n_3->s_abonos,
+                'anterior'=>$n_3->anterior
             ]);
         }
-        $nivel_2 = DB::select("SELECT acumula, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
+        $nivel_2 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
         FROM saldos_reportes WHERE nivel = 2 AND team_id = $team_id GROUP BY acumula");
         foreach ($nivel_2 as $n_2) {
             SaldosReportes::where('codigo',$n_2->acumula)->update([
                 'cargos'=>$n_2->s_cargos,
-                'abonos'=>$n_2->s_abonos
+                'abonos'=>$n_2->s_abonos,
+                'anterior'=>$n_2->anterior
             ]);
         }
         DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id");

@@ -119,8 +119,8 @@ $saldo5_acum = 0;
                 </tr>
                 <tr>
                     <td colspan="2" style="font-weight: bold;">Utilidad o Perdida:</td>
-                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-($saldo2*-1)),2)}}</td>
-                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-($saldo2*-1))+($saldo1_acum-($saldo2_acum*-1)),2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-$saldo2),2)}}</td>
+                    <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-$saldo2)+($saldo1_acum-$saldo2_acum),2)}}</td>
                 </tr>
             </table>
         </div>

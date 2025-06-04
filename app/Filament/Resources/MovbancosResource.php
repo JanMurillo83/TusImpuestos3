@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MovbancosResource\Pages;
 use App\Filament\Resources\MovbancosResource\RelationManagers;
 use App\Http\Controllers\DescargaSAT;
+use App\Livewire\FacturasEgWidget;
 use App\Livewire\IngEgWidget;
 use App\Models\Activosfijos;
 use App\Models\Almacencfdis;
@@ -25,8 +26,10 @@ use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\Livewire;
 use Filament\Resources\Resource;
 use Filament\Support\Colors\Color;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -81,7 +84,13 @@ class MovbancosResource extends Resource
                         Tabs\Tab::make('Datos Generales')
                             ->schema([
                                 Forms\Components\DatePicker::make('fecha')
-                                    ->required(),
+                                    ->required()
+                                ->default(function (){
+                                    $day = Carbon::now()->day;
+                                    $month = Filament::getTenant()->periodo;
+                                    $year = Filament::getTenant()->ejercicio;
+                                    return $year.'-'.$month.'-'.$day;
+                                }),
                                 Forms\Components\Select::make('tipo')
                                     ->required()
                                     ->options([
@@ -238,13 +247,145 @@ class MovbancosResource extends Resource
                         if($record->contabilizada == 'SI') return true;
                         if($record->contabilizada == 'NO') return false;
                     }),
+                    Action::make('ver_poliza')
+                        ->label('Ver Póliza')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(function($record){
+                            if($record->contabilizada == 'SI') return true;
+                            return false;
+                        })
+                        ->modalHeading('Detalles de la Póliza')
+                        ->modalWidth('7xl')
+                        ->form(function($record){
+                            // Buscar la póliza relacionada con este movimiento bancario
+                            $poliza = CatPolizas::where('idmovb', $record->id)->first();
+
+                            if (!$poliza) {
+                                return [];
+                            }
+
+                            // Obtener las partidas de la póliza
+                            $partidas = DB::table('auxiliares')
+                                ->where('cat_polizas_id', $poliza->id)
+                                ->get();
+
+                            return [
+                                Section::make()
+                                    ->columns([
+                                        'default' => 5,
+                                        'sm' => 2,
+                                        'md' => 2,
+                                        'lg' => 5,
+                                        'xl' => 5,
+                                        '2xl' => 5,
+                                    ])
+                                    ->schema([
+                                        Forms\Components\TextInput::make('fecha')
+                                            ->label('Fecha')
+                                            ->default(function() use ($poliza) {
+                                                return date('d-m-Y', strtotime($poliza->fecha));
+                                            })
+                                            ->readOnly(),
+                                        Forms\Components\TextInput::make('tipo')
+                                            ->label('Tipo')
+                                            ->default($poliza->tipo)
+                                            ->readOnly(),
+                                        Forms\Components\TextInput::make('folio')
+                                            ->label('Folio')
+                                            ->default($poliza->folio)
+                                            ->readOnly(),
+                                        Forms\Components\TextInput::make('cargos')
+                                            ->label('Cargos')
+                                            ->prefix('$')
+                                            ->default(function() use ($poliza) {
+                                                $formatter = new \NumberFormatter('es_MX', \NumberFormatter::DECIMAL);
+                                                return $formatter->format($poliza->cargos);
+                                            })
+                                            ->readOnly(),
+                                        Forms\Components\TextInput::make('abonos')
+                                            ->label('Abonos')
+                                            ->prefix('$')
+                                            ->default(function() use ($poliza) {
+                                                $formatter = new \NumberFormatter('es_MX', \NumberFormatter::DECIMAL);
+                                                return $formatter->format($poliza->abonos);
+                                            })
+                                            ->readOnly(),
+                                        Forms\Components\TextInput::make('concepto')
+                                            ->label('Concepto')
+                                            ->default($poliza->concepto)
+                                            ->columnSpan(4)
+                                            ->readOnly(),
+                                        Forms\Components\TextInput::make('referencia')
+                                            ->label('Referencia')
+                                            ->prefix('F-')
+                                            ->default($poliza->referencia)
+                                            ->readOnly(),
+                                    ]),
+                                Section::make('Partidas')
+                                    ->columns([
+                                        'default' => 5,
+                                        'sm' => 5,
+                                        'md' => 5,
+                                        'lg' => 5,
+                                        'xl' => 5,
+                                        '2xl' => 5,
+                                    ])
+                                    ->schema([
+                                        TableRepeater::make('detalle')
+                                            ->disableItemCreation()
+                                            ->disableItemDeletion()
+                                            ->disableItemMovement()
+                                            ->columnSpanFull()
+                                            ->headers([
+                                                Header::make('codigo')->width('250px'),
+                                                Header::make('cargo')->width('100px'),
+                                                Header::make('abono')->width('100px'),
+                                                Header::make('factura')->width('100px')->label('Referencia'),
+                                                Header::make('concepto')->width('300px'),
+                                            ])
+                                            ->schema([
+                                                TextInput::make('codigo')
+                                                    ->readOnly(),
+                                                TextInput::make('cargo')
+                                                    ->numeric()
+                                                    ->prefix('$')
+                                                    ->readOnly(),
+                                                TextInput::make('abono')
+                                                    ->numeric()
+                                                    ->prefix('$')
+                                                    ->readOnly(),
+                                                TextInput::make('factura')
+                                                    ->label('Referencia')
+                                                    ->prefix('F-')
+                                                    ->readOnly(),
+                                                TextInput::make('concepto')
+                                                    ->readOnly(),
+                                            ])
+                                            ->default(function() use ($partidas) {
+                                                $items = [];
+                                                foreach ($partidas as $partida) {
+                                                    $items[] = [
+                                                        'codigo' => $partida->codigo,
+                                                        'cargo' => $partida->cargo,
+                                                        'abono' => $partida->abono,
+                                                        'factura' => $partida->factura,
+                                                        'concepto' => $partida->concepto,
+                                                    ];
+                                                }
+                                                return $items;
+                                            }),
+                                    ]),
+                            ];
+                        }),
             //--------------------------------------------------------
                     Action::make('procesa_s')
                         ->visible(function($record){
                             if($record->contabilizada == 'SI') return false;
                             if($record->contabilizada == 'NO'&&$record->tipo == 'S') return true;
                         })
-                    ->form(function(Form $form){
+                    ->form(function(Form $form,$record,$livewire){
+                        $livewire->recordid = $record->id;
                         return $form
                         ->schema([
                             TextInput::make('importe')
@@ -289,17 +430,19 @@ class MovbancosResource extends Resource
                                     if($mov == 1||$mov == 2||$mov == 3) return true;
                                     else return false;
                                 })->headers([
-                                    Header::make('Factura')->width('300px'),
+                                    Header::make('Factura')->width('250px'),
+                                    Header::make('Moneda')->width('50px'),
                                     Header::make('Emisor')->width('100px'),
                                     Header::make('Receptor')->width('100px'),
-                                    Header::make('Importe')->width('100px')
+                                    Header::make('Importe')->width('100px'),
+                                    Header::make('Acciones')->width('50px')->label(''),
                                 ])
                                 ->schema([
                                     Select::make('Factura')
                                     ->searchable()
                                     ->options(function (){
                                         $ing_ret = IngresosEgresos::where('team_id',Filament::getTenant()->id)->where('tipo',0)->where('pendientemxn','>',0)->get();
-                                        $data = [];
+                                        $data = array();
                                         foreach ($ing_ret as $item){
                                             $tot = '$'.number_format($item->totalmxn,2);
                                             $pend = '$'.number_format($item->pendientemxn,2);
@@ -307,7 +450,9 @@ class MovbancosResource extends Resource
                                             $tc_n = 1;
                                             $alm = Almacencfdis::where('id',$item->xml_id)->first();
                                             if($item->tcambio > 1) {
-                                                if(count(DB::table('historico_tcs')->where('fecha',Carbon::now())->get()) == 0) {
+
+                                                $fech_comp = date('Y-m-d',strtotime(Carbon::now()));
+                                                if(count(DB::table('historico_tcs')->where('fecha',$fech_comp)->get()) == 0) {
                                                     $tip_cam = app(DescargaSAT::class)->TipoDeCambioBMX();
                                                     if ($tip_cam->getStatusCode() === 200) {
                                                         $vals = json_decode($tip_cam->getBody()->getContents());
@@ -330,31 +475,18 @@ class MovbancosResource extends Resource
                                                 $tot = '$'.number_format($item->totalmxn,2);
                                                 $pend = '$'.number_format($item->pendientemxn,2);
                                             }
-                                            $column = "
-                                            <table>
-                                                <tr>
-                                                    <th style='padding: 10px'>Tercero</th>
-                                                    <th style='padding: 10px'>Referencia</th>
-                                                    <th style='padding: 10px'>Importe</th>
-                                                    <th style='padding: 10px'>Pendiente</th>
-                                                    <th style='padding: 10px'>Moneda</th>
-                                                </tr>
-                                                <tr>
-                                                <td class='border' style='padding: 10px'>$alm->Emisor_Nombre</td>
-                                                    <td class='border' style='padding: 10px'>$item->referencia</td>
-                                                    <td class='border' style='padding: 10px'>$tot</td>
-                                                    <td class='border' style='padding: 10px'>$pend</td>
-                                                    <td class='border' style='padding: 10px'>$monea</td>
-                                                </tr>
-                                            </table>";
-                                            $data[] = [
-                                                $item->id.'|'.$item->xml_id => $column
+                                            $data+= [
+                                                $item->id.'|'.$item->xml_id =>
+                                                    'Tercero: '.$alm->Emisor_Nombre.' |'.
+                                                    'Referencia: '.$item->referencia.' |'.
+                                                    'Importe: '.$tot.' |'.
+                                                    'Pendiente: '.$pend.' |'.
+                                                    'Moneda: '.$monea
                                             ];
                                         }
                                         //dd($data);
                                         return $data;
-                                    })->allowHtml(true)
-                                    ->afterStateUpdated(function(Get $get,Set $set){
+                                    })->afterStateUpdated(function(Get $get,Set $set){
                                         $factu = $get('Factura');
                                         $factur = explode('|',$factu);
                                         $ingeng = $factur[0];
@@ -373,15 +505,48 @@ class MovbancosResource extends Resource
                                         $set('UUID',$fac->UUID);
                                         $set('desfactura',$fac->Serie.$fac->Folio);
                                         $set('ingengid',$ingeng);
+                                        $set('Moneda',$fac->Moneda);
+                                        if($fac->TipoCambio >0)
+                                        $set('tipo_cam_m',$fac->TipoCambio);
+                                        else $set('tipo_cam_m',1);
+                                        $set('total_orig',$fac->Total);
+                                            $set('tipo_cam_n',$tc_n);
                                     })->live(onBlur:true),
+                                    TextInput::make('Moneda')->readOnly(),
                                     TextInput::make('Emisor')->readOnly(),
                                     TextInput::make('Receptor')->readOnly(),
                                     TextInput::make('Importe')->readOnly()
                                     ->numeric()->prefix('$'),
+                                    Actions::make([
+                                        ActionsAction::make('Ver Importe')->hiddenLabel()
+                                        ->icon('fas-dollar-sign')->button()->color(Color::Red)
+                                        ->form(function (Form $form,Get $get,$record) {
+
+                                            $mon_pag = floatval($record->importe) / floatval($get('tipo_cam_n'));
+                                            return $form ->schema([
+                                            TextInput::make('Tot_Importe_MXN')->readOnly()->prefix('$')->inlineLabel()
+                                                ->label('TOTAL MXN')->default($get('Importe'))->currencyMask(decimalSeparator: '.',precision: 2),
+                                            TextInput::make('Tot_Importe_USD')->readOnly()->prefix('$')->inlineLabel()
+                                                ->label('TOTAL USD')->default($get('total_orig'))->currencyMask(decimalSeparator: '.',precision: 2),
+                                            TextInput::make('Tot_TCFactura')->prefix('$')->inlineLabel()
+                                                ->label('Tipo de Cambio Factura')->default($get('tipo_cam_m'))->currencyMask(decimalSeparator: '.',precision: 4),
+                                            TextInput::make('Tot_TCPago')->prefix('$')->inlineLabel()
+                                                ->label('Tipo de Cambio del Pago')->default($get('tipo_cam_n'))->currencyMask(decimalSeparator: '.',precision: 4),
+                                            TextInput::make('Tot_Pago_MXN')->prefix('$')->inlineLabel()
+                                                ->label('TOTAL PAGO MXN')->default(floatval($record->importe))->currencyMask(decimalSeparator: '.',precision: 2),
+                                            TextInput::make('Tot_Pago_USD')->prefix('$')->inlineLabel()
+                                                ->label('TOTAL PAGO USD')->default($mon_pag)->currencyMask(decimalSeparator: '.',precision: 2),
+                                            ]);
+                                        })->modalWidth('md')->modalSubmitAction(false)
+                                    ]),
+
                                     Hidden::make('FacId'),
                                     Hidden::make('UUID'),
                                     Hidden::make('desfactura'),
-                                    Hidden::make('ingengid')
+                                    Hidden::make('ingengid'),
+                                    Hidden::make('tipo_cam_m'),
+                                    Hidden::make('tipo_cam_n'),
+                                    Hidden::make('total_orig')
                                 ])->columnSpanFull(),
                                 Fieldset::make('Activo Fijo')
                                 ->visible(function(Get $get){
@@ -547,7 +712,8 @@ class MovbancosResource extends Resource
                                                 ->default(Filament::getTenant()->id),
                                         ])->columns(3);
                                     })
-                                    ->createOptionUsing(function(array $data){
+                                    ->createOptionUsing(function(array $data,$livewire,$record) {
+                                        $livewire->recordid = $record->id;
                                         $actf = DB::table('activosfijos')->insertGetId([
                                             'clave'=>$data['clave'],
                                             'descripcion'=>$data['descripcion'],
@@ -577,6 +743,7 @@ class MovbancosResource extends Resource
                                             'referencia'=>'S/F',
                                             'uuid'=>'',
                                             'tiposat'=>'Dr',
+                                            'idmovb'=>$livewire->recordid,
                                             'team_id'=>Filament::getTenant()->id
                                         ]);
                                         $polno = $poliza['id'];
@@ -765,10 +932,140 @@ class MovbancosResource extends Resource
                                     }),
                                 TextInput::make('aduana_bancos')->numeric()->prefix('$')->hiddenLabel()->default(fn(Get $get)=>$get('importe')),
                                 Forms\Components\FileUpload::make('aduana_xml')->label('Asociar XML')->inlineLabel()->columnSpan(2)
-                            ])->columnSpan(3)->columns(3)
+                            ])->columnSpan(3)->columns(3),
+                            Fieldset::make('Captura Manual')
+                                ->visible(function(Get $get){
+                                    if($get('Movimiento')== 8) return true;
+                                    else return false;
+                                })
+                                ->schema([
+                                    Section::make()
+                                        ->columns([
+                                            'default' => 5,
+                                            'sm' => 2,
+                                            'md' => 2,
+                                            'lg' => 5,
+                                            'xl' => 5,
+                                            '2xl' => 5,
+                                        ])
+                                        ->schema([
+                                            Forms\Components\TextInput::make('fecha')
+                                                ->label('Fecha')
+                                                ->default(function() use ($record) {
+                                                    return date('d-m-Y', strtotime($record->fecha));
+                                                })
+                                                ->readOnly(),
+                                            Forms\Components\Select::make('tipo')
+                                                ->required()
+                                                ->live()
+                                                ->options([
+                                                    'Dr'=>'Dr',
+                                                    'Eg'=>'Eg',
+                                                ])->afterStateUpdated(function(Get $get,Set $set){
+                                                    $nopoliza = intval(DB::table('cat_polizas')
+                                                            ->where('team_id',Filament::getTenant()->id)
+                                                            ->where('tipo',$get('tipo'))->where('periodo',Filament::getTenant()->periodo)
+                                                            ->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                                                    $set('folio',$nopoliza);
+                                                    $tipol =$get('tipo');
+                                                    if($tipol == 'PV')$tipol = 'Dr';
+                                                    if($tipol == 'PG')$tipol = 'Dr';
+                                                    $set('tiposat',$tipol);
+                                                }),
+                                            Forms\Components\TextInput::make('folio')
+                                                ->required()
+                                                ->numeric()
+                                                ->readOnly(),
+                                            Forms\Components\Hidden::make('cargos')
+                                                ->default(0.00),
+                                            Forms\Components\Hidden::make('abonos')
+                                                ->default(0.00),
+                                            Forms\Components\TextInput::make('concepto')
+                                                ->required()
+                                                ->maxLength(255)
+                                                ->columnSpan(4)
+                                                ->default($record->concepto),
+                                            Forms\Components\TextInput::make('referencia')
+                                                ->maxLength(255)
+                                                ->prefix('F-'),
+                                            Forms\Components\Hidden::make('periodo')
+                                                ->default(Filament::getTenant()->periodo),
+                                            Forms\Components\Hidden::make('ejercicio')
+                                                ->default(Filament::getTenant()->ejercicio),
+                                            Forms\Components\Hidden::make('uuid')
+                                                ->default(''),
+                                            Forms\Components\Hidden::make('tiposat')
+                                                ->default(''),
+                                            Forms\Components\Hidden::make('team_id')
+                                                ->default(Filament::getTenant()->id)
+                                                ->required(),
+                                        ]),
+                                    Section::make('Partidas')
+                                        ->columns([
+                                            'default' => 5,
+                                            'sm' => 5,
+                                            'md' => 5,
+                                            'lg' => 5,
+                                            'xl' => 5,
+                                            '2xl' => 5,
+                                        ])
+                                        ->schema([
+                                            TableRepeater::make('detalle')
+                                                ->streamlined()
+                                                ->columnSpanFull()
+                                                ->headers([
+                                                    Header::make('codigo')->width('250px'),
+                                                    Header::make('cargo')->width('100px'),
+                                                    Header::make('abono')->width('100px'),
+                                                    Header::make('factura')->width('100px')
+                                                        ->label('Referencia'),
+                                                    Header::make('concepto')->width('300px'),
+                                                ])
+                                                ->schema([
+                                                    Select::make('codigo')
+                                                        ->options(
+                                                            DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                                                ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                                        )
+                                                        ->searchable()
+                                                        ->columnSpan(2)
+                                                        ->live()
+                                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
+                                                            $nom = $cuenta[0]->nombre;
+                                                            $set('cuenta',$nom);
+                                                            $set('concepto',$get('../../concepto'));
+                                                        }),
+                                                    TextInput::make('cargo')
+                                                        ->numeric()
+                                                        ->mask(RawJs::make('$money($input)'))
+                                                        ->stripCharacters([',','$'])
+                                                        ->default(0)
+                                                        ->live(onBlur:true)
+                                                        ->prefix('$'),
+                                                    TextInput::make('abono')
+                                                        ->numeric()
+                                                        ->mask(RawJs::make('$money($input)'))
+                                                        ->stripCharacters([',','$'])
+                                                        ->default(0)
+                                                        ->live(onBlur:true)
+                                                        ->prefix('$'),
+                                                    TextInput::make('factura')
+                                                        ->label('Referencia')
+                                                        ->prefix('F-'),
+                                                    TextInput::make('concepto'),
+                                                    Hidden::make('team_id')->default(Filament::getTenant()->id),
+                                                    Hidden::make('cuenta'),
+                                                    Hidden::make('cat_polizas_id')
+                                                        ->default(0),
+                                                    Hidden::make('nopartida')
+                                                        ->default(0),
+                                                ]),
+                                        ]),
+                                ])->columnSpanFull()
                         ])->columns(4);
                     })
-                    ->modalWidth('7xl')
+                    ->modalWidth('full')
                     ->label('Procesar')
                     ->accessSelectedRecords()
                     ->icon('fas-check-to-slot')
@@ -781,8 +1078,8 @@ class MovbancosResource extends Resource
                         if($record->contabilizada == 'SI') return false;
                         if($record->contabilizada == 'NO'&&$record->tipo == 'E') return true;
                     })
-                    ->form(function(Form $form){
-
+                    ->form(function(Form $form,$record,$livewire){
+                        $livewire->recordid = $record->id;
                         return $form
                         ->schema([
                             TextInput::make('importe')
@@ -977,7 +1274,137 @@ class MovbancosResource extends Resource
                                         $rec = Terceros::where('id',$recor)->get()[0];
                                         return $rec->nombre.'|'.$rec->cuenta;
                                     })
-                                ])
+                                ]),
+                            Fieldset::make('Captura Manual')
+                                ->visible(function(Get $get){
+                                    if($get('Movimiento')== 5) return true;
+                                    else return false;
+                                })
+                                ->schema([
+                                    Section::make()
+                                        ->columns([
+                                            'default' => 5,
+                                            'sm' => 2,
+                                            'md' => 2,
+                                            'lg' => 5,
+                                            'xl' => 5,
+                                            '2xl' => 5,
+                                        ])
+                                        ->schema([
+                                            Forms\Components\TextInput::make('fecha')
+                                                ->label('Fecha')
+                                                ->default(function() use ($record) {
+                                                    return date('d-m-Y', strtotime($record->fecha));
+                                                })
+                                                ->readOnly(),
+                                            Forms\Components\Select::make('tipo')
+                                                ->required()
+                                                ->live()
+                                                ->options([
+                                                    'Dr'=>'Dr',
+                                                    'Ig'=>'Ig',
+                                                ])->afterStateUpdated(function(Get $get,Set $set){
+                                                    $nopoliza = intval(DB::table('cat_polizas')
+                                                            ->where('team_id',Filament::getTenant()->id)
+                                                            ->where('tipo',$get('tipo'))->where('periodo',Filament::getTenant()->periodo)
+                                                            ->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                                                    $set('folio',$nopoliza);
+                                                    $tipol =$get('tipo');
+                                                    if($tipol == 'PV')$tipol = 'Dr';
+                                                    if($tipol == 'PG')$tipol = 'Dr';
+                                                    $set('tiposat',$tipol);
+                                                }),
+                                            Forms\Components\TextInput::make('folio')
+                                                ->required()
+                                                ->numeric()
+                                                ->readOnly(),
+                                            Forms\Components\Hidden::make('cargos')
+                                                ->default(0.00),
+                                            Forms\Components\Hidden::make('abonos')
+                                                ->default(0.00),
+                                            Forms\Components\TextInput::make('concepto')
+                                                ->required()
+                                                ->maxLength(255)
+                                                ->columnSpan(4)
+                                                ->default($record->concepto),
+                                            Forms\Components\TextInput::make('referencia')
+                                                ->maxLength(255)
+                                                ->prefix('F-'),
+                                            Forms\Components\Hidden::make('periodo')
+                                                ->default(Filament::getTenant()->periodo),
+                                            Forms\Components\Hidden::make('ejercicio')
+                                                ->default(Filament::getTenant()->ejercicio),
+                                            Forms\Components\Hidden::make('uuid')
+                                                ->default(''),
+                                            Forms\Components\Hidden::make('tiposat')
+                                                ->default(''),
+                                            Forms\Components\Hidden::make('team_id')
+                                                ->default(Filament::getTenant()->id)
+                                                ->required(),
+                                        ]),
+                                    Section::make('Partidas')
+                                        ->columns([
+                                            'default' => 5,
+                                            'sm' => 5,
+                                            'md' => 5,
+                                            'lg' => 5,
+                                            'xl' => 5,
+                                            '2xl' => 5,
+                                        ])
+                                        ->schema([
+                                            TableRepeater::make('detalle')
+                                                ->streamlined()
+                                                ->columnSpanFull()
+                                                ->headers([
+                                                    Header::make('codigo')->width('250px'),
+                                                    Header::make('cargo')->width('100px'),
+                                                    Header::make('abono')->width('100px'),
+                                                    Header::make('factura')->width('100px')
+                                                        ->label('Referencia'),
+                                                    Header::make('concepto')->width('300px'),
+                                                ])
+                                                ->schema([
+                                                    Select::make('codigo')
+                                                        ->options(
+                                                            DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                                                ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                                        )
+                                                        ->searchable()
+                                                        ->columnSpan(2)
+                                                        ->live()
+                                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
+                                                            $nom = $cuenta[0]->nombre;
+                                                            $set('cuenta',$nom);
+                                                            $set('concepto',$get('../../concepto'));
+                                                        }),
+                                                    TextInput::make('cargo')
+                                                        ->numeric()
+                                                        ->mask(RawJs::make('$money($input)'))
+                                                        ->stripCharacters([',','$'])
+                                                        ->default(0)
+                                                        ->live(onBlur:true)
+                                                        ->prefix('$'),
+                                                    TextInput::make('abono')
+                                                        ->numeric()
+                                                        ->mask(RawJs::make('$money($input)'))
+                                                        ->stripCharacters([',','$'])
+                                                        ->default(0)
+                                                        ->live(onBlur:true)
+                                                        ->prefix('$'),
+                                                    TextInput::make('factura')
+                                                        ->label('Referencia')
+                                                        ->prefix('F-'),
+                                                    TextInput::make('concepto'),
+                                                    Hidden::make('team_id')->default(Filament::getTenant()->id),
+                                                    Hidden::make('cuenta'),
+                                                    Hidden::make('cat_polizas_id')
+                                                        ->default(0),
+                                                    Hidden::make('nopartida')
+                                                        ->default(0),
+                                                ]),
+                                        ]),
+                                ])->columnSpanFull()
                         ])->columns(4);
                     })
                     ->modalWidth('7xl')
@@ -1041,6 +1468,7 @@ class MovbancosResource extends Resource
     public static function procesa_e_f($record,$data)
     {
         //dd($data);
+
         $facts =$data['Facturas'] ?? 0;
         //dd($facts[0]);
         DB::table('movbancos')->where('id',$record->id)->update([
@@ -1337,6 +1765,48 @@ class MovbancosResource extends Resource
                             'cat_polizas_id'=>$polno
                         ]);
                     }
+                    if($data['Movimiento'] == 5)
+                    {
+                        $day = Carbon::now()->day;
+                        $month = Filament::getTenant()->periodo;
+                        $year = Filament::getTenant()->ejercicio;
+                        $fecha = date('Y-m-d', strtotime("$year-$month-$day"));
+                        $detalles = $data['detalle'];
+                        $poliza = CatPolizas::create([
+                            'tipo'=>$data['tipo'],
+                            'folio'=>$data['folio'],
+                            'fecha'=>$fecha,
+                            'concepto'=>$data['concepto'],
+                            'cargos'=>$record->importe,
+                            'abonos'=>$record->importe,
+                            'periodo'=>Filament::getTenant()->periodo,
+                            'ejercicio'=>Filament::getTenant()->ejercicio,
+                            'referencia'=>'F-'.$data['referencia'],
+                            'tiposat'=>$data['tipo'],
+                            'team_id'=>Filament::getTenant()->id,
+                            'idmovb'=>$record->id
+                        ]);
+                        $polno = $poliza['id'];
+                        $nopar =0;
+                        foreach ($detalles as $detalle) {
+                            $nopar++;
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id' => $polno,
+                                'codigo' => $detalle['codigo'],
+                                'cuenta' => $detalle['cuenta'],
+                                'concepto' => $detalle['concepto'],
+                                'cargo' => $detalle['cargo'],
+                                'abono' => $detalle['abono'],
+                                'factura' => $detalle['factura'],
+                                'nopartida' => $nopar,
+                                'team_id' => Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id' => $aux['id'],
+                                'cat_polizas_id' => $polno
+                            ]);
+                        }
+                    }
 
         Notification::make('Concluido')
         ->title('Proceso Concluido. Poliza Ig'.$nopoliza.' Grabada')
@@ -1365,13 +1835,13 @@ class MovbancosResource extends Resource
             $pags = 0;
             if (count(DB::table('ingresos_egresos')->where('id', $ingegid)->get()) > 0) $pags = DB::table('ingresos_egresos')->where('id', $ingegid)->get()[0];
             $tc_n = DB::table('historico_tcs')->latest('id')->first()->tipo_cambio;
-            $npagusd = $pags->pagadousd + $record->importe;
-            $npendusd = $pags->pendienteusd - $record->importe;
+            $npagusd = $pags->pagadousd + $record->importe / $tc_n;
+            $npendusd = $pags->pendienteusd - ($record->importe / $tc_n);
             $npag = $pags->pagadomxn + $record->importe;
             $npend = $pags->pendientemxn - $record->importe;
             if ($fss[0]->Moneda == 'USD') {
-                $npag = $pags->pagadomxn + ($record->importe * $tc_n);
-                $npend = $pags->pendientemxn - ($record->importe * $tc_n);
+                $npag = $pags->pagadomxn + ($record->importe);
+                $npend = $pags->pendientemxn - ($record->importe);
             } else {
                 $tc_n = 1;
             }
@@ -1393,8 +1863,8 @@ class MovbancosResource extends Resource
                 'folio'=>$nopoliza,
                 'fecha'=>$record->fecha,
                 'concepto'=>$nom,
-                'cargos'=>$record->importe * $tc_n,
-                'abonos'=>$record->importe * $tc_n,
+                'cargos'=>$record->importe,
+                'abonos'=>$record->importe,
                 'periodo'=>Filament::getTenant()->periodo,
                 'ejercicio'=>Filament::getTenant()->ejercicio,
                 'referencia'=>$facts[0]['desfactura'],
@@ -1404,67 +1874,110 @@ class MovbancosResource extends Resource
                 'idmovb'=>$record->id
             ]);
             $polno = $poliza['id'];
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>$ter[0]->cuenta,
-                'cuenta'=>$ter[0]->nombre,
-                'concepto'=>$nom,
-                'cargo'=>$record->importe * $tc_n,
-                'abono'=>0,
-                'factura'=>$facts[0]['desfactura'],
-                'nopartida'=>1,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
+            $par_num = 1;
+            if($fss[0]->Moneda == 'USD'){
+                $mon_usd = $record->importe / $tc_n;
+                $mon_com = $record->importe - $mon_usd;
+                $aux = Auxiliares::create([
+                    'cat_polizas_id'=>$polno,
+                    'codigo'=>$ter[0]->cuenta,
+                    'cuenta'=>$ter[0]->nombre,
+                    'concepto'=>$nom.' USD',
+                    'cargo'=>$mon_usd,
+                    'abono'=>0,
+                    'factura'=>$facts[0]['desfactura'],
+                    'nopartida'=>$par_num,
+                    'team_id'=>Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id'=>$aux['id'],
+                    'cat_polizas_id'=>$polno
+                ]);
+                $par_num++;
+                $aux = Auxiliares::create([
+                    'cat_polizas_id'=>$polno,
+                    'codigo'=>$ter[0]->cuenta,
+                    'cuenta'=>$ter[0]->nombre,
+                    'concepto'=>$nom.' Complementaria',
+                    'cargo'=>$mon_com,
+                    'abono'=>0,
+                    'factura'=>$facts[0]['desfactura'],
+                    'nopartida'=>$par_num,
+                    'team_id'=>Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id'=>$aux['id'],
+                    'cat_polizas_id'=>$polno
+                ]);
+            }
+            else{
+                $aux = Auxiliares::create([
+                    'cat_polizas_id'=>$polno,
+                    'codigo'=>$ter[0]->cuenta,
+                    'cuenta'=>$ter[0]->nombre,
+                    'concepto'=>$nom,
+                    'cargo'=>$record->importe * $tc_n,
+                    'abono'=>0,
+                    'factura'=>$facts[0]['desfactura'],
+                    'nopartida'=>$par_num,
+                    'team_id'=>Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id'=>$aux['id'],
+                    'cat_polizas_id'=>$polno
+                ]);
+            }
+
+            $par_num++;
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
                 'codigo'=>'11801000',
                 'cuenta'=>'IVA acreditable pagado',
                 'concepto'=>$nom,
-                'cargo'=>(($record->importe * $tc_n) /1.16) * 0.16,
+                'cargo'=>(($record->importe) /1.16) * 0.16,
                 'abono'=>0,
                 'factura'=>$facts[0]['desfactura'],
-                'nopartida'=>2,
+                'nopartida'=>$par_num,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
                 'auxiliares_id'=>$aux['id'],
                 'cat_polizas_id'=>$polno
             ]);
+            $par_num++;
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
                 'codigo'=>'11901000',
                 'cuenta'=>'IVA pendiente de pago',
                 'concepto'=>$nom,
                 'cargo'=>0,
-                'abono'=>(($record->importe* $tc_n) /1.16) * 0.16,
+                'abono'=>(($record->importe) /1.16) * 0.16,
                 'factura'=>$facts[0]['desfactura'],
-                'nopartida'=>3,
+                'nopartida'=>$par_num,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
                 'auxiliares_id'=>$aux['id'],
                 'cat_polizas_id'=>$polno
             ]);
+            $par_num++;
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
                 'codigo'=>$ban[0]->codigo,
                 'cuenta'=>$ban[0]->cuenta,
                 'concepto'=>$nom,
                 'cargo'=>0,
-                'abono'=>$record->importe* $tc_n,
+                'abono'=>$record->importe,
                 'factura'=>$facts[0]['desfactura'],
-                'nopartida'=>4,
+                'nopartida'=>$par_num,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
                 'auxiliares_id'=>$aux['id'],
                 'cat_polizas_id'=>$polno
             ]);
-            if($record->moneda=='USD'){
+            $par_num++;
+            if($fss[0]->Moneda=='USD'){
                 $impnue = $record->importe * $tc_n;
                 $imp_ant = $record->importe * $fss[0]->TipoCambio;
                 $difer = $impnue - $imp_ant;
@@ -1477,13 +1990,14 @@ class MovbancosResource extends Resource
                         'cargo' => $difer,
                         'abono' => 0,
                         'factura' => $facts[0]['desfactura'],
-                        'nopartida' => 5,
+                        'nopartida' => $par_num,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
                         'auxiliares_id' => $aux['id'],
                         'cat_polizas_id' => $polno
                     ]);
+                    $par_num++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo'=>$ter[0]->cuenta,
@@ -1492,7 +2006,7 @@ class MovbancosResource extends Resource
                         'cargo' => 0,
                         'abono' => $difer,
                         'factura' => $facts[0]['desfactura'],
-                        'nopartida' => 6,
+                        'nopartida' => $par_num,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -1509,13 +2023,14 @@ class MovbancosResource extends Resource
                         'cargo' => 0,
                         'abono' => $difer,
                         'factura' => $facts[0]['desfactura'],
-                        'nopartida' => 5,
+                        'nopartida' => $par_num,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
                         'auxiliares_id' => $aux['id'],
                         'cat_polizas_id' => $polno
                     ]);
+                    $par_num++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo'=>$ter[0]->cuenta,
@@ -1524,7 +2039,7 @@ class MovbancosResource extends Resource
                         'cargo' => $difer,
                         'abono' => 0,
                         'factura' => $facts[0]['desfactura'],
-                        'nopartida' => 6,
+                        'nopartida' => $par_num,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2026,16 +2541,56 @@ class MovbancosResource extends Resource
                 'cat_polizas_id'=>$polno
             ]);
         }
+
+        if($tmov == 8)
+        {
+            $day = Carbon::now()->day;
+            $month = Filament::getTenant()->periodo;
+            $year = Filament::getTenant()->ejercicio;
+            $fecha = date('Y-m-d', strtotime("$year-$month-$day"));
+            $detalles = $data['detalle'];
+            $poliza = CatPolizas::create([
+                'tipo'=>$data['tipo'],
+                'folio'=>$data['folio'],
+                'fecha'=>$fecha,
+                'concepto'=>$data['concepto'],
+                'cargos'=>$record->importe,
+                'abonos'=>$record->importe,
+                'periodo'=>Filament::getTenant()->periodo,
+                'ejercicio'=>Filament::getTenant()->ejercicio,
+                'referencia'=>'F-'.$data['referencia'],
+                'tiposat'=>$data['tipo'],
+                'team_id'=>Filament::getTenant()->id,
+                'idmovb'=>$record->id
+            ]);
+            $polno = $poliza['id'];
+            $nopar =0;
+            foreach ($detalles as $detalle) {
+                $nopar++;
+                $aux = Auxiliares::create([
+                    'cat_polizas_id' => $polno,
+                    'codigo' => $detalle['codigo'],
+                    'cuenta' => $detalle['cuenta'],
+                    'concepto' => $detalle['concepto'],
+                    'cargo' => $detalle['cargo'],
+                    'abono' => $detalle['abono'],
+                    'factura' => $detalle['factura'],
+                    'nopartida' => $nopar,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id' => $aux['id'],
+                    'cat_polizas_id' => $polno
+                ]);
+            }
+        }
+
         Notification::make('Concluido')
         ->title('Proceso Concluido. Poliza Eg'.$nopoliza.' Grabada')
         ->success()
         ->send();
     }
 
-
-    public static function setFactData(){
-
-    }
     public static function getRelations(): array
     {
         return [

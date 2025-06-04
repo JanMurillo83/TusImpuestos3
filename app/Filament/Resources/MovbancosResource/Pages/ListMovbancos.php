@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 class ListMovbancos extends ListRecords
 {
     protected static string $resource = MovbancosResource::class;
+    public ?int $recordid;
 
     protected function getHeaderActions(): array
     {

@@ -27,7 +27,8 @@
         "phpcfdi/sat-ws-descarga-masiva": "^0.5.4",
         "phpoffice/phpspreadsheet": "^1.29",
         "solution-forest/filament-simplelightbox": "^0.0.10",
-        "torgodly/html2media": "^1.1"
+        "torgodly/html2media": "^1.1",
+        "ext-intl": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

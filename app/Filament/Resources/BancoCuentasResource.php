@@ -4,10 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\BancoCuentasResource\Pages;
 use App\Filament\Resources\BancoCuentasResource\RelationManagers;
+use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
+use App\Models\CatPolizas;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -268,7 +271,86 @@ class BancoCuentasResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                 ]),
             ])->striped()->defaultPaginationPageOption(8)
-            ->paginated([8, 'all']);
+            ->paginated([8, 'all'])
+            ->headerActions([
+                Tables\Actions\Action::make('traspaso')
+                ->label('Traspaso entre Cuentas')
+                ->form([
+                    Forms\Components\DatePicker::make('fecha')->label('Fecha')->required(),
+                    Forms\Components\Select::make('cuenta_origen')->label('Cuenta Origen')
+                        ->options(BancoCuentas::all()->pluck('banco','id'))->required(),
+                    Forms\Components\Select::make('cuenta_destino')->label('Cuenta Destino')
+                        ->options(BancoCuentas::all()->pluck('banco','id'))->required(),
+                    Forms\Components\Select::make('moneda_origen')->label('Moneda Origen')
+                    ->options(['USD'=>'USD','MXN'=>'MXN',])->required()->default('MXN'),
+                    Forms\Components\Select::make('moneda_destino')->label('Moneda Destino')
+                        ->options(['USD'=>'USD','MXN'=>'MXN',])->required()->default('MXN'),
+                    Forms\Components\TextInput::make('tipo_cam')->label('Tipo de Cambio')
+                        ->required()->numeric()->prefix('$')->default(1),
+                    Forms\Components\TextInput::make('importe')->label('Importe')
+                        ->required()->numeric()->prefix('$')->default(0),
+
+                ])
+                ->action(function ($data){
+                    $nopoliza = intval(DB::table('cat_polizas')
+                    ->where('team_id',Filament::getTenant()->id)
+                    ->where('tipo','Dr')->where('periodo',Filament::getTenant()->periodo)
+                    ->where('ejercicio',Filament::getTenant()->ejercicio)
+                    ->max('folio')) + 1;
+                    $origen = BancoCuentas::where('id',$data['cuenta_origen'])->first();
+                    $destino = BancoCuentas::where('id',$data['cuenta_destino'])->first();
+                    $poliza = CatPolizas::create([
+                        'tipo'=>'Eg',
+                        'folio'=>$nopoliza,
+                        'fecha'=>$data['fecha'],
+                        'concepto'=>'Traspaso entre cuentas',
+                        'cargos'=>$data['importe'],
+                        'abonos'=>$data['importe'],
+                        'periodo'=>Filament::getTenant()->periodo,
+                        'ejercicio'=>Filament::getTenant()->ejercicio,
+                        'referencia'=>'F-',
+                        'uuid'=>'',
+                        'tiposat'=>'Dr',
+                        'team_id'=>Filament::getTenant()->id,
+                        'idmovb'=>0
+                    ]);
+                    $polno = $poliza['id'];
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id'=>$polno,
+                        'codigo'=>$destino->codigo,
+                        'cuenta'=>$destino->banco,
+                        'concepto'=>'Traspaso entre cuentas',
+                        'cargo'=>$data['importe'],
+                        'abono'=>0,
+                        'factura'=>'F-',
+                        'nopartida'=>1,
+                        'team_id'=>Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id'=>$aux['id'],
+                        'cat_polizas_id'=>$polno
+                    ]);
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id'=>$polno,
+                        'codigo'=>$origen->codigo,
+                        'cuenta'=>$origen->banco,
+                        'concepto'=>'Traspaso entre cuentas',
+                        'cargo'=>0,
+                        'abono'=>$data['importe'],
+                        'factura'=>'F-',
+                        'nopartida'=>2,
+                        'team_id'=>Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id'=>$aux['id'],
+                        'cat_polizas_id'=>$polno
+                    ]);
+                    Notification::make('Completado')
+                        ->success()
+                        ->title('Proceso Terminado')
+                        ->send();
+                })
+            ]);
     }
 
     public static function getRelations(): array

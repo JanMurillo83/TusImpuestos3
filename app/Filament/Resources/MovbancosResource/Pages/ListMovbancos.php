@@ -4,6 +4,7 @@ namespace App\Filament\Resources\MovbancosResource\Pages;
 
 use App\Filament\Resources\MovbancosResource;
 use App\Models\BancoCuentas;
+use App\Models\Movbancos;
 use App\Models\Saldosbanco;
 use Filament\Actions;
 use Filament\Actions\Action as ActionsAction;
@@ -61,11 +62,13 @@ class ListMovbancos extends ListRecords
                     $team_id = $data['team_id'];
                     $contabilizada = $data['contabilizada'];
                     $cuenta = $data['cuenta'];
+                    $pendiente = $data['importe'];
                     $excelImportAction->additionalData([
                         'tax_id' => $tax_id,
                         'team_id' => $team_id,
                         'contabilizada' => $contabilizada,
-                        'cuenta' => $cuenta
+                        'cuenta' => $cuenta,
+                        'pendiente_apli' => $pendiente
                     ]);
                 })->validateUsing([
                     'importe' => 'required|numeric',
@@ -179,29 +182,13 @@ class ListMovbancos extends ListRecords
                 ->label('Agregar')
                 ->icon('fas-plus')
                 ->createAnother(false)
-                /*ActionsAction::make('Iniciales')
-                ->form([
-                    TextInput::make('inicial')
-                    ->default(0),
-                    TextInput::make('ejercicio')
-                    ->default(2024),
-                ])->action(function($data){
-                    $ban = 1;
-                    $bandata = [
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>1],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>2],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>3],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>4],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>5],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>6],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>7],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>8],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>9],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>10],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>11],
-                        ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>12]];
-                    Saldosbanco::insert($bandata);
-                })*/
+                ->after(function ($record){
+                    $id = $record->id;
+                    $importe = $record->importe;
+                    Movbancos::where('id',$id)->update([
+                        'pendiente_apli'=>$importe
+                    ]);
+                })
         ];
     }
 

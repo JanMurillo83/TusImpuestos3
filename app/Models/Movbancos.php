@@ -53,6 +53,9 @@ class Movbancos extends Model
 		'movbancoscol',
         'ejercicio',
         'periodo',
+        'moneda',
+        'tcambio',
+        'pendiente_apli',
         'team_id'
 	];
     public function team(): BelongsTo

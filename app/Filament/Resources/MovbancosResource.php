@@ -108,10 +108,14 @@ class MovbancosResource extends Resource
                                 Forms\Components\Select::make('moneda')
                                 ->options(['MXN'=>'MXN','USD'=>'USD'])
                                 ->default('MXN'),
+                                Forms\Components\TextInput::make('tcambio')
+                                    ->required()
+                                    ->label('Tipo de Cambio')
+                                    ->numeric()->prefix('$'),
                                 Forms\Components\TextInput::make('concepto')
                                         ->required()
                                         ->maxLength(255)
-                                        ->columnSpan(3),
+                                        ->columnSpan(2),
                                 Forms\Components\TextInput::make('ejercicio')
                                         ->default(Filament::getTenant()->ejercicio),
                                 Forms\Components\TextInput::make('periodo')
@@ -415,7 +419,6 @@ class MovbancosResource extends Resource
                                 ->required()
                                 ->live()
                                 ->options([
-                                    '1'=>'Pago de Factura',
                                     '2'=>'Reembolso de Gastos',
                                     '3'=>'Compra de Activo',
                                     '4'=>'Prestamo',
@@ -442,7 +445,7 @@ class MovbancosResource extends Resource
                                     Select::make('Factura')
                                     ->searchable()
                                     ->options(function (){
-                                        $ing_ret = IngresosEgresos::where('team_id',Filament::getTenant()->id)->where('tipo',0)->where('pendientemxn','>',0)->get();
+                                        $ing_ret = IngresosEgresos::where('team_id',Filament::getTenant()->id)->where('tipo',0)->where('pendientemxn','>',0)->where('tcambio','<',2)->get();
                                         $data = array();
                                         foreach ($ing_ret as $item){
                                             $tot = '$'.number_format($item->totalmxn,2);
@@ -1130,7 +1133,7 @@ class MovbancosResource extends Resource
                                     Select::make('Factura')
                                         ->searchable()
                                         ->options(function (){
-                                            $ing_ret = IngresosEgresos::where('team_id',Filament::getTenant()->id)->where('tipo',1)->where('pendientemxn','>',0)->get();
+                                            $ing_ret = IngresosEgresos::where('team_id',Filament::getTenant()->id)->where('tipo',1)->where('pendientemxn','>',0)->where('tcambio','<',2)->get();
                                             $data = [];
                                             foreach ($ing_ret as $item){
                                                 $alm = Almacencfdis::where('id',$item->xml_id)->first();
@@ -1418,8 +1421,757 @@ class MovbancosResource extends Resource
                     ->icon('fas-check-to-slot')
                     ->action(function (Model $record,$data,Get $get, Set $set) {
                         Self::procesa_e_f($record,$data,$get,$set);
+                    }),
+                    Action::make('multi')
+                    ->label('Pagos a Factura')->icon('fas-money-bill-transfer')
+                        ->modalWidth('5xl')
+                        ->modalSubmitActionLabel('Aceptar')
+                        ->visible(function($record){
+                            if($record->contabilizada == 'SI') return false;
+                            if($record->contabilizada != 'SI'&&$record->tipo == 'S') return true;
+                        })
+                    ->form(function ($record,$form){
+                        return $form
+                            ->schema([
+                                Hidden::make('id_mov')->default(function ($record){
+                                   return $record->id;
+                                }),
+                                Fieldset::make('Datos del Movimiento')
+                                ->schema([
+                                    TextInput::make('monto')->label('Importe Moneda Origen')
+                                        ->default($record->importe)->prefix('$')->readOnly()->currencyMask(precision: 2),
+                                    TextInput::make('pendiente')->label('Pendiente Moneda Origen')
+                                        ->default($record->pendiente_apli)->prefix('$')->readOnly()->currencyMask(precision: 2),
+                                    TextInput::make('moneda')->label('Moneda Origen')
+                                        ->default($record->moneda)->readOnly(),
+                                    TextInput::make('tcambio')->label('TC Origen')
+                                        ->default($record->tcambio)
+                                        ->numeric()->currencyMask(precision: 2)->prefix('$')->readOnly(),
+                                ])->columns(4),
+                                Fieldset::make('Datos de Factura')
+                                ->schema([
+                                    Select::make('factura')
+                                    ->columnSpanFull()
+                                    ->options(function () {
+                                        $ing_ret = IngresosEgresos::where('team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0)->get();
+                                        $data = array();
+                                        foreach ($ing_ret as $item) {
+                                            $tot = '$' . number_format($item->totalmxn, 2);
+                                            $pend = '$' . number_format($item->pendientemxn, 2);
+                                            $monea = 'MXN';
+                                            $tc_n = 1;
+                                            $alm = Almacencfdis::where('id', $item->xml_id)->first();
+                                            if ($item->tcambio > 1) {
+
+                                                $fech_comp = date('Y-m-d', strtotime(Carbon::now()));
+                                                if (count(DB::table('historico_tcs')->where('fecha', $fech_comp)->get()) == 0) {
+                                                    $tip_cam = app(DescargaSAT::class)->TipoDeCambioBMX();
+                                                    if ($tip_cam->getStatusCode() === 200) {
+                                                        $vals = json_decode($tip_cam->getBody()->getContents());
+                                                        $tc_n = floatval($vals->bmx->series[0]->datos[0]->dato);
+                                                        DB::table('historico_tcs')->insert([
+                                                            'fecha' => Carbon::now(),
+                                                            'tipo_cambio' => $tc_n,
+                                                            'team_id' => Filament::getTenant()->id
+                                                        ]);
+                                                    } else {
+                                                        $tc_n = 1;
+                                                    }
+                                                }
+                                                $monea = 'USD';
+                                                $tot = '$' . number_format(($item->totalusd), 2);
+                                                $pend = '$' . number_format(($item->pendienteusd), 2);
+                                            } else {
+                                                $monea = 'MXN';
+                                                $tot = '$' . number_format($item->totalmxn, 2);
+                                                $pend = '$' . number_format($item->pendientemxn, 2);
+                                            }
+                                            $data += [
+                                                $item->id . '|' . $item->xml_id =>
+                                                    'Tercero: ' . $alm->Emisor_Nombre . ' |' .
+                                                    'Referencia: ' . $item->referencia . ' |' .
+                                                    'Importe: ' . $tot . ' |' .
+                                                    'Pendiente: ' . $pend . ' |' .
+                                                    'Moneda: ' . $monea
+                                            ];
+                                        }
+                                        //dd($data);
+                                        return $data;
+                                    })->live(onBlur: true)
+                                    ->afterStateUpdated(function (Get $get, Set $set,$record){
+
+                                        $ff = $get('factura');
+                                        $igeg = IngresosEgresos::where('id',$ff)->first();
+                                        $xml = Almacencfdis::where('id', $igeg->xml_id)->first();
+                                        $set('referencia_f',$xml->Serie.$xml->Folio);
+                                        $set('emisor_f',$xml->Emisor_Nombre);
+                                        $set('receptor_f',$xml->Receptor_Nombre);
+                                        $set('fecha_f',Carbon::parse($xml->Fecha)->format('d/m/Y'));
+                                        $set('importe_f',$xml->Total);
+                                        $set('moneda_f',$xml->Moneda);
+                                        $set('tcambio_f',$xml->TipoCambio ?? 1.00);
+                                        if($xml->Moneda == 'USD') $set('pendiente_f',$igeg->pendienteusd);
+                                        else $set('pendiente_f',$igeg->pendientemxn);
+                                        $set('moneda_p',$get('moneda'));
+                                        $set('tcambio_p',$get('tcambio'));
+                                        $set('importe_p',$record->pendiente_apli);
+                                        if($xml->Moneda == 'USD') $set('importe_p_usd',$igeg->pendienteusd);
+                                        else $set('importe_p_usd',0.00);
+                                        if($get('moneda') == 'USD'){
+                                            $set('importe_p_usd',$record->pendiente_apli);
+                                            $n_imp = floatval($record->pendiente_apli) * floatval($get('tcambio'));
+                                            $set('importe_p',$n_imp);
+                                        }
+
+                                    }),
+                                    Fieldset::make('Datos de Pago')->label('')
+                                    ->disabled(function (Get $get){
+                                        $f = $get('factura');
+                                        if($f > 0) return false; else return true;
+                                    })
+                                    ->schema([
+                                        TextInput::make('referencia_f')->label('Referencia')->readOnly(),
+                                        TextInput::make('emisor_f')->columnSpan(2)->label('Emisor')->readOnly(),
+                                        TextInput::make('receptor_f')->columnSpan(2)->label('Receptor')->readOnly(),
+                                        TextInput::make('fecha_f')->label('Fecha')->readOnly(),
+                                        TextInput::make('importe_f')->numeric()->label('Importe')
+                                        ->currencyMask(precision: 2)->prefix('$')->readOnly(),
+                                        TextInput::make('pendiente_f')->numeric()->label('Importe Pendiente')
+                                            ->currencyMask(precision: 2)->prefix('$')->readOnly(),
+                                        TextInput::make('moneda_f')->label('Moneda')->readOnly(),
+                                        TextInput::make('tcambio_f')->numeric()->label('Tipo de Cambio Factura')
+                                        ->currencyMask(precision: 2)->prefix('$')->readOnly(),
+                                    ])->columns(5)
+                                ]),
+                                Fieldset::make('Datos de Pago')
+                                    ->disabled(function (Get $get){
+                                        $f = $get('factura');
+                                        if($f > 0) return false; else return true;
+                                    })
+                                    ->schema([
+                                    TextInput::make('moneda_p')->label('Moneda')->readOnly(),
+                                    TextInput::make('tcambio_p')->numeric()->label('Tipo de Cambio')
+                                        ->currencyMask(precision: 2)->prefix('$')
+                                        ->suffixAction(function (Get $get, Set $set) {
+                                        return [
+                                            Actions\Action::make('Obtener')->iconButton()->icon('fas-circle-down')
+                                                ->label('Obtener Tipo de Cambio DOF')
+                                            ->action(function ()use($set,$get){
+                                                $tc_dia = 1.00;
+                                                $tip_cam = app(DescargaSAT::class)->TipoDeCambioBMX();
+                                                if ($tip_cam->getStatusCode() === 200) {
+                                                    $vals = json_decode($tip_cam->getBody()->getContents());
+                                                    $tc_dia = floatval($vals->bmx->series[0]->datos[0]->dato);
+                                                }
+                                                $set('tcambio_p',$tc_dia);
+                                                $n_imp = floatval($get('tcambio_p')) * floatval($get('importe_p_usd'));
+                                                $set('importe_p',$n_imp);
+                                            })
+                                        ];}),
+                                    TextInput::make('importe_p')->numeric()->label('Importe')
+                                        ->currencyMask(precision: 2)->prefix('$')
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set){
+                                            $mon_f = $get('moneda_f');
+                                            $mon_p = $get('moneda_p');
+
+                                            if($mon_f == 'USD' && $mon_p == 'MXN')
+                                            {
+                                                $pesos = floatval($get('importe_p'));
+                                                $dolares = floatval($get('importe_p_usd'));
+                                                $tipoc = $pesos / $dolares;
+                                                $set('tcambio_p',$tipoc);
+                                            }
+                                            if($mon_f == 'USD' && $mon_p == 'USD')
+                                            {
+                                                $pesos = floatval($get('importe_p'));
+                                                $dolares = floatval($get('importe_p_usd'));
+                                                $tipoc = $pesos / $dolares;
+                                                $set('tcambio_p',$tipoc);
+                                            }
+                                        }),
+                                    TextInput::make('importe_p_usd')->numeric()->label('Importe USD')
+                                        ->currencyMask(precision: 2)->prefix('USD')
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set){
+                                            $mon_f = $get('moneda_f');
+                                            $mon_p = $get('moneda_p');
+                                            if($mon_f == 'USD' && $mon_p == 'MXN')
+                                            {
+                                                $pesos = floatval($get('importe_p'));
+                                                $dolares = floatval($get('importe_p_usd'));
+                                                $tipoc = $pesos / $dolares;
+                                                $set('tcambio_p',$tipoc);
+                                            }
+                                            if($mon_f == 'USD' && $mon_p == 'USD')
+                                            {
+                                                $pesos = floatval($get('importe_p'));
+                                                $dolares = floatval($get('importe_p_usd'));
+                                                $tipoc = $pesos / $dolares;
+                                                $set('tcambio_p',$tipoc);
+                                            }
+                                        }),
+
+                                ])->columns(4)
+                            ]);
+                    })->action(function ($data,$record){
+                        $fac_id = explode('|',$data['factura'])[0];
+                        $igeg = IngresosEgresos::where('id',$fac_id)->first();
+                        $fss = DB::table('almacencfdis')->where('id',$igeg->xml_id)->first();
+                        $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->first();
+                        $ter = DB::table('terceros')->where('rfc',$fss->Emisor_Rfc)->first();
+                        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                        if($data['moneda_f'] == 'MXN' && $data['moneda_p'] == 'MXN') {
+                            $poliza = CatPolizas::create([
+                                'tipo' => 'Eg',
+                                'folio' => $nopoliza,
+                                'fecha' => $record->fecha,
+                                'concepto' => $fss->Emisor_Nombre,
+                                'cargos' => $data['importe_p'],
+                                'abonos' => $data['importe_p'],
+                                'periodo' => Filament::getTenant()->periodo,
+                                'ejercicio' => Filament::getTenant()->ejercicio,
+                                'referencia' => $fss->Serie . $fss->Folio,
+                                'uuid' => $fss->UUID,
+                                'tiposat' => 'Eg',
+                                'team_id' => Filament::getTenant()->id,
+                                'idmovb' => $record->id
+                            ]);
+                            $polno = $poliza['id'];
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ter->cuenta,
+                                'cuenta'=>$ter->nombre,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$data['importe_p'],
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>1,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>'11801000',
+                                'cuenta'=>'-IVA acreditable pagado',
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>(floatval($data['importe_p']) / 1.16) * 0.16,
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>2,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>'11901000',
+                                'cuenta'=>'IVA pendiente de pago',
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>0,
+                                'abono'=>(floatval($data['importe_p']) / 1.16) * 0.16,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>3,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ban->codigo,
+                                'cuenta'=>$ban->cuenta,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>0,
+                                'abono'=>$data['importe_p'],
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>4,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $st_con = 'NO';
+                            $n_pen = floatval($data['pendiente']) - floatval($data['importe_p']);
+                            $n_pen2 = floatval($data['pendiente_f']) - floatval($data['importe_p']);
+                            if($n_pen < 0) $n_pen = 0;
+                            if(floatval($data['pendiente']) <= floatval($data['importe_p'])) $st_con = 'SI';
+                            if(floatval($data['pendiente']) > floatval($data['importe_p'])) $st_con = 'PA';
+                            Movbancos::where('id',$record->id)->update([
+                                'pendiente_apli'=>$n_pen,
+                                'contabilizada'=>$st_con
+                            ]);
+                            IngresosEgresos::where('id',$fac_id)->update([
+                                'pendientemxn' => $n_pen2
+                            ]);
+                        }
+                        if($data['moneda_f'] == 'USD' && $data['moneda_p'] == 'MXN')
+                        {
+                            $pesos = floatval($data['importe_p']);
+                            $dolares = floatval($data['importe_p_usd']);
+                            $tipoc_f = floatval($data['tcambio_f']);
+                            $tipoc = floatval($data['tcambio_p']);
+                            $complemento = (($dolares*$tipoc)-$dolares);
+                            $iva_1 = ((($dolares/1.16)*0.16)*$tipoc);
+                            $iva_2 = ((($dolares/1.16)*0.16)*$tipoc_f);
+                            $importe_cargos = $dolares+$complemento+$iva_1;
+                            $importe_abonos = $pesos+$iva_2;
+                            $uti_per = $importe_cargos - $importe_abonos;
+                            $importe_abonos_f = $pesos+$iva_2+$uti_per;
+                            $imp_uti_c = 0;
+                            $imp_uti_a = 0;
+                            $cod_uti = '';
+                            $cta_uti = '';
+                            if($uti_per > 0){
+                                $imp_uti_c = 0;
+                                $imp_uti_a = $uti_per;
+                                $cod_uti = '70201000';
+                                $cta_uti = 'Utilidad Cambiaria';
+                            }
+                            else{
+                                $imp_uti_a = 0;
+                                $imp_uti_c = $uti_per * -1;
+                                $cod_uti = '70101000';
+                                $cta_uti = 'Perdida Cambiaria';
+                            }
+
+                            $poliza = CatPolizas::create([
+                                'tipo' => 'Eg',
+                                'folio' => $nopoliza,
+                                'fecha' => $record->fecha,
+                                'concepto' => $fss->Emisor_Nombre,
+                                'cargos' => $importe_cargos,
+                                'abonos' => $importe_abonos_f,
+                                'periodo' => Filament::getTenant()->periodo,
+                                'ejercicio' => Filament::getTenant()->ejercicio,
+                                'referencia' => $fss->Serie . $fss->Folio,
+                                'uuid' => $fss->UUID,
+                                'tiposat' => 'Eg',
+                                'team_id' => Filament::getTenant()->id,
+                                'idmovb' => $record->id
+                            ]);
+                            $polno = $poliza['id'];
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ter->cuenta,
+                                'cuenta'=>$ter->nombre,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$dolares,
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>1,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ter->cuenta,
+                                'cuenta'=>$ter->nombre,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$complemento,
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>2,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>'11801000',
+                                'cuenta'=>'IVA acreditable pagado',
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$iva_1,
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>3,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>'11901000',
+                                'cuenta'=>'IVA pendiente de pago',
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>0,
+                                'abono'=>$iva_2,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>4,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ban->codigo,
+                                'cuenta'=>$ban->cuenta,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>0,
+                                'abono'=>$pesos,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>5,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$cod_uti,
+                                'cuenta'=>$cta_uti,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$imp_uti_c,
+                                'abono'=>$imp_uti_a,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>6,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $st_con = 'NO';
+                            $n_pen = floatval($data['pendiente']) - floatval($data['importe_p']);
+                            $n_pen2 = floatval($data['pendiente_f']) - floatval($data['importe_p']);
+                            //$n_pen3 = floatval($data['pendiente_f']) - floatval($data['importe_p']);
+                            if($n_pen < 0) $n_pen = 0;
+                            if(floatval($data['pendiente']) <= floatval($data['importe_p'])) $st_con = 'SI';
+                            if(floatval($data['pendiente']) > floatval($data['importe_p'])) $st_con = 'PA';
+                            Movbancos::where('id',$record->id)->update([
+                                'pendiente_apli'=>$n_pen,
+                                'contabilizada'=>$st_con
+                            ]);
+                            IngresosEgresos::where('id',$fac_id)->update([
+                                'pendientemxn' => $n_pen2
+                            ]);
+                        }
+                        if($data['moneda_f'] == 'USD' && $data['moneda_p'] == 'USD')
+                        {
+                            $pesos = floatval($data['importe_p']);
+                            $dolares = floatval($data['importe_p_usd']);
+                            $tipoc_f = floatval($data['tcambio_f']);
+                            $tipoc = floatval($data['tcambio_p']);
+                            $complemento = (($dolares*$tipoc)-$dolares);
+                            $iva_1 = ((($dolares/1.16)*0.16)*$tipoc);
+                            $iva_2 = ((($dolares/1.16)*0.16)*$tipoc_f);
+                            $importe_cargos = $dolares+$complemento+$iva_1;
+                            $importe_abonos = $pesos+$iva_2;
+                            $uti_per = $importe_cargos - $importe_abonos;
+                            $importe_abonos_f = $pesos+$iva_2+$uti_per;
+                            $imp_uti_c = 0;
+                            $imp_uti_a = 0;
+                            $cod_uti = '';
+                            $cta_uti = '';
+                            if($uti_per > 0){
+                                $imp_uti_c = 0;
+                                $imp_uti_a = $uti_per;
+                                $cod_uti = '70201000';
+                                $cta_uti = 'Utilidad Cambiaria';
+                            }
+                            else{
+                                $imp_uti_a = 0;
+                                $imp_uti_c = $uti_per * -1;
+                                $cod_uti = '70101000';
+                                $cta_uti = 'Perdida Cambiaria';
+                            }
+
+                            $poliza = CatPolizas::create([
+                                'tipo' => 'Eg',
+                                'folio' => $nopoliza,
+                                'fecha' => $record->fecha,
+                                'concepto' => $fss->Emisor_Nombre,
+                                'cargos' => $importe_cargos,
+                                'abonos' => $importe_abonos_f,
+                                'periodo' => Filament::getTenant()->periodo,
+                                'ejercicio' => Filament::getTenant()->ejercicio,
+                                'referencia' => $fss->Serie . $fss->Folio,
+                                'uuid' => $fss->UUID,
+                                'tiposat' => 'Eg',
+                                'team_id' => Filament::getTenant()->id,
+                                'idmovb' => $record->id
+                            ]);
+                            $polno = $poliza['id'];
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ter->cuenta,
+                                'cuenta'=>$ter->nombre,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$dolares,
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>1,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ter->cuenta,
+                                'cuenta'=>$ter->nombre,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$complemento,
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>2,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>'11801000',
+                                'cuenta'=>'IVA acreditable pagado',
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$iva_1,
+                                'abono'=>0,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>3,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>'11901000',
+                                'cuenta'=>'IVA pendiente de pago',
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>0,
+                                'abono'=>$iva_2,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>4,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$ban->codigo,
+                                'cuenta'=>$ban->cuenta,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>0,
+                                'abono'=>$pesos,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>5,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id'=>$polno,
+                                'codigo'=>$cod_uti,
+                                'cuenta'=>$cta_uti,
+                                'concepto'=>$fss->Emisor_Nombre,
+                                'cargo'=>$imp_uti_c,
+                                'abono'=>$imp_uti_a,
+                                'factura'=>$fss->Serie . $fss->Folio,
+                                'nopartida'=>6,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id'=>$aux['id'],
+                                'cat_polizas_id'=>$polno
+                            ]);
+                            $st_con = 'NO';
+                            $n_pen = floatval($data['pendiente']) - floatval($data['importe_p']);
+                            $n_pen2 = floatval($data['pendiente_f']) - floatval($data['importe_p']);
+                            //$n_pen3 = floatval($data['pendiente_f']) - floatval($data['importe_p']);
+                            if($n_pen < 0) $n_pen = 0;
+                            if(floatval($data['pendiente']) <= floatval($data['importe_p'])) $st_con = 'SI';
+                            if(floatval($data['pendiente']) > floatval($data['importe_p'])) $st_con = 'PA';
+                            Movbancos::where('id',$record->id)->update([
+                                'pendiente_apli'=>$n_pen,
+                                'contabilizada'=>$st_con
+                            ]);
+                            IngresosEgresos::where('id',$fac_id)->update([
+                                'pendientemxn' => $n_pen2
+                            ]);
+                        }
+                            if($data['moneda_f'] == 'MXN' && $data['moneda_p'] == 'USD')
+                            {
+                                $pesos = floatval($data['importe_p']);
+                                $dolares = floatval($data['importe_p_usd']);
+                                $tipoc_f = floatval($data['tcambio_f']);
+                                $tipoc = floatval($data['tcambio_p']);
+                                $complemento = (($dolares*$tipoc)-$dolares);
+                                $iva_1 = ((($dolares/1.16)*0.16)*$tipoc);
+                                $iva_2 = ((($dolares/1.16)*0.16)*$tipoc_f);
+                                $importe_cargos = $dolares+$complemento+$iva_1;
+                                $importe_abonos = $pesos+$iva_2;
+                                $uti_per = $importe_cargos - $importe_abonos;
+                                $importe_abonos_f = $pesos+$iva_2+$uti_per;
+                                $imp_uti_c = 0;
+                                $imp_uti_a = 0;
+                                $cod_uti = '';
+                                $cta_uti = '';
+                                if($uti_per > 0){
+                                    $imp_uti_c = 0;
+                                    $imp_uti_a = $uti_per;
+                                    $cod_uti = '70201000';
+                                    $cta_uti = 'Utilidad Cambiaria';
+                                }
+                                else{
+                                    $imp_uti_a = 0;
+                                    $imp_uti_c = $uti_per * -1;
+                                    $cod_uti = '70101000';
+                                    $cta_uti = 'Perdida Cambiaria';
+                                }
+
+                                $poliza = CatPolizas::create([
+                                    'tipo' => 'Eg',
+                                    'folio' => $nopoliza,
+                                    'fecha' => $record->fecha,
+                                    'concepto' => $fss->Emisor_Nombre,
+                                    'cargos' => $importe_cargos,
+                                    'abonos' => $importe_abonos_f,
+                                    'periodo' => Filament::getTenant()->periodo,
+                                    'ejercicio' => Filament::getTenant()->ejercicio,
+                                    'referencia' => $fss->Serie . $fss->Folio,
+                                    'uuid' => $fss->UUID,
+                                    'tiposat' => 'Eg',
+                                    'team_id' => Filament::getTenant()->id,
+                                    'idmovb' => $record->id
+                                ]);
+                                $polno = $poliza['id'];
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$ter->cuenta,
+                                    'cuenta'=>$ter->nombre,
+                                    'concepto'=>$fss->Emisor_Nombre,
+                                    'cargo'=>$dolares,
+                                    'abono'=>0,
+                                    'factura'=>$fss->Serie . $fss->Folio,
+                                    'nopartida'=>1,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$ter->cuenta,
+                                    'cuenta'=>$ter->nombre,
+                                    'concepto'=>$fss->Emisor_Nombre,
+                                    'cargo'=>$complemento,
+                                    'abono'=>0,
+                                    'factura'=>$fss->Serie . $fss->Folio,
+                                    'nopartida'=>2,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>'11801000',
+                                    'cuenta'=>'IVA acreditable pagado',
+                                    'concepto'=>$fss->Emisor_Nombre,
+                                    'cargo'=>$iva_1,
+                                    'abono'=>0,
+                                    'factura'=>$fss->Serie . $fss->Folio,
+                                    'nopartida'=>3,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>'11901000',
+                                    'cuenta'=>'IVA pendiente de pago',
+                                    'concepto'=>$fss->Emisor_Nombre,
+                                    'cargo'=>0,
+                                    'abono'=>$iva_2,
+                                    'factura'=>$fss->Serie . $fss->Folio,
+                                    'nopartida'=>4,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$ban->codigo,
+                                    'cuenta'=>$ban->cuenta,
+                                    'concepto'=>$fss->Emisor_Nombre,
+                                    'cargo'=>0,
+                                    'abono'=>$pesos,
+                                    'factura'=>$fss->Serie . $fss->Folio,
+                                    'nopartida'=>5,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$cod_uti,
+                                    'cuenta'=>$cta_uti,
+                                    'concepto'=>$fss->Emisor_Nombre,
+                                    'cargo'=>$imp_uti_c,
+                                    'abono'=>$imp_uti_a,
+                                    'factura'=>$fss->Serie . $fss->Folio,
+                                    'nopartida'=>6,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $st_con = 'NO';
+                                $n_pen = floatval($data['pendiente']) - floatval($data['importe_p']);
+                                $n_pen2 = floatval($data['pendiente_f']) - floatval($data['importe_p']);
+                                //$n_pen3 = floatval($data['pendiente_f']) - floatval($data['importe_p']);
+                                if($n_pen < 0) $n_pen = 0;
+                                if(floatval($data['pendiente']) <= floatval($data['importe_p'])) $st_con = 'SI';
+                                if(floatval($data['pendiente']) > floatval($data['importe_p'])) $st_con = 'PA';
+                                Movbancos::where('id',$record->id)->update([
+                                    'pendiente_apli'=>$n_pen,
+                                    'contabilizada'=>$st_con
+                                ]);
+                                IngresosEgresos::where('id',$fac_id)->update([
+                                    'pendientemxn' => $n_pen2
+                                ]);
+                            }
+                        Notification::make('Grabado')
+                            ->success()
+                            ->title('Registro Grabado')
+                            ->send();
                     })
-                ])->color('primary')
+                ])->color('primary'),
+
             ])->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

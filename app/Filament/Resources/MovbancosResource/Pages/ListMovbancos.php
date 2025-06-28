@@ -58,24 +58,24 @@ class ListMovbancos extends ListRecords
                         ->icon('heroicon-m-clipboard')
                         ->requiresConfirmation(),
                 )->beforeImport(function (array $data, $livewire, $excelImportAction) {
+                    //dd($excelImportAction);
                     $tax_id = $data['tax_id'];
                     $team_id = $data['team_id'];
                     $contabilizada = $data['contabilizada'];
                     $cuenta = $data['cuenta'];
-                    $pendiente = $data['importe'];
+                    //$pendiente = $data['importe'];
                     $excelImportAction->additionalData([
                         'tax_id' => $tax_id,
                         'team_id' => $team_id,
                         'contabilizada' => $contabilizada,
                         'cuenta' => $cuenta,
-                        'pendiente_apli' => $pendiente
+
                     ]);
                 })->validateUsing([
                     'importe' => 'required|numeric',
                 ])
                 ->mutateAfterValidationUsing(
                     closure: function(array $data): array{
-                        dd($data);
                         $tip = $data['tipo'];
                         $sdos = DB::table('saldosbancos')
                         ->where('cuenta',$data['cuenta'])
@@ -173,6 +173,9 @@ class ListMovbancos extends ListRecords
                             ->where('periodo',$peri)->update([
                                 'actual'=>$term
                             ]);
+                            $emp_a = Filament::getTenant()->id;
+                            DB::statement("UPDATE movbancos SET pendiente_apli = importe
+                            WHERE pendiente_apli = 0 AND contabilizada = 'NO' AND periodo = $peri AND ejercicio = $ejer AND team_id = $emp_a");
                             //------------------------------------------------------
                         }
                     }

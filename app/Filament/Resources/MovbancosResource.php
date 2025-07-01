@@ -1451,6 +1451,7 @@ class MovbancosResource extends Resource
                                 Fieldset::make('Datos de Factura')
                                 ->schema([
                                     Select::make('factura')
+                                    ->searchable()
                                     ->columnSpanFull()
                                     ->options(function () {
                                         $ing_ret = IngresosEgresos::where('team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0)->get();

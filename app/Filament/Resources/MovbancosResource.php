@@ -1446,7 +1446,7 @@ class MovbancosResource extends Resource
                                         ->default($record->moneda)->readOnly(),
                                     TextInput::make('tcambio')->label('TC Origen')
                                         ->default($record->tcambio)
-                                        ->numeric()->currencyMask(precision: 2)->prefix('$')->readOnly(),
+                                        ->numeric()->currencyMask(precision: 4)->prefix('$')->readOnly(),
                                 ])->columns(4),
                                 Fieldset::make('Datos de Factura')
                                 ->schema([
@@ -1540,7 +1540,7 @@ class MovbancosResource extends Resource
                                             ->currencyMask(precision: 2)->prefix('$')->readOnly(),
                                         TextInput::make('moneda_f')->label('Moneda')->readOnly(),
                                         TextInput::make('tcambio_f')->numeric()->label('Tipo de Cambio Factura')
-                                        ->currencyMask(precision: 2)->prefix('$')->readOnly(),
+                                        ->currencyMask(precision: 4)->prefix('$')->readOnly(),
                                     ])->columns(5)
                                 ]),
                                 Fieldset::make('Datos de Pago')
@@ -1551,7 +1551,7 @@ class MovbancosResource extends Resource
                                     ->schema([
                                     TextInput::make('moneda_p')->label('Moneda')->readOnly(),
                                     TextInput::make('tcambio_p')->numeric()->label('Tipo de Cambio')
-                                        ->currencyMask(precision: 2)->prefix('$')
+                                        ->currencyMask(precision: 4)->prefix('$')
                                         ->suffixAction(function (Get $get, Set $set) {
                                         return [
                                             Actions\Action::make('Obtener')->iconButton()->icon('fas-circle-down')
@@ -1718,7 +1718,7 @@ class MovbancosResource extends Resource
                             $dolares = floatval($data['importe_p_usd']);
                             $tipoc_f = floatval($data['tcambio_f']);
                             $tipoc = floatval($data['tcambio_p']);
-                            $complemento = (($dolares*$tipoc)-$dolares);
+                            $complemento = (($dolares*$tipoc_f)-$dolares);
                             $iva_1 = ((($dolares/1.16)*0.16)*$tipoc);
                             $iva_2 = ((($dolares/1.16)*0.16)*$tipoc_f);
                             $importe_cargos = $dolares+$complemento+$iva_1;

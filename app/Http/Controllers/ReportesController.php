@@ -299,8 +299,8 @@ class ReportesController extends Controller
         SaldosReportes::where('team_id',$team_id)->delete();
         $cuentas = DB::select("SELECT codigo, nombre as cuenta, acumula, naturaleza, team_id
         FROM cat_cuentas WHERE team_id = $team_id
-        AND substr(codigo,1,3)
-        NOT IN('100','200','300','400','500','600','700','800','900')");
+        AND substr(codigo,1,5)
+        NOT IN('10000','20000','30000','40000','50000','60000','70000','80000','90000')");
         foreach ($cuentas as $cuenta) {
             $nivel = 1;
             $n1 = substr($cuenta->codigo,0,3);

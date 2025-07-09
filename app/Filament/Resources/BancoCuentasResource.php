@@ -9,6 +9,7 @@ use App\Models\BancoCuentas;
 use App\Models\CatPolizas;
 use Filament\Facades\Filament;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -147,6 +148,9 @@ class BancoCuentasResource extends Resource
                 Forms\Components\TextInput::make('inicial')
                     ->label('Saldo Inicial')
                     ->default(0),
+                Select::make('moneda')
+                    ->label('Moneda')
+                    ->options(['MXN'=>'MXN','USD'=>'USD']),
                 Forms\Components\Hidden::make('tax_id')
                     ->default(Filament::getTenant()->taxid),
                 Forms\Components\Hidden::make('cuenta')
@@ -188,6 +192,7 @@ class BancoCuentasResource extends Resource
                     $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                     return $formatter->formatCurrency($state, 'MXN');
                 }),
+                Tables\Columns\TextColumn::make('moneda'),
                 Tables\Columns\TextColumn::make('Ingresos')
                 ->getStateUsing(function(Model $record){
                     $sdos =DB::table('saldosbancos')

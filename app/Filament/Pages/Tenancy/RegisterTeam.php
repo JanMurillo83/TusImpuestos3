@@ -182,7 +182,10 @@ class RegisterTeam extends RegisterTenant
                     ->default(0)
                     ->numeric()
                     ->prefix('$')
-                    ->columnSpan(2)
+                    ->columnSpan(2),
+                Select::make('moneda_cta')
+                    ->label('Moneda')
+                    ->options(['MXN'=>'MXN','USD'=>'USD'])
                 ])->columnSpanFull()->columns(3)
                 ])->columnSpanFull()->columns(3),
                 Tab::make('Facturacion')
@@ -219,6 +222,7 @@ class RegisterTeam extends RegisterTenant
             'codigo'=>$data['codigo'],
             'tax_id'=>$data['taxid'],
             'cuenta'=>$data['codigo'],
+            'moneda'=>$data['moneda_cta'],
             'team_id'=>$team->getKey()
         ]);
         DB::table('banco_cuentas_team')->insert([

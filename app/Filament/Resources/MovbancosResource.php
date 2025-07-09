@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Pages\PagoMultiPesosPesos;
 use App\Filament\Resources\MovbancosResource\Pages;
 use App\Filament\Resources\MovbancosResource\RelationManagers;
 use App\Http\Controllers\DescargaSAT;
@@ -173,7 +174,7 @@ class MovbancosResource extends Resource
                     (SUM(inicial) + (SELECT SUM(importe) FROM movbancos WHERE periodo < $q_periodo AND ejercicio = $q_ejercicio AND tipo = 'E' and cuenta = $q_cuenta) - (SELECT SUM(importe) FROM movbancos WHERE periodo < $q_periodo AND ejercicio = $q_ejercicio AND tipo = 'S' and cuenta = 2)) saldo
                     FROM  saldosbancos WHERE cuenta = $q_cuenta GROUP BY cuenta");
                         $valo = floatval($sdos_ac[0]->saldo ?? 0);
-                        $valor ='$ '. number_format($valo,2).' MXN';
+                        $valor ='$ '. number_format($valo,2).' '.$record[0]->moneda;
                     $livewire->saldo_cuenta = floatval($sdos_ac[0]->saldo ?? 0);
                     $livewire->saldo_cuenta_act = floatval($sdos_ac[0]->saldo ?? 0);
                 return 'Saldo Inicial del Periodo: '.$valor;
@@ -2170,7 +2171,15 @@ class MovbancosResource extends Resource
                             ->success()
                             ->title('Registro Grabado')
                             ->send();
-                    })
+                    }),
+                    Action::make('Pagos Multi-Factura')
+                        ->label('Pagos a Facturas')
+                        ->icon('fas-money-check-dollar')
+                        ->visible(function($record){
+                            if($record->contabilizada == 'SI') return false;
+                            if($record->contabilizada != 'SI'&&$record->tipo == 'S') return true;
+                        })
+                        ->url(fn($record)=>Pages\Pagos::getUrl(['record'=>$record]))
                 ])->color('primary'),
 
             ])->actionsPosition(ActionsPosition::BeforeColumns)
@@ -3367,6 +3376,7 @@ class MovbancosResource extends Resource
             'index' => Pages\ListMovbancos::route('/'),
             //'create' => Pages\CreateMovbancos::route('/create'),
             //'edit' => Pages\EditMovbancos::route('/{record}/edit'),
+            'pagos' => Pages\Pagos::route('/pagos/{record}')
         ];
     }
 }

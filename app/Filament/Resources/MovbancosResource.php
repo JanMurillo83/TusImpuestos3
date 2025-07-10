@@ -166,7 +166,11 @@ class MovbancosResource extends Resource
                 $text1 = DB::table('banco_cuentas')->where('team_id',Filament::getTenant()->id)->get();
                 $text2 = count($text1);
                 $text3 = 1;
-                if($text2 > 0) $text3 = $text1[0]->cuenta;
+                $txtmon = 'MXN';
+                if($text2 > 0) {
+                    $text3 = $text1[0]->cuenta;
+                        $txtmon = $text1[0]->moneda;
+                };
                     $q_cuenta = $record[0]->cuenta ?? $text3;
                     $q_periodo = Filament::getTenant()->periodo ?? 1;
                     $q_ejercicio = Filament::getTenant()->ejercicio ?? 2020;
@@ -174,7 +178,7 @@ class MovbancosResource extends Resource
                     (SUM(inicial) + (SELECT SUM(importe) FROM movbancos WHERE periodo < $q_periodo AND ejercicio = $q_ejercicio AND tipo = 'E' and cuenta = $q_cuenta) - (SELECT SUM(importe) FROM movbancos WHERE periodo < $q_periodo AND ejercicio = $q_ejercicio AND tipo = 'S' and cuenta = 2)) saldo
                     FROM  saldosbancos WHERE cuenta = $q_cuenta GROUP BY cuenta");
                         $valo = floatval($sdos_ac[0]->saldo ?? 0);
-                        $valor ='$ '. number_format($valo,2).' '.$record[0]->moneda;
+                        $valor ='$ '. number_format($valo,2).' '.$txtmon;
                     $livewire->saldo_cuenta = floatval($sdos_ac[0]->saldo ?? 0);
                     $livewire->saldo_cuenta_act = floatval($sdos_ac[0]->saldo ?? 0);
                 return 'Saldo Inicial del Periodo: '.$valor;
@@ -2193,7 +2197,7 @@ class MovbancosResource extends Resource
                 ->form([
                     DatePicker::make('Fecha_Inicial')
                     ->default(function(){
-                        $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo;
+                        $ldom = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo ?? 2020-1;
                         $Fecha_Inicial = Carbon::make('first day of'.$ldom);
                         return $Fecha_Inicial->format('Y-m-d');
                     }),

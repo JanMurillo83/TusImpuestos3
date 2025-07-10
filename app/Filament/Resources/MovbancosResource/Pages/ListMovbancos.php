@@ -23,7 +23,58 @@ use Illuminate\Support\Facades\DB;
 class ListMovbancos extends ListRecords
 {
     protected static string $resource = MovbancosResource::class;
+    public ?float $saldo_cuenta = 0;
+    public ?float $saldo_cuenta_ant = 0;
+    public ?float $saldo_cuenta_act = 0;
+    public static ?array $selected_records = [];
     public ?int $recordid;
+
+    public ?int $selected_tier;
+
+    protected function getTableHeading(): string
+    {
+        // Get the current tab from the request
+        $currentUrl = request()->url();
+        $urlParts = explode('/', $currentUrl);
+        $tabSlug = end($urlParts);
+
+        // If we have a valid tab slug
+        if ($tabSlug && $tabSlug !== 'movbancos') {
+            $cuentaId = null;
+            $tiers = BancoCuentas::orderBy('id', 'asc')->get();
+
+            foreach ($tiers as $tier) {
+                $name = $tier->banco;
+                $slug = str($name)->slug()->toString();
+
+                if ($slug === $tabSlug) {
+                    $cuentaId = $tier->id;
+                    break;
+                }
+            }
+
+            if ($cuentaId) {
+                $ejercicio = Filament::getTenant()->ejercicio;
+                $periodo = Filament::getTenant()->periodo;
+
+                $saldo = Saldosbanco::where('cuenta', $cuentaId)
+                    ->where('ejercicio', $ejercicio)
+                    ->where('periodo', $periodo)
+                    ->first();
+
+                if ($saldo) {
+                    $this->saldo_cuenta = $saldo->inicial;
+                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
+                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                    $formattedBalance = $formatter->formatCurrency($saldo->inicial, 'MXN');
+
+                    return "Movimientos Bancarios - Saldo Inicial: {$formattedBalance}";
+                }
+            }
+        }
+
+        return "Movimientos Bancarios";
+    }
 
     protected function getHeaderActions(): array
     {
@@ -210,8 +261,7 @@ class ListMovbancos extends ListRecords
                     return $query->where('cuenta', $tier->id);
                 });
         }
-
+        $this->selected_tier = $tier->id;
         return $tabs;
     }
 }
-

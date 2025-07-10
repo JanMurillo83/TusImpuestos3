@@ -34,7 +34,8 @@ class BancoCuentas extends Model
 		'tax_id',
 		'cuenta',
         'moneda',
-        'team_id'
+        'team_id',
+        'inicial'
 	];
     public function team(): BelongsTo
     {

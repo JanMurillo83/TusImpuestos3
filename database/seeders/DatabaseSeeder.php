@@ -35,6 +35,15 @@ class DatabaseSeeder extends Seeder
             'team_id'=>1,
             'user_id'=>1
         ]);
+
+        // Seed roles
+        $this->call(RoleSeeder::class);
+
+        // Assign admin role to the admin user
+        DB::table('role_user')->insert([
+            'role_id' => 1, // admin role
+            'user_id' => 1  // admin user
+        ]);
         $empresa =1;
         $data = [
             ['codigo'=>'10000000','nombre'=>'Activo','acumula'=>'0','tipo'=>'A','naturaleza'=>'D','csat'=>'0','team_id'=>$empresa],

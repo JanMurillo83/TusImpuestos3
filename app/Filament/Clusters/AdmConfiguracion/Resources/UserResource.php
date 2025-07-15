@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmConfiguracion;
 use App\Filament\Clusters\AdmConfiguracion\Resources\UserResource\Pages;
 use App\Filament\Clusters\AdmConfiguracion\Resources\UserResource\RelationManagers;
 use App\Models\User;
+use App\Models\Role;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;
@@ -47,6 +48,17 @@ class UserResource extends Resource
                     ->default(Filament::getTenant()->id),
                 Forms\Components\Hidden::make('is_admin')
                     ->default('NO'),
+                Forms\Components\Select::make('role')
+                    ->label('Rol')
+                    ->options(Role::all()->pluck('description', 'name'))
+                    ->required()
+                    ->default(function ($record) {
+                        // Get the first role of the user if it exists
+                        if ($record && $record->roles->isNotEmpty()) {
+                            return $record->roles->first()->name;
+                        }
+                        return null;
+                    }),
             ]);
     }
 
@@ -60,7 +72,9 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
-                    ->searchable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('role')
+                    ->label('Rol')
             ])
             ->filters([
                 //
@@ -75,11 +89,25 @@ class UserResource extends Resource
                         'user_id'=>$id,
                         'team_id'=>Filament::getTenant()->id
                     ]);
+
+                    // Assign the selected role to the user
+                    if ($record->role) {
+                        $record->assignRole($record->role);
+                    }
                 })
             ],Tables\Actions\HeaderActionsPosition::Bottom)
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\EditAction::make()
+                        ->after(function ($record) {
+                            // Update the user's role
+                            if ($record->role) {
+                                // Remove all existing roles first
+                                $record->roles()->detach();
+                                // Assign the new role
+                                $record->assignRole($record->role);
+                            }
+                        }),
                 ])
             ],Tables\Enums\ActionsPosition::BeforeCells);
     }

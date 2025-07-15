@@ -562,7 +562,7 @@ class cfdiri extends Page implements HasForms, HasTable
             else
             {
                 $poliza = CatPolizas::create([
-                    'tipo' => 'PG',
+                    'tipo' => 'CG',
                     'folio' => $nopoliza,
                     'fecha' => $cffecha,
                     'concepto' => $nom_emi,
@@ -595,8 +595,8 @@ class cfdiri extends Page implements HasForms, HasTable
                 ]);
                 $aux = Auxiliares::create([
                     'cat_polizas_id' => $polno,
-                    'codigo' => $ctagas,
-                    'cuenta' => $nom_emi,
+                    'codigo' => '11801000',
+                    'cuenta' => 'IVA acreditable pagado',
                     'concepto' => $nom_emi,
                     'cargo' => $iva * $tipoc,
                     'abono' => 0,

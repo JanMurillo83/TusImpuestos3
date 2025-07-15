@@ -2378,7 +2378,7 @@ class MovbancosResource extends Resource
                         $igeg = IngresosEgresos::where('id',$fac_id)->first();
                         $fss = DB::table('almacencfdis')->where('id',$igeg->xml_id)->first();
                         $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->first();
-                        $ter = DB::table('terceros')->where('rfc',$fss->Emisor_Rfc)->first();
+                        $ter = DB::table('terceros')->where('rfc',$fss->Receptor_Rfc)->first();
                         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
                         if($data['moneda_f'] == 'MXN' && $data['moneda_p'] == 'MXN') {
                             $poliza = CatPolizas::create([

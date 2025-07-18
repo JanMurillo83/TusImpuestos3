@@ -53,6 +53,7 @@ class Pagos extends Page implements HasForms
     public ?string $tipo_cambio = null;
     public ?array $facturas_a_pagar = null;
     public $datos_mov;
+    public ?string $igeg_id = null;
 
     public function mount($record) :void
     {
@@ -72,6 +73,7 @@ class Pagos extends Page implements HasForms
             'tipo_cambio'=>0,
             'numero_total' => 0,
             'facturas_a_pagar'=> [],
+            'igeg_id'=>0
         ]);
     }
 
@@ -112,6 +114,7 @@ class Pagos extends Page implements HasForms
                                 $mon_pg = floatval($get('pendiente'));
                             }
                             $set('monto_pago', $mon_pg);
+                            $set('igeg_id', $ineg->id);
                         }
                     }),
                 TextInput::make('tercero')->readOnly(),
@@ -122,6 +125,7 @@ class Pagos extends Page implements HasForms
                 TextInput::make('tipo_cambio')->label('Tipo de Cambio')->numeric()->currencyMask()->prefix('$')->default(1.00)->readOnly(),
                 TextInput::make('numero_total')->label('Numero de Facturas')->numeric()->readOnly()->default(0),
                 TextInput::make('monto_total')->label('Pagos Totales')->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
+                Hidden::make('igeg_id'),
                 Actions::make([
                     Actions\Action::make('Agregar')->icon('fas-plus')->color(Color::Green)
                         ->action(function (Get $get,Set $set) {
@@ -138,7 +142,8 @@ class Pagos extends Page implements HasForms
                                 'Pendiente'=>$ineg->pendientemxn,
                                 'Monto a Pagar'=>$get('monto_pago'),
                                 'id_xml'=>$fact->id,
-                                'id_fac'=>$fac_id
+                                'id_fac'=>$fac_id,
+                                'igeg_id_id'=>$ineg->id,
                             ];
                             array_push($data_tmp, $data_new );
                             $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
@@ -171,7 +176,7 @@ class Pagos extends Page implements HasForms
                     TextInput::make('Tercero')->readOnly(),
                     TextInput::make('Pendiente')->readOnly()->numeric()->currencyMask()->prefix('$'),
                     TextInput::make('Monto a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$'),
-                    Hidden::make('id_xml'),Hidden::make('id_fac')
+                    Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');
                         $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
@@ -235,7 +240,8 @@ class Pagos extends Page implements HasForms
                 'abono'=>0,
                 'factura'=>$fss->Serie . $fss->Folio,
                 'nopartida'=>$cnt_par,
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'igeg_id'=>$data['igeg_id_id']
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
                 'auxiliares_id'=>$aux['id'],
@@ -282,7 +288,7 @@ class Pagos extends Page implements HasForms
         $aux = Auxiliares::create([
             'cat_polizas_id'=>$polno,
             'codigo'=>$ban->codigo,
-            'cuenta'=>$ban->cuenta,
+            'cuenta'=>$ban->banco,
             'concepto'=>'Pagos a Facturas',
             'cargo'=>0,
             'abono'=>$get('monto_total'),

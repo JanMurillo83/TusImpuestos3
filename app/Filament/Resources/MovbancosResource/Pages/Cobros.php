@@ -46,6 +46,7 @@ class Cobros extends Page implements HasForms
     public ?string $cuenta = null;
     public ?string $moneda = null;
     public ?string $factura = null;
+    public ?string $igeg_id = null;
     public ?string $numero_total = null;
     public ?string $monto_total = null;
     public ?string $monto_pago = null;
@@ -72,6 +73,7 @@ class Cobros extends Page implements HasForms
             'tipo_cambio'=>0,
             'numero_total' => 0,
             'facturas_a_pagar'=> [],
+            'igeg_id'=>0
         ]);
     }
 
@@ -112,8 +114,10 @@ class Cobros extends Page implements HasForms
                                 $mon_pg = floatval($get('pendiente'));
                             }
                             $set('monto_pago', $mon_pg);
+                            $set('igeg_id', $ineg->id);
                         }
                     }),
+                Hidden::make('igeg_id'),
                 TextInput::make('tercero')->readOnly(),
                 TextInput::make('moneda_fac')->readOnly(),
                 TextInput::make('pendiente_fac')->label('Pendiente de Pago')->numeric()->currencyMask()->prefix('$')->readOnly(),
@@ -138,7 +142,8 @@ class Cobros extends Page implements HasForms
                                 'Pendiente'=>$ineg->pendientemxn,
                                 'Monto a Pagar'=>$get('monto_pago'),
                                 'id_xml'=>$fact->id,
-                                'id_fac'=>$fac_id
+                                'id_fac'=>$fac_id,
+                                'igeg_id_id'=>$ineg->id,
                             ];
                             array_push($data_tmp, $data_new );
                             $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
@@ -151,6 +156,7 @@ class Cobros extends Page implements HasForms
                             $set('pendiente_fac', 0);
                             $set('monto_pago', 0);
                             $set('factura', null);
+                            $set('igeg_id', 0);
                         })->extraAttributes(['style'=>'margin-top:2rem']),
                 ]),
                 TableRepeater::make('facturas_a_pagar')
@@ -171,7 +177,7 @@ class Cobros extends Page implements HasForms
                     TextInput::make('Tercero')->readOnly(),
                     TextInput::make('Pendiente')->readOnly()->numeric()->currencyMask()->prefix('$'),
                     TextInput::make('Monto a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$'),
-                    Hidden::make('id_xml'),Hidden::make('id_fac')
+                    Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');
                         $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
@@ -235,7 +241,8 @@ class Cobros extends Page implements HasForms
                 'abono'=>$data['Monto a Pagar'],
                 'factura'=>$fss->Serie . $fss->Folio,
                 'nopartida'=>$cnt_par,
-                'team_id'=>Filament::getTenant()->id
+                'team_id'=>Filament::getTenant()->id,
+                'igeg_id'=>$data['igeg_id_id']
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
                 'auxiliares_id'=>$aux['id'],
@@ -282,7 +289,7 @@ class Cobros extends Page implements HasForms
         $aux = Auxiliares::create([
             'cat_polizas_id'=>$polno,
             'codigo'=>$ban->codigo,
-            'cuenta'=>$ban->cuenta,
+            'cuenta'=>$ban->banco,
             'concepto'=>'Cobros a Facturas',
             'cargo'=>$get('monto_total'),
             'abono'=>0,

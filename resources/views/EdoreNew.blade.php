@@ -108,7 +108,7 @@ $saldo5_acum = 0;
                             <td>{{$cuenta->codigo}}</td>
                             <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
-                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum,2)}}</td>
+                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum + $saldo,2)}}</td>
                         </tr>
                     @endif
                 @endforeach

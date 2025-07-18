@@ -280,6 +280,21 @@ class CatPolizasResource extends Resource
                     DB::statement('SET FOREIGN_KEY_CHECKS=0;');
                     DB::table('cat_polizas_team')
                         ->where('cat_polizas_id',$record->id)->delete();
+                    $aux_bancos =DB::table('auxiliares')
+                        ->where('cat_polizas_id',$record->id)
+                        ->where('igeg_id','>',0)->get();
+                    foreach ($aux_bancos as $aux_banco) {
+                        $cargo = $aux_banco->cargo;
+                        $abono = $aux_banco->abono;
+                        $impo = floatval($cargo)+floatval($abono);
+                        DB::table('ingresos_egresos')
+                        ->where('id',$aux_banco->igeg_id)
+                        ->increment('pendientemxn',$impo);
+                        DB::table('movbancos')
+                        ->where('id',$record->idmovb)
+                        ->increment('pendiente_apli',$impo);
+                    }
+
                     DB::table('auxiliares')
                         ->where('cat_polizas_id',$record->id)->delete();
                 })

@@ -1687,13 +1687,14 @@ class MovbancosResource extends Resource
                             $aux = Auxiliares::create([
                                 'cat_polizas_id'=>$polno,
                                 'codigo'=>$ban->codigo,
-                                'cuenta'=>$ban->cuenta,
+                                'cuenta'=>$ban->banco,
                                 'concepto'=>$fss->Emisor_Nombre,
                                 'cargo'=>0,
                                 'abono'=>$data['importe_p'],
                                 'factura'=>$fss->Serie . $fss->Folio,
                                 'nopartida'=>4,
-                                'team_id'=>Filament::getTenant()->id
+                                'team_id'=>Filament::getTenant()->id,
+                                'igeg_id'=>$igeg->id
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
                                 'auxiliares_id'=>$aux['id'],
@@ -1822,13 +1823,14 @@ class MovbancosResource extends Resource
                             $aux = Auxiliares::create([
                                 'cat_polizas_id'=>$polno,
                                 'codigo'=>$ban->codigo,
-                                'cuenta'=>$ban->cuenta,
+                                'cuenta'=>$ban->banco,
                                 'concepto'=>$fss->Emisor_Nombre,
                                 'cargo'=>0,
                                 'abono'=>$pesos,
                                 'factura'=>$fss->Serie . $fss->Folio,
                                 'nopartida'=>5,
-                                'team_id'=>Filament::getTenant()->id
+                                'team_id'=>Filament::getTenant()->id,
+                                'igeg_id'=>$igeg->id
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
                                 'auxiliares_id'=>$aux['id'],
@@ -1973,7 +1975,7 @@ class MovbancosResource extends Resource
                             $aux = Auxiliares::create([
                                 'cat_polizas_id'=>$polno,
                                 'codigo'=>$ban->codigo,
-                                'cuenta'=>$ban->cuenta,
+                                'cuenta'=>$ban->banco,
                                 'concepto'=>$fss->Emisor_Nombre,
                                 'cargo'=>0,
                                 'abono'=>$pesos,
@@ -2124,13 +2126,14 @@ class MovbancosResource extends Resource
                                 $aux = Auxiliares::create([
                                     'cat_polizas_id'=>$polno,
                                     'codigo'=>$ban->codigo,
-                                    'cuenta'=>$ban->cuenta,
+                                    'cuenta'=>$ban->banco,
                                     'concepto'=>$fss->Emisor_Nombre,
                                     'cargo'=>0,
                                     'abono'=>$pesos,
                                     'factura'=>$fss->Serie . $fss->Folio,
                                     'nopartida'=>5,
-                                    'team_id'=>Filament::getTenant()->id
+                                    'team_id'=>Filament::getTenant()->id,
+                                    'igeg_id'=>$igeg->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
                                     'auxiliares_id'=>$aux['id'],
@@ -2400,13 +2403,14 @@ class MovbancosResource extends Resource
                             $aux = Auxiliares::create([
                                 'cat_polizas_id'=>$polno,
                                 'codigo'=>$ban->codigo,
-                                'cuenta'=>$ban->cuenta,
+                                'cuenta'=>$ban->banco,
                                 'concepto'=>$fss->Receptor_Nombre,
                                 'cargo'=>$data['importe_p'],
                                 'abono'=>0,
                                 'factura'=>$fss->Serie . $fss->Folio,
                                 'nopartida'=>1,
-                                'team_id'=>Filament::getTenant()->id
+                                'team_id'=>Filament::getTenant()->id,
+                                'igeg_id'=>$igeg->id,
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
                                 'auxiliares_id'=>$aux['id'],
@@ -2580,13 +2584,14 @@ class MovbancosResource extends Resource
                             $aux = Auxiliares::create([
                                 'cat_polizas_id'=>$polno,
                                 'codigo'=>$ban->codigo,
-                                'cuenta'=>$ban->cuenta,
+                                'cuenta'=>$ban->banco,
                                 'concepto'=>$fss->Emisor_Nombre,
                                 'cargo'=>0,
                                 'abono'=>$pesos,
                                 'factura'=>$fss->Serie . $fss->Folio,
                                 'nopartida'=>5,
-                                'team_id'=>Filament::getTenant()->id
+                                'team_id'=>Filament::getTenant()->id,
+                                'igeg_id'=>$igeg->id
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
                                 'auxiliares_id'=>$aux['id'],
@@ -2671,13 +2676,14 @@ class MovbancosResource extends Resource
                             $aux = Auxiliares::create([
                                 'cat_polizas_id'=>$polno,
                                 'codigo'=>$ban->codigo,
-                                'cuenta'=>$ban->cuenta,
+                                'cuenta'=>$ban->banco,
                                 'concepto'=>$fss->Receptor_Nombre,
                                 'cargo'=>$pesos,
                                 'abono'=>0,
                                 'factura'=>$fss->Serie . $fss->Folio,
                                 'nopartida'=>1,
-                                'team_id'=>Filament::getTenant()->id
+                                'team_id'=>Filament::getTenant()->id,
+                                'igeg_id'=>$igeg->id
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
                                 'auxiliares_id'=>$aux['id'],
@@ -2822,13 +2828,14 @@ class MovbancosResource extends Resource
                             $aux = Auxiliares::create([
                                 'cat_polizas_id'=>$polno,
                                 'codigo'=>$ban->codigo,
-                                'cuenta'=>$ban->cuenta,
+                                'cuenta'=>$ban->banco,
                                 'concepto'=>$fss->Receptor_Nombre,
                                 'cargo'=>$pesos,
                                 'abono'=>0,
                                 'factura'=>$fss->Serie . $fss->Folio,
                                 'nopartida'=>1,
-                                'team_id'=>Filament::getTenant()->id
+                                'team_id'=>Filament::getTenant()->id,
+                                'igeg_id'=>$igeg->id
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
                                 'auxiliares_id'=>$aux['id'],

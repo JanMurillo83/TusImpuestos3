@@ -17,5 +17,6 @@ class Auxiliares extends Model
     'factura',
     'nopartida',
     'uuid',
-    'team_id'];
+    'team_id',
+    'igeg_id'];
 }

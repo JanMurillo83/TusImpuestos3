@@ -111,8 +111,8 @@ class CatCuentasResource extends Resource
     {
         return [
             'index' => Pages\ListCatCuentas::route('/'),
-            'create' => Pages\CreateCatCuentas::route('/create'),
-            'edit' => Pages\EditCatCuentas::route('/{record}/edit'),
+            //'create' => Pages\CreateCatCuentas::route('/create'),
+            //'edit' => Pages\EditCatCuentas::route('/{record}/edit'),
         ];
     }
 }

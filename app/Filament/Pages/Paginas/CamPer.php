@@ -25,7 +25,7 @@ class CamPer extends Page
             ->modalHeading('Seleccion de Periodo')
             ->form([
                 TextInput::make('periodo')
-                    ->numeric()
+                    ->numeric()->minValue(1)->maxValue(12)
                     ->default(Filament::getTenant()->periodo),
                 TextInput::make('ejercicio')
                     ->numeric()

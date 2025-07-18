@@ -319,7 +319,7 @@ class Cobros extends Page implements HasForms
             }
             $data += [
                 $item->id . '|' . $item->xml_id =>
-                    'Tercero: ' . $alm->Emisor_Nombre . ' |' .
+                    'Tercero: ' . $alm->Receptor_Nombre . ' |' .
                     'Referencia: ' . $item->referencia . ' |' .
                     'Importe: ' . $tot . ' |' .
                     'Pendiente: ' . $pend . ' |' .

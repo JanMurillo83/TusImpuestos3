@@ -37,11 +37,16 @@ use Filament\Pages\Page;
 use Filament\View\PanelsRenderHook;
 use EightyNine\Reports\ReportsPlugin;
 use SolutionForest\FilamentSimpleLightBox\SimpleLightBoxPlugin;
+use Filament\Notifications\Livewire\Notifications;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\VerticalAlignment;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        Notifications::alignment(Alignment::Center);
+        Notifications::verticalAlignment(VerticalAlignment::Center);
         return $panel
             ->default()
             ->id('admin')

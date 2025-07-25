@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Saldoscuentas extends Model
 {
@@ -13,4 +14,9 @@ class Saldoscuentas extends Model
     'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 's1','s2', 's3', 's4', 's5', 's6', 's7', 's8', 's9',
     's10', 's11', 's12','naturaleza',
     'team_id'];
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 }

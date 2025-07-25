@@ -186,6 +186,22 @@ class ListMovbancos extends ListRecords
                             $peri = $data_array[$i][5];
                             $ejer = $data_array[$i][4];
                             //------------------------------------------------------
+                            $val_sdos = DB::table('saldosbancos')
+                                ->where('cuenta',$data['cuenta'])
+                                ->where('ejercicio',$ejer)->get();
+                            if(count($val_sdos) == 0){
+                                for($i=1;$i<13;$i++) {
+                                    DB::table('saldosbancos')->insert([
+                                        'cuenta' => $data['cuenta'],
+                                        'inicial' => 0.00,
+                                        'ingresos' => 0.00,
+                                        'egresos' => 0.00,
+                                        'actual' => 0.00,
+                                        'ejercicio' => $ejer,
+                                        'periodo' => $i
+                                    ]);
+                                }
+                            }
                             $sdos = DB::table('saldosbancos')
                                 ->where('cuenta',$data['cuenta'])
                                 ->where('ejercicio',$ejer)

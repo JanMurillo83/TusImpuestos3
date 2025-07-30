@@ -61,6 +61,16 @@ class CatPolizasResource extends Resource
                         $fecha->setDate(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, intval($dia));
                         //dd($fecha);
                         return date_format($fecha,'Y-m-d');
+                    })->maxDate(function (){
+                        $month = Filament::getTenant()->periodo;
+                        $year = Filament::getTenant()->ejercicio;
+                        $date = Carbon::create($year, $month, 1);
+                        return $date->lastOfMonth();
+                    })->minDate(function (){
+                        $month = Filament::getTenant()->periodo;
+                        $year = Filament::getTenant()->ejercicio;
+                        $date = Carbon::create($year, $month, 1);
+                        return $date->firstOfMonth();
                     }),
                 Forms\Components\Select::make('tipo')
                     ->required()

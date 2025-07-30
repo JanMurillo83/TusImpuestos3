@@ -6,7 +6,10 @@ use App\Filament\Resources\BancoCuentasResource\Pages;
 use App\Filament\Resources\BancoCuentasResource\RelationManagers;
 use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
+use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\Saldosbanco;
+use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
@@ -278,10 +281,53 @@ class BancoCuentasResource extends Resource
             ])->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all'])
             ->headerActions([
+                Tables\Actions\CreateAction::make('Nuevo')
+                    ->icon('fas-plus')
+                    ->createAnother(false)
+                    ->after(function($record,$data){
+                        $ctadata = ['codigo'=>$data['codigo'], 'nombre'=>$data['banco'], 'acumula'=>'10200000', 'tipo'=>'D', 'naturaleza'=>'D', 'csat'=>'102.01', 'team_id'=>Filament::getTenant()->id];
+                        CatCuentas::insert($ctadata);
+                        $ban = $record->getKey();
+                        $bandata = [
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>1],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>2],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>3],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>4],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>5],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>6],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>7],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>8],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>9],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>10],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>11],
+                            ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>12]];
+                        Saldosbanco::insert($bandata);
+                    }),
                 Tables\Actions\Action::make('traspaso')
                 ->label('Traspaso entre Cuentas')
-                ->form([
-                    Forms\Components\DatePicker::make('fecha')->label('Fecha')->required(),
+                ->form(function (Form $form) {
+
+                    return $form
+                    ->schema(
+                    [
+                    Forms\Components\DatePicker::make('fecha')
+                        ->label('Fecha')->required()
+                        ->default(function (){
+                            $day = Carbon::now()->day;
+                            $month = Filament::getTenant()->periodo;
+                            $year = Filament::getTenant()->ejercicio;
+                            return $year.'-'.$month.'-'.$day;
+                        })->maxDate(function (){
+                            $month = Filament::getTenant()->periodo;
+                            $year = Filament::getTenant()->ejercicio;
+                            $date = Carbon::create($year, $month, 1);
+                            return $date->lastOfMonth();
+                        })->minDate(function (){
+                            $month = Filament::getTenant()->periodo;
+                            $year = Filament::getTenant()->ejercicio;
+                            $date = Carbon::create($year, $month, 1);
+                            return $date->firstOfMonth();
+                        }),
                     Forms\Components\Select::make('cuenta_origen')->label('Cuenta Origen')
                         ->options(BancoCuentas::all()->pluck('banco','id'))->required(),
                     Forms\Components\Select::make('cuenta_destino')->label('Cuenta Destino')
@@ -291,11 +337,21 @@ class BancoCuentasResource extends Resource
                     Forms\Components\Select::make('moneda_destino')->label('Moneda Destino')
                         ->options(['USD'=>'USD','MXN'=>'MXN',])->required()->default('MXN'),
                     Forms\Components\TextInput::make('tipo_cam')->label('Tipo de Cambio')
-                        ->required()->numeric()->prefix('$')->default(1),
-                    Forms\Components\TextInput::make('importe')->label('Importe')
+                        ->required()->numeric()->prefix('$')->default(1)
+                        ->currencyMask(precision: 4,decimalSeparator: '.'),
+                    Forms\Components\TextInput::make('importe_usd')->label('Importe USD')
+                        ->required()->numeric()->prefix('$')->default(0)
+                        ->readOnly(function (Forms\Get $get){
+                            $mon_or = $get('moneda_origen');
+                            $mon_de = $get('moneda_destino');
+                            if($mon_or == 'USD' || $mon_de == 'USD') return false;
+                            else return true;
+                        }),
+                    Forms\Components\TextInput::make('importe')->label('Importe MXN')
                         ->required()->numeric()->prefix('$')->default(0),
 
-                ])
+                    ])->columns(4);
+                })
                 ->action(function ($data){
                     $nopoliza = intval(DB::table('cat_polizas')
                     ->where('team_id',Filament::getTenant()->id)
@@ -304,8 +360,10 @@ class BancoCuentasResource extends Resource
                     ->max('folio')) + 1;
                     $origen = BancoCuentas::where('id',$data['cuenta_origen'])->first();
                     $destino = BancoCuentas::where('id',$data['cuenta_destino'])->first();
+                    $aux_indx = 1;
+                    $comple = 0;
                     $poliza = CatPolizas::create([
-                        'tipo'=>'Eg',
+                        'tipo'=>'Dr',
                         'folio'=>$nopoliza,
                         'fecha'=>$data['fecha'],
                         'concepto'=>'Traspaso entre cuentas',
@@ -313,37 +371,77 @@ class BancoCuentasResource extends Resource
                         'abonos'=>$data['importe'],
                         'periodo'=>Filament::getTenant()->periodo,
                         'ejercicio'=>Filament::getTenant()->ejercicio,
-                        'referencia'=>'F-',
+                        'referencia'=>'Traspaso',
                         'uuid'=>'',
                         'tiposat'=>'Dr',
                         'team_id'=>Filament::getTenant()->id,
                         'idmovb'=>0
                     ]);
                     $polno = $poliza['id'];
+                    if($data['moneda_origen'] == 'USD'){
+                        $comple = floatval($data['importe_usd']);
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id'=>$polno,
+                            'codigo'=>$destino->codigo,
+                            'cuenta'=>$destino->banco,
+                            'concepto'=>'Traspaso entre cuentas',
+                            'cargo'=>$comple,
+                            'abono'=>0,
+                            'factura'=>'Traspaso',
+                            'nopartida'=>$aux_indx,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id'=>$aux['id'],
+                            'cat_polizas_id'=>$polno
+                        ]);
+                        $aux_indx++;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id'=>$polno,
                         'codigo'=>$destino->codigo,
                         'cuenta'=>$destino->banco,
                         'concepto'=>'Traspaso entre cuentas',
-                        'cargo'=>$data['importe'],
+                        'cargo'=>floatval($data['importe']) - $comple,
                         'abono'=>0,
-                        'factura'=>'F-',
-                        'nopartida'=>1,
+                        'factura'=>'Traspaso',
+                        'nopartida'=>$aux_indx,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
                         'auxiliares_id'=>$aux['id'],
                         'cat_polizas_id'=>$polno
                     ]);
+                    $aux_indx++;
+                    $comple = 0;
+                    if($data['moneda_destino'] == 'USD'){
+                        $comple = floatval($data['importe_usd']);
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id'=>$polno,
+                            'codigo'=>$origen->codigo,
+                            'cuenta'=>$origen->banco,
+                            'concepto'=>'Traspaso entre cuentas',
+                            'cargo'=>0,
+                            'abono'=>$comple,
+                            'factura'=>'Traspaso',
+                            'nopartida'=>$aux_indx,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id'=>$aux['id'],
+                            'cat_polizas_id'=>$polno
+                        ]);
+                        $aux_indx++;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id'=>$polno,
                         'codigo'=>$origen->codigo,
                         'cuenta'=>$origen->banco,
                         'concepto'=>'Traspaso entre cuentas',
                         'cargo'=>0,
-                        'abono'=>$data['importe'],
-                        'factura'=>'F-',
-                        'nopartida'=>2,
+                        'abono'=>$data['importe'] - $comple,
+                        'factura'=>'Traspaso',
+                        'nopartida'=>$aux_indx,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -355,7 +453,7 @@ class BancoCuentasResource extends Resource
                         ->title('Proceso Terminado')
                         ->send();
                 })
-            ]);
+            ],Tables\Actions\HeaderActionsPosition::Bottom);
     }
 
     public static function getRelations(): array

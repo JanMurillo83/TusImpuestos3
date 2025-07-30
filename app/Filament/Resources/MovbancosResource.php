@@ -82,6 +82,13 @@ class MovbancosResource extends Resource
                     ->tabs([
                         Tabs\Tab::make('Datos Generales')
                             ->schema([
+                                /*TextInput::make('Test')
+                                ->default(function (){
+                                    $month = Filament::getTenant()->periodo;
+                                    $year = Filament::getTenant()->ejercicio;
+                                    $date = Carbon::create($year, $month, 1);
+                                    return $date->lastOfMonth()->day;
+                                }),*/
                                 Forms\Components\DatePicker::make('fecha')
                                     ->required()
                                 ->default(function (){
@@ -89,6 +96,16 @@ class MovbancosResource extends Resource
                                     $month = Filament::getTenant()->periodo;
                                     $year = Filament::getTenant()->ejercicio;
                                     return $year.'-'.$month.'-'.$day;
+                                })->maxDate(function (){
+                                        $month = Filament::getTenant()->periodo;
+                                        $year = Filament::getTenant()->ejercicio;
+                                        $date = Carbon::create($year, $month, 1);
+                                        return $date->lastOfMonth();
+                                })->minDate(function (){
+                                        $month = Filament::getTenant()->periodo;
+                                        $year = Filament::getTenant()->ejercicio;
+                                        $date = Carbon::create($year, $month, 1);
+                                        return $date->firstOfMonth();
                                 }),
                                 Forms\Components\Select::make('tipo')
                                     ->required()
@@ -3206,7 +3223,7 @@ class MovbancosResource extends Resource
                     'tipo'=>'Ig',
                     'folio'=>$nopoliza,
                     'fecha'=>$record->fecha,
-                    'concepto'=>'Prestamo',
+                    'concepto'=>$dater[0],
                     'cargos'=>$record->importe,
                     'abonos'=>$record->importe,
                     'periodo'=>Filament::getTenant()->periodo,
@@ -3222,7 +3239,7 @@ class MovbancosResource extends Resource
                     'cat_polizas_id'=>$polno,
                     'codigo'=>$ban[0]->codigo,
                     'cuenta'=>$ban[0]->cuenta,
-                    'concepto'=>'Prestamo',
+                    'concepto'=>$dater[0],
                     'cargo'=>$record->importe,
                     'abono'=>0,
                     'factura'=>'Prestamo',
@@ -3237,7 +3254,7 @@ class MovbancosResource extends Resource
                         'cat_polizas_id'=>$polno,
                         'codigo'=>$dater[1],
                         'cuenta'=>$dater[0],
-                        'concepto'=>'Prestamo',
+                        'concepto'=>$dater[0],
                         'cargo'=>0,
                         'abono'=>$record->importe,
                         'factura'=>'Prestamo',

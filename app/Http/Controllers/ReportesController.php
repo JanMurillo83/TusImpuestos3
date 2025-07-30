@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 
 use App\Models\Auxiliares;
+use App\Models\BancoCuentas;
 use App\Models\CatPolizas;
+use App\Models\Movbancos;
+use App\Models\Saldosbanco;
 use App\Models\SaldosReportes;
 use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
@@ -361,5 +364,33 @@ class ReportesController extends Controller
         }
         DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id");
         DB::statement("UPDATE saldos_reportes SET final = (anterior + abonos - cargos) WHERE naturaleza = 'A' AND team_id = $team_id");
+    }
+
+    public function SaldosBancos($team_id)
+    {
+        $cuen_banco = BancoCuentas::where('team_id',$team_id)->get();
+        foreach ($cuen_banco as $banco) {
+            Saldosbanco::where('cuenta',$banco->id  )->update( [
+                'inicial' => 0,
+                'ingresos' => 0,
+                'egresos' => 0,
+                'final' => 0
+            ]);
+        }
+        $MovsBancos = Movbancos::where('team_id',$team_id)->get();
+        foreach ($MovsBancos as $Mov) {
+            $tipo = $Mov->tipo;
+            if($tipo == 'E'){
+                Saldosbanco::where('cuenta',$Mov->cuenta)
+                    ->where('periodo',$Mov->periodo)
+                    ->where('ejercicio',$Mov->ejercicio)
+                    ->increment('ingresos',$Mov->importe);
+            }else{
+                Saldosbanco::where('cuenta',$Mov->cuenta)
+                    ->where('periodo',$Mov->periodo)
+                    ->where('ejercicio',$Mov->ejercicio)
+                    ->increment('egresos',$Mov->importe);
+            }
+        }
     }
 }

@@ -276,8 +276,9 @@ class ListMovbancos extends ListRecords
                 ->modifyQueryUsing(function ($query) use ($tier) {
                     return $query->where('cuenta', $tier->id);
                 });
+            $this->selected_tier = $tier->id;
         }
-        $this->selected_tier = $tier->id;
+
         return $tabs;
     }
 }

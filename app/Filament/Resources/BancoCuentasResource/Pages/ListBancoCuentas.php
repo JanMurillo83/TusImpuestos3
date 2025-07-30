@@ -17,7 +17,7 @@ class ListBancoCuentas extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
+            /*Actions\CreateAction::make()
             ->label('Agregar')
             ->icon('fas-plus')
             ->createAnother(false)
@@ -39,7 +39,7 @@ class ListBancoCuentas extends ListRecords
                     ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>11],
                     ['cuenta'=>$ban,'inicial'=>$data['inicial'],'ingresos'=>0,'egresos'=>0,'actual'=>$data['inicial'],'ejercicio'=>$data['ejercicio'],'periodo'=>12]];
                 Saldosbanco::insert($bandata);
-            }),
+            }),*/
         ];
     }
 }

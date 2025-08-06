@@ -92,9 +92,12 @@ class CatCuentasResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                ->label('')
-                ->icon(null),
-            ])
+                ->iconButton()
+                ->icon('fas-edit'),
+                Tables\Actions\DeleteAction::make()
+                ->iconButton()->requiresConfirmation()
+                ->icon('fas-trash'),
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->bulkActions([
 
             ]);

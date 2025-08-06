@@ -21,6 +21,27 @@
 .fi-ta-cell > div:has(.flex) {
     @apply py-0.5;
 }
+
+.fi-ta-row :hover {
+    @apply bg-orange-200 dark:bg-orange-700; /* Example hover color */
+}
+.fi-ta-table th {
+    position: sticky;
+    top: 0; /* Ensures the header sticks to the very top */
+    z-index: 10; /* Adjust z-index as needed to ensure it appears above other content */
+    /* Add other styling for appearance, e.g., borders, padding */
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* You might need to unset overflow properties on parent containers */
+.fi-ta-content {
+    overflow: unset !important;
+}
+
+.fi-ta-ctn {
+    overflow: unset !important;
+}
+
 html {
     font-size: 0.8em !important;
 }

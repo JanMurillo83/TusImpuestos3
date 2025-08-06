@@ -6,10 +6,13 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-intl": "*",
         "ext-soap": "*",
         "ariaieboy/filament-currency": "^1.10",
+        "awcodes/filament-sticky-header": "^2.0",
         "awcodes/filament-table-repeater": "^3.0",
         "barryvdh/laravel-snappy": "^1.0",
+        "codewithdennis/filament-theme-inspector": "^0.0.7",
         "eclipxe/cfdiutils": "^2.29",
         "eightynine/filament-excel-import": "^3.1",
         "eightynine/filament-reports": "^3.0",
@@ -27,8 +30,7 @@
         "phpcfdi/sat-ws-descarga-masiva": "^0.5.4",
         "phpoffice/phpspreadsheet": "^1.29",
         "solution-forest/filament-simplelightbox": "^0.0.10",
-        "torgodly/html2media": "^1.1",
-        "ext-intl": "*"
+        "torgodly/html2media": "^1.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

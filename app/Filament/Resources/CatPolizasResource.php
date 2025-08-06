@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CatPolizasResource\Pages;
 use App\Filament\Resources\CatPolizasResource\RelationManagers;
+use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use Awcodes\TableRepeater\Components\TableRepeater;
@@ -16,6 +17,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -65,12 +67,14 @@ class CatPolizasResource extends Resource
                         $month = Filament::getTenant()->periodo;
                         $year = Filament::getTenant()->ejercicio;
                         $date = Carbon::create($year, $month, 1);
-                        return $date->lastOfMonth();
+                        $day = $date->lastOfMonth()->day;
+                        return  Carbon::create($year, $month,$day);
                     })->minDate(function (){
                         $month = Filament::getTenant()->periodo;
                         $year = Filament::getTenant()->ejercicio;
                         $date = Carbon::create($year, $month, 1);
-                        return $date->firstOfMonth();
+                        $day = $date->firstOfMonth()->day;
+                        return Carbon::create($year, $month,$day);
                     }),
                 Forms\Components\Select::make('tipo')
                     ->required()
@@ -323,6 +327,52 @@ class CatPolizasResource extends Resource
                         ]);
                     }
                     DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+                }),
+                Tables\Actions\Action::make('Copiar Poliza')
+                ->icon('fas-copy')->tooltip('Copiar Poliza')->iconButton()->requiresConfirmation()
+                ->action(function ($record){
+                    $enca = CatPolizas::where('id',$record->id)->first();
+                    $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo',$enca->tipo)->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                    $dats = Carbon::now();
+                    $fecha = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo.'-'.$dats->day;
+                    $poliza = CatPolizas::create([
+                        'tipo'=>$enca->tipo,
+                        'folio'=>$nopoliza,
+                        'fecha'=>$fecha,
+                        'concepto'=>$enca->concepto,
+                        'cargos'=>$enca->cargos,
+                        'abonos'=>$enca->abonos,
+                        'periodo'=>Filament::getTenant()->periodo,
+                        'ejercicio'=>Filament::getTenant()->ejercicio,
+                        'referencia'=>$enca->referencia,
+                        'uuid'=>$enca->uuid,
+                        'tiposat'=>$enca->tiposat,
+                        'idmovb'=>0,
+                        'team_id'=>Filament::getTenant()->id
+                    ]);
+                    $polno = $poliza['id'];
+                    $auxiliares = Auxiliares::where('cat_polizas_id',$record->id)->get();
+                    foreach ($auxiliares as $aux) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id'=>$polno,
+                            'codigo'=>$aux->codigo,
+                            'cuenta'=>$aux->cuenta,
+                            'concepto'=>$aux->concepto,
+                            'cargo'=>$aux->cargo,
+                            'abono'=>$aux->abono,
+                            'factura'=>$aux->factura,
+                            'nopartida'=>$aux->nopartida,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id'=>$aux['id'],
+                            'cat_polizas_id'=>$polno
+                        ]);
+                    }
+                    Notification::make()
+                        ->title('Poliza '.$enca->tipo.' '.$nopoliza.' Grabada')
+                        ->success()
+                        ->send();
                 })
             ])
             ->actionsPosition(ActionsPosition::BeforeColumns)

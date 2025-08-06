@@ -15,7 +15,8 @@ class ListCatCuentas extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('Alta de Cuenta')
-                ->icon('fas-square-plus'),
+                ->icon('fas-square-plus')
+                ->extraAttributes(['class' => 'my-sticky-button']),
         ];
     }
 }

@@ -1483,17 +1483,17 @@ class MovbancosResource extends Resource
                                                 ->heading('Seleccionar Facturas')
                                                 ->columns([
                                                     Tables\Columns\TextColumn::make('referencia')->searchable(),
-                                                    Tables\Columns\TextColumn::make('fecha')->searchable()
+                                                    Tables\Columns\TextColumn::make('fecha')
                                                         ->getStateUsing(function (IngresosEgresos $model){
                                                             $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                             return Carbon::parse($alm->Fecha)->format('d/m/Y');
                                                         }),
-                                                    Tables\Columns\TextColumn::make('emisor')->searchable()
+                                                    Tables\Columns\TextColumn::make('emisor_rfc')->searchable()->label('Emisor')
                                                     ->getStateUsing(function (IngresosEgresos $model){
                                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                         return $alm->Emisor_Rfc;
                                                     }),
-                                                    Tables\Columns\TextColumn::make('nombre')->searchable()
+                                                    Tables\Columns\TextColumn::make('emisor_nombre')->searchable()->label('Nombre')
                                                         ->getStateUsing(function (IngresosEgresos $model){
                                                             $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                             return $alm->Emisor_Nombre;
@@ -1503,7 +1503,7 @@ class MovbancosResource extends Resource
                                                             $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                             return $alm->Moneda;
                                                         }),
-                                                    Tables\Columns\TextColumn::make('tc')->label('Tipo de Cambio')->sortable()
+                                                    Tables\Columns\TextColumn::make('tipocambio')->label('Tipo de Cambio')->sortable()
                                                         ->getStateUsing(function (IngresosEgresos $model){
                                                             $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                             return $alm->TipoCambio;
@@ -1513,25 +1513,27 @@ class MovbancosResource extends Resource
                                                             $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                             return $alm->Total;
                                                         })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                                    Tables\Columns\TextColumn::make('pendiente_mxn')->sortable()
+                                                    Tables\Columns\TextColumn::make('pendientemxn')->sortable()
                                                         ->getStateUsing(function (IngresosEgresos $model){
                                                             return $model->pendientemxn;
                                                         })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                                    Tables\Columns\TextColumn::make('pendiente_usd')->sortable()
+                                                    Tables\Columns\TextColumn::make('pendienteusd')->sortable()
                                                         ->getStateUsing(function (IngresosEgresos $model){
                                                             return $model->pendienteusd;
                                                         })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
                                                 ])
-                                                ->modifyQueryUsing(fn (Builder $query) => $query->where('team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0));
+                                                ->modifyQueryUsing(fn (Builder $query) =>
+                                                    $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
                                         })
                                         ->getOptionLabelFromRecordUsing(function (IngresosEgresos $record) {
                                             return "{$record->referencia}";
                                         })
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function (Get $get, Set $set,$record) {
-                                            $ff = $get('factura');
-                                            if($ff === null) return;
-                                            $igeg = IngresosEgresos::where('id',$ff)->first();
+
+                                            if($get('factura') === null) return;
+                                            $ff = $get('factura')[0];
+                                            $igeg = IngresosEgresos::where('xml_id',$ff)->first();
                                             $xml = Almacencfdis::where('id', $igeg->xml_id)->first();
                                             $set('referencia_f',$xml->Serie.$xml->Folio);
                                             $set('emisor_f',$xml->Emisor_Nombre);
@@ -1644,8 +1646,8 @@ class MovbancosResource extends Resource
                                 ])->columns(4)
                             ]);
                     })->action(function ($data,$record){
-                        $fac_id = explode('|',$data['factura'])[0];
-                        $igeg = IngresosEgresos::where('id',$fac_id)->first();
+                        $fac_id = $data['factura'];
+                        $igeg = IngresosEgresos::where('xml_id',$fac_id)->first();
                         $fss = DB::table('almacencfdis')->where('id',$igeg->xml_id)->first();
                         $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->first();
                         $ter = DB::table('terceros')->where('rfc',$fss->Emisor_Rfc)->first();
@@ -2253,12 +2255,12 @@ class MovbancosResource extends Resource
                                                                 $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                                 return Carbon::parse($alm->Fecha)->format('d/m/Y');
                                                             }),
-                                                        Tables\Columns\TextColumn::make('receptor')->searchable()
+                                                        Tables\Columns\TextColumn::make('receptor_rfc')->searchable()->label('Emisor')
                                                             ->getStateUsing(function (IngresosEgresos $model){
                                                                 $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                                 return $alm->Receptor_Rfc;
                                                             }),
-                                                        Tables\Columns\TextColumn::make('nombre')->searchable()
+                                                        Tables\Columns\TextColumn::make('receptor_nombre')->searchable()->label('Nombre')
                                                             ->getStateUsing(function (IngresosEgresos $model){
                                                                 $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                                 return $alm->Receptor_Nombre;
@@ -2268,7 +2270,7 @@ class MovbancosResource extends Resource
                                                                 $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                                 return $alm->Moneda;
                                                             }),
-                                                        Tables\Columns\TextColumn::make('tc')->label('Tipo de Cambio')->sortable()
+                                                        Tables\Columns\TextColumn::make('tipocambio')->label('Tipo de Cambio')->sortable()
                                                             ->getStateUsing(function (IngresosEgresos $model){
                                                                 $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                                 return $alm->TipoCambio;
@@ -2278,25 +2280,26 @@ class MovbancosResource extends Resource
                                                                 $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                                                 return $alm->Total;
                                                             })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                                        Tables\Columns\TextColumn::make('pendiente_mxn')->sortable()
+                                                        Tables\Columns\TextColumn::make('pendientemxn')->sortable()
                                                             ->getStateUsing(function (IngresosEgresos $model){
                                                                 return $model->pendientemxn;
                                                             })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                                        Tables\Columns\TextColumn::make('pendiente_usd')->sortable()
+                                                        Tables\Columns\TextColumn::make('pendienteusd')->sortable()
                                                             ->getStateUsing(function (IngresosEgresos $model){
                                                                 return $model->pendienteusd;
                                                             })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
                                                     ])
-                                                    ->modifyQueryUsing(fn (Builder $query) => $query->where('team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 0));
+                                                    ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 0)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
                                             })
                                             ->getOptionLabelFromRecordUsing(function (IngresosEgresos $record) {
                                                 return "{$record->referencia}";
                                             })
                                             ->live(onBlur: true)
                                             ->afterStateUpdated(function (Get $get, Set $set,$record) {
-                                                $ff = $get('factura');
-                                                if($ff === null) return;
-                                                $igeg = IngresosEgresos::where('id',$ff)->first();
+
+                                                if($get('factura') === null) return;
+                                                $ff = $get('factura')[0];
+                                                $igeg = IngresosEgresos::where('xml_id',$ff)->first();
                                                 $xml = Almacencfdis::where('id', $igeg->xml_id)->first();
                                                 $set('referencia_f',$xml->Serie.$xml->Folio);
                                                 $set('emisor_f',$xml->Emisor_Nombre);
@@ -2409,8 +2412,8 @@ class MovbancosResource extends Resource
                                     ])->columns(4)
                             ]);
                     })->action(function ($data,$record){
-                        $fac_id = explode('|',$data['factura'])[0];
-                        $igeg = IngresosEgresos::where('id',$fac_id)->first();
+                        $fac_id = $data['factura'];
+                        $igeg = IngresosEgresos::where('xml_id',$fac_id)->first();
                         $fss = DB::table('almacencfdis')->where('id',$igeg->xml_id)->first();
                         $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->first();
                         $ter = DB::table('terceros')->where('rfc',$fss->Receptor_Rfc)->first();

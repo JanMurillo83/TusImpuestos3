@@ -146,12 +146,12 @@ class Cobros extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return Carbon::parse($alm->Fecha)->format('d/m/Y');
                                     }),
-                                TextColumn::make('receptor')->searchable()
+                                TextColumn::make('receptor_rfc')->searchable()->label('Receptor')
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Receptor_Rfc;
                                     }),
-                                TextColumn::make('nombre')->searchable()
+                                TextColumn::make('receptor_nombre')->searchable()->label('Nombre')
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Receptor_Nombre;
@@ -161,7 +161,7 @@ class Cobros extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Moneda;
                                     }),
-                                TextColumn::make('tc')->label('Tipo de Cambio')->sortable()
+                                TextColumn::make('tipocambio')->label('Tipo de Cambio')->sortable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->TipoCambio;
@@ -171,24 +171,28 @@ class Cobros extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Total;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                TextColumn::make('pendiente_mxn')->sortable()
+                                TextColumn::make('pendientemxn')->sortable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         return $model->pendientemxn;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                TextColumn::make('pendiente_usd')->sortable()
+                                TextColumn::make('pendienteusd')->sortable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         return $model->pendienteusd;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
                             ])
-                            ->modifyQueryUsing(fn (Builder $query) => $query->where('team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 0));
+                            ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 1)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
                     })
-                    ->getOptionLabelFromRecordUsing(function (IngresosEgresos $model) {
-                        return "{$model->referencia}";
+                    ->getOptionLabelFromRecordUsing(function (Get $get) {
+                        $factura = $get('factura')[0];
+                        $ineg = IngresosEgresos::where('xml_id', $factura)->first();
+                        dd($factura,$ineg);
+                        return "{$ineg->referencia}";
                     })
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get, Set $set) {
                         if($get('factura')) {
-                            $ineg = IngresosEgresos::where('id', $get('factura'))->first();
+                            $factura = $get('factura')[0];
+                            $ineg = IngresosEgresos::where('xml_id', $factura)->first();
                             $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
                             $set('tercero', $fact->Emisor_Nombre);
                             $set('moneda_fac', $fact->Moneda);
@@ -213,7 +217,8 @@ class Cobros extends Page implements HasForms
                 Actions::make([
                     Actions\Action::make('Agregar')->icon('fas-plus')->color(Color::Green)
                         ->action(function (Get $get,Set $set) {
-                            $ineg = IngresosEgresos::where('id',$get('factura'))->first();
+                            $factura = $get('factura')[0];
+                            $ineg = IngresosEgresos::where('xml_id',$factura)->first();
                             $fact = Almacencfdis::where('id',$ineg->xml_id)->first();
                             $data_tmp = $get('facturas_a_pagar');
                             $fec = explode('T',$fact->Fecha);
@@ -294,6 +299,7 @@ class Cobros extends Page implements HasForms
     {
         $record = $this->datos_mov;
         $data_tmp = $get('facturas_a_pagar');
+
         $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->first();
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
         $poliza = CatPolizas::create([
@@ -315,7 +321,7 @@ class Cobros extends Page implements HasForms
         $cnt_par = 1;
         foreach ($data_tmp as $data) {
             $fss = DB::table('almacencfdis')->where('id',$data['id_xml'])->first();
-            $ter = DB::table('terceros')->where('rfc',$fss->Emisor_Rfc)->first();
+            $ter = DB::table('terceros')->where('rfc',$fss->Receptor_Rfc)->first();
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
                 'codigo'=>$ter->cuenta,

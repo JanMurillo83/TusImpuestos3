@@ -143,12 +143,12 @@ class Pagos extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return Carbon::parse($alm->Fecha)->format('d/m/Y');
                                     }),
-                                TextColumn::make('emisor')->searchable()
+                                TextColumn::make('emisor_rfc')->searchable()->label('Emisor')
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Emisor_Rfc;
                                     }),
-                                TextColumn::make('nombre')->searchable()
+                                TextColumn::make('emisor_nombre')->searchable()->label('Nombre')
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Emisor_Nombre;
@@ -158,7 +158,7 @@ class Pagos extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Moneda;
                                     }),
-                                TextColumn::make('tc')->label('Tipo de Cambio')->sortable()
+                                TextColumn::make('tipocambio')->label('Tipo de Cambio')->sortable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->TipoCambio;
@@ -168,16 +168,16 @@ class Pagos extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Total;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                TextColumn::make('pendiente_mxn')->sortable()
+                                TextColumn::make('pendientemxn')->sortable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         return $model->pendientemxn;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                TextColumn::make('pendiente_usd')->sortable()
+                                TextColumn::make('pendienteusd')->sortable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         return $model->pendienteusd;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
                             ])
-                            ->modifyQueryUsing(fn (Builder $query) => $query->where('team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0));
+                            ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
                     })
                     ->getOptionLabelFromRecordUsing(function (IngresosEgresos $model) {
                         return "{$model->referencia}";
@@ -185,7 +185,8 @@ class Pagos extends Page implements HasForms
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get, Set $set) {
                         if($get('factura')) {
-                            $ineg = IngresosEgresos::where('id', $get('factura'))->first();
+                            $factura = $get('factura')[0];
+                            $ineg = IngresosEgresos::where('xml_id', $factura)->first();
                             $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
                             $set('tercero', $fact->Emisor_Nombre);
                             $set('moneda_fac', $fact->Moneda);
@@ -210,12 +211,13 @@ class Pagos extends Page implements HasForms
                 Actions::make([
                     Actions\Action::make('Agregar')->icon('fas-plus')->color(Color::Green)
                         ->action(function (Get $get,Set $set) {
-                            $ineg = IngresosEgresos::where('id',$get('factura'))->first();
+                            $factura = $get('factura')[0];
+                            $ineg = IngresosEgresos::where('xml_id',$factura)->first();
                             $fact = Almacencfdis::where('id',$ineg->xml_id)->first();
                             $data_tmp = $get('facturas_a_pagar');
                             $fec = explode('T',$fact->Fecha);
                             $fecha = $fec[0];
-                            $fac_id = explode('|',$get('factura'))[0];
+                            $fac_id = $ineg->id;
                             $data_new =  [
                                 'Referencia'=>$fact->Serie.$fact->Folio,
                                 'Fecha'=>$fecha,

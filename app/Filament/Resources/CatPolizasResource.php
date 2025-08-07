@@ -41,6 +41,29 @@ class CatPolizasResource extends Resource
     protected static ?string $pluralLabel = 'Polizas';
     protected static ?string $navigationIcon ='fas-scale-balanced';
 
+
+    public function mount(): void
+    {
+        $this->SetTotales();
+    }
+
+    public function SetTotales()
+    {
+        $polizas = CatPolizas::where('team_id',Filament::getTenant()->id)
+            ->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->get();
+        foreach ($polizas as $poliza) {
+            $cargos = 0;
+            $abonos = 0;
+            $auxiliar = Auxiliares::where('cat_polizas_id',$poliza->id)->get();
+            foreach ($auxiliar as $auxiliar) {
+                $cargos += $auxiliar->cargo;
+                $abonos += $auxiliar->abono;
+            }
+            $poliza->cargos = $cargos;
+            $poliza->abonos = $abonos;
+            $poliza->save();
+        }
+    }
     public static function form(Form $form): Form
     {
         return $form

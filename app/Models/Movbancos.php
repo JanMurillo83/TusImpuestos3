@@ -62,4 +62,9 @@ class Movbancos extends Model
     {
         return $this->belongsTo(Team::class);
     }
+
+    public function factura():BelongsTo
+    {
+        return $this->belongsTo(IngresosEgresos::class);
+    }
 }

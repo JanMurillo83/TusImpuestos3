@@ -45,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
                 NavigationGroup::make()
                     ->label('Reportes')
                     ->collapsed(),
+                NavigationGroup::make()
+                    ->label('Herramientas')
+                    ->collapsed(),
             ]);
         });
         FilamentView::registerRenderHook(

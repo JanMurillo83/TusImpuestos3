@@ -60,7 +60,14 @@ class CatCuentasResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('codigo')
                     ->searchable()
-                    ->sortable(),
+                    //->action(fn (Model $record,$livewire) => $livewire->selectRecord($record->id))
+                    ->sortable()
+                    ->formatStateUsing(function ($record){
+                        $sr1 = substr($record->codigo, 0, 3);
+                        $sr2 = substr($record->codigo, 3, 2);
+                        $sr3 = substr($record->codigo, 5, 3);
+                        return $sr1.'-'.$sr2.'-'.$sr3;
+                    }),
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('tipo')

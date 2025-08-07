@@ -9,7 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListCatCuentas extends ListRecords
 {
     protected static string $resource = CatCuentasResource::class;
-
+    public ?int $selectedRowId = null;
     protected function getHeaderActions(): array
     {
         return [
@@ -18,5 +18,16 @@ class ListCatCuentas extends ListRecords
                 ->icon('fas-square-plus')
                 ->extraAttributes(['class' => 'my-sticky-button']),
         ];
+    }
+
+    public function selectRecord(string $id): void
+    {
+        $this->selectedRowId = $id;
+        // Dispatch any events you may need here
+    }
+
+    public function updatedSelectedRowId(): void
+    {
+        $this->render();
     }
 }

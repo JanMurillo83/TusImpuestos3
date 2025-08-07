@@ -12,6 +12,7 @@ use App\Models\Movbancos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
+use Dvarilek\FilamentTableSelect\Components\Form\TableSelect;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
@@ -29,6 +30,10 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\ActionSize;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class Cobros extends Page implements HasForms
@@ -37,6 +42,7 @@ class Cobros extends Page implements HasForms
     protected static string $resource = MovbancosResource::class;
 
     protected static string $view = 'filament.resources.movbancos-resource.pages.cobros';
+
 
     public ?array $data = [];
     public ?string $fecha = null;
@@ -54,6 +60,7 @@ class Cobros extends Page implements HasForms
     public ?string $tipo_cambio = null;
     public ?array $facturas_a_pagar = null;
     public $datos_mov;
+
 
     public function mount($record) :void
     {
@@ -91,7 +98,7 @@ class Cobros extends Page implements HasForms
                         Hidden::make('cuenta'),
 
                     ])->columnSpanFull()->columns(6),
-                Select::make('factura')
+                /*Select::make('factura')
                     ->searchable()
                     ->disabled(function (Get $get){
                         $imp1 = $get('pendiente');
@@ -103,6 +110,83 @@ class Cobros extends Page implements HasForms
                     ->options(fn():array=>$this->FacturasGet())
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get,Set $set){
+                        if($get('factura')) {
+                            $ineg = IngresosEgresos::where('id', $get('factura'))->first();
+                            $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
+                            $set('tercero', $fact->Emisor_Nombre);
+                            $set('moneda_fac', $fact->Moneda);
+                            $set('pendiente_fac', $ineg->pendientemxn);
+                            $mon_pg = $ineg->pendientemxn;
+                            if((floatval($ineg->pendientemxn)+floatval($get('monto_total'))) > floatval($get('pendiente'))){
+                                $mon_pg = floatval($get('pendiente'));
+                            }
+                            $set('monto_pago', $mon_pg);
+                            $set('igeg_id', $ineg->id);
+                        }
+                    }),*/
+                TableSelect::make('factura')
+                    ->model(Movbancos::class)
+                    ->relationship('factura','factura')
+                    ->requiresSelectionConfirmation()
+                    ->columnSpan(4)
+                    ->disabled(function (Get $get){
+                        $imp1 = $get('pendiente');
+                        $imp2 = $get('monto_total');
+                        if($imp1 <= $imp2) return true;
+                        else return false;
+                    })
+                    ->optionSize(ActionSize::ExtraLarge)
+                    ->selectionTable(function (Table $table) {
+                        return $table
+                            ->heading('Seleccionar Facturas')
+                            ->columns([
+                                TextColumn::make('referencia')->searchable(),
+                                TextColumn::make('fecha')->searchable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        $alm = Almacencfdis::where('id',$model->xml_id)->first();
+                                        return Carbon::parse($alm->Fecha)->format('d/m/Y');
+                                    }),
+                                TextColumn::make('receptor')->searchable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        $alm = Almacencfdis::where('id',$model->xml_id)->first();
+                                        return $alm->Receptor_Rfc;
+                                    }),
+                                TextColumn::make('nombre')->searchable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        $alm = Almacencfdis::where('id',$model->xml_id)->first();
+                                        return $alm->Receptor_Nombre;
+                                    }),
+                                TextColumn::make('moneda')->sortable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        $alm = Almacencfdis::where('id',$model->xml_id)->first();
+                                        return $alm->Moneda;
+                                    }),
+                                TextColumn::make('tc')->label('Tipo de Cambio')->sortable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        $alm = Almacencfdis::where('id',$model->xml_id)->first();
+                                        return $alm->TipoCambio;
+                                    })->numeric(decimalPlaces: 4, decimalSeparator: '.'),
+                                TextColumn::make('importe')->sortable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        $alm = Almacencfdis::where('id',$model->xml_id)->first();
+                                        return $alm->Total;
+                                    })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
+                                TextColumn::make('pendiente_mxn')->sortable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        return $model->pendientemxn;
+                                    })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
+                                TextColumn::make('pendiente_usd')->sortable()
+                                    ->getStateUsing(function (IngresosEgresos $model){
+                                        return $model->pendienteusd;
+                                    })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
+                            ])
+                            ->modifyQueryUsing(fn (Builder $query) => $query->where('team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 0));
+                    })
+                    ->getOptionLabelFromRecordUsing(function (IngresosEgresos $model) {
+                        return "{$model->referencia}";
+                    })
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (Get $get, Set $set) {
                         if($get('factura')) {
                             $ineg = IngresosEgresos::where('id', $get('factura'))->first();
                             $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
@@ -134,7 +218,7 @@ class Cobros extends Page implements HasForms
                             $data_tmp = $get('facturas_a_pagar');
                             $fec = explode('T',$fact->Fecha);
                             $fecha = $fec[0];
-                            $fac_id = explode('|',$get('factura'))[0];
+                            //$fac_id = explode('|',$get('factura'))[0];
                             $data_new =  [
                                 'Referencia'=>$fact->Serie.$fact->Folio,
                                 'Fecha'=>$fecha,
@@ -142,7 +226,7 @@ class Cobros extends Page implements HasForms
                                 'Pendiente'=>$ineg->pendientemxn,
                                 'Monto a Pagar'=>$get('monto_pago'),
                                 'id_xml'=>$fact->id,
-                                'id_fac'=>$fac_id,
+                                'id_fac'=>$ineg->id,
                                 'igeg_id_id'=>$ineg->id,
                             ];
                             array_push($data_tmp, $data_new );
@@ -312,9 +396,10 @@ class Cobros extends Page implements HasForms
     public function FacturasGet(): array
     {
         $ing_ret = IngresosEgresos::where('team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 0)->get();
+        $data = array();
         foreach ($ing_ret as $item) {
             $alm = Almacencfdis::where('id', $item->xml_id)->first();
-            $data = array();
+
             if ($item->tcambio > 1) {
                 $monea = 'USD';
                 $tot = '$' . number_format(($item->totalusd), 2);

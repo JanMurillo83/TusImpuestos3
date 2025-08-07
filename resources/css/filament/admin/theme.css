@@ -22,9 +22,6 @@
     @apply py-0.5;
 }
 
-.fi-ta-row :hover {
-    @apply bg-orange-200 dark:bg-orange-700; /* Example hover color */
-}
 .fi-ta-table th {
     position: sticky;
     top: 0; /* Ensures the header sticks to the very top */

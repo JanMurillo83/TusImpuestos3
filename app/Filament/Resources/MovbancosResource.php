@@ -3319,8 +3319,8 @@ class MovbancosResource extends Resource
                             'codigo'=>$ban[0]->codigo,
                             'cuenta'=>$ban[0]->cuenta,
                             'concepto'=>'Otros Ingresos',
-                            'cargo'=>0,
-                            'abono'=>$record->importe,
+                            'cargo'=>$record->importe,
+                            'abono'=>0,
                             'factura'=>'Otros Ingresos',
                             'nopartida'=>2,
                             'team_id'=>Filament::getTenant()->id

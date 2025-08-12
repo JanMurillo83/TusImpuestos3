@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\AuxiliaresExport;
 use App\Exports\BalanceExport;
 use App\Exports\BalanzaExport;
 use App\Exports\EdoreExport;
@@ -33,16 +34,16 @@ class ReportesConta extends Page implements HasForms
                 Fieldset::make('Reportes PDF')
                 ->schema([
                 Actions::make([
-                  Actions\Action::make('Balance_General')
-                      ->action(function (){
-                          $ejercicio = Filament::getTenant()->ejercicio;
-                          $periodo = Filament::getTenant()->periodo;
-                          $team_id = Filament::getTenant()->id;
-                          (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
-                          $this->getAction('Balance General')->visible(true);
-                          $this->replaceMountedAction('Balance General');
-                          $this->getAction('Balance General')->visible(false);
-                      }),
+                    Actions\Action::make('Balance_General')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $this->getAction('Balance General')->visible(true);
+                            $this->replaceMountedAction('Balance General');
+                            $this->getAction('Balance General')->visible(false);
+                        }),
                     Actions\Action::make('Balanza_General')
                         ->label('Balanza de Comprobacion')
                         ->action(function (){
@@ -64,6 +65,17 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('Estado de Resultados')->visible(true);
                             $this->replaceMountedAction('Estado de Resultados');
                             $this->getAction('Estado de Resultados')->visible(false);
+                        }),
+                    Actions\Action::make('Auxiliares_Periodo')
+                        ->label('Auxiliares del Periodo')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $this->getAction('Auxiliares del Periodo')->visible(true);
+                            $this->replaceMountedAction('Auxiliares del Periodo');
+                            $this->getAction('Auxiliares del Periodo')->visible(false);
                         })
                 ])
                 ]),
@@ -93,6 +105,14 @@ class ReportesConta extends Page implements HasForms
                                 $periodo = Filament::getTenant()->periodo;
                                 $ejercicio = Filament::getTenant()->ejercicio;
                                 return (new EdoreExport($empresa,$periodo,$ejercicio))->download('EstadoResultados.xlsx');
+                            }),
+                        Actions\Action::make('Auxiliares_xls')
+                            ->label('Auxiliares del Periodo')
+                            ->action(function (){
+                                $empresa = Filament::getTenant()->id;
+                                $periodo = Filament::getTenant()->periodo;
+                                $ejercicio = Filament::getTenant()->ejercicio;
+                                return (new AuxiliaresExport($empresa,$periodo,$ejercicio))->download('Auxiliares.xlsx');
                             })
                     ])
                 ])
@@ -129,6 +149,16 @@ class ReportesConta extends Page implements HasForms
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
                 view('EdoreNew',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
+                )->visible(false)
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('Auxiliares del Periodo')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Auxiliares del Periodo')
+                ->margin([10, 10, 10, 10])
+                ->content(fn()=>
+                view('AuxiliaresPeriodo',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
                 )->visible(false)
                 ->modalWidth('7xl')
         ];

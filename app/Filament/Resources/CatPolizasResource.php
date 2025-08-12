@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\DB;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
+use PHPUnit\Metadata\Group;
 
 class CatPolizasResource extends Resource
 {
@@ -40,30 +41,6 @@ class CatPolizasResource extends Resource
     protected static ?string $label = 'Poliza';
     protected static ?string $pluralLabel = 'Polizas';
     protected static ?string $navigationIcon ='fas-scale-balanced';
-
-
-    public function mount(): void
-    {
-        $this->SetTotales();
-    }
-
-    public function SetTotales()
-    {
-        $polizas = CatPolizas::where('team_id',Filament::getTenant()->id)
-            ->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->get();
-        foreach ($polizas as $poliza) {
-            $cargos = 0;
-            $abonos = 0;
-            $auxiliar = Auxiliares::where('cat_polizas_id',$poliza->id)->get();
-            foreach ($auxiliar as $auxiliar) {
-                $cargos += $auxiliar->cargo;
-                $abonos += $auxiliar->abono;
-            }
-            $poliza->cargos = $cargos;
-            $poliza->abonos = $abonos;
-            $poliza->save();
-        }
-    }
     public static function form(Form $form): Form
     {
         return $form
@@ -182,18 +159,20 @@ class CatPolizasResource extends Resource
                         }),
                         TextInput::make('cargo')
                             ->numeric()
-                            ->mask(RawJs::make('$money($input)'))
-                            ->stripCharacters([',','$'])
+                            ->currencyMask(decimalSeparator: '.',precision: 2)
                             ->default(0)
                             ->live(onBlur:true)
-                            ->prefix('$'),
+                            ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
+                                Self::TotalizarCA($get,$set);
+                            }),
                         TextInput::make('abono')
                             ->numeric()
-                            ->mask(RawJs::make('$money($input)'))
-                            ->stripCharacters([',','$'])
+                            ->currencyMask(decimalSeparator: '.',precision: 2)
                             ->default(0)
                             ->live(onBlur:true)
-                            ->prefix('$'),
+                            ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
+                                Self::TotalizarCA($get,$set);
+                            }),
                         TextInput::make('factura')
                         ->label('Referencia')
                         ->prefix('F-'),
@@ -205,7 +184,26 @@ class CatPolizasResource extends Resource
                         Hidden::make('nopartida')
                         ->default(0),
                     ])->columnSpan('full')->streamlined()
-                    ])
+                    ]),
+                    Forms\Components\Group::make([
+                        Forms\Components\Placeholder::make('Totales')
+                            ->label('Total de Cargos y Abonos')->columnSpan(2),
+                        TextInput::make('total_cargos')->hiddenLabel()->prefix('$')->readOnly()
+                        ->formatStateUsing(function (Get $get){
+                            $partidas = $get('detalle');
+                            $columna = array_column($partidas,'cargo');
+                            $suma = array_sum($columna);
+                            return floatval($suma);
+                        })->numeric()->currencyMask(decimalSeparator: '.',precision: 2),
+                        TextInput::make('total_abonos')->hiddenLabel()->prefix('$')->readOnly()
+                            ->formatStateUsing(function (Get $get){
+                                $partidas = $get('detalle');
+                                $columna = array_column($partidas,'abono');
+                                $suma = array_sum($columna);
+                                return floatval($suma);
+                            })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)
+                    ])->columnSpan('full')->columns(7)
+
                     ]);
             /*->columns([
                 'sm' => 1,
@@ -214,6 +212,17 @@ class CatPolizasResource extends Resource
             ]);*/
     }
 
+    public static function TotalizarCA(Get $get,Set $set)
+    {
+        $partidas = $get('../../detalle');
+        if(!$partidas) return;
+        $columnaC = array_column($partidas,'cargo');
+        $sumaC = array_sum($columnaC);
+        $columnaA = array_column($partidas,'abono');
+        $sumaA = array_sum($columnaA);
+        $set('../../total_cargos',$sumaC);
+        $set('../../total_abonos',$sumaA);
+    }
     public static function updateTotals(Get $get, Set $set)
     {
         $cargos = collect($get('partidas'))->pluck('cargo')->sum();

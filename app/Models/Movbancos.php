@@ -9,6 +9,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Class Movbanco
@@ -66,5 +67,10 @@ class Movbancos extends Model
     public function factura():BelongsTo
     {
         return $this->belongsTo(IngresosEgresos::class);
+    }
+
+    public function facturas():BelongsToMany
+    {
+        return $this->belongsToMany(IngresosEgresos::class);
     }
 }

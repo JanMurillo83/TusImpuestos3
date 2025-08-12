@@ -185,24 +185,49 @@ class Cobros extends Page implements HasForms
                     ->getOptionLabelFromRecordUsing(function (Get $get) {
                         $factura = $get('factura')[0];
                         $ineg = IngresosEgresos::where('xml_id', $factura)->first();
-                        dd($factura,$ineg);
                         return "{$ineg->referencia}";
                     })
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get, Set $set) {
                         if($get('factura')) {
-                            $factura = $get('factura')[0];
-                            $ineg = IngresosEgresos::where('xml_id', $factura)->first();
-                            $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
-                            $set('tercero', $fact->Emisor_Nombre);
-                            $set('moneda_fac', $fact->Moneda);
-                            $set('pendiente_fac', $ineg->pendientemxn);
-                            $mon_pg = $ineg->pendientemxn;
-                            if((floatval($ineg->pendientemxn)+floatval($get('monto_total'))) > floatval($get('pendiente'))){
-                                $mon_pg = floatval($get('pendiente'));
-                            }
-                            $set('monto_pago', $mon_pg);
-                            $set('igeg_id', $ineg->id);
+                                $factura = $get('factura')[0];
+                                $ineg = IngresosEgresos::where('xml_id', $factura)->first();
+                                $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
+                                $set('tercero', $fact->Emisor_Nombre);
+                                $set('moneda_fac', $fact->Moneda);
+                                $set('pendiente_fac', $ineg->pendientemxn);
+                                $mon_pg = $ineg->pendientemxn;
+                                if ((floatval($ineg->pendientemxn) + floatval($get('monto_total'))) > floatval($get('pendiente'))) {
+                                    $mon_pg = floatval($get('pendiente'));
+                                }
+                                $set('monto_pago', $mon_pg);
+                                $set('igeg_id', $ineg->id);
+                                /*$data_tmp = $get('facturas_a_pagar');
+                                $fec = explode('T', $fact->Fecha);
+                                $fecha = $fec[0];
+                                //$fac_id = explode('|',$get('factura'))[0];
+                                $data_new = [
+                                    'Referencia' => $fact->Serie . $fact->Folio,
+                                    'Fecha' => $fecha,
+                                    'Tercero' => $fact->Emisor_Nombre,
+                                    'Pendiente' => $ineg->pendientemxn,
+                                    'Monto a Pagar' => $get('monto_pago'),
+                                    'id_xml' => $fact->id,
+                                    'id_fac' => $ineg->id,
+                                    'igeg_id_id' => $ineg->id,
+                                ];
+                                array_push($data_tmp, $data_new);
+                                $sum = array_sum(array_column($data_tmp, 'Monto a Pagar'));
+                                $cnt = count($data_tmp);
+                                $set('numero_total', $cnt);
+                                $set('monto_total', $sum);
+                                $set('facturas_a_pagar', $data_tmp);
+                                $set('tercero', null);
+                                $set('moneda_fac', null);
+                                $set('pendiente_fac', 0);
+                                $set('monto_pago', 0);
+                                $set('factura', null);
+                                $set('igeg_id', 0);*/
                         }
                     }),
                 Hidden::make('igeg_id'),

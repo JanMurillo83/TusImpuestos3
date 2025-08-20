@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class EstadisticasGrales extends BaseWidget
 {
+    protected function getColumns(): int
+    {
+        return 1;
+    }
     protected function getStats(): array
     {
         return [

@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Http\Controllers\ReportesController;
+use App\Models\Auxiliares;
 use App\Models\SaldosReportes;
 use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -24,7 +25,8 @@ class Indicadores2Widget extends BaseWidget
         $ejercicio = Filament::getTenant()->ejercicio;
         $periodo = Filament::getTenant()->periodo;
         $team_id = Filament::getTenant()->id;
-        (new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
+        $aux =Auxiliares::where('team_id',Filament::getTenant()->id)->where('a_ejercicio',$ejercicio)->where('a_periodo',$periodo)->get();
+        if(count($aux)>0)(new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
         $this->saldo_iva = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','11801000')->first()->final ?? 0);
         $this->saldo_iva_p = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','20801000')->first()->final ?? 0);
         $this->saldo_isr = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','21600000')->first()->final ?? 0);

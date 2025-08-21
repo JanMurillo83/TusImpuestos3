@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Http\Controllers\ReportesController;
+use App\Models\Auxiliares;
 use App\Models\SaldosReportes;
 use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -24,13 +25,15 @@ class IndicadoresWidget extends BaseWidget
         $ejercicio = Filament::getTenant()->ejercicio;
         $periodo = Filament::getTenant()->periodo;
         $team_id = Filament::getTenant()->id;
-        (new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
+        $aux =Auxiliares::where('team_id',Filament::getTenant()->id)->where('a_ejercicio',$ejercicio)->where('a_periodo',$periodo)->get();
+        if(count($aux)>0) (new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
         $this->saldo_banco = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','10200000')->first()->final ?? 0);
         $this->saldo_clientes = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','10500000')->first()->final ?? 0);
         $this->saldo_proveedores = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','20100000')->first()->final ?? 0);
     }
     protected function getStats(): array
     {
+
         return [
             Stat::make('Saldo en Bancos', '$'.number_format($this->saldo_banco,2)),
             Stat::make('Clientes', '$'.number_format($this->saldo_clientes,2)),

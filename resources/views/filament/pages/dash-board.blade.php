@@ -10,10 +10,10 @@
 </style>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-3">@livewire(\App\Livewire\GraficasWidget::class)</div>
             <div class="col-3" style="width: 100% !important;">@livewire(\App\Livewire\IndicadoresWidget::class)</div>
             <div class="col-3" style="width: 100% !important;">@livewire(\App\Livewire\Indicadores2Widget::class)</div>
-            <div class="col-3" style="width: 100% !important;">@livewire(\App\Filament\Widgets\EstadisticasGrales::class)</div>
+            <div class="col-3" style="width: 100% !important;">@livewire(\App\Livewire\Indicadores3Widget::class)</div>
+            <div class="col-3" style="width: 100% !important;">@livewire(\App\Livewire\Indicadores4Widget::class)</div>
         </div>
     </div>
 </x-filament-panels::page>

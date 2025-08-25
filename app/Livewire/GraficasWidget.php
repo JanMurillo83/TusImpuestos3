@@ -16,11 +16,7 @@ class GraficasWidget extends ChartWidget
     public ?float $imp_egresos;
     public function mount(): void
     {
-        $ejercicio = Filament::getTenant()->ejercicio;
-        $periodo = Filament::getTenant()->periodo;
         $team_id = Filament::getTenant()->id;
-        $aux =Auxiliares::where('team_id',Filament::getTenant()->id)->where('a_ejercicio',$ejercicio)->where('a_periodo',$periodo)->get();
-        if(count($aux)>0)(new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
         $this->imp_egresos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','50100000')->first()->final ?? 0);
         $this->imp_ingresos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40101000')->first()->final ?? 0);
     }

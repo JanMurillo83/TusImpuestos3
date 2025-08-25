@@ -57,4 +57,14 @@ class Team extends Model
         return $this->belongsToMany(HistoricoTc::class);
     }
 
+    public function cuentasCobrar(): BelongsToMany
+    {
+        return $this->belongsToMany(CuentasCobrar::class);
+    }
+
+    public function cuentasPagar(): BelongsToMany
+    {
+        return $this->belongsToMany(CuentasPagar::class);
+    }
+
 }

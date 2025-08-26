@@ -2,24 +2,30 @@
     require_once(resource_path('/views/qrcode.php'));
     use \League\Plates\Template\Template as Thos;
     use Filament\Facades\Filament;
-    $orden = DB::table('facturas')->where('id',$idorden)->get();
-    $orden = $orden[0];
+    $orden = DB::table('facturas')->where('id',$idorden)->first();
     $partidas = DB::table('facturas_partidas')->where('facturas_id',$idorden)->get();
-    $prove = DB::table('clientes')->where('id',$orden->clie)->get();
-    $prove = $prove[0];
-    $dafis = DB::table('datos_fiscales')->where('id',1)->get();
-    $dafis = $dafis[0];
-    if(isset($cfdiData))
+    $prove = DB::table('clientes')->where('id',$orden->clie)->first();
+    $dafis = DB::table('datos_fiscales')->where('team_id',$id_empresa)->first();
+    $emisor = \App\Models\DatosFiscales::where('team_id',$id_empresa)->first();
+    $a_xml = $orden->xml;
+    if($a_xml != null&&$a_xml!='')
     {
-        $comprobante = $cfdiData->comprobante();
-        $emisor = $cfdiData->emisor();
-        $receptor = $cfdiData->receptor();
-        $tfd = $cfdiData->timbreFiscalDigital();
-    }
-    else{
+        $cfdi = \CfdiUtils\Cfdi::newFromString($a_xml);
+        $tfd = $cfdi->getNode()->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+        $tfdXmlString = \CfdiUtils\Nodes\XmlNodeUtils::nodeToXmlString($tfd);
+        $parameters = \CfdiUtils\ConsultaCfdiSat\RequestParameters::createFromCfdi($cfdi);
+        $resolver = new \CfdiUtils\XmlResolver\XmlResolver();
+        $location = $resolver->resolveCadenaOrigenLocation('4.0');
+        $builder = new \CfdiUtils\CadenaOrigen\DOMBuilder();
+        $cadenaOrigen = $builder->build($a_xml, $location);
 
+        $cfdiData = \CfdiUtils\Cfdi::newFromString($a_xml);
+        $comprobante = $cfdiData->getQuickReader();
+        $emisor = $comprobante->emisor;
+        $receptor = $comprobante->receptor;
+        $tfd = $comprobante->complemento->TimbreFiscalDigital;
     }
-    $logo = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->get()[0]->logo64 ?? '';
+    $logo = $emisor->logo64 ?? '';
 ?>
 <!DOCTYPE html>
 <html>
@@ -42,11 +48,11 @@
                         <table>
                             <tr>
                                 <td><b>Emisor:</b></td>
-                                <td>{{$emisor['Nombre']}}</td>
+                                <td>{{$dafis->nombre}}</td>
                             </tr>
                             <tr>
                                 <td><b>RFC:</b></td>
-                                <td>{{$emisor['Rfc']}}</td>
+                                <td>{{$emisor->rfc}}</td>
                             </tr>
                             <tr>
                                 <td><b>Regimen Fiscal:</b></td>
@@ -101,15 +107,15 @@
                         </tr>
                         <tr>
                             <td class="pl-3 pr-3 text-start"><b>  Fecha:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$comprobante['Fecha']}}  </td>
+                            <td class="pl-3 pr-3 text-end">  {{$comprobante['Fecha'] ?? ''}}  </td>
                         </tr>
                         <tr>
                             <td class="pl-3 pr-3 text-start"><b>  Certificado SAT:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$tfd['NoCertificadoSAT']}}  </td>
+                            <td class="pl-3 pr-3 text-end">  {{$tfd['NoCertificadoSAT'] ?? ''}}  </td>
                         </tr>
                         <tr>
                             <td class="pl-3 pr-3 text-start"><b>  Certificado Emisor:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$comprobante['NoCertificado']}}  </td>
+                            <td class="pl-3 pr-3 text-end">  {{$comprobante['NoCertificado'] ?? ''}}  </td>
                         </tr>
                         <tr>
                             <td class="pl-3 pr-3 text-start"><b>  Forma de pago:  </b></td>
@@ -199,23 +205,23 @@
             <div class="mt-4 text-justify border row" style="font-size: 10px !important">
                 <div class="border col-6">
                     <label style="font-size: 12px !important"><b>Sello CFDI:</b></label><br>
-                    {{chunk_split($tfd['SelloCFD'], 80)}}
+                    {{chunk_split($tfd['SelloCFD'] ?? '', 80)}}
                 </div>
                 <div class="border col-6">
                     <label style="font-size: 12px !important"><b>Sello SAT:</b></label><br>
-                    {{chunk_split($tfd['SelloSAT'], 80)}}
+                    {{chunk_split($tfd['SelloSAT'] ?? '', 80)}}
                 </div>
             </div>
             <div class="text-sm text-justify border row">
                 <div class="border col-6" style="font-size: 10px !important">
                     <label style="font-size: 12px !important"><b>Cadena Original:</b></label><br>
-                    {{chunk_split($cfdiData->tfdSourceString(), 80)}}
+                    {{chunk_split($cadenaOrigen ?? '', 80)}}
                 </div>
                 <div class="border col-6">
                     <center>
-                        <label style="font-size: 10px !important"><b>UUID:  {{$tfd['UUID']}}</b></label>
+                        <label style="font-size: 10px !important"><b>UUID:  {{$tfd['UUID']?? ''}}</b></label>
                         <?php
-                            $qr = QRCode::getMinimumQRCode(str_replace('?', "\n?", $cfdiData->qrUrl()), QR_ERROR_CORRECT_LEVEL_L);
+                            $qr = QRCode::getMinimumQRCode(str_replace('?', "\n?", $parameters->expression() ?? ''), QR_ERROR_CORRECT_LEVEL_L);
                             $qr->make();
                             $qr->printHTML();
                         ?>

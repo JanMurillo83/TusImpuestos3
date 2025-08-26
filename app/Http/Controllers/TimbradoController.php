@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use DateTime;
 use DateTimeZone;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class TimbradoController extends Controller
 {
-    //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
-    public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
+    public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
+    //public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
     public function TimbrarFactura($factura,$receptor):string
     {
 	    $objConexion = new ConexionController($this->url);
@@ -24,26 +25,27 @@ class TimbradoController extends Controller
         $fechahora = $fecha.'T'.$hora;
 
         $openssl = new \CfdiUtils\OpenSSL\OpenSSL();
-        $emidata = DB::table('datos_fiscales')->where('id',1)->get();
+        $emidata = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->first();
         $recdata = DB::table('clientes')->where('id',$receptor)->get();
         $facdata = DB::table('facturas')->where('id',$factura)->get();
         $pardata = DB::table('facturas_partidas')->where('facturas_id',$factura)->get();
 
         $nopardata = count($pardata);
         $tido = "I";
-        $csdpass = $emidata[0]->csdpass;
-        $apikey = '527e18596f1f496a83726a6f65c9b5d8';
-        $cerFile = storage_path('/app/public/'.$emidata[0]->cer);
-        $keyFile = storage_path('/app/public/'.$emidata[0]->key);
-        $keyPEM = storage_path('/app/public/CSD/'.$emidata[0]->rfc.'.key.pem');
-        $tmpxml =storage_path('/app/public/CSD/'.$recdata[0]->rfc.'.xml');
+        $csdpass = $emidata->csdpass;
+        $apikey = 'd653c0eee6664e099ead4a76d0f0e15d';
+        $cerFile = public_path('storage/'.$emidata->cer);
+        $keyFile = public_path('storage/'.$emidata->key);
+        $keyPEM = public_path('storage/'.$emidata->rfc.'.key.pem');
+        $tmpxml =public_path('storage/TMPXMLFiles/'.$recdata[0]->rfc.'.xml');
         if (file_exists($keyPEM)) {
             unlink($keyPEM);
         }
         if (file_exists($tmpxml)) {
             unlink($tmpxml);
         }
-        //-------------------------------------------------------
+        //-------------------------------------------------------        $openssl->derKeyProtect($keyFile, $csdpass, $keyPEM, $csdpass);
+        //dd($keyFile, $csdpass, $keyPEM, $csdpass);
         $openssl->derKeyProtect($keyFile, $csdpass, $keyPEM, $csdpass);
         $keyForFinkOk = $openssl->pemKeyProtectOut($keyPEM, $csdpass, $csdpass);
         //-------------------------------------------
@@ -59,7 +61,7 @@ class TimbradoController extends Controller
             'TipoDeComprobante'=>$tido,
             'Exportacion'=>"01",
             'MetodoPago'=>$facdata[0]->forma,
-            'LugarExpedicion'=>$emidata[0]->codigo,
+            'LugarExpedicion'=>$emidata->codigo,
             'Fecha'=>$fechahora,
             'FormaPago'=>$facdata[0]->metodo
         ];
@@ -75,9 +77,9 @@ class TimbradoController extends Controller
             ]);
         }
         $comprobante->addEmisor([
-            'Rfc'=>$emidata[0]->rfc,
-            'Nombre'=>$emidata[0]->nombre,
-            'RegimenFiscal'=>$emidata[0]->regimen
+            'Rfc'=>$emidata->rfc,
+            'Nombre'=>$emidata->nombre,
+            'RegimenFiscal'=>$emidata->regimen
         ]);
 
         $comprobante->addReceptor([

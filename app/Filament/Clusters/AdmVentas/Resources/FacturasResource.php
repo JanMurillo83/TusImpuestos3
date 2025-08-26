@@ -259,7 +259,7 @@ class FacturasResource extends Resource
                             TextInput::make('precio')
                                 ->numeric()
                                 ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
-                                ->live()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function(Get $get, Set $set){
                                     $cant = $get('cant');
                                     $cost = $get('precio');
@@ -572,9 +572,6 @@ class FacturasResource extends Resource
                         $archivo = public_path('/Reportes/Factura.pdf');
                         if(File::exists($archivo)) unlink($archivo);
                         SnappyPdf::loadView('RepFactura',['idorden'=>$idorden])
-                            ->setOption("footer-right", "Pagina [page] de [topage]")
-                            ->setOption("enable-local-file-access",true)
-                            ->setOption('encoding', 'utf-8')
                             ->save($archivo);
                         $ruta = env('APP_URL').'/Reportes/Factura.pdf';
                         //dd($ruta);
@@ -589,18 +586,28 @@ class FacturasResource extends Resource
                     PdfViewerField::make('archivo')
                     ->fileUrl(env('APP_URL').'/Reportes/Factura.pdf')
                 ]),
-                Tables\Actions\EditAction::make()
+                Tables\Actions\ViewAction::make()
                 ->label('')->icon(null)
-                ->modalSubmitActionLabel('Grabar')
+                ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('7xl')
-                ->after(function($record,$livewire){
-                    $livewire->callImprimir($record);
-                })->iconPosition(IconPosition::After),
-            ])
+                ->modalWidth('7xl'),
+                Action::make('Imprimir')->icon('fas-print')->iconButton()
+                ->action(function($record,$livewire){
+                    $cfdiData = \CfdiUtils\Cfdi::newFromString($record->xml);
+                    $comprobante = $cfdiData->getQuickReader();
+                    $emisor = $comprobante->emisor;
+                    $receptor = $comprobante->receptor;
+                    $tfd = $comprobante->complemento->TimbreFiscalDigital;
+                    //dd($tfd);
+                    $livewire->idorden = $record->id;
+                    $livewire->id_empresa = Filament::getTenant()->id;
+                    $livewire->getAction('Imprimir_Doc_P')->visible(true);
+                    $livewire->replaceMountedAction('Imprimir_Doc_P');
+                    $livewire->getAction('Imprimir_Doc_P')->visible(false);
+                })
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
                 ->createAnother(false)
@@ -653,12 +660,13 @@ class FacturasResource extends Resource
                         $factura = $data->id;
                         $receptor = $data->clie;
                         $emp = Team::where('id',Filament::getTenant()->id)->first();
-                        if($emp->archivokey != null) {
+                        if($emp->archivokey != null&&$emp->archivokey != '')
+                        {
                             $res = app(TimbradoController::class)->TimbrarFactura($factura, $receptor);
                             $resultado = json_decode($res);
                             $codigores = $resultado->codigo;
                             if ($codigores == "200") {
-                                $date = new DateTime('now', new DateTimeZone('America/Mexico_City'));
+                                $date = Carbon::now();
                                 $facturamodel = Facturas::find($factura);
                                 $facturamodel->timbrado = 'SI';
                                 $facturamodel->xml = $resultado->cfdi;
@@ -687,12 +695,7 @@ class FacturasResource extends Resource
                     //------------------------------------------
 
                 })
-            ],HeaderActionsPosition::Bottom)
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ],HeaderActionsPosition::Bottom);
     }
 
     public static function getRelations(): array

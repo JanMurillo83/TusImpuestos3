@@ -39,9 +39,15 @@ class DatosFiscalesResource extends Resource
                 Forms\Components\TextInput::make('csdpass')
                     ->label('Password CSD')->password()->revealable(),
                 Forms\Components\FileUpload::make('cer')
-                    ->columnSpan(2),
+                    ->columnSpan(2)
+                    ->directory(function (Get $get){
+                        return 'CSDFiles/'.$get('rfc');
+                    }),
                 Forms\Components\FileUpload::make('key')
-                    ->columnSpan(2),
+                    ->columnSpan(2)
+                    ->directory(function (Get $get){
+                        return 'CSDFiles/'.$get('rfc');
+                    }),
                 Forms\Components\FileUpload::make('logo')
                     ->image()
                     ->columnSpanFull()

@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmVentas;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\Pages;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\RelationManagers;
 use App\Http\Controllers\TimbradoController;
+use App\Models\CuentasCobrar;
 use App\Models\Facturas;
 use App\Models\Clientes;
 use App\Models\Cotizaciones;
@@ -595,12 +596,6 @@ class FacturasResource extends Resource
                 ->modalWidth('7xl'),
                 Action::make('Imprimir')->icon('fas-print')->iconButton()
                 ->action(function($record,$livewire){
-                    $cfdiData = \CfdiUtils\Cfdi::newFromString($record->xml);
-                    $comprobante = $cfdiData->getQuickReader();
-                    $emisor = $comprobante->emisor;
-                    $receptor = $comprobante->receptor;
-                    $tfd = $comprobante->complemento->TimbreFiscalDigital;
-                    //dd($tfd);
                     $livewire->idorden = $record->id;
                     $livewire->id_empresa = Filament::getTenant()->id;
                     $livewire->getAction('Imprimir_Doc_P')->visible(true);
@@ -655,6 +650,17 @@ class FacturasResource extends Resource
                         }
                         $nopar++;
                     }
+                    Clientes::where('id',$record->clie)->increment('saldo', $record->total);
+                    CuentasCobrar::create([
+                        'cliente'=>$record->clie,'concepto'=>1,
+                        'descripcion'=>'Factura',
+                        'documento'=>$record->serie.$record->folio,
+                        'fecha'=>Carbon::now(),
+                        'vencimiento'=>Carbon::now(),
+                        'importe'=>$record->total,
+                        'saldo'=>$record->total,
+                        'team_id'=>Filament::getTenant()->id
+                    ]);
                     //-----------------------------
                         $data = $record;
                         $factura = $data->id;
@@ -690,7 +696,11 @@ class FacturasResource extends Resource
                                     ->persistent()
                                     ->send();
                             }
-                            $livewire->callImprimir($record);
+                            $livewire->idorden = $record->id;
+                            $livewire->id_empresa = Filament::getTenant()->id;
+                            $livewire->getAction('Imprimir_Doc_P')->visible(true);
+                            $livewire->replaceMountedAction('Imprimir_Doc_P');
+                            $livewire->getAction('Imprimir_Doc_P')->visible(false);
                         }
                     //------------------------------------------
 

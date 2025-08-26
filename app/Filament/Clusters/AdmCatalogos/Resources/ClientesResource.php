@@ -101,7 +101,10 @@ class ClientesResource extends Resource
                                 4 =>'Lista de Precios 4',
                                 5 =>'Lista de Precios 5'
                            ])->default(1),
-                    ])->columns(2)
+                        Forms\Components\TextInput::make('saldo')
+                            ->prefix('$')->readOnly()->default(0.00)
+                        ->numeric()->currencyMask(decimalSeparator:'.',precision:2)
+                    ])->columns(3)
             ])->columns(4);
     }
 
@@ -124,6 +127,9 @@ class ClientesResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('contacto')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('saldo')
+                ->numeric(decimalPlaces: 2,decimalSeparator:'.')
+                ->prefix('$')
             ])
             ->filters([
                 //

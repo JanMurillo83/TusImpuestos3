@@ -175,6 +175,10 @@ class FacturasResource extends Resource
                                 ->afterStateUpdated(function(Get $get, Set $set){
                                     $cli = $get('../../clie');
                                     $prod = Inventario::where('id',$get('item'))->get();
+                                    if($prod == null){
+                                        Notification::make()->title('No existe el producto')->danger()->send();
+                                        return;
+                                    }
                                     $prod = $prod[0];
                                     $set('descripcion',$prod->descripcion);
                                     $set('unidad',$prod->unidad ?? 'H87');

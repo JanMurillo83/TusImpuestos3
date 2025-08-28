@@ -27,7 +27,7 @@
         $tfd = $comprobante->complemento->TimbreFiscalDigital;
     }
 
-    $logo = $emisor->logo64 ?? '';
+    $logo = $dafis->logo64 ?? '';
 ?>
 <!DOCTYPE html>
 <html>
@@ -52,10 +52,10 @@
             </div>
             <hr>
             <div class="row">
-                <div class="col-2">
-                    <img src="{{$logo}}" alt="NcPos" width="200px">
+                <div class="col-3">
+                    <img src="{{$logo}}" alt="Tus Impuestos" width="200px">
                 </div>
-                <div class="col-4">
+                <div class="col-3">
                     <b>{{$dafis->nombre}}</b><br>
                     <label>{{$dafis->rfc}}</label><br>
                     <label><b>REGIMEN FISCAL</b></label><br>
@@ -105,87 +105,139 @@
                 </div>
             </div>
             <!--Row1-->
-            <div class="mt-2 border row">
-                <center><h4>Conceptos</h4></center>
-                <table class="table ps-2" style="font-size: 12px !important">
+            <hr>
+            <div class="row">
+                <table>
                     <tr>
-                        <th class="ps-2"><b>Cantidad</b></th>
-                        <th><b>Unidad</b></th>
-                        <th><b>Clave SAT</b></th>
-                        <th colspan="4"><b>Descripcion</b></th>
-                        <th><b>Precio Unitario</b></th>
-                        <th><b>Total</b></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CANTIDAD</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CLAVE PROD/SERV</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CLAVE UNIDAD</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center" colspan="2">DESCRIPCION</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">VALOR UNITARIO</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">DESCUENTO</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">IMPORTE</th>
                     </tr>
                     @foreach ($partidas as $part)
-                    <tr>
-                        <td class="ps-2">{{number_format(floatval($part->cant), 2, '.')}}</td>
-                        <td>{{$part->unidad}}</td>
-                        <td>{{$part->cvesat}}</td>
-                        <td colspan="4">{{$part->item.'  '.$part->descripcion}}</td>
-                        <td>{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
-                        <td>{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>
-                    </tr>
+                        <tr>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{number_format(floatval($part->cant), 2, '.')}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->cvesat}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->unidad}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center" colspan="2">{{$part->item.'  '.$part->descripcion}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(0)}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>
+                        </tr>
                     @endforeach
                 </table>
             </div>
-            <!--Row1-->
-            <div class="row">
-                <div class="border col-8">
-                    <label>Observaciones: </label> <br>
-                    <p>{{$orden->observa}}</p>
+            <div class="row" style="margin-top: 5rem">
+                <div class="col-9">
+                    <label><b>TIPO RELACIÓN:</b></label><br>
+                    <label><b>CFDI RELACIONADO:</b></label>
                 </div>
-                <div class="pt-2 border col-4">
-                    <table class="table" style="width: 100%">
+                <div class="col-3">
+                    <table style="padding-right: 2rem !important; width: 100% !important;font-size: 15px !important">
                         <tr>
-                            <th colspan="3" class="text-center"><b>TOTALES</b></th>
+                            <td style="font-weight: bold;text-align: end; align-content: end">SUBTOTAL:</td>
+                            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->subtotal), 2, '.')}}</td>
                         </tr>
                         <tr>
-                            <td><b>Subtotal:  </b></td>
-                            <td colspan="2" class="text-end">{{'$ '.number_format(floatval($orden->subtotal), 2, '.')}}</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end">DESCUENTO:</td>
+                            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval(0), 2, '.')}}</td>
                         </tr>
-                        @if($orden->iva > 0)
                         <tr>
-                            <td><b>IVA:  </b></td>
-                            <td colspan="2" class="text-end">{{'$ '.number_format(floatval($orden->iva), 2, '.')}}</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end">IMPUESTOS TRASLADADOS:</td>
+                            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->iva)+floatval($orden->ieps), 2, '.')}}</td>
                         </tr>
-                        @endif
-                        @if($orden->retiva > 0)
                         <tr>
-                            <td><b>Retencion IVA:  </b></td>
-                            <td colspan="2" class="text-end">{{'$ '.number_format(floatval($orden->retiva), 2, '.')}}</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end">IMPUESTOS RETENIDOS:</td>
+                            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->retiva)+floatval($orden->retisr), 2, '.')}}</td>
                         </tr>
-                        @endif
-                        @if($orden->retisr > 0)
                         <tr>
-                            <td><b>Retencion ISR:  </b></td>
-                            <td colspan="2" class="text-end">{{'$ '.number_format(floatval($orden->retisr), 2, '.')}}</td>
+                            <td colspan="2">
+                                <hr>
+                            </td>
                         </tr>
-                        @endif
-                        @if($orden->retisr > 0)
                         <tr>
-                            <td><b>IEPS:  </b></td>
-                            <td colspan="2" class="text-end">{{'$ '.number_format(floatval($orden->ieps), 2, '.')}}</td>
-                        </tr>
-                        @endif
-                        <tr>
-                            <td><b>Total:  </b></td>
-                            <td colspan="2" class="text-end">{{'$ '.number_format(floatval($orden->total), 2, '.')}}</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end">TOTAL:</td>
+                            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->total), 2, '.')}}</td>
                         </tr>
                     </table>
                 </div>
             </div>
-            <div class="row border">
+            <div class="row">
+                <div class="col-7"></div>
+                <div class="col-5">
+                <?php
+                    $formatter = new \Luecano\NumeroALetras\NumeroALetras();
+                    $cant_letras = '';
+
+                    if($orden->moneda == 'MXN'){
+                        $formatter->conector = 'PESOS';
+                        $cant_letras = $formatter->toInvoice($orden->total, 2, 'M.N.');
+                    }else{
+                        $formatter->conector = 'DOLARES';
+                        $cant_letras = $formatter->toInvoice($orden->total, 2, 'USD');
+                    }
+                ?>
+                    <h5 style="font-weight: bold">{{$cant_letras}}</h5>
+                    <h6>MONEDA: <b>{{$orden->moneda}}</b>   TIPO DE CAMBIO: <b>{{number_format($orden->tcambio,2)}}</b></h6>
+                </div>
+
+            </div>
+            <div class="row">
+                <table>
+                    <tr>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES LOCALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS LOCALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES FEDERALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS FEDERALES</th>
+                    </tr>
+                    <tr>
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">ninguna</td>
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">ninguna</td>
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">
+                            <?php
+                            $ret = '';
+                            if($orden->retiva > 0) $ret.=' IVA RETENIDO'.' '.number_format($orden->retiva,2);
+                            if($orden->retisr > 0) $ret.=' ISR RETENIDO'.' '.number_format($orden->retisr,2);
+                            if($ret == '') $ret.='0';
+                            echo $ret;
+                            ?>
+                        </td>
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">
+                            <?php
+                            $ret = '';
+                            if($orden->iva > 0) $ret.=' IVA'.' '.number_format($orden->iva,2);
+                            if($orden->ieps > 0) $ret.=' IEPS'.' '.number_format($orden->ieps,2);
+                            if($ret == '') $ret.='0';
+                            echo $ret;
+                            ?>
+                        </td>
+
+                    </tr>
+                </table>
+            </div>
+            <div class="row">
                 <label style="font-size: 12px !important"><b>Sello CFDI:</b></label><br>
-                {{chunk_split($tfd['SelloCFD'] ?? '', 80)}}
+                <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 130)}}</p>
             </div>
-            <div class="row border">
+            <hr>
+            <div class="row">
                 <label style="font-size: 12px !important"><b>Sello SAT:</b></label><br>
-                {{chunk_split($tfd['SelloSAT'] ?? '', 80)}}
+                {{chunk_split($tfd['SelloSAT'] ?? '', 130)}}
             </div>
-            <div class="row border">
+            <hr>
+            <div class="row">
                 <label style="font-size: 12px !important"><b>Cadena Original:</b></label><br>
-                {{chunk_split($cadenaOrigen ?? '', 80)}}
+                {{chunk_split($cadenaOrigen ?? '', 130)}}
             </div>
+            <hr>
     </div>
     </body>
 </html>

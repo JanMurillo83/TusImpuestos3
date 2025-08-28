@@ -114,7 +114,7 @@ class FacturasResource extends Resource
                         ->required()
                         ->default(Carbon::now())->disabledOn('edit'),
                     Forms\Components\Select::make('esquema')
-                        ->options(Esquemasimp::all()->pluck('descripcion','id'))
+                        ->options(Esquemasimp::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
                         ->default(1)->disabledOn('edit'),
                     Forms\Components\Textarea::make('observa')
                         ->columnSpan(3)->label('Observaciones')
@@ -162,9 +162,9 @@ class FacturasResource extends Resource
                                 $set('retisr',$subt * ($esq->retisr*0.01));
                                 $set('ieps',$subt * ($esq->ieps*0.01));
                                 $ivapar = $subt * ($esq->iva*0.01);
-                                $retivapar = $subt * ($esq->iva*0.01);
-                                $retisrpar = $subt * ($esq->iva*0.01);
-                                $iepspar = $subt * ($esq->iva*0.01);
+                                $retivapar = $subt * ($esq->retiva*0.01);
+                                $retisrpar = $subt * ($esq->retisr*0.01);
+                                $iepspar = $subt * ($esq->ieps*0.01);
                                 $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
                                 $set('total',$tot);
                                 $set('clie',$get('../../clie'));
@@ -315,17 +315,16 @@ class FacturasResource extends Resource
                 Section::make('Totales')
                     ->schema([
                         Forms\Components\TextInput::make('subtotal')
-                        ->readOnly()
+                        ->readOnly()->inlineLabel()
                         ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
-                    Forms\Components\TextInput::make('Impuestos')
-                        ->readOnly()
-                        ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
-                    Forms\Components\Hidden::make('iva'),
-                    Forms\Components\Hidden::make('retiva'),
-                    Forms\Components\Hidden::make('retisr'),
-                    Forms\Components\Hidden::make('ieps'),
+                    Forms\Components\Hidden::make('Impuestos')
+                        ->default(0.00),
+                    Forms\Components\TextInput::make('iva')->inlineLabel()->label('IVA')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                    Forms\Components\TextInput::make('retiva')->inlineLabel()->label('Retención IVA')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                    Forms\Components\TextInput::make('retisr')->inlineLabel()->label('Retención ISR')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                    Forms\Components\TextInput::make('ieps')->inlineLabel()->label('Retención IEPS')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                     Forms\Components\TextInput::make('total')
-                        ->numeric()
+                        ->numeric()->inlineLabel()
                         ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                     Actions::make([
                         ActionsAction::make('ImportarExcel')
@@ -547,52 +546,9 @@ class FacturasResource extends Resource
                 //
             ])
             ->actions([
-                Action::make('Cancelar')
-                ->icon('fas-ban')
-                ->tooltip('Cancelar')->label('')
-                ->color(Color::Red)
-                ->badge()
-                ->requiresConfirmation()
-                ->action(function(Model $record){
-                    $est = $record->estado;
-                    if($est == 'Activa')
-                    {
-                        Notasventa::where('id',$record->id)->update([
-                            'estado'=>'Cancelada'
-                        ]);
-                        Notification::make()
-                        ->title('Nota Cancelada')
-                        ->success()
-                        ->send();
-                    }
-                }),
-                Action::make('Imprimir_Doc')
-                ->label('')->icon(null)->visible(false)
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction('')
-                ->modalContent(function($record){
-                    $idorden = $record->id;
-                    if($idorden != null)
-                    {
-                        $archivo = public_path('/Reportes/Factura.pdf');
-                        if(File::exists($archivo)) unlink($archivo);
-                        SnappyPdf::loadView('RepFactura',['idorden'=>$idorden])
-                            ->save($archivo);
-                        $ruta = env('APP_URL').'/Reportes/Factura.pdf';
-                        //dd($ruta);
-                        if($record->estado == 'Timbrada')
-                        {
-                            $extractor = new DiscoverExtractor();
-                            $expression = $extractor->extract($record->xml);
-                            dd($expression);
-                        }
-                    }
-                })->form([
-                    PdfViewerField::make('archivo')
-                    ->fileUrl(env('APP_URL').'/Reportes/Factura.pdf')
-                ]),
+
                 Tables\Actions\ViewAction::make()
-                ->label('')->icon(null)
+                ->label('')->icon('fas-eye')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Cerrar')
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
@@ -605,7 +561,38 @@ class FacturasResource extends Resource
                     $livewire->getAction('Imprimir_Doc_P')->visible(true);
                     $livewire->replaceMountedAction('Imprimir_Doc_P');
                     $livewire->getAction('Imprimir_Doc_P')->visible(false);
-                })
+                }),
+                Action::make('Cancelar')
+                    ->icon('fas-ban')
+                    ->tooltip('Cancelar')->label('')
+                    ->iconButton()
+                    ->requiresConfirmation()
+                    ->action(function(Model $record){
+                        $est = $record->estado;
+                        if($est == 'Activa')
+                        {
+                            Facturas::where('id',$record->id)->update([
+                                'estado'=>'Cancelada'
+                            ]);
+                            Notification::make()
+                                ->title('Nota Cancelada')
+                                ->success()
+                                ->send();
+                        }
+                    }),
+                Action::make('Descargar XML')
+                    ->icon('fas-download')
+                    ->iconButton()
+                    ->action(function($record){
+                        //dd($_SERVER["DOCUMENT_ROOT"]);
+                        $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$record->uuid.'.xml';
+                        if(File::exists($archivo)) unlink($archivo);
+                        $xml = $record->xml;
+                        $xml = Cleaner::staticClean($xml);
+                        File::put($archivo,$xml);
+                        $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$record->uuid.'.xml';
+                        return response()->download($ruta);
+                    })
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')

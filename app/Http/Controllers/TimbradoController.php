@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class TimbradoController extends Controller
 {
-    public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
-    //public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
+    //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
+    public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
     public function TimbrarFactura($factura,$receptor):string
     {
 	    $objConexion = new ConexionController($this->url);
@@ -33,7 +33,7 @@ class TimbradoController extends Controller
         $nopardata = count($pardata);
         $tido = "I";
         $csdpass = $emidata->csdpass;
-        $apikey = 'd653c0eee6664e099ead4a76d0f0e15d';
+        $apikey = '18b88997a6d3461b82b7786e8a6c05ac';
         $cerFile = public_path('storage/'.$emidata->cer);
         $keyFile = public_path('storage/'.$emidata->key);
         $keyPEM = public_path('storage/'.$emidata->rfc.'.key.pem');

@@ -31,111 +31,79 @@
 <html>
     <head>
         <script src="{{public_path('js/jquery-3.7.1.js')}}"></script>
-        <link href="{{public_path('dist/css/bootstrap.css')}}" rel="stylesheet">
-        <script src="{{public_path('dist/js/bootstrap.bundle.js')}}"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
         <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.0/cdn/components/qr-code/qr-code.js"></script>
         <title>CFDI - Ingreso</title>
     </head>
     <body>
         <div class="container mt-5">
             <div class="row">
-                <div class="text-start col-4">
-                    <img src="{{asset('images/logoNCTR.png')}}" alt="NcPos" width="200px">
+                <div class="col-6">
+                    <h6>ESTE DOCUMENTO ES UNA REPRESENTACIÓN IMPRESA DE UN CFDI.</h6>
+                    <h6>EMISOR <b>{{$dafis->nombre}}</b></h6>
                 </div>
-                <div class="text-start col-5">
-                    <center>
-                        <h5>Comprobante Fiscal Digital Ingreso</h5>
-                        <table>
-                            <tr>
-                                <td><b>Emisor:</b></td>
-                                <td>{{$dafis->nombre}}</td>
-                            </tr>
-                            <tr>
-                                <td><b>RFC:</b></td>
-                                <td>{{$emisor->rfc}}</td>
-                            </tr>
-                            <tr>
-                                <td><b>Regimen Fiscal:</b></td>
-                                <td>{{$dafis->regimen}}</td>
-                            </tr>
-                            <tr>
-                                <td><b>Expedido en:</b></td>
-                                <td>{{$dafis->codigo}}</td>
-                            </tr>
-                        </table>
-                    </center>
+                <div class="col-4"></div>
+                <div class="col-2">
+                    <h4>{{$orden->serie.$orden->folio}}</h4>
                 </div>
             </div>
-            <div class="border row">
-                <div class="mt-2 col-7">
-                    <table class="table table-bordered table-striped" style="width:100%">
-                        <tr>
-                            <td><b>Cliente:</b></td>
-                            <td colspan="3">{{$orden->clie.'   '.$orden->nombre}}</td>
-                        </tr>
-                        <tr>
-                            <td><b>RFC:</b></td>
-                            <td>{{$prove->rfc}}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Regimen Fiscal:</b></td>
-                            <td>{{$prove->regimen}}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Codigo Postal:</b></td>
-                            <td>{{$prove->codigo}}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Contacto:</b></td>
-                            <td colspan="3">{{$prove->contacto}}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Telefono:</b></td>
-                            <td>{{$prove->telefono}}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Condiciones:</b></td>
-                            <td>{{$orden->condiciones}}</td>
-                        </tr>
-                    </table>
+            <hr>
+            <div class="row">
+                <div class="col-2">
+                    <img src="{{$logo}}" alt="NcPos" width="200px">
                 </div>
-                <div class="content-end mt-2 col-5">
-                    <table class="table table-bordered table-striped" style="width:100%">
-                        <tr>
-                            <td class="pl-3 pr-3 text-start"><b>  Serie y Folio:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$orden->serie.' '.$orden->folio}}  </td>
-                        </tr>
-                        <tr>
-                            <td class="pl-3 pr-3 text-start"><b>  Fecha:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$comprobante['Fecha'] ?? ''}}  </td>
-                        </tr>
-                        <tr>
-                            <td class="pl-3 pr-3 text-start"><b>  Certificado SAT:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$tfd['NoCertificadoSAT'] ?? ''}}  </td>
-                        </tr>
-                        <tr>
-                            <td class="pl-3 pr-3 text-start"><b>  Certificado Emisor:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$comprobante['NoCertificado'] ?? ''}}  </td>
-                        </tr>
-                        <tr>
-                            <td class="pl-3 pr-3 text-start"><b>  Forma de pago:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$orden->metodo}}  </td>
-                        </tr>
-                        <tr>
-                            <td class="pl-3 pr-3 text-start"><b>  Metodo de Pago:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$orden->forma}}  </td>
-                        </tr>
-                        <tr>
-                            <td class="pl-3 pr-3 text-start"><b>  Uso de CFDI:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$orden->uso}}  </td>
-                        </tr>
-                    </table>
+                <div class="col-4">
+                    <b>{{$dafis->nombre}}</b><br>
+                    <label>{{$dafis->rfc}}</label><br>
+                    <label><b>REGIMEN FISCAL</b></label><br>
+                    <label>601 - General de Ley Personas Morales</label>
+                    <br>
+                    <br>
+                    <label><b>CONDICIONES DE PAGO:</b></label><label>CONTADO</label><br>
+                    <label><b>FORMA DE PAGO:</b></label><label>{{$orden->metodo}}</label><br>
+                    <label><b>METODO DE PAGO:</b></label><label>{{$orden->forma}}</label>
+                </div>
+                <div class="col-4">
+                    <label><b>TIPO DE COMPROBANTE:</b></label><label> I - Ingreso</label><br>
+                    <label><b>FOLIO FISCAL:</b></label><label>{{$tfd['UUID']?? ''}}</label><br>
+                    <label><b>NUMERO DE SERIE DEL CERTIFICADO DEL SAT:</b></label><label>{{$tfd['NoCertificadoSAT'] ?? ''}}</label><br>
+                    <label><b>FECHA Y HORA DE CERTIFICACIÓN:</b></label><label>{{$comprobante['Fecha'] ?? ''}}</label><br>
+                    <label><b>NUMERO DE SERIE DEL CSD DEL EMISOR:</b></label><label>{{$comprobante['NoCertificado'] ?? ''}}</label><br>
+                    <label><b>CLAVE CONFIRMACIÓN:</b></label>
+                </div>
+                <div class="col-2">
+                    <label><b>FACTURA FOLIO:</b></label> <label>{{$orden->serie.$orden->folio}}</label><br>
+                    <label><b>FECHA:</b></label> <label>{{$comprobante['Fecha'] ?? ''}}</label><br>
+                    <label><b>LUGAR DE EXPEDICION:</b></label> <label>{{$dafis->codigo}}</label><br>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-4">
+                    <?php
+                        $qr = QRCode::getMinimumQRCode(str_replace('?', "\n?", $parameters->expression() ?? ''), QR_ERROR_CORRECT_LEVEL_L);
+                        $qr->make();
+                        $qr->printHTML();
+                    ?>
+                </div>
+                <div class="col-6">
+                    <label><b>PARA:</b></label><br>
+                    <label>{{$orden->clie.'   '.$orden->nombre}}</label><br>
+                    <label>{{$prove->rfc}}</label><br>
+                    <label><b>RESIDENCIA FISCAL:</b></label><label>MEX</label><br>
+                    <label><b>NumRegIdTrib:</b></label><br>
+                    <label><b>USO CFDI:</b></label><label>{{$orden->uso}}</label><br>
+                </div>
+                <div class="col-2">
+                    <h6>NOTAS:</h6>
+                    <label>{{$orden->observa}}</label>
                 </div>
             </div>
             <!--Row1-->
             <div class="mt-2 border row">
                 <center><h4>Conceptos</h4></center>
-                <table class="table table-striped ps-2" style="font-size: 12px !important">
+                <table class="table ps-2" style="font-size: 12px !important">
                     <tr>
                         <th class="ps-2"><b>Cantidad</b></th>
                         <th><b>Unidad</b></th>
@@ -163,7 +131,7 @@
                     <p>{{$orden->observa}}</p>
                 </div>
                 <div class="pt-2 border col-4">
-                    <table class="table table-striped" style="width: 100%">
+                    <table class="table" style="width: 100%">
                         <tr>
                             <th colspan="3" class="text-center"><b>TOTALES</b></th>
                         </tr>
@@ -202,34 +170,17 @@
                     </table>
                 </div>
             </div>
-            <div class="mt-4 text-justify border row" style="font-size: 10px !important">
-                <div class="border col-6">
-                    <label style="font-size: 12px !important"><b>Sello CFDI:</b></label><br>
-                    {{chunk_split($tfd['SelloCFD'] ?? '', 80)}}
-                </div>
-                <div class="border col-6">
-                    <label style="font-size: 12px !important"><b>Sello SAT:</b></label><br>
-                    {{chunk_split($tfd['SelloSAT'] ?? '', 80)}}
-                </div>
+            <div class="row border">
+                <label style="font-size: 12px !important"><b>Sello CFDI:</b></label><br>
+                {{chunk_split($tfd['SelloCFD'] ?? '', 80)}}
             </div>
-            <div class="text-sm text-justify border row">
-                <div class="border col-6" style="font-size: 10px !important">
-                    <label style="font-size: 12px !important"><b>Cadena Original:</b></label><br>
-                    {{chunk_split($cadenaOrigen ?? '', 80)}}
-                </div>
-                <div class="border col-6">
-                    <center>
-                        <label style="font-size: 10px !important"><b>UUID:  {{$tfd['UUID']?? ''}}</b></label>
-                        <?php
-                            $qr = QRCode::getMinimumQRCode(str_replace('?', "\n?", $parameters->expression() ?? ''), QR_ERROR_CORRECT_LEVEL_L);
-                            $qr->make();
-                            $qr->printHTML();
-                        ?>
-                    </center>
-                </div>
+            <div class="row border">
+                <label style="font-size: 12px !important"><b>Sello SAT:</b></label><br>
+                {{chunk_split($tfd['SelloSAT'] ?? '', 80)}}
             </div>
-            <div class="text-sm text-justify border row">
-             <center><label>Este documento es una representación impresa de un Comprobante Fiscal Digital a través de Internet versión 4.0</label></center>
+            <div class="row border">
+                <label style="font-size: 12px !important"><b>Cadena Original:</b></label><br>
+                {{chunk_split($cadenaOrigen ?? '', 80)}}
             </div>
     </div>
     </body>

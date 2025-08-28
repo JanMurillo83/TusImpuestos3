@@ -115,12 +115,20 @@ class FacturasResource extends Resource
                         ->default(Carbon::now())->disabledOn('edit'),
                     Forms\Components\Select::make('esquema')
                         ->options(Esquemasimp::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
-                        ->default(1)->disabledOn('edit'),
-                    Forms\Components\Textarea::make('observa')
-                        ->columnSpan(3)->label('Observaciones')
-                        ->rows(1),
+                        ->default(fn()=>Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id)->disabledOn('edit'),
+                        Forms\Components\Select::make('moneda')
+                            ->label('Moneda')
+                            ->options(['MXN'=>'MXN','USD'=>'USD'])
+                            ->default('MXN')->live(onBlur: true),
+                    Forms\Components\TextInput::make('tcambio')
+                        ->label('Tipo de Cambio')->disabled(function (Get $get) {
+                            if($get('moneda') == 'MXN') return true;
+                            else return false;
+                        })
+                        ->numeric()->default(1)->prefix('$')
+                        ->currencyMask(decimalSeparator:'.',precision:4),
                     Forms\Components\TextInput::make('condiciones')
-                        ->columnSpan(2)->default('CONTADO'),
+                        ->columnSpan(3)->default('CONTADO'),
                     Forms\Components\Select::make('forma')
                         ->label('Metodo de Pago')
                         ->options(Formas::all()->pluck('mostrar','clave'))
@@ -133,10 +141,14 @@ class FacturasResource extends Resource
                     Forms\Components\Select::make('uso')
                         ->label('Uso de CFDI')
                         ->options(Usos::all()->pluck('mostrar','clave'))
-                        ->default('S01')
+                        ->default('G03')
                         ->columnSpan(2),
                     TableRepeater::make('partidas')
                         ->relationship()
+                        ->disabled(function(Get $get){
+                            if($get('clie') > 0)
+                                return false; else return true;
+                        })
                         ->addActionLabel('Agregar')
                         ->headers([
                             Header::make('Cantidad'),
@@ -174,12 +186,11 @@ class FacturasResource extends Resource
                                 ->live(onBlur:true)
                                 ->afterStateUpdated(function(Get $get, Set $set){
                                     $cli = $get('../../clie');
-                                    $prod = Inventario::where('id',$get('item'))->get();
+                                    $prod = Inventario::where('id',$get('item'))->first();
                                     if($prod == null){
                                         Notification::make()->title('No existe el producto')->danger()->send();
                                         return;
                                     }
-                                    $prod = $prod[0];
                                     $set('descripcion',$prod->descripcion);
                                     $set('unidad',$prod->unidad ?? 'H87');
                                     $set('cvesat',$prod->cvesat ?? '01010101');
@@ -209,7 +220,10 @@ class FacturasResource extends Resource
                                         ->label('Seleccionar')
                                         ->searchable()
                                         ->options(Inventario::all()->pluck('descripcion','id'))
-                                    ])
+                                    ])->disabled(function(Get $get){
+                                            if($get('clie') > 0)
+                                                return false; else return true;
+                                        })
                                     ->action(function(Set $set,Get $get,$data){
                                         $cli = $get('../../clie');
                                         $cant = $get('cant');
@@ -386,49 +400,6 @@ class FacturasResource extends Resource
                             })
                         ]),
                         Actions::make([
-                            ActionsAction::make('Imprimir')
-                            ->label('Imprimir Factura')
-                            ->badge()->tooltip('Imprimir Factura')
-                            ->icon('fas-print')
-                            ->modalCancelActionLabel('Cerrar')
-                            ->modalSubmitAction('')
-                            ->modalContent(function(Get $get){
-                                $idorden = $get('id');
-                                if($idorden != null)
-                                {
-                                    $archivo = public_path('/Reportes/Facturas.pdf');
-                                    if(File::exists($archivo)) unlink($archivo);
-                                    $record = Facturas::where('folio',$get('folio'))->get();
-                                    $record = $record[0];
-                                    $cfdiData = null;
-                                    if($record->estado == 'Timbrada')
-                                    {
-                                        $xmlpath = storage_path('app/public/TMP/xmltemporal.xml');
-                                        if(File::exists($xmlpath)) unlink($xmlpath);
-                                        $xml = $record->xml;
-                                        $xml = Cleaner::staticClean($xml);
-                                        $comprobante = XmlNodeUtils::nodeFromXmlString($xml);
-                                        $cfdiData = (new CfdiDataBuilder)->build($comprobante);
-                                        $pdf = SnappyPdf::loadView('RepFactura',['idorden'=>$idorden,'cfdiData'=>$cfdiData]);
-                                        $pdf->setOption("footer-right", "Pagina [page] de [topage]")
-                                        ->setOption("enable-local-file-access",true)
-                                        ->setOption('encoding', 'utf-8')
-                                        ->save($archivo);
-                                    }
-                                    else{
-                                        $pdf = SnappyPdf::loadView('RepFacturaNT',['idorden'=>$idorden]);
-                                        $pdf->setOption("footer-right", "Pagina [page] de [topage]")
-                                        ->setOption("enable-local-file-access",true)
-                                        ->setOption('encoding', 'utf-8')
-                                        ->save($archivo);
-                                    }
-                                }
-                            })->form([
-                                PdfViewerField::make('archivo')
-                                ->fileUrl(env('APP_URL').'/Reportes/Facturas.pdf')
-                            ])
-                    ])->visibleOn('edit'),
-                    Actions::make([
                         ActionsAction::make('Enlazar Nota')
                             ->badge()->tooltip('Enlazar Nota de Venta')
                             ->icon('fas-file-import')
@@ -465,10 +436,12 @@ class FacturasResource extends Resource
                             })
                     ])
                     ])->grow(false),
-
             ])->columnSpanFull(),
             Forms\Components\Hidden::make('nombre'),
             Forms\Components\Hidden::make('estado')->default('Activa'),
+            Forms\Components\Textarea::make('observa')
+                ->columnSpanFull()->label('Observaciones')
+                ->rows(3),
         ]);
     }
 

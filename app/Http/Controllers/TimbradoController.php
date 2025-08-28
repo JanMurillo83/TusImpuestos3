@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Facturas;
 use DateTime;
 use DateTimeZone;
 use Filament\Facades\Filament;
@@ -29,7 +30,6 @@ class TimbradoController extends Controller
         $recdata = DB::table('clientes')->where('id',$receptor)->get();
         $facdata = DB::table('facturas')->where('id',$factura)->get();
         $pardata = DB::table('facturas_partidas')->where('facturas_id',$factura)->get();
-
         $nopardata = count($pardata);
         $tido = "I";
         $csdpass = $emidata->csdpass;
@@ -51,13 +51,13 @@ class TimbradoController extends Controller
         //-------------------------------------------
         $certificado = new \CfdiUtils\Certificado\Certificado($cerFile);
         $tipo_cambio = 1;
-        if($facdata->moneda != 'MXN')$tipo_cambio = number_format($facdata->tcambio,4);
+        if($facdata[0]->moneda != 'MXN')$tipo_cambio = number_format($facdata[0]->tcambio,4);
         $comprobanteAtributos = [
             'Serie' => 'F',
             'Folio' => $facdata[0]->folio,
             'CondicionesDePago'=>$facdata[0]->condiciones ?? "CONTADO",
             'SubTotal'=>$facdata[0]->subtotal,
-            'Moneda'=>$facdata->moneda,
+            'Moneda'=>$facdata[0]->moneda,
             'TipoCambio'=>$tipo_cambio,
             'Total'=>$facdata[0]->total,
             'TipoDeComprobante'=>$tido,

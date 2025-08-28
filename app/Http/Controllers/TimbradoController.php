@@ -50,13 +50,15 @@ class TimbradoController extends Controller
         $keyForFinkOk = $openssl->pemKeyProtectOut($keyPEM, $csdpass, $csdpass);
         //-------------------------------------------
         $certificado = new \CfdiUtils\Certificado\Certificado($cerFile);
+        $tipo_cambio = 1;
+        if($facdata->moneda != 'MXN')$tipo_cambio = number_format($facdata->tcambio,4);
         $comprobanteAtributos = [
             'Serie' => 'F',
             'Folio' => $facdata[0]->folio,
             'CondicionesDePago'=>$facdata[0]->condiciones ?? "CONTADO",
             'SubTotal'=>$facdata[0]->subtotal,
             'Moneda'=>$facdata->moneda,
-            'TipoCambio'=>number_format($facdata->tcambio,4),
+            'TipoCambio'=>$tipo_cambio,
             'Total'=>$facdata[0]->total,
             'TipoDeComprobante'=>$tido,
             'Exportacion'=>"01",
@@ -99,7 +101,7 @@ class TimbradoController extends Controller
                 'Cantidad'=>number_format($pardata[$i]->cant, 2, '.', ''),
                 'ClaveUnidad'=>$pardata[$i]->unidad,
                 'ObjetoImp'=>"02",
-                'Descripcion'=>$pardata[$i]->descripcion,
+                'Descripcion'=>$pardata[$i]->descripcion.' '.$pardata[$i]->observa ?? '',
                 'ValorUnitario'=>number_format($pardata[$i]->precio, 2, '.', ''),
                 'Importe'=>number_format($pardata[$i]->subtotal, 2, '.', '')
             ]);

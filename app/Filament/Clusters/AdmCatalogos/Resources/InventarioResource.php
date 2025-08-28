@@ -150,7 +150,7 @@ class InventarioResource extends Resource
                     ->required()
                     ->options(Unidades::all()->pluck('mostrar','clave'))
                     ->default('H87'),
-                    Forms\Components\TextInput::make('cvesat')
+                Forms\Components\TextInput::make('cvesat')
                     ->label('Clave SAT')
                     ->default('01010101')
                     ->required()
@@ -176,8 +176,9 @@ class InventarioResource extends Resource
                         ->modalSubmitActionLabel('Seleccionar')
                         ->modalWidth('sm')
                         ->action(function(Set $set,$data){
-                        $set('cvesat',$data['CatCveSat']);
-                })),
+                            $set('cvesat',$data['CatCveSat']);
+                        })
+                    ),
 
                 ]),
             ]);

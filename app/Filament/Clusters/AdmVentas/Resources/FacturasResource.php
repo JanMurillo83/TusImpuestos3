@@ -6,12 +6,14 @@ use App\Filament\Clusters\AdmVentas;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\Pages;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\RelationManagers;
 use App\Http\Controllers\TimbradoController;
+use App\Models\Claves;
 use App\Models\CuentasCobrar;
 use App\Models\Facturas;
 use App\Models\Clientes;
 use App\Models\Cotizaciones;
 use App\Models\CotizacionesPartidas;
 use App\Models\Esquemasimp;
+use App\Models\FacturasPartidas;
 use App\Models\Formas;
 use App\Models\Inventario;
 use App\Models\Metodos;
@@ -19,6 +21,7 @@ use App\Models\Movinventario;
 use App\Models\Notasventa;
 use App\Models\NotasventaPartidas;
 use App\Models\Team;
+use App\Models\Unidades;
 use App\Models\Usos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -29,6 +32,7 @@ use CfdiUtils\Nodes\XmlNodeUtils;
 use DateTime;
 use DateTimeZone;
 use DOMDocument;
+use Dvarilek\FilamentTableSelect\Components\Form\TableSelect;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Actions;
@@ -46,6 +50,7 @@ use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
@@ -151,11 +156,11 @@ class FacturasResource extends Resource
                         })
                         ->addActionLabel('Agregar')
                         ->headers([
-                            Header::make('Cantidad'),
-                            Header::make('Item'),
-                            Header::make('Descripcion')->width('200px'),
+                            Header::make('Cantidad')->width('100px'),
+                            Header::make('Item')->width('300px'),
                             Header::make('Unitario'),
                             Header::make('Subtotal'),
+                            Header::make('Observaciones')->width('200px'),
                         ])->schema([
                             TextInput::make('cant')->numeric()
                             ->default(1)->label('Cantidad')
@@ -182,101 +187,105 @@ class FacturasResource extends Resource
                                 $set('clie',$get('../../clie'));
                                 Self::updateTotals($get,$set);
                             }),
-                            TextInput::make('item')
-                                ->live(onBlur:true)
-                                ->afterStateUpdated(function(Get $get, Set $set){
-                                    $cli = $get('../../clie');
-                                    $prod = Inventario::where('id',$get('item'))->first();
-                                    if($prod == null){
-                                        Notification::make()->title('No existe el producto')->danger()->send();
-                                        return;
-                                    }
-                                    $set('descripcion',$prod->descripcion);
-                                    $set('unidad',$prod->unidad ?? 'H87');
-                                    $set('cvesat',$prod->cvesat ?? '01010101');
-                                    $set('costo',$prod->p_costo);
-                                    $clie = Clientes::where('id',$cli)->get();
-                                    $clie = $clie[0];
-                                    $precio = 0;
-                                    switch($clie->lista)
-                                    {
-                                        case 1: $precio = $prod->precio1; break;
-                                        case 2: $precio = $prod->precio2; break;
-                                        case 3: $precio = $prod->precio3; break;
-                                        case 4: $precio = $prod->precio4; break;
-                                        case 5: $precio = $prod->precio5; break;
-                                        default: $precio = $prod->precio1; break;
-                                    }
-                                    $desc = $clie->descuento * 0.01;
-                                    $prec = $precio * $desc;
-                                    $precio = $precio - $prec;
-                                    $set('precio',$precio);
-                                    Self::updateTotals($get,$set);
-                                })->suffixAction(
-                                    ActionsAction::make('AbreItem')
-                                    ->icon('fas-circle-question')
-                                    ->form([
-                                        Select::make('SelItem')
-                                        ->label('Seleccionar')
-                                        ->searchable()
-                                        ->options(Inventario::all()->pluck('descripcion','id'))
-                                    ])->disabled(function(Get $get){
-                                            $cli = $get('../../clie');
-                                            if($cli > 0)
-                                                return false;
-                                            else return true;
-                                        })
-                                    ->action(function(Set $set,Get $get,$data){
-                                        $cli = $get('../../clie');
-                                        $cant = $get('cant');
-                                        $item = $data['SelItem'];
-                                        $set('item',$item);
-                                        $prod = Inventario::where('id',$item)->get();
-                                        $prod = $prod[0];
-                                        $set('descripcion',$prod->descripcion);
-                                        $set('unidad',$prod->unidad ?? 'H87');
-                                        $set('cvesat',$prod->cvesat ?? '01010101');
-                                        $set('costo',$prod->p_costo);
-                                        $clie = Clientes::where('id',$cli)->get();
-                                        $clie = $clie[0];
-                                        $precio = 0;
-                                        switch($clie->lista)
-                                        {
-                                            case 1: $precio = $prod->precio1; break;
-                                            case 2: $precio = $prod->precio2; break;
-                                            case 3: $precio = $prod->precio3; break;
-                                            case 4: $precio = $prod->precio4; break;
-                                            case 5: $precio = $prod->precio5; break;
-                                            default: $precio = $prod->precio1; break;
-                                        }
-                                        $desc = $clie->descuento * 0.01;
-                                        $prec = $precio * $desc;
-                                        $precio = $precio - $prec;
-                                        $set('precio',$precio);
-                                        $subt = $precio * $cant;
-                                        $set('subtotal',$subt);
-                                        $ivap = $get('../../esquema');
-                                        $esq = Esquemasimp::where('id',$ivap)->get();
-                                        $esq = $esq[0];
-                                        $set('por_imp1',$esq->iva);
-                                        $set('por_imp2',$esq->retiva);
-                                        $set('por_imp3',$esq->retisr);
-                                        $set('por_imp4',$esq->ieps);
-                                        $set('iva',$subt * ($esq->iva*0.01));
-                                        $set('retiva',$subt * ($esq->retiva*0.01));
-                                        $set('retisr',$subt * ($esq->retisr*0.01));
-                                        $set('ieps',$subt * ($esq->ieps*0.01));
-                                        $ivapar = $subt * ($esq->iva*0.01);
-                                        $retivapar = $subt * ($esq->retiva*0.01);
-                                        $retisrpar = $subt * ($esq->retisr*0.01);
-                                        $iepspar = $subt * ($esq->ieps*0.01);
-                                        $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                        $set('total',$tot);
-                                        $set('clie',$get('../../clie'));
-                                        Self::updateTotals($get,$set);
-                                    })
-                            ),
-                            TextInput::make('descripcion'),
+                            Select::make('item')
+                            ->searchable()
+                            ->options(Inventario::where('team_id',Filament::getTenant()->id)->select(DB::raw("id,CONCAT(clave,'-',descripcion) as descripcion"))->pluck('descripcion','id'))
+                            ->createOptionForm(function ($form) {
+                                return $form
+                                    ->schema([
+                                        TextInput::make('clave')->label('SKU')->required(),
+                                        TextInput::make('descripcion')->columnSpan(3)->required(),
+                                        TextInput::make('precio')->required()->default(0),
+                                        Forms\Components\TextInput::make('cvesat')
+                                            ->label('Clave SAT')
+                                            ->default('01010101')
+                                            ->required()
+                                            ->suffixAction(
+                                                \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat')
+                                                    ->label('Buscador')
+                                                    ->icon('fas-circle-question')
+                                                    ->form([
+                                                        Forms\Components\Select::make('CatCveSat')
+                                                            ->default(function(Get $get): string{
+                                                                if($get('cvesat'))
+                                                                    $val = $get('cvesat');
+                                                                else
+                                                                    $val = '01010101';
+                                                                return $val;
+                                                            })
+                                                            ->label('Claves SAT')
+                                                            ->searchable()
+                                                            ->searchDebounce(100)
+                                                            ->getSearchResultsUsing(fn (string $search): array => Claves::where('mostrar', 'like', "%{$search}%")->limit(50)->pluck('mostrar', 'clave')->toArray())
+                                                    ])
+                                                    ->modalCancelAction(false)
+                                                    ->modalSubmitActionLabel('Seleccionar')
+                                                    ->modalWidth('sm')
+                                                    ->action(function(Set $set,$data){
+                                                        $set('cvesat',$data['CatCveSat']);
+                                                    })
+                                            ),
+                                        Select::make('unidad')
+                                            ->label('Unidad de Medida')
+                                            ->searchable()
+                                            ->required()
+                                            ->options(Unidades::all()->pluck('mostrar','clave'))
+                                            ->default('H87'),
+                                        Select::make('servicio')->label('Servicio')
+                                            ->options(['SI'=>'SI','NO'=>'NO'])->default('NO'),
+                                    ])->columns(4);
+                            })->createOptionUsing(function ($data) {
+                                return Inventario::create([
+                                    'clave'=> $data['clave'],
+                                    'descripcion'=> $data['descripcion'],
+                                    'linea'=>1,
+                                    'marca'=>'',
+                                    'modelo'=>'',
+                                    'u_costo'=>0,
+                                    'p_costo'=>0,
+                                    'precio1'=> $data['precio'],
+                                    'precio2'=>0,
+                                    'precio3'=>0,
+                                    'precio4'=>0,
+                                    'precio5'=>0,
+                                    'exist'=>0,
+                                    'esquema'=>Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id,
+                                    'servicio'=>$data['servicio'],
+                                    'unidad'=>$data['unidad'],
+                                    'cvesat'=>$data['cvesat'],
+                                    'team_id'=>Filament::getTenant()->id
+                                ])->getKey();
+                            })->live(onBlur: true)
+                            ->afterStateUpdated(function(Get $get, Set $set){
+                                $cli = $get('../../clie');
+                                $prod = Inventario::where('id',$get('item'))->first();
+                                if($prod == null){
+                                    Notification::make()->title('No existe el producto')->danger()->send();
+                                    return;
+                                }
+                                $set('descripcion',$prod->descripcion);
+                                $set('unidad',$prod->unidad ?? 'H87');
+                                $set('cvesat',$prod->cvesat ?? '01010101');
+                                $set('costo',$prod->p_costo);
+                                $clie = Clientes::where('id',$cli)->get();
+                                $clie = $clie[0];
+                                $precio = 0;
+                                switch($clie->lista)
+                                {
+                                    case 1: $precio = $prod->precio1; break;
+                                    case 2: $precio = $prod->precio2; break;
+                                    case 3: $precio = $prod->precio3; break;
+                                    case 4: $precio = $prod->precio4; break;
+                                    case 5: $precio = $prod->precio5; break;
+                                    default: $precio = $prod->precio1; break;
+                                }
+                                $desc = $clie->descuento * 0.01;
+                                $prec = $precio * $desc;
+                                $precio = $precio - $prec;
+                                $set('precio',$precio);
+                                Self::updateTotals($get,$set);
+                            }),
+                            Hidden::make('descripcion'),
                             TextInput::make('precio')
                                 ->numeric()
                                 ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
@@ -317,7 +326,7 @@ class FacturasResource extends Resource
                             Hidden::make('unidad'),
                             Hidden::make('cvesat'),
                             Hidden::make('clie'),
-                            Hidden::make('observa'),
+                            TextInput::make('observa'),
                             Hidden::make('siguiente'),
                             Hidden::make('costo'),
                             Hidden::make('por_imp1'),
@@ -517,11 +526,7 @@ class FacturasResource extends Resource
             Tables\Columns\TextColumn::make('estado')
                 ->searchable(),
             ])
-            ->filters([
-                //
-            ])
             ->actions([
-
                 Tables\Actions\ViewAction::make()
                 ->label('')->icon('fas-eye')
                 ->modalSubmitAction(false)
@@ -567,6 +572,49 @@ class FacturasResource extends Resource
                         File::put($archivo,$xml);
                         $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$record->uuid.'.xml';
                         return response()->download($ruta);
+                    }),
+                Action::make('Timbrar')->icon('fas-bell-concierge')
+                    ->iconButton()
+                    ->label('Timbrar Factura')
+                    ->requiresConfirmation()
+                    ->disabled(function($record){
+                        if($record->estado == 'Timbrada'||$record->estado == 'Cancelada') return true;
+                        else return false;
+                    })->action(function($record) {
+                        $data = $record;
+                        $factura = $data->id;
+                        $receptor = $data->clie;
+                        $emp = Team::where('id', Filament::getTenant()->id)->first();
+                        if ($emp->archivokey != null && $emp->archivokey != '') {
+                            $res = app(TimbradoController::class)->TimbrarFactura($factura, $receptor);
+                            $resultado = json_decode($res);
+                            $codigores = $resultado->codigo;
+                            if ($codigores == "200") {
+                                $date = Carbon::now();
+                                $facturamodel = Facturas::find($factura);
+                                $facturamodel->timbrado = 'SI';
+                                $facturamodel->xml = $resultado->cfdi;
+                                $facturamodel->fecha_tim = $date;
+                                $facturamodel->save();
+                                $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
+                                $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
+                                Notification::make()
+                                    ->success()
+                                    ->title('Factura Timbrada Correctamente')
+                                    ->body($mensaje_graba)
+                                    ->duration(2000)
+                                    ->send();
+                            } else {
+                                $mensaje_tipo = "2";
+                                $mensaje_graba = $resultado->mensaje;
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Error al Timbrar el Documento')
+                                    ->body($mensaje_graba)
+                                    ->persistent()
+                                    ->send();
+                            }
+                        }
                     })
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
@@ -579,7 +627,7 @@ class FacturasResource extends Resource
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('7xl')->badge()
+                ->modalWidth('full')
                 ->after(function($record,$livewire){
                     $partidas = $record->partidas;
                     $nopar = 0;
@@ -618,13 +666,14 @@ class FacturasResource extends Resource
                     }
                     Clientes::where('id',$record->clie)->increment('saldo', $record->total);
                     CuentasCobrar::create([
-                        'cliente'=>$record->clie,'concepto'=>1,
+                        'cliente'=>$record->clie,
+                        'concepto'=>1,
                         'descripcion'=>'Factura',
                         'documento'=>$record->serie.$record->folio,
                         'fecha'=>Carbon::now(),
                         'vencimiento'=>Carbon::now(),
-                        'importe'=>$record->total,
-                        'saldo'=>$record->total,
+                        'importe'=>$record->total * $record->tcambio,
+                        'saldo'=>$record->total * $record->tcambio,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     //-----------------------------

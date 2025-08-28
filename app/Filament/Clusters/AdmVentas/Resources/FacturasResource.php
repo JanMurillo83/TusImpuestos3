@@ -221,8 +221,10 @@ class FacturasResource extends Resource
                                         ->searchable()
                                         ->options(Inventario::all()->pluck('descripcion','id'))
                                     ])->disabled(function(Get $get){
-                                            if($get('clie') > 0)
-                                                return false; else return true;
+                                            $cli = $get('../../clie');
+                                            if($cli > 0)
+                                                return false;
+                                            else return true;
                                         })
                                     ->action(function(Set $set,Get $get,$data){
                                         $cli = $get('../../clie');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FacturasPartidas extends Model
 {
@@ -14,5 +15,10 @@ class FacturasPartidas extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function inven():BelongsToMany
+    {
+        return $this->belongsToMany(Inventario::class,'inventario.id','partidas.item');
     }
 }

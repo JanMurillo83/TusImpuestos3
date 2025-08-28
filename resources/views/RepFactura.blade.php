@@ -8,6 +8,7 @@
     $dafis = DB::table('datos_fiscales')->where('team_id',$id_empresa)->first();
     $emisor = \App\Models\DatosFiscales::where('team_id',$id_empresa)->first();
     $a_xml = $orden->xml;
+    $parameters = null;
     if($a_xml != null&&$a_xml!='')
     {
         $cfdi = \CfdiUtils\Cfdi::newFromString($a_xml);
@@ -25,6 +26,7 @@
         $receptor = $comprobante->receptor;
         $tfd = $comprobante->complemento->TimbreFiscalDigital;
     }
+
     $logo = $emisor->logo64 ?? '';
 ?>
 <!DOCTYPE html>
@@ -82,9 +84,11 @@
             <div class="row">
                 <div class="col-4">
                     <?php
-                        $qr = QRCode::getMinimumQRCode(str_replace('?', "\n?", $parameters->expression() ?? ''), QR_ERROR_CORRECT_LEVEL_L);
-                        $qr->make();
-                        $qr->printHTML();
+                        if($parameters) {
+                            $qr = QRCode::getMinimumQRCode(str_replace('?', "\n?", $parameters->expression() ?? ''), QR_ERROR_CORRECT_LEVEL_L);
+                            $qr->make();
+                            $qr->printHTML();
+                        }
                     ?>
                 </div>
                 <div class="col-6">

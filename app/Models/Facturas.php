@@ -10,7 +10,7 @@ class Facturas extends Model
 {
     protected $fillable = ['serie','folio','docto','fecha','clie','nombre','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','observa','estado','metodo',
-    'forma','uso','uuid','condiciones','vendedor','anterior','timbrado','xml','fecha_tim','team_id'];
+    'forma','uso','uuid','condiciones','vendedor','anterior','timbrado','xml','fecha_tim','moneda','tcambio','team_id'];
     public function partidas(): HasMany
     {
         return $this->hasMany(related: FacturasPartidas::class);

@@ -3,6 +3,10 @@
 namespace App\Filament\Clusters\AdmVentas\Resources\FacturasResource\Pages;
 
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource;
+use App\Models\Clientes;
+use App\Models\DatosFiscales;
+use App\Models\Facturas;
+use App\Models\Team;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
@@ -21,9 +25,15 @@ class ListFacturas extends ListRecords
             ->print(false)
             ->savePdf()
             ->preview()
-            ->margin([10,10,10,10])
+            ->margin([0,0,0,2])
             ->content(fn() => view('RepFactura',['idorden'=>$this->idorden,'id_empresa'=>$this->id_empresa]))
             ->modalWidth('7xl')
+            ->filename(function () {
+                $record = Facturas::where('id',$this->idorden)->first();
+                $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                $cli = Clientes::where('id',$record->clie)->first();
+                return $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+            })
         ];
     }
 

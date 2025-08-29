@@ -36,17 +36,18 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
         <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.0/cdn/components/qr-code/qr-code.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=0.8" />
         <title>CFDI - Ingreso</title>
     </head>
     <body>
-        <div class="container mt-5">
+        <div class="container mt-5" style="margin-left: 1rem !important; margin-right: 1rem !important;">
             <div class="row">
-                <div class="col-6">
+                <div class="col-6" style="font-size: 9px !important;">
                     <h6>ESTE DOCUMENTO ES UNA REPRESENTACIÓN IMPRESA DE UN CFDI.</h6>
                     <h6>EMISOR <b>{{$dafis->nombre}}</b></h6>
                 </div>
                 <div class="col-4"></div>
-                <div class="col-2">
+                <div class="col-2" style="font-size: 10px !important;">
                     <h4>{{$orden->serie.$orden->folio}}</h4>
                 </div>
             </div>
@@ -55,7 +56,7 @@
                 <div class="col-3">
                     <img src="{{$logo}}" alt="Tus Impuestos" width="200px">
                 </div>
-                <div class="col-3">
+                <div class="col-3" style="font-size: 10px !important;">
                     <b>{{$dafis->nombre}}</b><br>
                     <label>{{$dafis->rfc}}</label><br>
                     <label><b>REGIMEN FISCAL</b></label><br>
@@ -66,7 +67,7 @@
                     <label><b>FORMA DE PAGO:</b></label><label>{{$orden->metodo}}</label><br>
                     <label><b>METODO DE PAGO:</b></label><label>{{$orden->forma}}</label>
                 </div>
-                <div class="col-4">
+                <div class="col-4" style="font-size: 10px !important;">
                     <label><b>TIPO DE COMPROBANTE:</b></label><label> I - Ingreso</label><br>
                     <label><b>FOLIO FISCAL:</b></label><label>{{$tfd['UUID']?? ''}}</label><br>
                     <label><b>NUMERO DE SERIE DEL CERTIFICADO DEL SAT:</b></label><label>{{$tfd['NoCertificadoSAT'] ?? ''}}</label><br>
@@ -74,7 +75,7 @@
                     <label><b>NUMERO DE SERIE DEL CSD DEL EMISOR:</b></label><label>{{$comprobante['NoCertificado'] ?? ''}}</label><br>
                     <label><b>CLAVE CONFIRMACIÓN:</b></label>
                 </div>
-                <div class="col-2">
+                <div class="col-2" style="font-size: 10px !important;">
                     <label><b>FACTURA FOLIO:</b></label> <label>{{$orden->serie.$orden->folio}}</label><br>
                     <label><b>FECHA:</b></label> <label>{{$comprobante['Fecha'] ?? ''}}</label><br>
                     <label><b>LUGAR DE EXPEDICION:</b></label> <label>{{$dafis->codigo}}</label><br>
@@ -91,7 +92,7 @@
                         }
                     ?>
                 </div>
-                <div class="col-6">
+                <div class="col-6" style="font-size: 10px !important;">
                     <label><b>PARA:</b></label><br>
                     <label>{{$orden->clie.'   '.$orden->nombre}}</label><br>
                     <label>{{$prove->rfc}}</label><br>
@@ -99,15 +100,15 @@
                     <label><b>NumRegIdTrib:</b></label><br>
                     <label><b>USO CFDI:</b></label><label>{{$orden->uso}}</label><br>
                 </div>
-                <div class="col-2">
+                <div class="col-2" style="font-size: 10px !important;">
                     <h6>NOTAS:</h6>
                     <label>{{$orden->observa}}</label>
                 </div>
             </div>
             <!--Row1-->
             <hr>
-            <div class="row">
-                <table>
+            <div class="row" style="font-size: 10px !important;">
+                <table style="width: 98% !important;">
                     <tr>
                         <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CANTIDAD</th>
                         <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CLAVE PROD/SERV</th>
@@ -122,7 +123,7 @@
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{number_format(floatval($part->cant), 2, '.')}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->cvesat}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->unidad}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center" colspan="2">{{$part->item.'  '.$part->descripcion}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center" colspan="2">{{$part->descripcion}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(0)}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>
@@ -130,32 +131,32 @@
                     @endforeach
                 </table>
             </div>
-            <div class="row" style="margin-top: 5rem">
-                <div class="col-9">
+            <div class="row" style="margin-top: 5rem; margin-left: -2rem !important">
+                <div class="col-8" style="font-size: 10px !important;">
                     <label><b>TIPO RELACIÓN:</b></label><br>
                     <label><b>CFDI RELACIONADO:</b></label>
                 </div>
-                <div class="col-3">
-                    <table style="padding-right: 2rem !important; width: 100% !important;font-size: 15px !important">
+                <div class="col-4" style="font-size: 10px !important;margin-left: -2rem !important;">
+                    <table style="padding-right: 2rem !important; width: 100% !important;font-size: 15px !important; margin-right: 1rem !important;">
                         <tr>
-                            <td style="font-weight: bold;text-align: end; align-content: end">SUBTOTAL:</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">SUBTOTAL:</td>
                             <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->subtotal), 2, '.')}}</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->subtotal), 2, '.')}}</td>
                         </tr>
                         <tr>
-                            <td style="font-weight: bold;text-align: end; align-content: end">DESCUENTO:</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">DESCUENTO:</td>
                             <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval(0), 2, '.')}}</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval(0), 2, '.')}}</td>
                         </tr>
                         <tr>
-                            <td style="font-weight: bold;text-align: end; align-content: end">IMPUESTOS TRASLADADOS:</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">IMPUESTOS TRASLADADOS:</td>
                             <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->iva)+floatval($orden->ieps), 2, '.')}}</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->iva)+floatval($orden->ieps), 2, '.')}}</td>
                         </tr>
                         <tr>
-                            <td style="font-weight: bold;text-align: end; align-content: end">IMPUESTOS RETENIDOS:</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">IMPUESTOS RETENIDOS:</td>
                             <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->retiva)+floatval($orden->retisr), 2, '.')}}</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->retiva)+floatval($orden->retisr), 2, '.')}}</td>
                         </tr>
                         <tr>
                             <td colspan="2">
@@ -163,16 +164,16 @@
                             </td>
                         </tr>
                         <tr>
-                            <td style="font-weight: bold;text-align: end; align-content: end">TOTAL:</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">TOTAL:</td>
                             <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                            <td style="font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->total), 2, '.')}}</td>
+                            <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->total), 2, '.')}}</td>
                         </tr>
                     </table>
                 </div>
             </div>
             <div class="row">
                 <div class="col-7"></div>
-                <div class="col-5">
+                <div class="col-5" font-size: 10px !important;>
                 <?php
                     $formatter = new \Luecano\NumeroALetras\NumeroALetras();
                     $cant_letras = '';
@@ -185,13 +186,13 @@
                         $cant_letras = $formatter->toInvoice($orden->total, 2, 'USD');
                     }
                 ?>
-                    <h5 style="font-weight: bold">{{$cant_letras}}</h5>
+                    <h6 style="font-weight: bold">{{$cant_letras}}</h6>
                     <h6>MONEDA: <b>{{$orden->moneda}}</b>   TIPO DE CAMBIO: <b>{{number_format($orden->tcambio,2)}}</b></h6>
                 </div>
 
             </div>
-            <div class="row">
-                <table>
+            <div class="row" style="font-size: 10px !important;">
+                <table style="width: 98% !important;">
                     <tr>
                         <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES LOCALES</th>
                         <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS LOCALES</th>
@@ -223,19 +224,19 @@
                     </tr>
                 </table>
             </div>
-            <div class="row">
-                <label style="font-size: 12px !important"><b>Sello CFDI:</b></label><br>
-                <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 130)}}</p>
+            <div class="row" style="font-size: 8px !important; width: 98% !important;">
+                <label><b>Sello CFDI:</b></label><br>
+                <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 150)}}</p>
             </div>
             <hr>
-            <div class="row">
-                <label style="font-size: 12px !important"><b>Sello SAT:</b></label><br>
-                {{chunk_split($tfd['SelloSAT'] ?? '', 130)}}
+            <div class="row" style="font-size: 8px !important; width: 98% !important;">
+                <label><b>Sello SAT:</b></label><br>
+                {{chunk_split($tfd['SelloSAT'] ?? '', 150)}}
             </div>
             <hr>
-            <div class="row">
-                <label style="font-size: 12px !important"><b>Cadena Original:</b></label><br>
-                {{chunk_split($cadenaOrigen ?? '', 130)}}
+            <div class="row" style="font-size: 8px !important; width: 98% !important;">
+                <label><b>Cadena Original:</b></label><br>
+                {{chunk_split($cadenaOrigen ?? '', 150)}}
             </div>
             <hr>
     </div>

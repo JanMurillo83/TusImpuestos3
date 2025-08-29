@@ -8,6 +8,7 @@ use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\RelationManagers;
 use App\Http\Controllers\TimbradoController;
 use App\Models\Claves;
 use App\Models\CuentasCobrar;
+use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Clientes;
 use App\Models\Cotizaciones;
@@ -565,12 +566,16 @@ class FacturasResource extends Resource
                     ->iconButton()
                     ->action(function($record){
                         //dd($_SERVER["DOCUMENT_ROOT"]);
-                        $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$record->uuid.'.xml';
+                        //
+                        $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                        $cli = Clientes::where('id',$record->clie)->first();
+                        $nombre = $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.xml';
+                        $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
                         if(File::exists($archivo)) unlink($archivo);
                         $xml = $record->xml;
                         $xml = Cleaner::staticClean($xml);
                         File::put($archivo,$xml);
-                        $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$record->uuid.'.xml';
+                        $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
                         return response()->download($ruta);
                     }),
                 Action::make('Timbrar')->icon('fas-bell-concierge')

@@ -27,7 +27,8 @@
         $tfd = $comprobante->complemento->TimbreFiscalDigital;
     }
 
-    $logo = $dafis->logo64 ?? '';
+    //$logo = $dafis->logo64 ?? '';
+    $logo = asset('storage/'.$dafis->logo);
 ?>
 <!DOCTYPE html>
 <html>

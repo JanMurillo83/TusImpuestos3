@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Facturas;
+use CfdiUtils\SumasPagos20\PagosWriter;
 use DateTime;
 use DateTimeZone;
 use Filament\Facades\Filament;
@@ -11,8 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 class TimbradoController extends Controller
 {
-    //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
-    public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
+
+    /*public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
+    public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';*/
+    public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
+    public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
     public function TimbrarFactura($factura,$receptor):string
     {
 	    $objConexion = new ConexionController($this->url);
@@ -33,7 +37,7 @@ class TimbradoController extends Controller
         $nopardata = count($pardata);
         $tido = "I";
         $csdpass = $emidata->csdpass;
-        $apikey = '18b88997a6d3461b82b7786e8a6c05ac';
+        $apikey = $this->api_key;
         $cerFile = public_path('storage/'.$emidata->cer);
         $keyFile = public_path('storage/'.$emidata->key);
         $keyPEM = public_path('storage/'.$emidata->rfc.'.key.pem');
@@ -152,7 +156,134 @@ class TimbradoController extends Controller
         $resultado = $objConexion->operacion_timbrar($apikey, $cfdi);
         return $resultado;
     }
+    public function TimbrarPagos($factura,$emisor,$receptor):string
+    {
 
+        $objConexion = new ConexionController($this->url);
+        //-------------------------------------------
+        $date = new DateTime('now', new DateTimeZone('America/Mexico_City'));
+        $datetime = new DateTime();
+        $mex_zone = new DateTimeZone('America/Mexico_City');
+        $datetime->setTimezone($mex_zone);
+        $fecha = $datetime->format('Y-m-d');
+        $hora = $datetime->format('H:i:s');
+        $fechahora = $fecha.'T'.$hora;
+
+        $openssl = new \CfdiUtils\OpenSSL\OpenSSL();
+        $emidata = DB::table('datos_fiscales')->where('id',$emisor)->first();
+        $recdata = DB::table('clientes')->where('id',$receptor)->get();
+        $facdata = DB::table('pagos')->where('id',$factura)->get();
+        $pardata = DB::table('par_pagos')->where('pagos_id',$factura)->get();
+        $fac_id = $pardata[0]->uuidrel;
+        $antdata = DB::table('facturas')->where('id',$fac_id)->get();
+        $tido = "P";
+        $csdpass = $emidata->csdpass;
+        $apikey =$this->api_key;
+        $cerFile = public_path('storage/'.$emidata->cer);
+        $keyFile = public_path('storage/'.$emidata->key);
+        $keyPEM = public_path('storage/'.$emidata->rfc.'.key.pem');
+        $tmpxml =public_path('storage/TMPXMLFiles/'.$recdata[0]->rfc.'.xml');
+        if (file_exists($keyPEM)) {
+            unlink($keyPEM);
+        }
+        if (file_exists($tmpxml)) {
+            unlink($tmpxml);
+        }
+        //-------------------------------------------------------
+        $openssl->derKeyProtect($keyFile, $csdpass, $keyPEM, $csdpass);
+        $keyForFinkOk = $openssl->pemKeyProtectOut($keyPEM, $csdpass, $csdpass);
+        //-------------------------------------------
+        $serie_d = 'P';
+        $certificado = new \CfdiUtils\Certificado\Certificado($cerFile);
+        $comprobanteAtributos = [
+            'Serie' => $serie_d,
+            'Folio' => $facdata[0]->folio,
+            'SubTotal'=>0,
+            'Moneda'=>"XXX",
+            'Total'=>0,
+            'TipoDeComprobante'=>$tido,
+            'Exportacion'=>"01",
+            'LugarExpedicion'=>$emidata->codigo,
+            'Fecha'=>$fechahora
+        ];
+
+        $creator = new \CfdiUtils\CfdiCreator40($comprobanteAtributos, $certificado);
+
+        $comprobante = $creator->comprobante();
+        $comprobante->addEmisor([
+            'Rfc'=>$emidata->rfc,
+            'Nombre'=>$emidata->nombre,
+            'RegimenFiscal'=>$emidata->regimen
+        ]);
+        $comprobante->addReceptor([
+            'Rfc'=>$recdata[0]->rfc,
+            'Nombre'=>$recdata[0]->nombre,
+            'RegimenFiscalReceptor'=>$recdata[0]->regimen,
+            'DomicilioFiscalReceptor'=>$recdata[0]->codigo,
+            'UsoCFDI'=>$facdata[0]->usocfdi
+        ]);
+
+        $comprobante->addConcepto([
+            'ClaveProdServ'=>'84111506',
+            'Cantidad'=>1,
+            'ClaveUnidad'=>'ACT',
+            'ObjetoImp'=>"01",
+            'Descripcion'=>'Pago',
+            'ValorUnitario'=>0,
+            'Importe'=>0
+        ]);
+
+        $Pagos = new \CfdiUtils\Elements\Pagos20\Pagos();
+        $Pagos->addTotales([
+            'TotalTrasladosBaseIVA16' => $facdata[0]->subtotal,
+            'TotalTrasladosImpuestoIVA16' => $facdata[0]->iva,
+            'MontoTotalPagos'=>$facdata[0]->total
+        ]);
+        $Pagos->addPago([
+            'FechaPago'=>$fechahora,
+            'FormaDePagoP'=>$facdata[0]->forma,
+            'MonedaP'=>"MXN",
+            'TipoCambioP'=>"1",
+            'Monto'=>floatval($facdata[0]->total)
+        ])->addDoctoRelacionado([
+            'IdDocumento'=>$antdata[0]->uuid,
+            'MonedaDR'=>"MXN",
+            'EquivalenciaDR'=>"1",
+            'NumParcialidad'=>"1",
+            'ImpSaldoAnt'=>floatval($pardata[0]->saldoant),
+            'ImpPagado'=>floatval($pardata[0]->imppagado),
+            'ImpSaldoInsoluto'=>floatval($pardata[0]->insoluto),
+            'ObjetoImpDR'=>"02"
+        ])->addImpuestosDR()
+            ->addTrasladosDR()
+            ->addTrasladoDR([
+                'BaseDR'=>floatval($antdata[0]->subtotal),
+                'ImpuestoDR'=>"002",
+                'TipoFactorDR'=>"Tasa",
+                'TasaOCuotaDR'=>"0.160000",
+                'ImporteDR'=> floatval($antdata[0]->iva)
+            ]);
+        PagosWriter::calculateAndPut($Pagos);
+        $comprobante->addComplemento($Pagos);
+
+        //$creator->addSumasConceptos(null, 2);
+        $creator->addSello($keyForFinkOk, $csdpass);
+        $creator->moveSatDefinitionsToComprobante();
+        $creator->saveXml($tmpxml);
+        $asserts = $creator->validate();
+        if ($asserts->hasErrors()) {
+            $var1 = $asserts->get('XSD01')->getExplanation();
+            $ress = [
+                'codigo'=>"300",
+                'mensaje'=>$var1
+            ];
+            return json_encode($ress);
+        }
+        $creator->saveXml($tmpxml);
+        $cfdi = $creator->asXml();
+        $resultado = $objConexion->operacion_timbrar($apikey, $cfdi);
+        return $resultado;
+    }
     public function actualiza_fac_tim($factura,$cfdi_con):string
     {
         $tipodoc = 'F';
@@ -205,4 +336,73 @@ class TimbradoController extends Controller
         }
         return $uuid;
     }
+    public function actualiza_pag_tim($factura,$cfdi_con):string
+    {
+        $tipodoc = 'P';
+        $idfactura = $factura;
+        $datos_xml = $cfdi_con;
+        $uuid = "";
+        $cfdi = \CfdiUtils\Cfdi::newFromString($datos_xml);
+        $complemento = $cfdi->getNode();
+        $tfd = $complemento->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+        if (null === $tfd) {
+            echo 'No existe el timbre fiscal digital';
+        } else {
+            $uuid= $tfd['UUID'];
+        }
+        if($tipodoc == "F"){
+            DB::table('facturas')->where('id',$idfactura)->update([
+                'uuid'=>$uuid,
+                'estado' => 'Timbrada'
+            ]);
+        }
+        if($tipodoc == "N"){
+            DB::table('notascreds')->where('id',$idfactura)->update([
+                'uuid'=>$uuid,
+                'estado' => 'Timbrada'
+            ]);
+        }
+        if($tipodoc == "P"){
+            DB::table('pagos')->where('id',$idfactura)->update([
+                'uuid'=>$uuid,
+                'estado' => 'Timbrada'
+            ]);
+        }
+        if($tipodoc == "R"){
+            DB::table('retenciones')->where('id',$idfactura)->update([
+                'uuid'=>$uuid,
+                'estado' => 'Timbrada'
+            ]);
+        }
+        if($tipodoc == "C"){
+            DB::table('cartas')->where('id',$idfactura)->update([
+                'uuid'=>$uuid,
+                'estado' => 'Timbrada'
+            ]);
+        }
+        if($tipodoc == "T"){
+            DB::table('traslados')->where('id',$idfactura)->update([
+                'uuid'=>$uuid,
+                'estado' => 'Timbrada'
+            ]);
+        }
+        return $uuid;
+    }
+    public function genera_pdf($factura):string
+    {
+        $xml = $factura;
+        if (file_exists('output.pdf')) {
+            unlink('output.pdf');
+        }
+        $xml = \PhpCfdi\CfdiCleaner\Cleaner::staticClean($xml);
+        $comprobante = \CfdiUtils\Nodes\XmlNodeUtils::nodeFromXmlString($xml);
+        $cfdiData = (new \PhpCfdi\CfdiToPdf\CfdiDataBuilder())->build($comprobante);
+        $converter = new \PhpCfdi\CfdiToPdf\Converter(
+            new \PhpCfdi\CfdiToPdf\Builders\Html2PdfBuilder()
+        );
+        $converter->createPdfAs($cfdiData, 'output.pdf');
+        $datos_cfdi = base64_encode(file_get_contents('output.pdf'));
+        return $datos_cfdi;
+    }
+
 }

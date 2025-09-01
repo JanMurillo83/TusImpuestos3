@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmCatalogos;
 use App\Filament\Clusters\AdmCatalogos\Resources\ClientesResource\Pages;
 use App\Filament\Clusters\AdmCatalogos\Resources\ClientesResource\Pages\ListClientes;
 use App\Filament\Clusters\AdmCatalogos\Resources\ClientesResource\RelationManagers;
+use App\Livewire\Cuentas_Cobrar_Widget;
 use App\Models\Clientes;
 use App\Models\Regimenes;
 use Filament\Facades\Filament;
@@ -131,18 +132,22 @@ class ClientesResource extends Resource
                 ->numeric(decimalPlaces: 2,decimalSeparator:'.')
                 ->prefix('$')
             ])
-            ->filters([
-                //
-            ])
             ->actions([
+                Tables\Actions\ActionGroup::make([
                 Tables\Actions\EditAction::make()
-                ->label('')->icon(null)
+                ->label('Editar')->icon('fas-edit')
                 ->modalSubmitActionLabel('Grabar')
                 ->modalCancelActionLabel('Cerrar')
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left),
-            ])
+                    Action::make('CxC')->label('Cuentas x Cobrar')
+                    ->icon('fas-money-bill-transfer')
+                    ->form(function($record){ return [
+                        Forms\Components\Livewire::make(Cuentas_Cobrar_Widget::class,['cliente'=>$record->id])
+                    ];})
+            ])->dropdownPlacement('top-end'),
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
                 ->createAnother(false)
@@ -199,12 +204,7 @@ class ClientesResource extends Resource
                         ->success()
                         ->send();
                 })
-            ],HeaderActionsPosition::Bottom)
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ],HeaderActionsPosition::Bottom);
     }
 
     public static function getRelations(): array

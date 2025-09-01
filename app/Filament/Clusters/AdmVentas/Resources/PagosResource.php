@@ -1,0 +1,357 @@
+<?php
+
+namespace App\Filament\Clusters\AdmVentas\Resources;
+
+use App\Filament\Clusters\AdmVentas;
+use App\Filament\Clusters\AdmVentas\Resources\PagosResource\Pages;
+use App\Filament\Clusters\AdmVentas\Resources\PagosResource\RelationManagers;
+use App\Http\Controllers\TimbradoController;
+use App\Models\Clientes;
+use App\Models\DatosFiscales;
+use App\Models\Facturas;
+use App\Models\Pagos;
+use CfdiUtils\Cleaner\Cleaner;
+use Filament\Facades\Filament;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Filament\Resources\Components\Tab;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+
+class PagosResource extends Resource
+{
+    protected static ?string $model = Pagos::class;
+    protected static ?string $pluralLabel = "Comprobantes de Pago";
+    protected static ?string $Label = "Comprobantes de Pago";
+    protected static ?string $navigationIcon = 'fas-money-bill-transfer';
+    protected static ?string $cluster = AdmVentas::class;
+    protected static ?int $navigationSort = 4;
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                        Forms\Components\Fieldset::make('Datos Generales')->schema([
+                            Forms\Components\Hidden::make('estado')->default('Activa'),
+                            Forms\Components\Select::make('dat_fiscal')
+                                ->label('Emisor')
+                                ->required()
+                                ->columnspan(2)
+                                ->options(DatosFiscales::all()->pluck('rfc', 'id')),
+                            Forms\Components\Hidden::make('serie')->default('P'),
+                            Forms\Components\TextInput::make('folio')
+                                ->label('Folio')
+                                ->required()
+                                ->numeric()
+                                ->default(Pagos::where('team_id', Filament::getTenant()->id)->max('folio') + 1)
+                                ->readOnly(),
+                            Forms\Components\DatePicker::make('fecha_doc')
+                                ->label('Fecha Comprobante')
+                                ->required()
+                                ->afterStateHydrated(function (Forms\Components\DatePicker $component, ?string $state) {
+                                    // if the value is empty in the database, set a default value, if not, just continue with the default component hydration
+                                    if (!$state) {
+                                        $component->state(now()->toDateString());
+                                    }
+                                }),
+                            Forms\Components\DatePicker::make('fechapago')
+                                ->label('Fecha del Pago')
+                                ->required()
+                                ->afterStateHydrated(function (Forms\Components\DatePicker $component, ?string $state) {
+                                    // if the value is empty in the database, set a default value, if not, just continue with the default component hydration
+                                    if (!$state) {
+                                        $component->state(now()->toDateString());
+                                    }
+                                }),
+                            Forms\Components\Hidden::make('clave_doc'),
+                            Forms\Components\Select::make('cve_clie')
+                                ->label('Cliente')
+                                ->required()
+                                ->columnspan(2)
+                                ->live()
+                                ->options(Clientes::all()->pluck('nombre', 'id')),
+                            Forms\Components\Hidden::make('team_id')
+                                ->default(Filament::getTenant()->id),
+                            Forms\Components\TextInput::make('subtotal')
+                                ->required()
+                                ->numeric()
+                                //->default(0.00000000)
+                                ->readOnly()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                ->placeholder(function (Forms\Get $get, Forms\Set $set) {
+                                    $valor = collect($get('Partidas'))->pluck('baseiva')->sum();
+                                    $set('subtotal', $valor);
+                                    return floatval($valor);
+                                }),
+                            Forms\Components\TextInput::make('iva')
+                                ->required()
+                                ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                //->default(0.00000000)
+                                ->readOnly()
+                                ->placeholder(function (Forms\Get $get, Forms\Set $set) {
+                                    $valor = collect($get('Partidas'))->pluck('montoiva')->sum();
+                                    $set('iva', $valor);
+                                    return floatval($valor);
+                                }),
+                            Forms\Components\TextInput::make('total')
+                                ->required()
+                                ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                //->default(0.00000000)
+                                ->readOnly()
+                                ->placeholder(function (Forms\Get $get, Forms\Set $set) {
+                                    $valor = collect($get('Partidas'))->pluck('imppagado')->sum();
+                                    $set('total', $valor);
+                                    return floatval($valor);
+                                }),
+                            Forms\Components\Hidden::make('moneda')
+                                ->default('XXX'),
+                            Forms\Components\Hidden::make('usocfdi')
+                                ->default('CP01'),
+                            Forms\Components\Select::make('forma')
+                                ->label('Forma de Pago')->required()
+                                ->options(DB::table('metodos')->pluck('mostrar', 'clave')),
+                        ])->columns(6),
+                        Forms\Components\Fieldset::make('Pagos')->schema([
+                            Forms\Components\Repeater::make('Partidas')
+                                ->label('Partidas')
+                                ->relationship()
+                                ->collapsible()
+                                ->itemLabel(fn(array $state): ?string => $state['uuidrel'] ?? null)
+                                ->schema([
+                                    Forms\Components\Select::make('uuidrel')
+                                        ->label('Factura')
+                                        ->options(fn(Forms\Get $get): Collection => Facturas::query()
+                                            ->select(DB::raw("id,CONCAT(serie,folio) as folio"))
+                                            ->where('clie', $get('../../cve_clie'))
+                                            ->where('estado','Timbrada')
+                                            ->where('forma','PPD')
+                                            ->pluck('folio', 'id'))
+                                        ->live()
+                                        ->afterStateUpdated(
+                                            function (Forms\Get $get, Forms\Set $set) {
+                                                $facturas = Facturas::where('id', $get('uuidrel'))->get();
+                                                //dd($facturas);
+                                                $total = $facturas[0]->total;
+                                                $set('tasaiva', 0.16);
+                                                $set('unitario', $total);
+                                                $set('importe', $total);
+                                                $set('saldoant', $total);
+                                                $set('imppagado', $total);
+                                                $subt = $total / (1 + $get('tasaiva'));
+                                                $iva = $subt * 0.16;
+                                                $set('baseiva', $subt);
+                                                $set('montoiva', $iva);
+                                                $set('insoluto', 0);
+                                                $set('tasaiva', 0.16);
+                                            }
+                                        ),
+                                    Forms\Components\Hidden::make('unitario')
+                                        ->default(0),
+                                    Forms\Components\Hidden::make('importe')
+                                        ->default(0),
+                                    Forms\Components\Select::make('moneda')
+                                        ->options(['MXN'=>'MXN','USD'=>'USD'])
+                                        ->default('MXN'),
+                                    Forms\Components\TextInput::make('saldoant')
+                                        ->label('Saldo Anterior')
+                                        ->numeric()
+                                        ->default(0)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2),
+                                    Forms\Components\TextInput::make('imppagado')
+                                        ->label('Monto del Pago')
+                                        ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                        ->default(0),
+                                    Forms\Components\TextInput::make('insoluto')
+                                        ->label('Saldo Insoluto')
+                                        ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                        ->default(0),
+                                    Forms\Components\TextInput::make('equivalencia')
+                                        ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2),
+                                    Forms\Components\TextInput::make('parcialidad')
+                                        ->default(1),
+                                    Forms\Components\Hidden::make('objeto')
+                                        ->default('02'),
+                                    Forms\Components\Hidden::make('tasaiva')
+                                        ->default(16),
+                                    Forms\Components\Hidden::make('baseiva')
+                                        ->default(0),
+                                    Forms\Components\Hidden::make('montoiva')
+                                        ->default(0),
+                                    Forms\Components\Hidden::make('team_id')
+                                        ->default(Filament::getTenant()->id),
+                                ])->columns(7)->columnSpanFull()
+                        ])->columnspanfull()
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('serie')
+                    ->label('Documento')
+                    ->searchable()
+                ->formatStateUsing(function ($record){
+                    return $record->serie.$record->folio;
+                }),
+                Tables\Columns\TextColumn::make('cve_clie')
+                    ->label('Cliente')
+                    ->searchable()
+                    ->state(function ($record): string {
+                        $clientes = Clientes::where('id', $record->cve_clie)->get();
+                        return $clientes[0]->nombre;
+                    }),
+                Tables\Columns\TextColumn::make('fecha_doc')
+                    ->label('Fecha')
+                    ->dateTime('d-m-Y')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('subtotal')
+                    ->numeric()->currency('USD',true)
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('iva')
+                    ->numeric()->currency('USD',true)
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('total')
+                    ->numeric()->currency('USD',true)
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('estado')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('uuid')
+                    ->label('UUID')
+                    ->searchable(),
+            ])
+            ->filters([
+                //
+            ])
+            ->actions([
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Consultar')
+                    ->modalWidth('7xl'),
+                    Tables\Actions\Action::make('Cancelar')
+                        ->icon('fas-ban')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(function (Facturas $record) {
+                            $record['estado'] = 'Cancelada';
+                            $record->update();
+                        }),
+                    Tables\Actions\Action::make('Imprimir')
+                        ->icon('fas-print')
+                        ->color('warning')
+                        ->action(function (Pagos $record) {
+                            $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                            $cli = Clientes::where('id',$record->cve_clie)->first();
+                            $nombre = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            if (file_exists($archivo)) {
+                                unlink($archivo);
+                            }
+                            file_put_contents($archivo, base64_decode($record->pdf_file));
+                            return response()->download($archivo);
+                        }),
+                    Tables\Actions\Action::make('Descargar  XML')
+                        ->icon('fas-download')
+                        ->color('warning')
+                        ->action(function (Pagos $record) {
+                            $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                            $cli = Clientes::where('id',$record->cve_clie)->first();
+                            $nombre = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.xml';
+                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            if (file_exists($archivo)) {
+                                unlink($archivo);
+                            }
+                            $xml = $record->xml;
+                            $xml = Cleaner::staticClean($xml);
+                            File::put($archivo,$xml);
+                            return response()->download($archivo);
+                        }),
+                    /*Tables\Actions\Action::make('Enviar por Correo')
+                        ->icon('fas-envelope-square')
+                        ->action(function (Pagos $record) {
+                            Self::envia_correo($record->clave_doc,
+                                $record->emisor, $record->cve_clie);
+
+                            Notification::make('Enviar por Correo')
+                                ->title('Envio de Correo')
+                                ->body('Correo Enviado Correctamente')
+                                ->success()
+                                ->send();
+                        })->close()*/
+                ])->dropdownPlacement('top-start')
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
+            //->recordUrl(fn(Pagos $record): string => Pages\ViewPagos::getUrl([$record->id]))
+        ->headerActions([
+            Tables\Actions\CreateAction::make('Agregar')
+            ->icon('fas-circle-plus')
+            ->label('Agregar')->modalSubmitActionLabel('Grabar')
+            ->modalCancelActionLabel('Cerrar')
+            ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color('success')->icon('fas-save'))
+            ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color('danger')->icon('fas-ban'))
+            ->createAnother(false)
+            ->modalWidth('7xl')
+            ->after(function($record,$data){
+                $data = $record;
+                $factura = $record->getKey();
+                $receptor = $data->cve_clie;
+                $emisor = $data->dat_fiscal;
+                $serie = $data->serie;
+                //DB::statement("UPDATE series_facs SET folio = folio + 1 WHERE id = $serie");
+                $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
+                $resultado = json_decode($res);
+                $codigores = $resultado->codigo;
+                if($codigores == "200")
+                {
+                    $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
+                    $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
+                    $facturamodel = Pagos::find($factura);
+                    $facturamodel->timbrado = 'SI';
+                    $facturamodel->xml = $resultado->cfdi;
+                    $facturamodel->fecha_tim = $date;
+                    $facturamodel->pdf_file = $pdf_file;
+                    $facturamodel->save();
+                    $res2 = app(TimbradoController::class)->actualiza_pag_tim($factura,$resultado->cfdi,"P");
+                    $mensaje_tipo = "1";
+                    $mensaje_graba = 'Comprobante Timbrado Se genero el CFDI UUID: '.$res2;
+                    Notification::make()
+                        ->success()
+                        ->title('Pago Timbrado Correctamente')
+                        ->body($mensaje_graba)
+                        ->duration(2000)
+                        ->send();
+                }
+                else{
+                    $mensaje_tipo = "2";
+                    $mensaje_graba = $resultado->mensaje;
+                    Notification::make()
+                        ->warning()
+                        ->title('Error al Timbrar el Documento')
+                        ->body($mensaje_graba)
+                        ->persistent()
+                        ->send();
+                }
+            })
+        ],Tables\Actions\HeaderActionsPosition::Bottom);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListPagos::route('/'),
+            //'create' => Pages\CreatePagos::route('/create'),
+            //'edit' => Pages\EditPagos::route('/{record}/edit'),
+        ];
+    }
+}

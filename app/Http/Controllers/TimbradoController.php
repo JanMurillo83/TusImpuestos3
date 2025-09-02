@@ -15,8 +15,8 @@ class TimbradoController extends Controller
 
     public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
     public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';
-    /*public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
-    public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';*/
+    //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
+    //public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
     public function TimbrarFactura($factura,$receptor):string
     {
 	    $objConexion = new ConexionController($this->url);
@@ -195,6 +195,13 @@ class TimbradoController extends Controller
         //-------------------------------------------
         $serie_d = 'P';
         $certificado = new \CfdiUtils\Certificado\Certificado($cerFile);
+        $moneda_apli = 'MXN';
+        $tipo_cambio = 1;
+        if($facdata[0]->moneda != 'XXX') {
+            $tipo_cambio = number_format($facdata[0]->tcambio, 4);
+            $moneda_apli = 'USD';
+        }
+
         $comprobanteAtributos = [
             'Serie' => $serie_d,
             'Folio' => $facdata[0]->folio,
@@ -239,17 +246,28 @@ class TimbradoController extends Controller
             'TotalTrasladosImpuestoIVA16' => $facdata[0]->iva,
             'MontoTotalPagos'=>$facdata[0]->total
         ]);
+        $equivalencia = 1;
+        if($facdata[0]->moneda != $antdata[0]->moneda) {
+            if($antdata[0]->moneda == 'USD'&&$facdata[0]->moneda == 'MXN') $equivalencia = number_format($facdata[0]->tcambio, 4);
+            if($antdata[0]->moneda == 'MXN'&&$facdata[0]->moneda == 'USD') {
+                $equivalencia = number_format(1/$facdata[0]->tcambio, 4);
+            }
+
+        }
+        else{
+            $equivalencia = intval('1');
+        }
         $Pagos->addPago([
             'FechaPago'=>$fechahora,
             'FormaDePagoP'=>$facdata[0]->forma,
-            'MonedaP'=>"MXN",
-            'TipoCambioP'=>"1",
+            'MonedaP'=>$moneda_apli,
+            'TipoCambioP'=>$tipo_cambio,
             'Monto'=>floatval($facdata[0]->total)
         ])->addDoctoRelacionado([
             'IdDocumento'=>$antdata[0]->uuid,
-            'MonedaDR'=>"MXN",
-            'EquivalenciaDR'=>"1",
-            'NumParcialidad'=>"1",
+            'MonedaDR'=>$antdata[0]->moneda,
+            'EquivalenciaDR'=>$equivalencia,
+            'NumParcialidad'=>intval($pardata[0]->parcialidad),
             'ImpSaldoAnt'=>floatval($pardata[0]->saldoant),
             'ImpPagado'=>floatval($pardata[0]->imppagado),
             'ImpSaldoInsoluto'=>floatval($pardata[0]->insoluto),

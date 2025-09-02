@@ -81,6 +81,9 @@ class PagosResource extends Resource
                                 ->options(Clientes::all()->pluck('nombre', 'id')),
                             Forms\Components\Hidden::make('team_id')
                                 ->default(Filament::getTenant()->id),
+                            Forms\Components\Select::make('forma')
+                                ->label('Forma de Pago')->required()
+                                ->options(DB::table('metodos')->pluck('mostrar', 'clave')),
                             Forms\Components\TextInput::make('subtotal')
                                 ->required()
                                 ->numeric()
@@ -111,13 +114,24 @@ class PagosResource extends Resource
                                     $set('total', $valor);
                                     return floatval($valor);
                                 }),
-                            Forms\Components\Hidden::make('moneda')
-                                ->default('XXX'),
+                            Forms\Components\Select::make('moneda')
+                                ->options(['XXX'=>'MXN','USD'=>'USD'])
+                                ->default('XXX')->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                if($get('moneda') == 'XXX') $set('tcambio', 1);
+                            }),
+                            Forms\Components\TextInput::make('tcambio')
+                                ->label('Tipo de Cambio')
+                                ->required()
+                                ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                ->default(1)
+                                ->readOnly(function (Forms\Get $get) {
+                                    if($get('moneda') == 'XXX') return true;
+                                    else return false;
+                                }),
                             Forms\Components\Hidden::make('usocfdi')
                                 ->default('CP01'),
-                            Forms\Components\Select::make('forma')
-                                ->label('Forma de Pago')->required()
-                                ->options(DB::table('metodos')->pluck('mostrar', 'clave')),
+
                         ])->columns(6),
                         Forms\Components\Fieldset::make('Pagos')->schema([
                             Forms\Components\Repeater::make('Partidas')
@@ -151,6 +165,7 @@ class PagosResource extends Resource
                                                 $set('montoiva', $iva);
                                                 $set('insoluto', 0);
                                                 $set('tasaiva', 0.16);
+                                                $set('moneda', $facturas[0]->moneda);
                                             }
                                         ),
                                     Forms\Components\Hidden::make('unitario')

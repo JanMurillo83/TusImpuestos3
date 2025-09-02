@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmVentas;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\Pages;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\RelationManagers;
 use App\Http\Controllers\TimbradoController;
+use App\Models\Almacencfdis;
 use App\Models\Claves;
 use App\Models\CuentasCobrar;
 use App\Models\DatosFiscales;
@@ -24,10 +25,12 @@ use App\Models\NotasventaPartidas;
 use App\Models\Team;
 use App\Models\Unidades;
 use App\Models\Usos;
+use App\Models\Xmlfiles;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
+use CfdiUtils\Cfdi;
 use CfdiUtils\Cleaner\Cleaner;
 use CfdiUtils\Nodes\XmlNodeUtils;
 use DateTime;
@@ -724,6 +727,136 @@ class FacturasResource extends Resource
                         }
                     //------------------------------------------
 
+                }),
+                Action::make('Importar Facturas')
+                ->icon('fas-upload')
+                ->form(function (Form $form) {
+                    return $form
+                        ->schema([
+                            FileUpload::make('Archivos')
+                                ->label('Archivos XML')
+                                ->directory('ImportXMLFiles')
+                                ->multiple()->acceptedFileTypes(['text/xml'])
+
+                        ]);
+                })
+                ->action(function($data){
+                    $team  = Filament::getTenant()->id;
+                    $taxid = Filament::getTenant()->taxid;
+                    $archivos = $data['Archivos'];
+                    foreach($archivos as $file)
+                    {
+                        $file = $_SERVER["DOCUMENT_ROOT"].'/storage/'.$file;
+                        $xmlContents = \file_get_contents($file);
+                        $cfdiData = \CfdiUtils\Cfdi::newFromString($xmlContents);
+                        $comprobante = $cfdiData->getQuickReader();
+                        $emisor = $comprobante->emisor;
+                        $receptor = $comprobante->receptor;
+                        $conceptos = $comprobante->conceptos;
+                        $impuestos = $comprobante->impuestos;
+                        $tfd = $comprobante->complemento->TimbreFiscalDigital;
+                        $subtotal = $comprobante['subtotal'];
+                        $iva = $impuestos->Traslados->Traslado['Importe'];
+                        $retiva = $impuestos->Retenciones->Retencion['Importe'] ?? 0;
+                        $total = $comprobante['total'];
+                        $tipocom = $comprobante['TipoDeComprobante'];
+                        $pagoscom = $comprobante->complemento->Pagos;
+                        //dd($tipocom);
+                        if($tipocom != 'P')
+                        {
+                            $subtotal = floatval($comprobante['SubTotal']);
+                            $descuento = floatval($comprobante['Descuento']);
+                            if(isset($impuestos['TotalImpuestosTrasladados']))$traslado = floatval($impuestos['TotalImpuestosTrasladados']);
+                            if(isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
+                            $total = floatval($comprobante['Total']);
+                            $tipocambio = floatval($comprobante['TipoCambio']);
+                        }
+                        else
+                        {
+                            $pagostot = $pagoscom->searchNode('pago20:Totales');
+                            $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
+                            $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
+                            $retencion = floatval(0.00);
+                            $total = floatval($pagostot['MontoTotalPagos']);
+                            $tipocambio = 1;
+                        }
+                        $cliente = Clientes::where('rfc',$receptor['Rfc'])->first();
+                        if($cliente == null) {
+                            $cve = Clientes::where('team_id',Filament::getTenant()->id)
+                                ->max('id') + 1;
+                            $cliente = Clientes::firstOrCreate([
+                                'clave'=>$cve,
+                                'rfc'=>$receptor['Rfc'],
+                                'nombre' => $receptor['Nombre'],
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                        }
+                        if($tipocom == 'I') {
+                            $factura = Facturas::firstOrCreate([
+                                'serie' => $comprobante['serie'],
+                                'folio' => $comprobante['folio'],
+                                'docto' => $comprobante['serie'] . $comprobante['folio'],
+                                'fecha' => $comprobante['fecha'],
+                                'clie' => $cliente->id,
+                                'nombre' => $emisor['Nombre'],
+                                'esquema' => Esquemasimp::where('team_id', Filament::getTenant()->id)->first()->id,
+                                'subtotal' => $subtotal,
+                                'iva' => $iva,
+                                'retiva' => $retiva,
+                                'retisr' => 0,
+                                'ieps' => 0,
+                                'total' => $total,
+                                'observa' => '',
+                                'estado' => 'Timbrada',
+                                'metodo' => $comprobante['FormaPago'],
+                                'forma' => $comprobante['MetodoPago'],
+                                'uso' => $receptor['UsoCFDI'],
+                                'uuid' => $tfd['UUID'],
+                                'condiciones' => $comprobante['CondicionesDePago'],
+                                'timbrado' => 'SI',
+                                'xml' => $xmlContents,
+                                'fecha_tim' => $comprobante['fecha'],
+                                'moneda' => $comprobante['Moneda'],
+                                'tcambio' => $tipocambio,
+                                'team_id' => Filament::getTenant()->id
+                            ]);
+                            foreach ($conceptos() as $concepto) {
+                                $producto = Inventario::where('descripcion', $concepto['Descripcion'])->first();
+                                if ($producto == null) {
+                                    $cve = Inventario::where('team_id', Filament::getTenant()->id)
+                                            ->max('id') + 1;
+                                    $producto = Inventario::firstOrCreate([
+                                        'clave' => $cve,
+                                        'descripcion'=> $concepto['Descripcion'],
+                                        'team_id' => Filament::getTenant()->id,
+                                    ]);
+                                }
+                                FacturasPartidas::firstOrCreate([
+                                    'facturas_id' => $factura->id,
+                                    'item' => $producto->id,
+                                    'descripcion' => $concepto['Descripcion'],
+                                    'cant' => $concepto['Cantidad'],
+                                    'precio' => $concepto['ValorUnitario'],
+                                    'subtotal' => $concepto['Importe'],
+                                    'iva' => $concepto->Impuestos->Traslados->Traslado['Importe'],
+                                    'retiva' => $concepto->Impuestos->Retenciones->Retencion['Importe'] ?? 0,
+                                    'retisr' => 0,
+                                    'ieps' => 0,
+                                    'total' => floatval($concepto['Importe']) + floatval($concepto->Impuestos->Traslados->Traslado['Importe']),
+                                    'unidad' => $concepto['ClaveUnidad'],
+                                    'cvesat' => $concepto['ClaveProdServ'],
+                                    'costo' => 0,
+                                    'clie' => $cliente->id,
+                                    'por_imp1' => 16,
+                                    'por_imp2' => 0,
+                                    'por_imp3' => 0,
+                                    'por_imp4' => 0,
+                                    'team_id' => Filament::getTenant()->id
+                                ]);
+                            }
+                        }
+                    }
+                    Notification::make()->title('Proceso Terminado')->success()->send();
                 })
             ],HeaderActionsPosition::Bottom);
     }

@@ -40,11 +40,13 @@ class PagosResource extends Resource
             ->schema([
                         Forms\Components\Fieldset::make('Datos Generales')->schema([
                             Forms\Components\Hidden::make('estado')->default('Activa'),
-                            Forms\Components\Select::make('dat_fiscal')
-                                ->label('Emisor')
-                                ->required()
-                                ->columnspan(2)
-                                ->options(DatosFiscales::all()->pluck('rfc', 'id')),
+                            Forms\Components\Hidden::make('dat_fiscal')
+                                ->default(DatosFiscales::where('team_id', Filament::getTenant()->id)->first()->id),
+                            Forms\Components\TextInput::make('dat_fiscal_em')
+                                ->label('Emisor')->readOnly()
+                                ->formatStateUsing(function (){
+                                    return DatosFiscales::where('team_id', Filament::getTenant()->id)->first()->rfc;
+                                }),
                             Forms\Components\Hidden::make('serie')->default('P'),
                             Forms\Components\TextInput::make('folio')
                                 ->label('Folio')

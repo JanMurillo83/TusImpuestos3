@@ -107,8 +107,8 @@ class TimbradoController extends Controller
                 'ClaveUnidad'=>$pardata[$i]->unidad,
                 'ObjetoImp'=>"02",
                 'Descripcion'=>$pardata[$i]->descripcion.' '.$pardata[$i]->observa ?? '',
-                'ValorUnitario'=>number_format($pardata[$i]->precio, 2, '.', ''),
-                'Importe'=>number_format($pardata[$i]->subtotal, 2, '.', '')
+                'ValorUnitario'=>number_format($pardata[$i]->precio, 6, '.', ''),
+                'Importe'=>number_format($pardata[$i]->subtotal, 6, '.', '')
             ]);
             $concepto1->addTraslado([
                 'Base'=>number_format($pardata[$i]->subtotal, 6, '.', ''),

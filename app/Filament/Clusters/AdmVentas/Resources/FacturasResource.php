@@ -641,6 +641,8 @@ class FacturasResource extends Resource
                     $nopar = 0;
                     foreach($partidas as $partida)
                     {
+                        $partida->iva = $partida->subtotal * 0.16;
+                        $partida->save();
                         $arti = $partida->item;
                         $inve = Inventario::where('id',$arti)->get();
                         $inve = $inve[0];

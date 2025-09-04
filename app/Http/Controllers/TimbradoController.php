@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Facturas;
+use Carbon\Carbon;
 use CfdiUtils\SumasPagos20\PagosWriter;
 use DateTime;
 use DateTimeZone;
@@ -183,6 +184,9 @@ class TimbradoController extends Controller
         $keyFile = public_path('storage/'.$emidata->key);
         $keyPEM = public_path('storage/'.$emidata->rfc.'.key.pem');
         $tmpxml =public_path('storage/TMPXMLFiles/'.$recdata[0]->rfc.'.xml');
+
+        $fecha2 = Carbon::create($facdata[0]->fechapago)->format('Y-m-d');
+        $fechahora2 = $fecha2.'T'.$hora;
         if (file_exists($keyPEM)) {
             unlink($keyPEM);
         }
@@ -258,7 +262,7 @@ class TimbradoController extends Controller
             $equivalencia = intval('1');
         }
         $Pagos->addPago([
-            'FechaPago'=>$fechahora,
+            'FechaPago'=>$fechahora2,
             'FormaDePagoP'=>$facdata[0]->forma,
             'MonedaP'=>$moneda_apli,
             'TipoCambioP'=>$tipo_cambio,

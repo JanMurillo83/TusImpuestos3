@@ -35,6 +35,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use function Termwind\style;
 
 class Cobros extends Page implements HasForms
 {
@@ -98,35 +99,11 @@ class Cobros extends Page implements HasForms
                         Hidden::make('cuenta'),
 
                     ])->columnSpanFull()->columns(6),
-                /*Select::make('factura')
-                    ->searchable()
-                    ->disabled(function (Get $get){
-                        $imp1 = $get('pendiente');
-                        $imp2 = $get('monto_total');
-                        if($imp1 <= $imp2) return true;
-                        else return false;
-                    })
-                    ->columnSpan(4)
-                    ->options(fn():array=>$this->FacturasGet())
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get,Set $set){
-                        if($get('factura')) {
-                            $ineg = IngresosEgresos::where('id', $get('factura'))->first();
-                            $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
-                            $set('tercero', $fact->Emisor_Nombre);
-                            $set('moneda_fac', $fact->Moneda);
-                            $set('pendiente_fac', $ineg->pendientemxn);
-                            $mon_pg = $ineg->pendientemxn;
-                            if((floatval($ineg->pendientemxn)+floatval($get('monto_total'))) > floatval($get('pendiente'))){
-                                $mon_pg = floatval($get('pendiente'));
-                            }
-                            $set('monto_pago', $mon_pg);
-                            $set('igeg_id', $ineg->id);
-                        }
-                    }),*/
                 TableSelect::make('factura')
                     ->model(Movbancos::class)
                     ->relationship('factura','factura')
+                    ->maxWidth('full')
+                    ->optionExtraAttributes(['style'=>'width: 40rem !important'])
                     ->requiresSelectionConfirmation()
                     ->columnSpan(4)
                     ->disabled(function (Get $get){
@@ -181,6 +158,7 @@ class Cobros extends Page implements HasForms
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
                             ])
                             ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 1)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
+
                     })
                     ->getOptionLabelFromRecordUsing(function (Get $get) {
                         $factura = $get('factura')[0];

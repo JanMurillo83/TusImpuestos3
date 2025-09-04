@@ -74,9 +74,6 @@ class MovbancosResource extends Resource
     protected static ?string $label = 'Movimiento Bancario';
     protected static ?string $pluralLabel = 'Movimientos Bancarios';
     protected static ?string $navigationIcon ='fas-money-bill-transfer';
-
-
-
     public static function form(Form $form): Form
     {
         return $form
@@ -85,13 +82,6 @@ class MovbancosResource extends Resource
                     ->tabs([
                         Tabs\Tab::make('Datos Generales')
                             ->schema([
-                                /*TextInput::make('Test')
-                                ->default(function (){
-                                    $month = Filament::getTenant()->periodo;
-                                    $year = Filament::getTenant()->ejercicio;
-                                    $date = Carbon::create($year, $month, 1);
-                                    return $date->lastOfMonth()->day;
-                                }),*/
                                 Forms\Components\DatePicker::make('fecha')
                                     ->required()
                                 ->default(function (){

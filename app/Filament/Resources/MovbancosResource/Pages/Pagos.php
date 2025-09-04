@@ -95,32 +95,6 @@ class Pagos extends Page implements HasForms
                         Hidden::make('cuenta'),
 
                     ])->columnSpanFull()->columns(6),
-                /*Select::make('factura')
-                    ->searchable()
-                    ->disabled(function (Get $get){
-                        $imp1 = $get('pendiente');
-                        $imp2 = $get('monto_total');
-                        if($imp1 <= $imp2) return true;
-                        else return false;
-                    })
-                    ->columnSpan(4)
-                    ->options(fn():array=>$this->FacturasGet())
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get,Set $set){
-                        if($get('factura')) {
-                            $ineg = IngresosEgresos::where('id', $get('factura'))->first();
-                            $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
-                            $set('tercero', $fact->Emisor_Nombre);
-                            $set('moneda_fac', $fact->Moneda);
-                            $set('pendiente_fac', $ineg->pendientemxn);
-                            $mon_pg = $ineg->pendientemxn;
-                            if((floatval($ineg->pendientemxn)+floatval($get('monto_total'))) > floatval($get('pendiente'))){
-                                $mon_pg = floatval($get('pendiente'));
-                            }
-                            $set('monto_pago', $mon_pg);
-                            $set('igeg_id', $ineg->id);
-                        }
-                    }),*/
                 TableSelect::make('factura')
                     ->model(Movbancos::class)
                     ->relationship('factura','factura')

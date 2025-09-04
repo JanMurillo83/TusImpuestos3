@@ -56,7 +56,7 @@ class PagosResource extends Resource
                                 ->readOnly(),
                             Forms\Components\DatePicker::make('fecha_doc')
                                 ->label('Fecha Comprobante')
-                                ->required()
+                                ->required()->readOnly()
                                 ->afterStateHydrated(function (Forms\Components\DatePicker $component, ?string $state) {
                                     // if the value is empty in the database, set a default value, if not, just continue with the default component hydration
                                     if (!$state) {

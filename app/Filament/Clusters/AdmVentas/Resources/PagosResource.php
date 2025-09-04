@@ -123,7 +123,7 @@ class PagosResource extends Resource
                             Forms\Components\TextInput::make('tcambio')
                                 ->label('Tipo de Cambio')
                                 ->required()
-                                ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4)
                                 ->default(1)
                                 ->readOnly(function (Forms\Get $get) {
                                     if($get('moneda') == 'XXX') return true;

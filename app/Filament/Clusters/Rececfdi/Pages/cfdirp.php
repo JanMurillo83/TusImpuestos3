@@ -222,7 +222,7 @@ class cfdirp extends Page implements HasForms, HasTable
                         ->required()
                         ->options(function(Get $get) {
                             return
-                            CatCuentas::where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
+                            CatCuentas::where('team_id',Filament::getTenant()->id)->where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
                         }),
                     Select::make('forma')
                         ->label('Forma de Pago')

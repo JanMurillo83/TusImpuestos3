@@ -560,155 +560,151 @@ class ListSolicitudes extends ListRecords
         foreach($files as $desfile)
         {
             $file = \storage_path().'/app/public/zipimportas/'.$desfile;
-            $xmlContents = \file_get_contents($file);
-            $cfdi = Cfdi::newFromString($xmlContents);
-            $comprobante = $cfdi->getNode();
-            //dd($comprobante);
-            $emisor = $comprobante->searchNode('cfdi:Emisor');
-            $receptor = $comprobante->searchNode('cfdi:Receptor');
-            $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
-            $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
-            $impuestos = $comprobante->searchNode('cfdi:Impuestos');
-            $tipocom = $comprobante['TipoDeComprobante'];
-            $subtotal = 0;
-            $descuento = 0;
-            $traslado = 0;
-            $retencion = 0;
-            $total = 0;
-            $tipocambio = 0;
-            if($tipocom != 'P')
-            {
-                $subtotal = floatval($comprobante['SubTotal']);
-                $descuento = floatval($comprobante['Descuento']);
-                if(isset($impuestos['TotalImpuestosTrasladados']))$traslado = floatval($impuestos['TotalImpuestosTrasladados']);
-                if(isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
-                $total = floatval($comprobante['Total']);
-                $tipocambio = floatval($comprobante['TipoCambio']);
-            }
-            else
-            {
-                if(!isset($pagoscom)) {
-					$pagostot = floatval(0.00);
-					$subtotal = floatval(0.00);
-					$traslado = floatval(0.00);
-					$retencion = floatval(0.00);
-					$total = floatval(0.00);
-					$tipocambio = 1;
-				}
-                $pagostot = $pagoscom->searchNode('pago20:Totales');
-                $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
-                $retencion = floatval(0.00);
-                $total = floatval($pagostot['MontoTotalPagos']);
-                $tipocambio = 1;
-            }
-            $xmlContenido = \file_get_contents($file,false);
-            //dd($xmlContenido);
-            $fech = $comprobante['Fecha'];
-            list($fechacom,$horacom) = explode('T',$fech);
-            list($aniocom,$mescom,$diacom) =explode('-',$fechacom);
-            $taxid = Filament::getTenant()->taxid;
-            $tipo = $tiposol;
-            $team= Filament::getTenant()->id;
-            if($tiposol == 'Emitidos')
-            {
-                if($emisor['Rfc'] == $taxid)
-                {
-                    $uuidno = count(Almacencfdis::where(['UUID'=>$tfd['UUID'],'team_id'=>Filament::getTenant()->id])->get() ?? 0);
-                    if($uuidno == 0)
-                    {
-                    Almacencfdis::firstOrCreate([
-                        'Serie' =>$comprobante['Serie'],
-                        'Folio'=>$comprobante['Folio'],
-                        'Version'=>$comprobante['Version'],
-                        'Fecha'=>$comprobante['Fecha'],
-                        'Moneda'=>$comprobante['Moneda'],
-                        'TipoDeComprobante'=>$comprobante['TipoDeComprobante'],
-                        'MetodoPago'=>$comprobante['MetodoPago'],
-                        'Emisor_Rfc'=>$emisor['Rfc'],
-                        'Emisor_Nombre'=>$emisor['Nombre'],
-                        'Emisor_RegimenFiscal'=>$emisor['RegimenFiscal'],
-                        'Receptor_Rfc'=>$receptor['Rfc'],
-                        'Receptor_Nombre'=>$receptor['Nombre'],
-                        'Receptor_RegimenFiscal'=>$receptor['RegimenFiscal'],
-                        'UUID'=>$tfd['UUID'],
-                        'Total'=>$total,
-                        'SubTotal'=>$subtotal,
-                        'Descuento'=>$descuento,
-                        'TipoCambio'=> $tipocambio,
-                        'TotalImpuestosTrasladados'=>$traslado,
-                        'TotalImpuestosRetenidos'=>$retencion,
-                        'content'=>$xmlContenido,
-                        'user_tax'=>$emisor['Rfc'],
-                        'used'=>'NO',
-                        'xml_type'=>$tiposol,
-                        'periodo'=>intval($mescom),
-                        'ejercicio'=>intval($aniocom),
-                        'team_id'=>$team
-                    ]);
-                    Xmlfiles::firstOrCreate([
-                        'taxid'=>$emisor['Rfc'],
-                        'uuid'=>$tfd['UUID'],
-                        'content'=>$xmlContenido,
-                        'periodo'=>$mescom,
-                        'ejercicio'=>$aniocom,
-                        'tipo'=>$tipo,
-                        'solicitud'=>'Importacion',
-                        'team_id'=>$team
-                    ]);
+            try {
+                $xmlContents = \file_get_contents($file);
+                $cfdi = Cfdi::newFromString($xmlContents);
+                $comprobante = $cfdi->getNode();
+                //dd($comprobante);
+                $emisor = $comprobante->searchNode('cfdi:Emisor');
+                $receptor = $comprobante->searchNode('cfdi:Receptor');
+                $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+                $impuestos = $comprobante->searchNode('cfdi:Impuestos');
+                $tipocom = $comprobante['TipoDeComprobante'];
+                $subtotal = 0;
+                $descuento = 0;
+                $traslado = 0;
+                $retencion = 0;
+                $total = 0;
+                $tipocambio = 0;
+                if ($tipocom != 'P') {
+                    $subtotal = floatval($comprobante['SubTotal']);
+                    $descuento = floatval($comprobante['Descuento']);
+                    if (isset($impuestos['TotalImpuestosTrasladados'])) $traslado = floatval($impuestos['TotalImpuestosTrasladados']);
+                    if (isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
+                    $total = floatval($comprobante['Total']);
+                    $tipocambio = floatval($comprobante['TipoCambio']);
+                } else {
+                    if (!isset($pagoscom)) {
+                        $pagostot = floatval(0.00);
+                        $subtotal = floatval(0.00);
+                        $traslado = floatval(0.00);
+                        $retencion = floatval(0.00);
+                        $total = floatval(0.00);
+                        $tipocambio = 1;
+                    }
+                    $pagostot = $pagoscom->searchNode('pago20:Totales');
+                    $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
+                    $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
+                    $retencion = floatval(0.00);
+                    $total = floatval($pagostot['MontoTotalPagos']);
+                    $tipocambio = 1;
                 }
+                $xmlContenido = \file_get_contents($file, false);
+                //dd($xmlContenido);
+                $fech = $comprobante['Fecha'];
+                list($fechacom, $horacom) = explode('T', $fech);
+                list($aniocom, $mescom, $diacom) = explode('-', $fechacom);
+                $taxid = Filament::getTenant()->taxid;
+                $tipo = $tiposol;
+                $team = Filament::getTenant()->id;
+                if ($tiposol == 'Emitidos') {
+                    if ($emisor['Rfc'] == $taxid) {
+                        $uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
+                        if ($uuidno == 0) {
+                            Almacencfdis::firstOrCreate([
+                                'Serie' => $comprobante['Serie'],
+                                'Folio' => $comprobante['Folio'],
+                                'Version' => $comprobante['Version'],
+                                'Fecha' => $comprobante['Fecha'],
+                                'Moneda' => $comprobante['Moneda'],
+                                'TipoDeComprobante' => $comprobante['TipoDeComprobante'],
+                                'MetodoPago' => $comprobante['MetodoPago'],
+                                'Emisor_Rfc' => $emisor['Rfc'],
+                                'Emisor_Nombre' => $emisor['Nombre'],
+                                'Emisor_RegimenFiscal' => $emisor['RegimenFiscal'],
+                                'Receptor_Rfc' => $receptor['Rfc'],
+                                'Receptor_Nombre' => $receptor['Nombre'],
+                                'Receptor_RegimenFiscal' => $receptor['RegimenFiscal'],
+                                'UUID' => $tfd['UUID'],
+                                'Total' => $total,
+                                'SubTotal' => $subtotal,
+                                'Descuento' => $descuento,
+                                'TipoCambio' => $tipocambio,
+                                'TotalImpuestosTrasladados' => $traslado,
+                                'TotalImpuestosRetenidos' => $retencion,
+                                'content' => $xmlContenido,
+                                'user_tax' => $emisor['Rfc'],
+                                'used' => 'NO',
+                                'xml_type' => $tiposol,
+                                'periodo' => intval($mescom),
+                                'ejercicio' => intval($aniocom),
+                                'team_id' => $team
+                            ]);
+                            Xmlfiles::firstOrCreate([
+                                'taxid' => $emisor['Rfc'],
+                                'uuid' => $tfd['UUID'],
+                                'content' => $xmlContenido,
+                                'periodo' => $mescom,
+                                'ejercicio' => $aniocom,
+                                'tipo' => $tipo,
+                                'solicitud' => 'Importacion',
+                                'team_id' => $team
+                            ]);
+                        }
+                    }
+                } else {
+                    if ($receptor['Rfc'] == $taxid) {
+                        $uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
+                        if ($uuidno == 0) {
+                            Almacencfdis::firstOrCreate([
+                                'Serie' => $comprobante['Serie'],
+                                'Folio' => $comprobante['Folio'],
+                                'Version' => $comprobante['Version'],
+                                'Fecha' => $comprobante['Fecha'],
+                                'Moneda' => $comprobante['Moneda'],
+                                'TipoDeComprobante' => $comprobante['TipoDeComprobante'],
+                                'MetodoPago' => $comprobante['MetodoPago'],
+                                'Emisor_Rfc' => $emisor['Rfc'],
+                                'Emisor_Nombre' => $emisor['Nombre'],
+                                'Emisor_RegimenFiscal' => $emisor['RegimenFiscal'],
+                                'Receptor_Rfc' => $receptor['Rfc'],
+                                'Receptor_Nombre' => $receptor['Nombre'],
+                                'Receptor_RegimenFiscal' => $receptor['RegimenFiscal'],
+                                'UUID' => $tfd['UUID'],
+                                'Total' => $total,
+                                'SubTotal' => $subtotal,
+                                'Descuento' => $descuento,
+                                'TipoCambio' => $tipocambio,
+                                'TotalImpuestosTrasladados' => $traslado,
+                                'TotalImpuestosRetenidos' => $retencion,
+                                'content' => $xmlContenido,
+                                'user_tax' => $emisor['Rfc'],
+                                'used' => 'NO',
+                                'xml_type' => $tipo,
+                                'periodo' => intval($mescom),
+                                'ejercicio' => intval($aniocom),
+                                'team_id' => $team
+                            ]);
+                            Xmlfiles::firstOrCreate([
+                                'taxid' => $emisor['Rfc'],
+                                'uuid' => $tfd['UUID'],
+                                'content' => $xmlContenido,
+                                'periodo' => $mescom,
+                                'ejercicio' => $aniocom,
+                                'tipo' => $tipo,
+                                'solicitud' => 'Importacion',
+                                'team_id' => $team
+                            ]);
+                        }
+                    }
                 }
+                $contador++;
             }
-            else
-            {
-                if($receptor['Rfc'] == $taxid)
-                {
-                    $uuidno = count(Almacencfdis::where(['UUID'=>$tfd['UUID'],'team_id'=>Filament::getTenant()->id])->get() ?? 0);
-                    if($uuidno == 0)
-                    {
-                    Almacencfdis::firstOrCreate([
-                        'Serie' =>$comprobante['Serie'],
-                        'Folio'=>$comprobante['Folio'],
-                        'Version'=>$comprobante['Version'],
-                        'Fecha'=>$comprobante['Fecha'],
-                        'Moneda'=>$comprobante['Moneda'],
-                        'TipoDeComprobante'=>$comprobante['TipoDeComprobante'],
-                        'MetodoPago'=>$comprobante['MetodoPago'],
-                        'Emisor_Rfc'=>$emisor['Rfc'],
-                        'Emisor_Nombre'=>$emisor['Nombre'],
-                        'Emisor_RegimenFiscal'=>$emisor['RegimenFiscal'],
-                        'Receptor_Rfc'=>$receptor['Rfc'],
-                        'Receptor_Nombre'=>$receptor['Nombre'],
-                        'Receptor_RegimenFiscal'=>$receptor['RegimenFiscal'],
-                        'UUID'=>$tfd['UUID'],
-                        'Total'=>$total,
-                        'SubTotal'=>$subtotal,
-                        'Descuento'=>$descuento,
-                        'TipoCambio'=> $tipocambio,
-                        'TotalImpuestosTrasladados'=>$traslado,
-                        'TotalImpuestosRetenidos'=>$retencion,
-                        'content'=>$xmlContenido,
-                        'user_tax'=>$emisor['Rfc'],
-                        'used'=>'NO',
-                        'xml_type'=>$tipo,
-                        'periodo'=>intval($mescom),
-                        'ejercicio'=>intval($aniocom),
-                        'team_id'=>$team
-                    ]);
-                    Xmlfiles::firstOrCreate([
-                        'taxid'=>$emisor['Rfc'],
-                        'uuid'=>$tfd['UUID'],
-                        'content'=>$xmlContenido,
-                        'periodo'=>$mescom,
-                        'ejercicio'=>$aniocom,
-                        'tipo'=>$tipo,
-                        'solicitud'=>'Importacion',
-                        'team_id'=>$team
-                    ]);
-                }
-                }
+            catch (\Exception $e) {
+                dd($file,$e->getMessage());
             }
-            $contador++;
+            //-----------------------------------------
         }
         return $contador;
     }

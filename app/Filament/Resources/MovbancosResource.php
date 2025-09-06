@@ -1436,7 +1436,7 @@ class MovbancosResource extends Resource
                     ->action(function (Model $record,$data,Get $get, Set $set) {
                         Self::procesa_e_f($record,$data,$get,$set);
                     }),
-                    Action::make('multi')
+                    /*Action::make('multi')
                     ->label('Pago a Factura Individual')->icon('fas-money-bill-transfer')
                         ->modalWidth('5xl')
                         ->modalSubmitActionLabel('Aceptar')
@@ -2193,9 +2193,9 @@ class MovbancosResource extends Resource
                             ->success()
                             ->title('Registro Grabado')
                             ->send();
-                    }),
+                    }),*/
                     Action::make('Pagos Multi-Factura')
-                        ->label('Pagos a Facturas Multiple')
+                        ->label('Pagos a Facturas')
                         ->icon('fas-money-check-dollar')
                         ->visible(function($record){
                             if($record->contabilizada == 'SI') return false;
@@ -2203,7 +2203,7 @@ class MovbancosResource extends Resource
                         })
                         ->url(fn($record)=>Pages\Pagos::getUrl(['record'=>$record]))   ,
                 //--------------------------------------------------------------------------------------------------
-                Action::make('multi_s')
+                /*Action::make('multi_s')
                     ->label('Cobro a Factura Individual')->icon('fas-money-bill-transfer')
                     ->modalWidth('5xl')
                     ->modalSubmitActionLabel('Aceptar')
@@ -2407,7 +2407,7 @@ class MovbancosResource extends Resource
                         $fss = DB::table('almacencfdis')->where('id',$igeg->xml_id)->first();
                         $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->first();
                         $ter = DB::table('terceros')->where('rfc',$fss->Receptor_Rfc)->first();
-                        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Ig')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
                         if($data['moneda_f'] == 'MXN' && $data['moneda_p'] == 'MXN') {
                             $poliza = CatPolizas::create([
                                 'tipo' => 'Ig',
@@ -2960,15 +2960,15 @@ class MovbancosResource extends Resource
                             ->success()
                             ->title('Registro Grabado')
                             ->send();
-                    }),
+                    }),*/
                     Action::make('Cobros Multi-Factura')
-                        ->label('Cobros a Facturas Multiple')
+                        ->label('Cobros a Facturas')
                         ->icon('fas-money-check-dollar')
                         ->visible(function($record){
                             if($record->contabilizada == 'SI') return false;
                             if($record->contabilizada != 'SI'&&$record->tipo == 'E') return true;
                         })
-                        ->url(fn($record)=>Pages\Cobros::getUrl(['record'=>$record]))
+                    ->url(fn($record)=>Pages\Cobros::getUrl(['record'=>$record]))
                 //--------------------------------------------------------------------------------------------------
                 ])->color('primary'),
             ])->actionsPosition(ActionsPosition::BeforeColumns)

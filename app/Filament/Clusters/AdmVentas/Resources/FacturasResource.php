@@ -531,14 +531,15 @@ class FacturasResource extends Resource
                 ->searchable(),
             ])
             ->actions([
+                Tables\Actions\ActionGroup::make([
                 Tables\Actions\ViewAction::make()
-                ->label('')->icon('fas-eye')
+                ->label('Consultar')->icon('fas-eye')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Cerrar')
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('7xl'),
-                Action::make('Imprimir')->icon('fas-print')->iconButton()
+                Action::make('Imprimir')->icon('fas-print')
                 ->action(function($record,$livewire){
                     $livewire->idorden = $record->id;
                     $livewire->id_empresa = Filament::getTenant()->id;
@@ -548,28 +549,84 @@ class FacturasResource extends Resource
                 }),
                 Action::make('Cancelar')
                     ->icon('fas-ban')
-                    ->tooltip('Cancelar')->label('')
-                    ->iconButton()
-                    ->requiresConfirmation()
-                    ->action(function(Model $record){
+                    ->form([
+                        Select::make('motivo')
+                        ->label('Motivo')->options([
+                            '01'=>'01 - Comprobante emitido con errores con relación',
+                            '02'=>'02 - Comprobante emitido con errores sin relación',
+                            '03'=>'03 - No se llevó a cabo la operación ',
+                            '04'=>'04 - Operación nominativa relacionada en una factura global'
+                        ])->live(onBlur: true)
+                        ->default('02'),
+                        Select::make('Folio')
+                        ->disabled(fn(Get $get) => $get('motivo') != '01')
+                        ->label('Folio Sustituye')->options(
+                            Facturas::where('estado','Timbrada')
+                                ->where('team_id',Filament::getTenant()->id)
+                                ->select(DB::raw("concat(serie,folio) as Folio,uuid"))
+                                ->pluck('Folio','uuid')
+                            )
+                    ])
+                    ->action(function(Model $record,$data){
                         $est = $record->estado;
-                        if($est == 'Activa')
+                        $factura = $record->id;
+                        $receptor = $record->clie;
+                        $folio = $data['Folio'] ?? null;
+                        if($est == 'Activa'||$est == 'Timbrada')
                         {
+
+                            if($est == 'Timbrada')
+                            {
+                                $res = app(TimbradoController::class)->CancelarFactura($factura, $receptor,$data['motivo'],$folio);
+                                $resultado = json_decode($res);
+
+                                if($resultado->codigo == 201){
+                                    Facturas::where('id',$record->id)->update([
+                                        'fecha_cancela'=>Carbon::now(),
+                                        'motivo'=>$data['motivo'],
+                                        'sustituye'=>$folio,
+                                        'xml_cancela'=>$resultado->acuse,
+                                    ]);
+                                    Notification::make()
+                                        ->title($resultado->mensaje)
+                                        ->success()
+                                        ->send();
+                                }else{
+                                    Notification::make()
+                                        ->title($resultado->mensaje)
+                                        ->warning()
+                                        ->send();
+                                }
+                            }
                             Facturas::where('id',$record->id)->update([
                                 'estado'=>'Cancelada'
                             ]);
                             Notification::make()
-                                ->title('Nota Cancelada')
+                                ->title('Factura Cancelada')
                                 ->success()
                                 ->send();
                         }
                     }),
+                Action::make('Consultar Estado')
+                    ->icon('fas-arrows-to-eye')
+                    ->action(function(Model $record){
+                        $factura = $record->id;
+                        $receptor = $record->clie;
+                        $res = app(TimbradoController::class)->ConsultarFacturaSAT($factura, $receptor);
+                        $resultado = json_decode($res);
+                        Notification::make()
+                            ->title($resultado->{'Codigo del SAT'})
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('Descargar XML')
+                    ->label('Descargar XML')
                     ->icon('fas-download')
-                    ->iconButton()
+                    ->disabled(function($record){
+                        if($record->estado == 'Timbrada'||$record->estado == 'Cancelada') return false;
+                        else return true;
+                    })
                     ->action(function($record){
-                        //dd($_SERVER["DOCUMENT_ROOT"]);
-                        //
                         $emp = DatosFiscales::where('team_id',$record->team_id)->first();
                         $cli = Clientes::where('id',$record->clie)->first();
                         $nombre = $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.xml';
@@ -582,7 +639,6 @@ class FacturasResource extends Resource
                         return response()->download($ruta);
                     }),
                 Action::make('Timbrar')->icon('fas-bell-concierge')
-                    ->iconButton()
                     ->label('Timbrar Factura')
                     ->requiresConfirmation()
                     ->disabled(function($record){
@@ -624,6 +680,7 @@ class FacturasResource extends Resource
                             }
                         }
                     })
+                ])
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')

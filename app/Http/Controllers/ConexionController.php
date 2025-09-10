@@ -80,9 +80,11 @@ class ConexionController extends Controller
 		return json_encode($this->response, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
 	}
 
-	public function operacion_cancelar($apikey, $keyCSD, $cerCSD, $passCSD, $uuid, $rfcEmisor, $rfcReceptor, $total)
+	public function operacion_cancelar($apikey, $keyCSD, $cerCSD, $passCSD, $uuid, $rfcEmisor, $rfcReceptor, $total,$motivo,$folio)
 	{
-		$res = $this->client->cancelar($apikey, $keyCSD, $cerCSD, $passCSD, $uuid, $rfcEmisor, $rfcReceptor, $total);
+        $keyCSD = base64_encode(file_get_contents($keyCSD));
+        $cerCSD = base64_encode(file_get_contents($cerCSD));
+		$res = $this->client->cancelar($apikey, $keyCSD, $cerCSD, $passCSD, $uuid, $rfcEmisor, $rfcReceptor, $total,$motivo,$folio);
 		## RESPUESTA ORIGINAL DEL SERVICIO ##
 		//var_dump($res);
 		$acuse = NULL;

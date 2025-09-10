@@ -18,6 +18,38 @@ class TimbradoController extends Controller
     public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';
     //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
     //public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
+    public function CancelarFactura($factura,$receptor,$motivo,$folio):string
+    {
+        $objConexion = new ConexionController($this->url);
+        $emidata = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->first();
+        $recdata = DB::table('clientes')->where('id',$receptor)->first();
+        $facdata = DB::table('facturas')->where('id',$factura)->first();
+        $apikey = $this->api_key;
+        $cerCSD = public_path('storage/'.$emidata->cer);
+        $keyCSD = public_path('storage/'.$emidata->key);
+        $passCSD = $emidata->csdpass;
+        $uuid = $facdata->uuid;
+        $rfcEmisor =$emidata->rfc;
+        $rfcReceptor = $recdata->rfc;
+        $total = $facdata->total;
+        $resultado = $objConexion->operacion_cancelar($apikey, $keyCSD, $cerCSD, $passCSD, $uuid, $rfcEmisor, $rfcReceptor, $total,$motivo,$folio);
+        return $resultado;
+    }
+
+    public function ConsultarFacturaSAT($factura,$receptor):string
+    {
+        $objConexion = new ConexionController($this->url);
+        $emidata = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->first();
+        $recdata = DB::table('clientes')->where('id',$receptor)->first();
+        $facdata = DB::table('facturas')->where('id',$factura)->first();
+        $apikey = $this->api_key;
+        $uuid = $facdata->uuid;
+        $rfcEmisor =$emidata->rfc;
+        $rfcReceptor = $recdata->rfc;
+        $total = $facdata->total;
+        $resultado = $objConexion->operacion_consultarEstadoSAT($apikey, $uuid, $rfcEmisor, $rfcReceptor, $total);
+        return $resultado;
+    }
     public function TimbrarFactura($factura,$receptor):string
     {
 	    $objConexion = new ConexionController($this->url);
@@ -168,25 +200,25 @@ class TimbradoController extends Controller
         $datetime->setTimezone($mex_zone);
         $fecha = $datetime->format('Y-m-d');
         $hora = $datetime->format('H:i:s');
-        $fechahora = $fecha.'T'.$hora;
+        $fechahora = $fecha . 'T' . $hora;
 
         $openssl = new \CfdiUtils\OpenSSL\OpenSSL();
-        $emidata = DB::table('datos_fiscales')->where('id',$emisor)->first();
-        $recdata = DB::table('clientes')->where('id',$receptor)->get();
-        $facdata = DB::table('pagos')->where('id',$factura)->get();
-        $pardata = DB::table('par_pagos')->where('pagos_id',$factura)->get();
+        $emidata = DB::table('datos_fiscales')->where('id', $emisor)->first();
+        $recdata = DB::table('clientes')->where('id', $receptor)->get();
+        $facdata = DB::table('pagos')->where('id', $factura)->get();
+        $pardata = DB::table('par_pagos')->where('pagos_id', $factura)->get();
         $fac_id = $pardata[0]->uuidrel;
-        $antdata = DB::table('facturas')->where('id',$fac_id)->get();
+        $antdata = DB::table('facturas')->where('id', $fac_id)->get();
         $tido = "P";
         $csdpass = $emidata->csdpass;
-        $apikey =$this->api_key;
-        $cerFile = public_path('storage/'.$emidata->cer);
-        $keyFile = public_path('storage/'.$emidata->key);
-        $keyPEM = public_path('storage/'.$emidata->rfc.'.key.pem');
-        $tmpxml =public_path('storage/TMPXMLFiles/'.$recdata[0]->rfc.'.xml');
+        $apikey = $this->api_key;
+        $cerFile = public_path('storage/' . $emidata->cer);
+        $keyFile = public_path('storage/' . $emidata->key);
+        $keyPEM = public_path('storage/' . $emidata->rfc . '.key.pem');
+        $tmpxml = public_path('storage/TMPXMLFiles/' . $recdata[0]->rfc . '.xml');
 
         $fecha2 = Carbon::create($facdata[0]->fechapago)->format('Y-m-d');
-        $fechahora2 = $fecha2.'T'.$hora;
+        $fechahora2 = $fecha2 . 'T' . $hora;
         if (file_exists($keyPEM)) {
             unlink($keyPEM);
         }
@@ -201,7 +233,7 @@ class TimbradoController extends Controller
         $certificado = new \CfdiUtils\Certificado\Certificado($cerFile);
         $moneda_apli = 'MXN';
         $tipo_cambio = 1;
-        if($facdata[0]->moneda != 'XXX') {
+        if ($facdata[0]->moneda != 'XXX') {
             $tipo_cambio = number_format($facdata[0]->tcambio, 4);
             $moneda_apli = 'USD';
         }
@@ -209,82 +241,85 @@ class TimbradoController extends Controller
         $comprobanteAtributos = [
             'Serie' => $serie_d,
             'Folio' => $facdata[0]->folio,
-            'SubTotal'=>0,
-            'Moneda'=>"XXX",
-            'Total'=>0,
-            'TipoDeComprobante'=>$tido,
-            'Exportacion'=>"01",
-            'LugarExpedicion'=>$emidata->codigo,
-            'Fecha'=>$fechahora
+            'SubTotal' => 0,
+            'Moneda' => "XXX",
+            'Total' => 0,
+            'TipoDeComprobante' => $tido,
+            'Exportacion' => "01",
+            'LugarExpedicion' => $emidata->codigo,
+            'Fecha' => $fechahora
         ];
 
         $creator = new \CfdiUtils\CfdiCreator40($comprobanteAtributos, $certificado);
 
         $comprobante = $creator->comprobante();
         $comprobante->addEmisor([
-            'Rfc'=>$emidata->rfc,
-            'Nombre'=>$emidata->nombre,
-            'RegimenFiscal'=>$emidata->regimen
+            'Rfc' => $emidata->rfc,
+            'Nombre' => $emidata->nombre,
+            'RegimenFiscal' => $emidata->regimen
         ]);
         $comprobante->addReceptor([
-            'Rfc'=>$recdata[0]->rfc,
-            'Nombre'=>$recdata[0]->nombre,
-            'RegimenFiscalReceptor'=>$recdata[0]->regimen,
-            'DomicilioFiscalReceptor'=>$recdata[0]->codigo,
-            'UsoCFDI'=>$facdata[0]->usocfdi
+            'Rfc' => $recdata[0]->rfc,
+            'Nombre' => $recdata[0]->nombre,
+            'RegimenFiscalReceptor' => $recdata[0]->regimen,
+            'DomicilioFiscalReceptor' => $recdata[0]->codigo,
+            'UsoCFDI' => $facdata[0]->usocfdi
         ]);
 
         $comprobante->addConcepto([
-            'ClaveProdServ'=>'84111506',
-            'Cantidad'=>1,
-            'ClaveUnidad'=>'ACT',
-            'ObjetoImp'=>"01",
-            'Descripcion'=>'Pago',
-            'ValorUnitario'=>0,
-            'Importe'=>0
+            'ClaveProdServ' => '84111506',
+            'Cantidad' => 1,
+            'ClaveUnidad' => 'ACT',
+            'ObjetoImp' => "01",
+            'Descripcion' => 'Pago',
+            'ValorUnitario' => 0,
+            'Importe' => 0
         ]);
 
         $Pagos = new \CfdiUtils\Elements\Pagos20\Pagos();
         $Pagos->addTotales([
             'TotalTrasladosBaseIVA16' => $facdata[0]->subtotal,
             'TotalTrasladosImpuestoIVA16' => $facdata[0]->iva,
-            'MontoTotalPagos'=>$facdata[0]->total
+            'MontoTotalPagos' => $facdata[0]->total
         ]);
         $equivalencia = 1;
-        if($facdata[0]->moneda != $antdata[0]->moneda) {
-            if($antdata[0]->moneda == 'USD'&&$facdata[0]->moneda == 'MXN') $equivalencia = number_format($facdata[0]->tcambio, 4);
-            if($antdata[0]->moneda == 'MXN'&&$facdata[0]->moneda == 'USD') {
-                $equivalencia = number_format(1/$facdata[0]->tcambio, 4);
+        if ($facdata[0]->moneda != $antdata[0]->moneda) {
+            if ($antdata[0]->moneda == 'USD' && $facdata[0]->moneda == 'MXN') $equivalencia = number_format($facdata[0]->tcambio, 4);
+            if ($antdata[0]->moneda == 'MXN' && $facdata[0]->moneda == 'USD') {
+                $equivalencia = number_format(1 / $facdata[0]->tcambio, 4);
             }
 
-        }
-        else{
+        } else {
             $equivalencia = intval('1');
         }
-        $Pagos->addPago([
-            'FechaPago'=>$fechahora2,
-            'FormaDePagoP'=>$facdata[0]->forma,
-            'MonedaP'=>$moneda_apli,
-            'TipoCambioP'=>$tipo_cambio,
-            'Monto'=>floatval($facdata[0]->total)
-        ])->addDoctoRelacionado([
-            'IdDocumento'=>$antdata[0]->uuid,
-            'MonedaDR'=>$antdata[0]->moneda,
-            'EquivalenciaDR'=>$equivalencia,
-            'NumParcialidad'=>intval($pardata[0]->parcialidad),
-            'ImpSaldoAnt'=>floatval($pardata[0]->saldoant),
-            'ImpPagado'=>floatval($pardata[0]->imppagado),
-            'ImpSaldoInsoluto'=>floatval($pardata[0]->insoluto),
-            'ObjetoImpDR'=>"02"
-        ])->addImpuestosDR()
-            ->addTrasladosDR()
-            ->addTrasladoDR([
-                'BaseDR'=>floatval($antdata[0]->subtotal),
-                'ImpuestoDR'=>"002",
-                'TipoFactorDR'=>"Tasa",
-                'TasaOCuotaDR'=>"0.160000",
-                'ImporteDR'=> floatval($antdata[0]->iva)
-            ]);
+        foreach ($pardata as $pdata)
+        {
+            $facrel = Facturas::where('id', $pdata->uuidrel)->first();
+            $Pagos->addPago([
+                'FechaPago' => $fechahora2,
+                'FormaDePagoP' => $facdata[0]->forma,
+                'MonedaP' => $moneda_apli,
+                'TipoCambioP' => $tipo_cambio,
+                'Monto' => floatval($pdata->imppagado)
+            ])->addDoctoRelacionado([
+                'IdDocumento' => $facrel->uuid,
+                'MonedaDR' => $facrel->moneda,
+                'EquivalenciaDR' => $equivalencia,
+                'NumParcialidad' => intval($pdata->parcialidad),
+                'ImpSaldoAnt' => floatval($pdata->saldoant),
+                'ImpPagado' => floatval($pdata->imppagado),
+                'ImpSaldoInsoluto' => floatval($pdata->insoluto),
+                'ObjetoImpDR' => "02"
+            ])->addImpuestosDR()
+                ->addTrasladosDR()
+                ->addTrasladoDR([
+                    'BaseDR' => floatval($pdata->imppagado) / 1.16,
+                    'ImpuestoDR' => "002",
+                    'TipoFactorDR' => "Tasa",
+                    'TasaOCuotaDR' => "0.160000",
+                    'ImporteDR' => (floatval($pdata->imppagado) / 1.16) * 0.16
+                ]);
+        }
         PagosWriter::calculateAndPut($Pagos);
         $comprobante->addComplemento($Pagos);
 

@@ -10,7 +10,7 @@ class Pagos extends Model
 {
     protected $fillable =[ 'serie','folio','clave_doc','cve_clie','fecha_doc','fecha_can',
         'subtotal','iva','total','moneda','dat_fiscal','estado','timbrado','fecha_tim','xml','uuid',
-        'usocfdi','forma','fechapago','team_id','tcambio'];
+        'usocfdi','forma','fechapago','tcambio','fecha_cancela','motivo','sustituye','xml_cancela','team_id'];
 
     public function Partidas(): HasMany
     {

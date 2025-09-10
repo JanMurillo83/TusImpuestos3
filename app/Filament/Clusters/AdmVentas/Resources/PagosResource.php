@@ -10,16 +10,20 @@ use App\Models\Clientes;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Pagos;
+use Carbon\Carbon;
 use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -182,7 +186,18 @@ class PagosResource extends Resource
                                     Forms\Components\TextInput::make('imppagado')
                                         ->label('Monto del Pago')
                                         ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                            $ante = $get('saldoant');
+                                            $imp = $get('imppagado');
+                                            $subt = $ante - $imp;
+                                            $iva = $subt * 0.16;
+                                            $set('baseiva', $subt);
+                                            $set('montoiva', $iva);
+                                            $set('insoluto', $subt);
+                                            $set('tasaiva', 0.16);
+                                        }),
                                     Forms\Components\TextInput::make('insoluto')
                                         ->label('Saldo Insoluto')
                                         ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
@@ -253,10 +268,61 @@ class PagosResource extends Resource
                     Tables\Actions\Action::make('Cancelar')
                         ->icon('fas-ban')
                         ->color('danger')
-                        ->requiresConfirmation()
-                        ->action(function (Facturas $record) {
-                            $record['estado'] = 'Cancelada';
-                            $record->update();
+                        ->form([
+                            Select::make('motivo')
+                                ->label('Motivo')->options([
+                                    '01'=>'01 - Comprobante emitido con errores con relación',
+                                    '02'=>'02 - Comprobante emitido con errores sin relación',
+                                    '03'=>'03 - No se llevó a cabo la operación ',
+                                    '04'=>'04 - Operación nominativa relacionada en una factura global'
+                                ])->live(onBlur: true)
+                                ->default('02'),
+                            Select::make('Folio')
+                                ->disabled(fn(Get $get) => $get('motivo') != '01')
+                                ->label('Folio Sustituye')->options(
+                                    Facturas::where('estado','Timbrada')
+                                        ->where('team_id',Filament::getTenant()->id)
+                                        ->select(DB::raw("concat(serie,folio) as Folio,uuid"))
+                                        ->pluck('Folio','uuid')
+                                )
+                        ])
+                        ->action(function (Model $record,$data) {
+                            $est = $record->estado;
+                            $factura = $record->id;
+                            $receptor = $record->cve_clie;
+                            $folio = $data['Folio'] ?? null;
+                            if($est == 'Activa'||$est == 'Timbrada') {
+
+                                if ($est == 'Timbrada') {
+                                    $res = app(TimbradoController::class)->CancelarFactura($factura, $receptor, $data['motivo'], $folio);
+                                    $resultado = json_decode($res);
+
+                                    if ($resultado->codigo == 201) {
+                                        Facturas::where('id', $record->id)->update([
+                                            'fecha_cancela' => Carbon::now(),
+                                            'motivo' => $data['motivo'],
+                                            'sustituye' => $folio,
+                                            'xml_cancela' => $resultado->acuse,
+                                        ]);
+                                        Notification::make()
+                                            ->title($resultado->mensaje)
+                                            ->success()
+                                            ->send();
+                                    } else {
+                                        Notification::make()
+                                            ->title($resultado->mensaje)
+                                            ->warning()
+                                            ->send();
+                                    }
+                                }
+                                Pagos::where('id', $record->id)->update([
+                                    'estado' => 'Cancelada'
+                                ]);
+                                Notification::make()
+                                    ->title('Comprobante Cancelado')
+                                    ->success()
+                                    ->send();
+                            }
                         }),
                     Tables\Actions\Action::make('Imprimir')
                         ->icon('fas-print')

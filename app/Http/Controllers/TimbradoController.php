@@ -300,24 +300,24 @@ class TimbradoController extends Controller
                 'FormaDePagoP' => $facdata[0]->forma,
                 'MonedaP' => $moneda_apli,
                 'TipoCambioP' => $tipo_cambio,
-                'Monto' => floatval($pdata->imppagado)
+                'Monto' => number_format(floatval($pdata->imppagado),6)
             ])->addDoctoRelacionado([
                 'IdDocumento' => $facrel->uuid,
                 'MonedaDR' => $facrel->moneda,
                 'EquivalenciaDR' => $equivalencia,
                 'NumParcialidad' => intval($pdata->parcialidad),
-                'ImpSaldoAnt' => floatval($pdata->saldoant),
-                'ImpPagado' => floatval($pdata->imppagado),
-                'ImpSaldoInsoluto' => floatval($pdata->insoluto),
+                'ImpSaldoAnt' => number_format(floatval($pdata->saldoant),6),
+                'ImpPagado' => number_format(floatval($pdata->imppagado),6),
+                'ImpSaldoInsoluto' => number_format(floatval($pdata->insoluto),6),
                 'ObjetoImpDR' => "02"
             ])->addImpuestosDR()
                 ->addTrasladosDR()
                 ->addTrasladoDR([
-                    'BaseDR' => floatval($pdata->imppagado) / 1.16,
+                    'BaseDR' => number_format(floatval($pdata->imppagado) / 1.16,6),
                     'ImpuestoDR' => "002",
                     'TipoFactorDR' => "Tasa",
                     'TasaOCuotaDR' => "0.160000",
-                    'ImporteDR' => (floatval($pdata->imppagado) / 1.16) * 0.16
+                    'ImporteDR' => number_format((floatval($pdata->imppagado) / 1.16) * 0.16,6)
                 ]);
         }
         PagosWriter::calculateAndPut($Pagos);

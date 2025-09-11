@@ -192,9 +192,9 @@ class PagosResource extends Resource
                                             $ante = $get('saldoant');
                                             $imp = $get('imppagado');
                                             $subt = $ante - $imp;
-                                            $iva = $subt * 0.16;
-                                            $set('baseiva', $subt);
-                                            $set('montoiva', $iva);
+                                            $iva = (($imp / 1.16) * 0.16);
+                                            $set('baseiva', round(($imp / 1.16),6));
+                                            $set('montoiva', round($iva,6));
                                             $set('insoluto', $subt);
                                             $set('tasaiva', 0.16);
                                         }),

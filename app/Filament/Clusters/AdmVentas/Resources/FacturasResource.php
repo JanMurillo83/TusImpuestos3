@@ -601,6 +601,9 @@ class FacturasResource extends Resource
                             Facturas::where('id',$record->id)->update([
                                 'estado'=>'Cancelada'
                             ]);
+                            CuentasCobrar::where('documento',$record->docto)
+                                ->where('team_id',Filament::getTenant()->id)->delete();
+                            Clientes::where('id',$record->clie)->decrement('saldo', $record->total);
                             Notification::make()
                                 ->title('Factura Cancelada')
                                 ->success()

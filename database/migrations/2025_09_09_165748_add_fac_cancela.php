@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('facturas', function (Blueprint $table) {
+        /*Schema::table('facturas', function (Blueprint $table) {
             $table->dateTime('fecha_cancela')->after('tcambio')->nullable();
             $table->string('motivo')->after('fecha_cancela')->nullable();
             $table->string('sustituye')->after('motivo')->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('motivo')->after('fecha_cancela')->nullable();
             $table->string('sustituye')->after('motivo')->nullable();
             $table->text('xml_cancela')->after('sustituye')->nullable();
-        });
+        });*/
     }
 
     /**

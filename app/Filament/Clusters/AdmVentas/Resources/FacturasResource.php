@@ -22,6 +22,7 @@ use App\Models\Metodos;
 use App\Models\Movinventario;
 use App\Models\Notasventa;
 use App\Models\NotasventaPartidas;
+use App\Models\SeriesFacturas;
 use App\Models\Team;
 use App\Models\Unidades;
 use App\Models\Usos;
@@ -72,6 +73,7 @@ use PhpCfdi\CfdiExpresiones\DiscoverExtractor;
 use PhpCfdi\CfdiToPdf\CfdiDataBuilder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
+use function Laravel\Prompts\text;
 
 class FacturasResource extends Resource
 {
@@ -92,18 +94,21 @@ class FacturasResource extends Resource
                     ->schema([
                         Hidden::make('team_id')->default(Filament::getTenant()->id),
                         Forms\Components\Hidden::make('id'),
-                        Forms\Components\Hidden::make('serie')->default('F'),
+                        Forms\Components\Hidden::make('serie')->default(function (){
+                            return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->serie ?? 'A';
+                        }),
                         Forms\Components\Hidden::make('folio')
                         ->default(function(){
-                            return count(Facturas::all()) + 1;
+                            return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->folio + 1 ?? count(Facturas::all()) + 1;
                         }),
                         Forms\Components\TextInput::make('docto')
                         ->label('Documento')
                         ->required()
                         ->readOnly()
                         ->default(function(){
-                            $fol = count(Facturas::all()) + 1;
-                            return 'F'.$fol;
+                            $serie = SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->serie ?? 'A';
+                            $fol = SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->folio + 1 ?? count(Facturas::all()) + 1;
+                            return $serie.$fol;
                         }),
                     Forms\Components\Select::make('clie')
                         ->searchable()
@@ -700,6 +705,7 @@ class FacturasResource extends Resource
                 ->after(function($record,$livewire){
                     $partidas = $record->partidas;
                     $nopar = 0;
+                    SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->increment('folio',1);
                     foreach($partidas as $partida)
                     {
                         $partida->iva = $partida->subtotal * 0.16;

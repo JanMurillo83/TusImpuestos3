@@ -706,9 +706,17 @@ class FacturasResource extends Resource
                     $partidas = $record->partidas;
                     $nopar = 0;
                     SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->increment('folio',1);
+                    $esq = Esquemasimp::where('id',$record->esquema)->first();
+                    $imp1 = $esq->iva * 0.01;
+                    $imp2 = $esq->retiva * 0.01;
+                    $imp3 = $esq->retisr * 0.01;
+                    $imp4 = $esq->ieps * 0.01;
                     foreach($partidas as $partida)
                     {
-                        $partida->iva = $partida->subtotal * 0.16;
+                        $partida->iva = $partida->subtotal * $imp1;
+                        $partida->retiva = $partida->subtotal * $imp2;
+                        $partida->retisr = $partida->subtotal * $imp3;
+                        $partida->ieps = $partida->subtotal * $imp4;
                         $partida->save();
                         $arti = $partida->item;
                         $inve = Inventario::where('id',$arti)->get();

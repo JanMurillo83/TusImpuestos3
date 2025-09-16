@@ -658,7 +658,7 @@ class FacturasResource extends Resource
                         $factura = $data->id;
                         $receptor = $data->clie;
                         $emp = Team::where('id', Filament::getTenant()->id)->first();
-                        if ($emp->archivokey != null && $emp->archivokey != '') {
+                        if ($emp->archivokey != null && $emp->archivocer != '') {
                             $res = app(TimbradoController::class)->TimbrarFactura($factura, $receptor);
                             $resultado = json_decode($res);
                             $codigores = $resultado->codigo;
@@ -687,6 +687,13 @@ class FacturasResource extends Resource
                                     ->persistent()
                                     ->send();
                             }
+                        }else{
+                            Notification::make()
+                                ->warning()
+                                ->title('Error al Timbrar el Documento')
+                                ->body('No existen Sellos Digitales Validos')
+                                ->persistent()
+                                ->send();
                         }
                     })
                 ])

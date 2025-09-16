@@ -66,6 +66,7 @@ class TimbradoController extends Controller
         $emidata = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->first();
         $recdata = DB::table('clientes')->where('id',$receptor)->get();
         $facdata = DB::table('facturas')->where('id',$factura)->get();
+        $esquema = DB::table('esquemasimps')->where('id',$facdata[0]->esquema)->first();
         $pardata = DB::table('facturas_partidas')->where('facturas_id',$factura)->get();
         $nopardata = count($pardata);
         $tido = "I";
@@ -142,13 +143,21 @@ class TimbradoController extends Controller
                 'ValorUnitario'=>number_format($pardata[$i]->precio, 6, '.', ''),
                 'Importe'=>number_format($pardata[$i]->subtotal, 6, '.', '')
             ]);
-            $concepto1->addTraslado([
-                'Base'=>number_format($pardata[$i]->subtotal, 6, '.', ''),
-                'Impuesto'=>"002",
-                'TipoFactor'=>"Tasa",
-                'TasaOCuota'=>number_format(floatval($pardata[$i]->por_imp1)*0.01, 6, '.', ''),
-                'Importe'=>number_format($pardata[$i]->iva, 6, '.', '')
-            ]);
+            if($esquema->exento == 'NO') {
+                $concepto1->addTraslado([
+                    'Base' => number_format($pardata[$i]->subtotal, 6, '.', ''),
+                    'Impuesto' => "002",
+                    'TipoFactor' => "Tasa",
+                    'TasaOCuota' => number_format(floatval($pardata[$i]->por_imp1) * 0.01, 6, '.', ''),
+                    'Importe' => number_format($pardata[$i]->iva, 6, '.', '')
+                ]);
+            }else{
+                $concepto1->addTraslado([
+                    'Base' => number_format($pardata[$i]->subtotal, 6, '.', ''),
+                    'Impuesto' => "002",
+                    'TipoFactor' => "Exento",
+                ]);
+            }
             if($pardata[$i]->por_imp4 != 0)
             {
                 $concepto1->addTraslado([

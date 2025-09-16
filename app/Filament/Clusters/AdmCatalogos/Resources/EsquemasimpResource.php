@@ -40,7 +40,7 @@ class EsquemasimpResource extends Resource
                 Forms\Components\TextInput::make('iva')
                     ->required()->label('IVA')
                     ->numeric()
-                    ->default(0.00000000),
+                    ->default(0.00000000)->live(onBlur: true),
                 Forms\Components\TextInput::make('retiva')
                     ->required()->label('Ret. IVA')
                     ->numeric()
@@ -53,6 +53,13 @@ class EsquemasimpResource extends Resource
                     ->required()->label('IEPS')
                     ->numeric()
                     ->default(0.00000000),
+                Forms\Components\Select::make('exento')
+                    ->options(['SI'=>'SI','NO'=>'NO'])
+                    ->default('NO')
+                    ->disabled(function (Forms\Get $get){
+                        if($get('iva') > 0) return true;
+                        else return false;
+                    })->reactive(),
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id),
             ])->columns(4);

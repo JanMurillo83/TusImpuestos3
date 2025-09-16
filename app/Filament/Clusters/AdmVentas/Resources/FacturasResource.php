@@ -657,8 +657,8 @@ class FacturasResource extends Resource
                         $data = $record;
                         $factura = $data->id;
                         $receptor = $data->clie;
-                        $emp = Team::where('id', Filament::getTenant()->id)->first();
-                        if ($emp->archivokey != null && $emp->archivocer != '') {
+                        $emp = DatosFiscales::where('team_id',Filament::getTenant()->id)->first();
+                        if ($emp->cer != null && $emp->cer != '') {
                             $res = app(TimbradoController::class)->TimbrarFactura($factura, $receptor);
                             $resultado = json_decode($res);
                             $codigores = $resultado->codigo;

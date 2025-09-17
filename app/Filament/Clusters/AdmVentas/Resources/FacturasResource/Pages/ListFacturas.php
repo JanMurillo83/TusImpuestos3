@@ -33,7 +33,21 @@ class ListFacturas extends ListRecords
                 $emp = DatosFiscales::where('team_id',$record->team_id)->first();
                 $cli = Clientes::where('id',$record->clie)->first();
                 return $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
-            })
+            }),
+            Html2MediaAction::make('Imprimir_Doc_E')
+                ->visible(false)
+                ->print(false)
+                ->savePdf()
+                ->preview(false)
+                ->margin([0,0,0,2])
+                ->content(fn() => view('RepFactura',['idorden'=>$this->idorden,'id_empresa'=>$this->id_empresa]))
+                ->modalWidth('7xl')
+                ->filename(function () {
+                    $record = Facturas::where('id',$this->idorden)->first();
+                    $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                    $cli = Clientes::where('id',$record->clie)->first();
+                    return $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                })
         ];
     }
 

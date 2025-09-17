@@ -18,6 +18,7 @@ use App\Models\Esquemasimp;
 use App\Models\FacturasPartidas;
 use App\Models\Formas;
 use App\Models\Inventario;
+use App\Models\Mailconfig;
 use App\Models\Metodos;
 use App\Models\Movinventario;
 use App\Models\Notasventa;
@@ -71,9 +72,13 @@ use Illuminate\Support\Facades\File;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use PhpCfdi\CfdiExpresiones\DiscoverExtractor;
 use PhpCfdi\CfdiToPdf\CfdiDataBuilder;
+use PHPMailer\PHPMailer\PHPMailer;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
+use PhpOffice\PhpSpreadsheet\Writer\Pdf\Dompdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 use function Laravel\Prompts\text;
+
 
 class FacturasResource extends Resource
 {
@@ -695,8 +700,63 @@ class FacturasResource extends Resource
                                 ->persistent()
                                 ->send();
                         }
-                    })
-                ])
+                    }),
+
+                Action::make('Enviar por Correo')
+                ->icon('fas-envelope')
+                ->action(function($record,$livewire){
+                    $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                    $cli = Clientes::where('id',$record->clie)->first();
+                    $nombrepdf = $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                    $nombrexml = $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.xml';
+                    $filepdf = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombrepdf;
+                    $filexml = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombrexml;
+                    if(File::exists($filepdf)) unlink($filepdf);
+                    Pdf::loadView('RepFactura',['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id])
+                        ->save($filepdf);
+                    if(File::exists($filexml)) unlink($filexml);
+                    $xml = $record->xml;
+                    $xml = Cleaner::staticClean($xml);
+                    File::put($filexml,$xml);
+                    $mailConf = Mailconfig::where('team_id',Filament::getTenant()->id)->first();
+                    $Cliente = Clientes::where('id',$record->clie)->first();
+                    $mail = new PHPMailer();
+                    $mail->isSMTP();
+                    $mail->SMTPDebug = 2;
+                    $mail->Host = $mailConf->host;
+                    $mail->Port = $mailConf->port;
+                    $mail->AuthType = 'LOGIN';
+                    $mail->SMTPAuth = true;
+                    $mail->SMTPSecure='tls';
+                    $mail->Username = $mailConf->username;
+                    $mail->Password = $mailConf->password;
+                    $mail->setFrom($mailConf->from_address, $mailConf->from_name);
+                    $mail->addAddress($Cliente->correo, $Cliente->nombre);
+                    $mail->addAttachment($filepdf,$filepdf);
+                    $mail->addAttachment($filexml,$filexml);
+                    $mail->Subject = 'Factura CFDI '.$record->docto.' '.$Cliente->nombre;
+                    $mail->msgHTML('<b>Factura CFDI</b>');
+                    $mail->Body = 'Factura CFDI';
+
+                    $msg = "";
+                    if (!$mail->send()) {
+                        Notification::make()
+                            ->warning()
+                            ->title('Factura Enviada')
+                            ->body($mail->ErrorInfo)
+                            ->duration(2000)
+                            ->send();
+                        //$msg = ;
+                    } else {
+                        Notification::make()
+                            ->success()
+                            ->title('Factura Enviada')
+                            ->body('Factura Enviada Correctamente')
+                            ->duration(2000)
+                            ->send();
+                    }
+                })
+                ]),
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')

@@ -11,8 +11,10 @@
         "ariaieboy/filament-currency": "^1.10",
         "awcodes/filament-sticky-header": "^2.0",
         "awcodes/filament-table-repeater": "^3.0",
+        "barryvdh/laravel-dompdf": "^3.1",
         "barryvdh/laravel-snappy": "^1.0",
         "codewithdennis/filament-theme-inspector": "^0.0.7",
+        "dompdf/dompdf": "^3.1",
         "dvarilek/filament-table-select": "^2.0",
         "eclipxe/cfdiutils": "^2.29",
         "eightynine/filament-excel-import": "^3.1",
@@ -30,6 +32,7 @@
         "phpcfdi/cfdi-expresiones": "^3.2",
         "phpcfdi/cfditopdf": "^0.4.2",
         "phpcfdi/sat-ws-descarga-masiva": "^0.5.4",
+        "phpmailer/phpmailer": "^6.10",
         "phpoffice/phpspreadsheet": "^1.29",
         "solution-forest/filament-simplelightbox": "^0.0.10",
         "torgodly/html2media": "^1.1"

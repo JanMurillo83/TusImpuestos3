@@ -327,8 +327,8 @@ class PagosResource extends Resource
                     Tables\Actions\Action::make('Imprimir')
                         ->icon('fas-print')
                         ->color('warning')
-                        ->action(function (Pagos $record) {
-                            $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                        ->action(function (Pagos $record,$livewire) {
+                            /*$emp = DatosFiscales::where('team_id',$record->team_id)->first();
                             $cli = Clientes::where('id',$record->cve_clie)->first();
                             $nombre = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
                             $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
@@ -336,7 +336,12 @@ class PagosResource extends Resource
                                 unlink($archivo);
                             }
                             file_put_contents($archivo, base64_decode($record->pdf_file));
-                            return response()->download($archivo);
+                            return response()->download($archivo);*/
+                            $livewire->idorden = $record->id;
+                            $livewire->id_empresa = Filament::getTenant()->id;
+                            $livewire->getAction('Imprimir_Doc_P')->visible(true);
+                            $livewire->replaceMountedAction('Imprimir_Doc_P');
+                            $livewire->getAction('Imprimir_Doc_P')->visible(false);
                         }),
                     Tables\Actions\Action::make('Descargar  XML')
                         ->icon('fas-download')

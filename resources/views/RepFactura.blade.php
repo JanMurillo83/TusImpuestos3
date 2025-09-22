@@ -95,7 +95,7 @@
                 </div>
                 <div class="col-6" style="font-size: 10px !important;">
                     <label><b>PARA:</b></label><br>
-                    <label>{{$orden->clie.'   '.$orden->nombre}}</label><br>
+                    <label>{{$orden->nombre}}</label><br>
                     <label>{{$prove->rfc}}</label><br>
                     <label><b>RESIDENCIA FISCAL:</b></label><label>MEX</label><br>
                     <label><b>NumRegIdTrib:</b></label><br>

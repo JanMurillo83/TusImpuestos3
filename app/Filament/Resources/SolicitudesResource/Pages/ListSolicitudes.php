@@ -702,7 +702,7 @@ class ListSolicitudes extends ListRecords
                 $contador++;
             }
             catch (\Exception $e) {
-                dd($file,$e->getMessage());
+                //dd($file,$e->getMessage());
             }
             //-----------------------------------------
         }

@@ -518,11 +518,10 @@ class RegisterTeam extends RegisterTenant
             'tipo'=>'Factura',
             'folio'=>0,
             'team_id'=>$empresa
-        ]);
-        DB::table('seriesfac_team')->insert([
-            'seriesfac_id'=>$dis,
-            'team_id'=>$empresa
         ]);*/
+        DB::table('series_facturas')->insert([
+            'serie'=>'A', 'tipo'=>'F', 'folio'=>0,'team_id'=>$empresa
+        ]);
         return $team;
     }
     protected function getFotterActions(): array

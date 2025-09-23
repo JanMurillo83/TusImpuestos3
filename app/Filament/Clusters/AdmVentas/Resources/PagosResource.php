@@ -327,16 +327,7 @@ class PagosResource extends Resource
                     Tables\Actions\Action::make('Imprimir')
                         ->icon('fas-print')
                         ->color('warning')
-                        ->action(function (Pagos $record,$livewire) {
-                            /*$emp = DatosFiscales::where('team_id',$record->team_id)->first();
-                            $cli = Clientes::where('id',$record->cve_clie)->first();
-                            $nombre = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
-                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
-                            if (file_exists($archivo)) {
-                                unlink($archivo);
-                            }
-                            file_put_contents($archivo, base64_decode($record->pdf_file));
-                            return response()->download($archivo);*/
+                        ->action(function ($record,$livewire) {
                             $livewire->idorden = $record->id;
                             $livewire->id_empresa = Filament::getTenant()->id;
                             $livewire->getAction('Imprimir_Doc_P')->visible(true);

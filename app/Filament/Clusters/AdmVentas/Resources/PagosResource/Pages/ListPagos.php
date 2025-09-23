@@ -30,7 +30,7 @@ class ListPagos extends ListRecords
                 ->modalWidth('7xl')
                 ->filename(function () {
                     $record = Pagos::where('id',$this->idorden)->first();
-                    $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                    $emp = DatosFiscales::where('team_id',$this->id_empresa)->first();
                     $cli = Clientes::where('id',$record->clie)->first();
                     return $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
                 }),

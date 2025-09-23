@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmVentas\Resources\PagosResource;
 use App\Models\Clientes;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
+use App\Models\Pagos;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
@@ -28,7 +29,7 @@ class ListPagos extends ListRecords
                 ->content(fn() => view('RepFacturaCP',['idorden'=>$this->idorden,'id_empresa'=>$this->id_empresa]))
                 ->modalWidth('7xl')
                 ->filename(function () {
-                    $record = Facturas::where('id',$this->idorden)->first();
+                    $record = Pagos::where('id',$this->idorden)->first();
                     $emp = DatosFiscales::where('team_id',$record->team_id)->first();
                     $cli = Clientes::where('id',$record->clie)->first();
                     return $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';

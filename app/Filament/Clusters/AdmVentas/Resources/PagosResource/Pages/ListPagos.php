@@ -7,9 +7,7 @@ use App\Models\Clientes;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Pagos;
-use App\Models\Team;
 use Filament\Actions;
-use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
@@ -32,9 +30,9 @@ class ListPagos extends ListRecords
                 ->modalWidth('7xl')
                 ->filename(function () {
                     $record = Pagos::where('id',$this->idorden)->first();
-                    $emp = Team::where('id',Filament::getTenant()->id)->first();
-                    $cli = Clientes::where('id',$record->clie)->first();
-                    return $emp->taxid.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                    $emp = DatosFiscales::where('team_id',$this->id_empresa)->first();
+                    $cli = Clientes::where('id',$record->cve_clie)->first();
+                    return $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
                 }),
         ];
     }

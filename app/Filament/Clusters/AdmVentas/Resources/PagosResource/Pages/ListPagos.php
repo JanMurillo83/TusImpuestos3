@@ -13,7 +13,8 @@ use Torgodly\Html2Media\Actions\Html2MediaAction;
 class ListPagos extends ListRecords
 {
     protected static string $resource = PagosResource::class;
-
+    public ?int $idorden;
+    public ?int $id_empresa;
     protected function getHeaderActions(): array
     {
         return [

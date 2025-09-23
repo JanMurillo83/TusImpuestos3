@@ -32,7 +32,7 @@ class ListPagos extends ListRecords
                     $record = Pagos::where('id',$this->idorden)->first();
                     $emp = DatosFiscales::where('team_id',$record->team_id)->first();
                     $cli = Clientes::where('id',$record->clie)->first();
-                    return $emp->rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                    return $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
                 }),
         ];
     }

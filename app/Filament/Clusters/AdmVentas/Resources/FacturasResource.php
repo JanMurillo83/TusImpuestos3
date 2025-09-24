@@ -906,7 +906,8 @@ class FacturasResource extends Resource
                         $tipocom = $comprobante['TipoDeComprobante'];
                         $pagoscom = $comprobante->complemento->Pagos;
                         //dd($tipocom);
-                        if($tipocom != 'P')
+
+                        if($tipocom === 'I')
                         {
                             $subtotal = floatval($comprobante['SubTotal']);
                             $descuento = floatval($comprobante['Descuento']);
@@ -915,7 +916,7 @@ class FacturasResource extends Resource
                             $total = floatval($comprobante['Total']);
                             $tipocambio = floatval($comprobante['TipoCambio']);
                         }
-                        else
+                        if($tipocom === 'P')
                         {
                             $pagostot = $pagoscom->searchNode('pago20:Totales');
                             $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);

@@ -925,18 +925,18 @@ class FacturasResource extends Resource
                             $total = floatval($pagostot['MontoTotalPagos']);
                             $tipocambio = 1;
                         }
-                        $cliente = Clientes::where('rfc',$receptor['Rfc'])->first();
-                        if($cliente == null) {
-                            $cve = Clientes::where('team_id',Filament::getTenant()->id)
-                                ->max('id') + 1;
-                            $cliente = Clientes::firstOrCreate([
-                                'clave'=>$cve,
-                                'rfc'=>$receptor['Rfc'],
-                                'nombre' => $receptor['Nombre'],
-                                'team_id'=>Filament::getTenant()->id
-                            ]);
-                        }
                         if($tipocom == 'I') {
+                            $cliente = Clientes::where('rfc',$receptor['Rfc'])->first();
+                            if($cliente == null) {
+                                $cve = Clientes::where('team_id',Filament::getTenant()->id)
+                                        ->max('id') + 1;
+                                $cliente = Clientes::firstOrCreate([
+                                    'clave'=>$cve,
+                                    'rfc'=>$receptor['Rfc'],
+                                    'nombre' => $receptor['Nombre'],
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                            }
                             $factura = Facturas::firstOrCreate([
                                 'serie' => $comprobante['serie'],
                                 'folio' => $comprobante['folio'],

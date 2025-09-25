@@ -918,11 +918,11 @@ class FacturasResource extends Resource
                         }
                         if($tipocom === 'P')
                         {
-                            $pagostot = $pagoscom->searchNode('pago20:Totales');
-                            $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                            $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
+                            $pagostot = $pagoscom->Totales;
+                            $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16'] ?? 0);
+                            $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16'] ?? 0);
                             $retencion = floatval(0.00);
-                            $total = floatval($pagostot['MontoTotalPagos']);
+                            $total = floatval($pagostot['MontoTotalPagos'] ?? 0);
                             $tipocambio = 1;
                         }
                         if($tipocom == 'I') {

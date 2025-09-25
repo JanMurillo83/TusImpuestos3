@@ -904,28 +904,15 @@ class FacturasResource extends Resource
                         $retiva = $impuestos->Retenciones->Retencion['Importe'] ?? 0;
                         $total = $comprobante['total'];
                         $tipocom = $comprobante['TipoDeComprobante'];
-                        $pagoscom = $comprobante->complemento->Pagos;
+                        //$pagoscom = $comprobante->complemento->Pagos;
                         //dd($tipocom);
-
-                        if($tipocom === 'I')
-                        {
+                        if($tipocom == 'I') {
                             $subtotal = floatval($comprobante['SubTotal']);
                             $descuento = floatval($comprobante['Descuento']);
                             if(isset($impuestos['TotalImpuestosTrasladados']))$traslado = floatval($impuestos['TotalImpuestosTrasladados']);
                             if(isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
                             $total = floatval($comprobante['Total']);
                             $tipocambio = floatval($comprobante['TipoCambio']);
-                        }
-                        if($tipocom === 'P')
-                        {
-                            $pagostot = $pagoscom->Totales;
-                            $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16'] ?? 0);
-                            $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16'] ?? 0);
-                            $retencion = floatval(0.00);
-                            $total = floatval($pagostot['MontoTotalPagos'] ?? 0);
-                            $tipocambio = 1;
-                        }
-                        if($tipocom == 'I') {
                             $cliente = Clientes::where('rfc',$receptor['Rfc'])->first();
                             if($cliente == null) {
                                 $cve = Clientes::where('team_id',Filament::getTenant()->id)

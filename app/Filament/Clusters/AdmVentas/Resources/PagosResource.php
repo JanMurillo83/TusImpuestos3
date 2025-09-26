@@ -336,7 +336,7 @@ class PagosResource extends Resource
                         }),
                     Tables\Actions\Action::make('Timbrar')
                     ->icon('fas-bell-concierge')
-                    ->disabled(fn(Get $get) => $get('estado') != 'Activa')
+                    ->disabled(fn($record) => $record->estado != 'Activa')
                     ->action(function (Pagos $record) {
                         $data = $record;
                         $factura = $record->getKey();

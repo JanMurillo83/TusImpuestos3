@@ -8,6 +8,7 @@ use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,7 +45,7 @@ class visemir extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
-
+    use HasResizableColumn;
     protected static ?string $cluster = Viscfdi::class;
     protected static ?string $title = 'Nomina';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemir';

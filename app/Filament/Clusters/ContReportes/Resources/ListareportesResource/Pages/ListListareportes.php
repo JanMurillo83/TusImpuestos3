@@ -6,12 +6,14 @@ use App\Filament\Clusters\ContReportes\Resources\ListareportesResource;
 use App\Http\Controllers\NuevoReportes;
 use App\Models\Auxiliares;
 use App\Models\CatPolizas;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\DB;
 
 class ListListareportes extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = ListareportesResource::class;
     public static bool $shouldRegisterNavigation = false;
     public $funciones = NuevoReportes::class;

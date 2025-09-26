@@ -6,6 +6,7 @@ use App\Filament\Resources\MovbancosResource;
 use App\Models\BancoCuentas;
 use App\Models\Movbancos;
 use App\Models\Saldosbanco;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Actions\Action as ActionsAction;
 use Filament\Facades\Filament;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 
 class ListMovbancos extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = MovbancosResource::class;
     public ?float $saldo_cuenta = 0;
     public ?float $saldo_cuenta_ant = 0;

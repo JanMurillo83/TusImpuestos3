@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Clusters\ContReportes;
 use App\Livewire\GraficasWidget;
 use App\Livewire\IndicadoresWidget;
+use Asmit\ResizedColumn\ResizedColumnPlugin;
 use Awcodes\FilamentStickyHeader\StickyHeaderPlugin;
 use CodeWithDennis\FilamentThemeInspector\FilamentThemeInspectorPlugin;
 use Filament\Http\Middleware\Authenticate;
@@ -105,8 +106,10 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth('full')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->plugins([
+                ResizedColumnPlugin::make()->preserveOnDB(true),
                 StickyHeaderPlugin::make(),
-                FilamentThemeInspectorPlugin::make()->toggle()->disabled(true)
+                FilamentThemeInspectorPlugin::make()->toggle()->disabled(true),
+
             ]);
     }
 }

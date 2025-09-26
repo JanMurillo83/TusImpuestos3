@@ -3,11 +3,13 @@
 namespace App\Filament\Clusters\AdmVentas\Resources\CotizacionesResource\Pages;
 
 use App\Filament\Clusters\AdmVentas\Resources\CotizacionesResource;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListCotizaciones extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = CotizacionesResource::class;
 
     protected function getHeaderActions(): array

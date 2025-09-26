@@ -5,6 +5,7 @@ namespace App\Filament\Resources\BancoCuentasResource\Pages;
 use App\Filament\Resources\BancoCuentasResource;
 use App\Models\CatCuentas;
 use App\Models\Saldosbanco;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ListBancoCuentas extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = BancoCuentasResource::class;
 
     protected function getHeaderActions(): array

@@ -7,12 +7,14 @@ use App\Models\Clientes;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Team;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class ListFacturas extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = FacturasResource::class;
 
     public ?int $idorden;

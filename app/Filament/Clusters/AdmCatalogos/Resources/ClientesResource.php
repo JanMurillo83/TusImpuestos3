@@ -140,7 +140,11 @@ class ClientesResource extends Resource
                 ->modalCancelActionLabel('Cerrar')
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                ->modalFooterActionsAlignment(Alignment::Left),
+                ->modalFooterActionsAlignment(Alignment::Left)
+                ->after(function($record){
+                    $record->rfc = strtoupper($record->rfc);
+                    $record->save();
+                }),
                     Action::make('CxC')->label('Cuentas x Cobrar')
                     ->icon('fas-money-bill-transfer')
                     ->form(function($record){ return [
@@ -157,7 +161,11 @@ class ClientesResource extends Resource
                 ->modalCancelActionLabel('Cerrar')
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                ->modalFooterActionsAlignment(Alignment::Left),
+                ->modalFooterActionsAlignment(Alignment::Left)
+                ->after(function($record){
+                    $record->rfc = strtoupper($record->rfc);
+                    $record->save();
+                }),
                 Action::make('ImpProd')
                     ->label('Importar')
                     ->icon('fas-file-excel')->badge()

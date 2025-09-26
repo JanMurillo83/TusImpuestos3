@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SolicitudesResource\Pages;
 
 use App\Filament\Resources\SolicitudesResource;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Forms\Components\TextInput;
@@ -27,6 +28,7 @@ use Illuminate\Http\Request;
 
 class ListSolicitudes extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = SolicitudesResource::class;
 
     protected function getHeaderActions(): array

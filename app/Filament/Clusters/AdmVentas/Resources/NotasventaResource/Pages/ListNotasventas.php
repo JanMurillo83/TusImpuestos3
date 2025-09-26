@@ -3,11 +3,13 @@
 namespace App\Filament\Clusters\AdmVentas\Resources\NotasventaResource\Pages;
 
 use App\Filament\Clusters\AdmVentas\Resources\NotasventaResource;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListNotasventas extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = NotasventaResource::class;
 
     protected function getHeaderActions(): array

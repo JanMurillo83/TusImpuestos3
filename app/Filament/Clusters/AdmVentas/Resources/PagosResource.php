@@ -334,6 +334,50 @@ class PagosResource extends Resource
                             $livewire->replaceMountedAction('Imprimir_Doc_P');
                             $livewire->getAction('Imprimir_Doc_P')->visible(false);
                         }),
+                    Tables\Actions\Action::make('Timbrar')
+                    ->icon('fas-bell-concierge')
+                    ->disabled(fn(Get $get) => $get('estado') != 'Activa')
+                    ->action(function (Pagos $record) {
+                        $data = $record;
+                        $factura = $record->getKey();
+                        $receptor = $data->cve_clie;
+                        $emisor = $data->dat_fiscal;
+                        $serie = $data->serie;
+                        //DB::statement("UPDATE series_facs SET folio = folio + 1 WHERE id = $serie");
+                        $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
+                        $resultado = json_decode($res);
+                        $codigores = $resultado->codigo;
+                        if($codigores == "200")
+                        {
+                            $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
+                            $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
+                            $facturamodel = Pagos::find($factura);
+                            $facturamodel->timbrado = 'SI';
+                            $facturamodel->xml = $resultado->cfdi;
+                            $facturamodel->fecha_tim = $date;
+                            $facturamodel->pdf_file = $pdf_file;
+                            $facturamodel->save();
+                            $res2 = app(TimbradoController::class)->actualiza_pag_tim($factura,$resultado->cfdi,"P");
+                            $mensaje_tipo = "1";
+                            $mensaje_graba = 'Comprobante Timbrado Se genero el CFDI UUID: '.$res2;
+                            Notification::make()
+                                ->success()
+                                ->title('Pago Timbrado Correctamente')
+                                ->body($mensaje_graba)
+                                ->duration(2000)
+                                ->send();
+                        }
+                        else{
+                            $mensaje_tipo = "2";
+                            $mensaje_graba = $resultado->mensaje;
+                            Notification::make()
+                                ->warning()
+                                ->title('Error al Timbrar el Documento')
+                                ->body($mensaje_graba)
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
                     Tables\Actions\Action::make('Descargar  XML')
                         ->icon('fas-download')
                         ->color('warning')

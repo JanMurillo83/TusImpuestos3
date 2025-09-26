@@ -3,11 +3,13 @@
 namespace App\Filament\Resources\CatCuentasResource\Pages;
 
 use App\Filament\Resources\CatCuentasResource;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListCatCuentas extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = CatCuentasResource::class;
     public ?int $selectedRowId = null;
     protected function getHeaderActions(): array

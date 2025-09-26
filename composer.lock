@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0cd851470d5d8f3c830544f8ea58731d",
+    "content-hash": "5fb9da1371725b4faf2fbc154f030b07",
     "packages": [
         {
             "name": "akaunting/laravel-money",
@@ -220,6 +220,53 @@
                 }
             ],
             "time": "2024-11-03T15:24:06+00:00"
+        },
+        {
+            "name": "asmit/resized-column",
+            "version": "v1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AsmitNepali/resized-column.git",
+                "reference": "a40a270cf77a7a2048051dbeb7b7168b17b58b49"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AsmitNepali/resized-column/zipball/a40a270cf77a7a2048051dbeb7b7168b17b58b49",
+                "reference": "a40a270cf77a7a2048051dbeb7b7168b17b58b49",
+                "shasum": ""
+            },
+            "require": {
+                "filament/support": "^3.2|^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Asmit\\ResizedColumn\\ResizedColumnServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Asmit\\ResizedColumn\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AsmitNepali",
+                    "email": "mail2asmitnepali@gmail.com"
+                }
+            ],
+            "description": "Resizeable column for filament",
+            "support": {
+                "issues": "https://github.com/AsmitNepali/resized-column/issues",
+                "source": "https://github.com/AsmitNepali/resized-column/tree/v1.1.0"
+            },
+            "time": "2025-08-13T14:21:50+00:00"
         },
         {
             "name": "awcodes/filament-sticky-header",

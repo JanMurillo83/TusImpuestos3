@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Ordenes extends Model
 {
     protected $fillable = ['folio','fecha','prov','nombre','esquema','subtotal',
-    'iva','retiva','retisr','ieps','total','observa','estado','compra','team_id'];
+    'iva','retiva','retisr','ieps','total','moneda','tcambio','observa','estado','compra','team_id'];
 
     public function partidas(): HasMany
     {

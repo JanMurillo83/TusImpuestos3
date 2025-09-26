@@ -26,6 +26,7 @@ use App\Models\RubroGastos;
 use App\Models\SaldosBancos;
 use App\Models\Saldoscuentas;
 use App\Models\Solicitudes;
+use App\Models\TableSettings;
 use App\Models\Team;
 use App\Models\Terceros;
 use App\Models\User;
@@ -65,6 +66,7 @@ class ApplyTenantScopes
         Compras::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         Proveedores::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         Listareportes::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
+        TableSettings::addGlobalScope(fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()),);
         return $next($request);
     }
 }

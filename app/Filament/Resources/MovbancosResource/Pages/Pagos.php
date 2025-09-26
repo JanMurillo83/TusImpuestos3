@@ -67,6 +67,7 @@ class Pagos extends Page implements HasForms
     {
         $this->record_id = $record;
         $datos = Movbancos::where('id',$record)->first();
+        Almacencfdis::where('TipoCambio','<', 1)->update(['TipoCambio' => 1.00]);
         if($datos->pendiente_apli > $datos->importe) {
             $datos->pendiente_apli = $datos->importe;
             $datos->save();

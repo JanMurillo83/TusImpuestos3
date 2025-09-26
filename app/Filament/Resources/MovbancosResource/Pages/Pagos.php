@@ -146,7 +146,9 @@ class Pagos extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->TipoCambio;
                                     })->numeric(decimalPlaces: 4, decimalSeparator: '.'),
-                                TextColumn::make('importe')->sortable()->searchable()
+                                TextColumn::make('importe')->sortable()->searchable(query: function (Builder $query, string $search): Builder {
+                                    return $query->where('total', 'like', "%{$search}%");
+                                    })
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Total;

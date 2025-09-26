@@ -40,7 +40,7 @@ class cfdirn extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
-    use HasResizableColumn;
+
     protected static ?string $cluster = Rececfdi::class;
     protected static ?string $title = 'Notas de Credito';
     protected static string $view = 'filament.clusters.rececfdi.pages.cfdirn';

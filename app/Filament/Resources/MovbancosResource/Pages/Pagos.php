@@ -146,16 +146,16 @@ class Pagos extends Page implements HasForms
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->TipoCambio;
                                     })->numeric(decimalPlaces: 4, decimalSeparator: '.'),
-                                TextColumn::make('importe')->sortable()
+                                TextColumn::make('importe')->sortable()->searchable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Total;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                TextColumn::make('pendientemxn')->sortable()
+                                TextColumn::make('pendientemxn')->sortable()->searchable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         return $model->pendientemxn;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
-                                TextColumn::make('pendienteusd')->sortable()
+                                TextColumn::make('pendienteusd')->sortable()->searchable()
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         return $model->pendienteusd;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),

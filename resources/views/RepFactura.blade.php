@@ -64,7 +64,7 @@
                     <label>601 - General de Ley Personas Morales</label>
                     <br>
                     <br>
-                    <label><b>CONDICIONES DE PAGO:</b></label><label>CONTADO</label><br>
+                    <label><b>CONDICIONES DE PAGO:</b></label><label>{{$orden->condiciones}}</label><br>
                     <label><b>FORMA DE PAGO:</b></label><label>{{$orden->metodo}}</label><br>
                     <label><b>METODO DE PAGO:</b></label><label>{{$orden->forma}}</label>
                 </div>

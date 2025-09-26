@@ -14,6 +14,7 @@ use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
+use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Actions;
@@ -75,7 +76,7 @@ class OrdenesResource extends Resource
                         Forms\Components\Select::make('prov')
                             ->searchable()
                             ->label('Proveedor')
-                            ->columnSpan(2)
+                            ->columnSpan(3)
                             ->live()
                             ->required()
                             ->options(Proveedores::all()->pluck('nombre','id'))
@@ -90,11 +91,30 @@ class OrdenesResource extends Resource
                             ->required()
                             ->default(Carbon::now())->disabledOn('edit'),
                         Forms\Components\Select::make('esquema')
-                            ->options(Esquemasimp::all()->pluck('descripcion','id'))
-                            ->default(1)->disabledOn('edit'),
-                        Forms\Components\Textarea::make('observa')
-                            ->columnSpan(4)->label('Observaciones')
-                            ->rows(1),
+                            ->options(Esquemasimp::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
+                            ->default(Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id)->disabledOn('edit'),
+                        Forms\Components\Select::make('moneda')
+                            ->options(['MXN'=>'MXN','USD'=>'USD'])
+                            ->default('MXN')
+                            ->disabledOn('edit')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function(Get $get,Set $set){
+                                $mon = $get('moneda');
+                                if($mon == 'MXN') $set('tcambio',1.00);
+                            }),
+                        Forms\Components\TextInput::make('tcambio')
+                            ->label('Tipo de Cambio')
+                            ->required()
+                            ->reactive()
+                            ->disabled(function(Get $get){
+                                $mon = $get('moneda');
+                                if($mon == 'MXN') return true;
+                                else return false;
+                            })
+                            ->numeric()
+                            ->readOnly()
+                            ->prefix('$')
+                            ->default(1.00)->currencyMask(),
                         TableRepeater::make('partidas')
                             ->relationship()
                             ->addActionLabel('Agregar')
@@ -137,7 +157,7 @@ class OrdenesResource extends Resource
                                         $set('costo',$prod->u_costo);
                                     })->suffixAction(
                                         Action::make('AbreItem')
-                                        ->icon('fas-circle-question')
+                                        ->icon('fas-magnifying-glass')
                                         ->form([
                                             Select::make('SelItem')
                                             ->label('Seleccionar')
@@ -211,9 +231,13 @@ class OrdenesResource extends Resource
                                 Hidden::make('observa'),
                                 Hidden::make('prov'),
                                 Hidden::make('team_id')->default(Filament::getTenant()->id),
-                            ])->columnSpan('full')->streamlined()
+                            ])->columnSpan('full')->streamlined(),
+                            Forms\Components\Textarea::make('observa')
+                                ->columnSpanFull()->label('Observaciones')
+                                ->rows(3),
 
-                        ])->grow(true)->columns(5),
+                        ])->grow(true)->columns(5)
+                    ->columnSpanFull(),
                     Section::make('Totales')
                         ->schema([
                             Forms\Components\TextInput::make('subtotal')
@@ -383,6 +407,7 @@ class OrdenesResource extends Resource
                     ->numeric()
                     ->sortable()
                     ->currency('USD',true),
+                Tables\Columns\TextColumn::make('moneda'),
                 Tables\Columns\TextColumn::make('estado')
                     ->searchable(),
             ])
@@ -390,14 +415,32 @@ class OrdenesResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ActionGroup::make([
                 Tables\Actions\EditAction::make()
-                ->label('')->icon(null)
+                ->label('Editar')->icon('fas-edit')
                 ->modalSubmitActionLabel('Grabar')
                 ->modalCancelActionLabel('Cerrar')
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('7xl'),
+                ->modalWidth('full')
+                ->visible(function ($record) {
+                    if($record->estado == 'Activa') return true;
+                    else return false;
+                }),
+                Tables\Actions\Action::make('Imprimir')
+                ->icon('fas-print')
+                ->modalCancelActionLabel('Cerrar')
+                ->modalSubmitAction('')
+                ->modalContent(function(Get $get){
+                    $idorden = $get('id');
+                }),
+                Tables\Actions\ViewAction::make()
+                    ->modalWidth('full')
+                    ->visible(function ($record) {
+                        if($record->estado == 'Activa') return false;
+                        else return true;
+                    }),
                 ActionsAction::make('Cancelar')
                 ->icon('fas-ban')
                 ->label('Cancelar')
@@ -417,6 +460,7 @@ class OrdenesResource extends Resource
                     }
                 })
             ])
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
                 ->createAnother(false)
@@ -427,7 +471,7 @@ class OrdenesResource extends Resource
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('7xl')->button()
+                ->modalWidth('full')->button()
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -6,6 +6,7 @@ use App\Filament\Resources\ActivosfijosResource;
 use App\Models\Auxiliares;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
 use Filament\Actions;
 use Filament\Facades\Filament;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 class ListActivosfijos extends ListRecords
 {
     protected static string $resource = ActivosfijosResource::class;
-
+    use HasResizableColumn;
     protected function getHeaderActions(): array
     {
         return [

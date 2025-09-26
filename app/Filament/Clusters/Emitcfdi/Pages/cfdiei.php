@@ -8,6 +8,7 @@ use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -141,6 +142,10 @@ class cfdiei extends Page implements HasForms, HasTable
                     ->sortable(),
                 TextColumn::make('MetodoPago')
                     ->label('Forma de Pago')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('FormaPago')
+                    ->label('Metodo de Pago')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('xml_type')

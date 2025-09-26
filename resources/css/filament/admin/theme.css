@@ -1,5 +1,6 @@
 @import "/vendor/filament/filament/resources/css/theme.css";
 @import "../../../../vendor/awcodes/filament-table-repeater/resources/css/plugin.css";
+@import "../../../../vendor/asmit/resized-column/resources/css/resized-column.css";
 @config 'tailwind.config.js';
 
 .fi-ta-table > tbody {

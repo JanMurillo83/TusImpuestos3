@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AlmacencfdisResource\Pages;
 
 use App\Filament\Resources\AlmacencfdisResource;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Forms\Components\TextInput;
@@ -22,7 +23,9 @@ use Filament\Resources\Pages\Page;
 
 class ListAlmacencfdis extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = AlmacencfdisResource::class;
+
     protected function getHeaderActions(): array
     {
         return [

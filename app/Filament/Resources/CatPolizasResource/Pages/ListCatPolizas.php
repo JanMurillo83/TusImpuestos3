@@ -5,6 +5,8 @@ namespace App\Filament\Resources\CatPolizasResource\Pages;
 use App\Filament\Resources\CatPolizasResource;
 use App\Models\Auxiliares;
 use App\Models\CatPolizas;
+use App\Models\TableSettings;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Facades\Filament;
 use Filament\Resources\Components\Tab;
@@ -12,7 +14,21 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListCatPolizas extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = CatPolizasResource::class;
+
+    protected function persistColumnWidthsToDatabase(): void
+    {
+        // Your custom database save logic here
+        TableSettings::updateOrCreate(
+            [
+                'user_id' => $this->getUserId(),
+                'resource' => $this->getResourceModelFullPath(), // e.g., 'App\Models\User'
+                'team_id' => Filament::getTenant()->id,
+            ],
+            ['settings' => $this->columnWidths]
+        );
+    }
     public function mount(): void
     {
         $this->SetTotales();

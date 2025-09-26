@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\XmlfilesResource\Pages;
 
 use App\Filament\Resources\XmlfilesResource;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Forms\Components\TextInput;
@@ -24,6 +25,7 @@ use Illuminate\Http\Request;
 
 class ListXmlfiles extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = XmlfilesResource::class;
 
     protected function getHeaderActions(): array

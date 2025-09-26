@@ -7,12 +7,14 @@ use App\Models\Clientes;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Pagos;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class ListPagos extends ListRecords
 {
+    use HasResizableColumn;
     protected static string $resource = PagosResource::class;
     public ?int $idorden;
     public ?int $id_empresa;

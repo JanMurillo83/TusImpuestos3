@@ -8,6 +8,7 @@ use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
+use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,7 +45,7 @@ class visrecn extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
-
+    use HasResizableColumn;
     protected static ?string $cluster = Viscfdire::class;
     protected static ?string $title = 'Notas de Credito';
     protected static string $view = 'filament.clusters.viscfdire.pages.visrecn';

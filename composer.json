@@ -9,6 +9,7 @@
         "ext-intl": "*",
         "ext-soap": "*",
         "ariaieboy/filament-currency": "^1.10",
+        "asmit/resized-column": "^1.1",
         "awcodes/filament-sticky-header": "^2.0",
         "awcodes/filament-table-repeater": "^3.0",
         "barryvdh/laravel-dompdf": "^3.1",

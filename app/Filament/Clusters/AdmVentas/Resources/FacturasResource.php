@@ -24,6 +24,7 @@ use App\Models\Movinventario;
 use App\Models\Notasventa;
 use App\Models\NotasventaPartidas;
 use App\Models\SeriesFacturas;
+use App\Models\TableSettings;
 use App\Models\Team;
 use App\Models\Unidades;
 use App\Models\Usos;
@@ -88,6 +89,7 @@ class FacturasResource extends Resource
     protected static ?string $label = 'Factura';
     protected static ?string $pluralLabel = 'Facturas';
     protected static ?string $cluster = AdmVentas::class;
+
 
     public static function form(Form $form): Form
     {
@@ -515,29 +517,30 @@ class FacturasResource extends Resource
         ->defaultPaginationPageOption(5)
         ->paginationPageOptions([5,'all'])
         ->striped()
+        ->defaultSort('fecha', 'desc')
         ->columns([
             Tables\Columns\TextColumn::make('docto')
                 ->label('Factura')
                 ->numeric()
-                ->sortable(),
+                ->sortable()->width('20%'),
             Tables\Columns\TextColumn::make('fecha')
                 ->date('d-m-Y')
-                ->sortable(),
+                ->sortable()->width('20%'),
             Tables\Columns\TextColumn::make('nombre')
                 ->searchable()
-                ->label('Cliente'),
+                ->label('Cliente')->width('30%'),
             Tables\Columns\TextColumn::make('subtotal')
                 ->numeric()
                 ->sortable()
-                ->currency('USD',true),
+                ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('iva')
                 ->numeric()
                 ->sortable()
-                ->currency('USD',true),
+                ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('total')
                 ->numeric()
                 ->sortable()
-                ->currency('USD',true),
+                ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('estado')
                 ->searchable(),
             ])
@@ -685,6 +688,8 @@ class FacturasResource extends Resource
                             } else {
                                 $mensaje_tipo = "2";
                                 $mensaje_graba = $resultado->mensaje;
+                                $record->error_timbrado = $resultado->mensaje;
+                                $record->save();
                                 Notification::make()
                                     ->warning()
                                     ->title('Error al Timbrar el Documento')
@@ -828,6 +833,8 @@ class FacturasResource extends Resource
                         'saldo'=>$record->total * $record->tcambio,
                         'team_id'=>Filament::getTenant()->id
                     ]);
+                    $record->pendiente_pago = $record->total;
+                    $record->save();
                     //-----------------------------
                         $data = $record;
                         $factura = $data->id;
@@ -856,6 +863,8 @@ class FacturasResource extends Resource
                             } else {
                                 $mensaje_tipo = "2";
                                 $mensaje_graba = $resultado->mensaje;
+                                $record->error_timbrado = $resultado->mensaje;
+                                $record->save();
                                 Notification::make()
                                     ->warning()
                                     ->title('Error al Timbrar el Documento')
@@ -989,7 +998,25 @@ class FacturasResource extends Resource
                         }
                     }
                     Notification::make()->title('Proceso Terminado')->success()->send();
-                })
+                }),
+                Action::make('Actualziar Folios')
+                    ->action(function(){
+                        $records = DB::table('facturas')->where('estado','Timbrada')->get();;
+                        $count = 0;
+                        foreach($records as $record) {
+                            $xml = $record->xml;
+                            $xml = Cleaner::staticClean($xml);
+                            $cfdiData = \CfdiUtils\Cfdi::newFromString($xml);
+                            $comprobante = $cfdiData->getQuickReader();
+                            $serie = $comprobante['Serie'];
+                            Facturas::where('id',$record->id)->update([
+                                'serie' => $serie,
+                                'docto' => $serie.$record->folio,
+                            ]);
+                            $count++;
+                        }
+                        Notification::make()->title('Proceso Terminado '.$count.' Registros')->success()->send();
+                    })
             ],HeaderActionsPosition::Bottom);
     }
 

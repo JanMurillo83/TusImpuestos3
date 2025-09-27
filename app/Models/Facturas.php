@@ -11,7 +11,7 @@ class Facturas extends Model
     protected $fillable = ['serie','folio','docto','fecha','clie','nombre','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','observa','estado','metodo',
     'forma','uso','uuid','condiciones','vendedor','anterior','timbrado','xml','fecha_tim',
-    'moneda','tcambio','fecha_cancela','motivo','sustituye','xml_cancela','team_id'];
+    'moneda','tcambio','fecha_cancela','motivo','sustituye','xml_cancela','pendiente_pago','team_id','error_timbrado'];
     public function partidas(): HasMany
     {
         return $this->hasMany(related: FacturasPartidas::class);

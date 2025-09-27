@@ -91,7 +91,7 @@ class TimbradoController extends Controller
         $tipo_cambio = 1;
         if($facdata[0]->moneda != 'MXN')$tipo_cambio = number_format($facdata[0]->tcambio,4);
         $comprobanteAtributos = [
-            'Serie' => 'F',
+            'Serie' => $facdata[0]->serie ?? 'A',
             'Folio' => $facdata[0]->folio,
             'CondicionesDePago'=>$facdata[0]->condiciones ?? "CONTADO",
             'SubTotal'=>$facdata[0]->subtotal,

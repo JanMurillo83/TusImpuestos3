@@ -50,7 +50,13 @@ class DatosFiscalesResource extends Resource
                     }),
                 Forms\Components\FileUpload::make('logo')
                     ->image()
-                    ->columnSpanFull()
+                    ->columnSpanFull(),
+                Forms\Components\TextInput::make('direccion')
+                    ->maxLength(255)->columnSpanFull(),
+                Forms\Components\TextInput::make('telefono')
+                    ->maxLength(255)->columnSpan(2),
+                Forms\Components\TextInput::make('correo')
+                    ->maxLength(255)->columnSpan(2),
             ])->columns(4);
     }
 

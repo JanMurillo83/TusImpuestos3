@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Compras extends Model
 {
     protected $fillable = ['folio','fecha','prov','nombre','esquema','subtotal',
-    'iva','retiva','retisr','ieps','total','moneda','tcambio','observa','estado','orden','team_id'];
+    'iva','retiva','retisr','ieps','total','moneda','tcambio','observa','estado','orden','team_id','recibe','proyecto'];
     public function partidas(): HasMany
     {
         return $this->hasMany(related: ComprasPartidas::class);

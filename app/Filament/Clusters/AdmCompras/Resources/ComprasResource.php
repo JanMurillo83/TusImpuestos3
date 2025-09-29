@@ -12,6 +12,7 @@ use App\Models\Movinventario;
 use App\Models\Ordenes;
 use App\Models\OrdenesPartidas;
 use App\Models\Proveedores;
+use App\Models\Proyectos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
@@ -69,95 +70,75 @@ class ComprasResource extends Resource
                 FieldSet::make('Compra')
                     ->schema([
                         Forms\Components\Hidden::make('id'),
-                        Forms\Components\Hidden::make('orden'),
                         Forms\Components\TextInput::make('folio')
-                        ->required()
-                        ->numeric()
-                        ->readOnly()
-                        ->default(function(){
-                            return count(Compras::all()) + 1;
-                        }),
-                    Forms\Components\Select::make('prov')
-                        ->searchable()
-                        ->label('Proveedor')
-                        ->columnSpan(2)
-                        ->live()
-                        ->required()
-                        ->options(Proveedores::all()->pluck('nombre','id'))
-                        ->afterStateUpdated(function(Get $get,Set $set){
-                            $prov = Proveedores::where('id',$get('prov'))->get();
-                            if(count($prov) > 0){
-                            $prov = $prov[0];
-                            $set('nombre',$prov->nombre);
-                            }
-                        })->disabledOn('edit'),
-                    Forms\Components\DatePicker::make('fecha')
-                        ->required()
-                        ->default(Carbon::now())->disabledOn('edit'),
-                    Forms\Components\Select::make('esquema')
-                        ->options(Esquemasimp::all()->pluck('descripcion','id'))
-                        ->default(1)->disabledOn('edit'),
-                    Forms\Components\Textarea::make('observa')
-                        ->columnSpan(4)->label('Observaciones')
-                        ->rows(1),
-                    TableRepeater::make('partidas')
-                        ->relationship()
-                        ->addActionLabel('Agregar')
-                        ->headers([
-                            Header::make('Cantidad'),
-                            Header::make('Item'),
-                            Header::make('Descripcion')->width('200px'),
-                            Header::make('Unitario'),
-                            Header::make('Subtotal'),
-                        ])->schema([
-                            TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
-                            ->live()
-                            ->afterStateUpdated(function(Get $get, Set $set){
-                                $cant = $get('cant');
-                                $cost = $get('costo');
-                                $subt = $cost * $cant;
-                                $set('subtotal',$subt);
-                                $ivap = $get('../../esquema');
-                                $esq = Esquemasimp::where('id',$ivap)->get();
-                                $esq = $esq[0];
-                                $set('iva',$subt * ($esq->iva*0.01));
-                                $set('retiva',$subt * ($esq->retiva*0.01));
-                                $set('retisr',$subt * ($esq->retisr*0.01));
-                                $set('ieps',$subt * ($esq->ieps*0.01));
-                                $ivapar = $subt * ($esq->iva*0.01);
-                                $retivapar = $subt * ($esq->iva*0.01);
-                                $retisrpar = $subt * ($esq->iva*0.01);
-                                $iepspar = $subt * ($esq->iva*0.01);
-                                $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                $set('total',$tot);
-                                $set('prov',$get('../../prov'));
-                                Self::updateTotals($get,$set);
+                            ->required()
+                            ->numeric()
+                            ->readOnly()
+                            ->default(function(){
+                                return count(Compras::all()) + 1;
                             }),
-                            TextInput::make('item')
-                                ->live(onBlur:true)
-                                ->afterStateUpdated(function(Get $get, Set $set){
-                                    $prod = Inventario::where('id',$get('item'))->get();
-                                    $prod = $prod[0];
-                                    $set('descripcion',$prod->descripcion);
-                                    $set('costo',$prod->u_costo);
-                                })->suffixAction(
-                                    Action::make('AbreItem')
-                                    ->icon('fas-circle-question')
-                                    ->form([
-                                        Select::make('SelItem')
-                                        ->label('Seleccionar')
-                                        ->searchable()
-                                        ->options(Inventario::all()->pluck('descripcion','id'))
-                                    ])
-                                    ->action(function(Set $set,Get $get,$data){
+                        Forms\Components\Select::make('prov')
+                            ->searchable()
+                            ->label('Proveedor')
+                            ->columnSpan(3)
+                            ->live()
+                            ->required()
+                            ->options(Proveedores::all()->pluck('nombre','id'))
+                            ->afterStateUpdated(function(Get $get,Set $set){
+                                $prov = Proveedores::where('id',$get('prov'))->get();
+                                if(count($prov) > 0){
+                                    $prov = $prov[0];
+                                    $set('nombre',$prov->nombre);
+                                }
+                            })->disabledOn('edit'),
+                        Forms\Components\DatePicker::make('fecha')
+                            ->required()
+                            ->default(Carbon::now())->disabledOn('edit'),
+                        Forms\Components\Select::make('esquema')
+                            ->options(Esquemasimp::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
+                            ->default(Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id)->disabledOn('edit'),
+                        Forms\Components\Select::make('moneda')
+                            ->options(['MXN'=>'MXN','USD'=>'USD'])
+                            ->default('MXN')
+                            ->disabledOn('edit')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function(Get $get,Set $set){
+                                $mon = $get('moneda');
+                                if($mon == 'MXN') $set('tcambio',1.00);
+                            }),
+                        Forms\Components\TextInput::make('tcambio')
+                            ->label('Tipo de Cambio')
+                            ->required()
+                            ->reactive()
+                            ->disabled(function(Get $get){
+                                $mon = $get('moneda');
+                                if($mon == 'MXN') return true;
+                                else return false;
+                            })
+                            ->numeric()
+                            ->readOnly()
+                            ->prefix('$')
+                            ->default(1.00)->currencyMask(),
+                        TextInput::make('recibe')->columnSpan(2),
+                        Select::make('proyecto')
+                            ->options(Proyectos::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
+                            ->columnSpan(2),
+                        TableRepeater::make('partidas')
+                            ->relationship()
+                            ->addActionLabel('Agregar')
+                            ->headers([
+                                Header::make('Cantidad'),
+                                Header::make('Item'),
+                                Header::make('Descripcion')->width('200px'),
+                                Header::make('Unitario'),
+                                Header::make('Subtotal'),
+                            ])->schema([
+                                TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
+                                    ->live()
+                                    ->afterStateUpdated(function(Get $get, Set $set){
                                         $cant = $get('cant');
-                                        $item = $data['SelItem'];
-                                        $set('item',$item);
-                                        $prod = Inventario::where('id',$item)->get();
-                                        $prod = $prod[0];
-                                        $set('descripcion',$prod->descripcion);
-                                        $set('costo',$prod->u_costo);
-                                        $subt = $prod->u_costo * $cant;
+                                        $cost = $get('costo');
+                                        $subt = $cost * $cant;
                                         $set('subtotal',$subt);
                                         $ivap = $get('../../esquema');
                                         $esq = Esquemasimp::where('id',$ivap)->get();
@@ -174,51 +155,98 @@ class ComprasResource extends Resource
                                         $set('total',$tot);
                                         $set('prov',$get('../../prov'));
                                         Self::updateTotals($get,$set);
-                                    })
-                            ),
-                            TextInput::make('descripcion'),
-                            TextInput::make('costo')
-                                ->numeric()
-                                ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
-                                ->live()
-                                ->afterStateUpdated(function(Get $get, Set $set){
-                                    $cant = $get('cant');
-                                    $cost = $get('costo');
-                                    $subt = $cost * $cant;
-                                    $set('subtotal',$subt);
-                                    $ivap = $get('../../esquema');
-                                    $esq = Esquemasimp::where('id',$ivap)->get();
-                                    $esq = $esq[0];
-                                    $ivapar = $subt * ($esq->iva*0.01);
-                                    $retivapar = $subt * ($esq->retiva*0.01);
-                                    $retisrpar = $subt * ($esq->retisr*0.01);
-                                    $iepspar = $subt * ($esq->ieps*0.01);
-                                    $set('iva',$ivapar);
-                                    $set('retiva',$retivapar);
-                                    $set('retisr',$retisrpar);
-                                    $set('ieps',$iepspar);
-                                    $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                    $set('total',$tot);
-                                    $set('prov',$get('../../prov'));
-                                    Self::updateTotals($get,$set);
-                                }),
-                            TextInput::make('subtotal')
-                                ->numeric()
-                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
-                            Hidden::make('iva'),
-                            Hidden::make('retiva'),
-                            Hidden::make('retisr'),
-                            Hidden::make('ieps'),
-                            Hidden::make('total'),
-                            Hidden::make('unidad'),
-                            Hidden::make('cvesat'),
-                            Hidden::make('prov'),
-                            Hidden::make('observa'),
-                            Hidden::make('idorden'),
-                            Hidden::make('team_id')->default(Filament::getTenant()->id),
-                        ])->columnSpan('full')->streamlined()
+                                    }),
+                                TextInput::make('item')
+                                    ->live(onBlur:true)
+                                    ->afterStateUpdated(function(Get $get, Set $set){
+                                        $prod = Inventario::where('id',$get('item'))->get();
+                                        $prod = $prod[0];
+                                        $set('descripcion',$prod->descripcion);
+                                        $set('costo',$prod->u_costo);
+                                    })->suffixAction(
+                                        Action::make('AbreItem')
+                                            ->icon('fas-magnifying-glass')
+                                            ->form([
+                                                Select::make('SelItem')
+                                                    ->label('Seleccionar')
+                                                    ->searchable()
+                                                    ->options(Inventario::all()->pluck('descripcion','id'))
+                                            ])
+                                            ->action(function(Set $set,Get $get,$data){
+                                                $cant = $get('cant');
+                                                $item = $data['SelItem'];
+                                                $set('item',$item);
+                                                $prod = Inventario::where('id',$item)->get();
+                                                $prod = $prod[0];
+                                                $set('descripcion',$prod->descripcion);
+                                                $set('costo',$prod->u_costo);
+                                                $subt = $prod->u_costo * $cant;
+                                                $set('subtotal',$subt);
+                                                $ivap = $get('../../esquema');
+                                                $esq = Esquemasimp::where('id',$ivap)->get();
+                                                $esq = $esq[0];
+                                                $set('iva',$subt * ($esq->iva*0.01));
+                                                $set('retiva',$subt * ($esq->retiva*0.01));
+                                                $set('retisr',$subt * ($esq->retisr*0.01));
+                                                $set('ieps',$subt * ($esq->ieps*0.01));
+                                                $ivapar = $subt * ($esq->iva*0.01);
+                                                $retivapar = $subt * ($esq->iva*0.01);
+                                                $retisrpar = $subt * ($esq->iva*0.01);
+                                                $iepspar = $subt * ($esq->iva*0.01);
+                                                $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
+                                                $set('total',$tot);
+                                                $set('prov',$get('../../prov'));
+                                                Self::updateTotals($get,$set);
+                                            })
+                                    ),
+                                TextInput::make('descripcion'),
+                                TextInput::make('costo')
+                                    ->numeric()
+                                    ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
+                                    ->live()
+                                    ->afterStateUpdated(function(Get $get, Set $set){
+                                        $cant = $get('cant');
+                                        $cost = $get('costo');
+                                        $subt = $cost * $cant;
+                                        $set('subtotal',$subt);
+                                        $ivap = $get('../../esquema');
+                                        $esq = Esquemasimp::where('id',$ivap)->get();
+                                        $esq = $esq[0];
+                                        $ivapar = $subt * ($esq->iva*0.01);
+                                        $retivapar = $subt * ($esq->retiva*0.01);
+                                        $retisrpar = $subt * ($esq->retisr*0.01);
+                                        $iepspar = $subt * ($esq->ieps*0.01);
+                                        $set('iva',$ivapar);
+                                        $set('retiva',$retivapar);
+                                        $set('retisr',$retisrpar);
+                                        $set('ieps',$iepspar);
+                                        $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
+                                        $set('total',$tot);
+                                        $set('prov',$get('../../prov'));
+                                        Self::updateTotals($get,$set);
+                                    }),
+                                TextInput::make('subtotal')
+                                    ->numeric()
+                                    ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                Hidden::make('iva'),
+                                Hidden::make('retiva'),
+                                Hidden::make('retisr'),
+                                Hidden::make('ieps'),
+                                Hidden::make('total'),
+                                Hidden::make('unidad'),
+                                Hidden::make('cvesat'),
+                                Hidden::make('prov'),
+                                Hidden::make('observa'),
+                                Hidden::make('prov'),
+                                Hidden::make('idorden'),
+                                Hidden::make('team_id')->default(Filament::getTenant()->id),
+                            ])->columnSpan('full')->streamlined(),
+                        Forms\Components\Textarea::make('observa')
+                            ->columnSpanFull()->label('Observaciones')
+                            ->rows(3),
 
-                    ])->grow(true)->columns(5),
+                    ])->grow(true)->columns(5)
+                    ->columnSpanFull(),
                 Section::make('Totales')
                     ->schema([
                         Forms\Components\TextInput::make('subtotal')
@@ -336,16 +364,18 @@ class ComprasResource extends Resource
                                 $set('prov',$orden->prov);
                                 $set('nombre',$orden->nombre);
                                 $set('observa',$orden->observa);
+                                $set('proyecto',$orden->proyecto);
                                 $partidas = [];
                                 foreach($Opartidas as $opar)
                                 {
                                     $data = ['cant'=>$opar->cant,'item'=>$opar->item,'descripcion'=>$opar->descripcion,
                                             'costo'=>$opar->costo,'subtotal'=>$opar->subtotal,'iva'=>$opar->iva,
                                             'retiva'=>$opar->retiva,'retisr'=>$opar->retisr,
-                                            'ieps'=>$opar->ieps,'total'=>$opar->total,'prov'=>$orden->prov,'idorden'=>$selorden];
+                                            'ieps'=>$opar->ieps,'total'=>$opar->total,'prov'=>$orden->prov,'idorden'=>$orden->id];
                                     array_push($partidas,$data);
                                 }
                                 $set('partidas', $partidas);
+                                $set('orden', $orden->id);
                                 Self::updateTotals2($get,$set);
                             })
                     ])
@@ -354,6 +384,7 @@ class ComprasResource extends Resource
             ])->columnSpanFull(),
             Forms\Components\Hidden::make('nombre'),
             Forms\Components\Hidden::make('estado')->default('Activa'),
+            Forms\Components\Hidden::make('orden')->default(0)
         ]);
     }
 
@@ -423,6 +454,7 @@ class ComprasResource extends Resource
                     ->numeric()
                     ->sortable()
                     ->currency('USD',true),
+                Tables\Columns\TextColumn::make('moneda'),
                 Tables\Columns\TextColumn::make('estado')
                     ->searchable(),
             ])
@@ -430,8 +462,9 @@ class ComprasResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ActionGroup::make([
                 Tables\Actions\ViewAction::make()
-                ->label('')->icon(null)
+                ->icon('fas-eye')
                 //->modalSubmitActionLabel('Grabar')
                 ->modalCancelActionLabel('Cerrar')
                 //->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
@@ -455,8 +488,17 @@ class ComprasResource extends Resource
                         ->success()
                         ->send();
                     }
-                })
-            ])
+                }),
+                Tables\Actions\Action::make('Imprimir')->icon('fas-print')
+                    ->action(function($record,$livewire){
+                        $livewire->idorden = $record->id;
+                        $livewire->id_empresa = Filament::getTenant()->id;
+                        $livewire->getAction('Imprimir_Doc_E')->visible(true);
+                        $livewire->replaceMountedAction('Imprimir_Doc_E');
+                        $livewire->getAction('Imprimir_Doc_E')->visible(false);
+                    }),
+                ])
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
                 ->createAnother(false)
@@ -470,13 +512,12 @@ class ComprasResource extends Resource
                 ->modalWidth('7xl')->button()
                 ->after(function($record){
                     $partidas = $record->partidas;
-                    $nopar = 0;
+                    // Procesar movimientos de inventario y actualizar enlace con la orden
                     foreach($partidas as $partida)
                     {
                         $arti = $partida->item;
-                        $inve = Inventario::where('id',$arti)->get();
-                        $inve = $inve[0];
-                        if($inve->servicio == 'NO')
+                        $inve = Inventario::where('id',$arti)->first();
+                        if($inve && $inve->servicio == 'NO')
                         {
                             Movinventario::insert([
                                 'producto'=>$partida->item,
@@ -491,31 +532,48 @@ class ComprasResource extends Resource
                             ]);
 
                             $cost = $partida->costo;
-                            $cant = $inve->exist + $partida->cant;
-                            $avg = $inve->p_costo * $inve->exist;
-                            $avgp = 0;
-                            if($avg == 0) $avgp = $cost;
-                            else $avgp = (($inve->p_costo + $cost) * ($inve->exist + $cant)) / ($inve->exist + $cant);
+                            $nuevaExist = ($inve->exist ?? 0) + $partida->cant;
+                            $avgBase = ($inve->p_costo ?? 0) * ($inve->exist ?? 0);
+                            $avgp = $avgBase == 0 ? $cost : (($inve->p_costo + $cost) * (($inve->exist ?? 0) + $nuevaExist)) / (($inve->exist ?? 0) + $nuevaExist);
                             Inventario::where('id',$arti)->update([
-                                'exist' => $cant,
+                                'exist' => $nuevaExist,
                                 'u_costo'=>$cost,
                                 'p_costo'=>$avgp
                             ]);
+                            if($record->orden > 0){
+                                OrdenesPartidas::where(['ordenes_id'=>$record->orden,
+                                'item'=>$partida->item])->decrement('pendientes',$partida->cant);
+                            }
+
                         }
-                        OrdenesPartidas::where(['ordenes_id'=>$partida->idorden,'item'=>$partida->item])->update([
-                            'idcompra'=>$record->folio
-                        ]);
-                        $nopar++;
+
+                        // Enlazar partida de la orden:
+                        if($partida->idorden){
+                            $op = OrdenesPartidas::where(['ordenes_id'=>$partida->idorden,'item'=>$partida->item])->first();
+                            if($op){
+                                // Si la cantidad recibida cubre totalmente lo ordenado, marcar como enlazada
+                                if((float)$partida->cant >= (float)$op->cant){
+                                    OrdenesPartidas::where('id',$op->id)->update(['idcompra'=>$record->folio]);
+                                }
+                            }
+                        }
                     }
-                    $opo = OrdenesPartidas::where(['ordenes_id'=>$partida->idorden,'item'=>$partida->item])->get();
-                    $noparor = count($opo);
-                    $estado = '';
-                    if($nopar == $noparor) $estado = 'Enlazada';
-                    else $estado = 'Parcial';
-                    Ordenes::where('id',$record->orden)->update([
-                        'estado'=>$estado,
-                        'compra'=>$record->folio
-                    ]);
+
+                    // Actualizar estado de la orden segun partidas enlazadas
+                    if($record->orden){
+                        $totalPartidasOrden = OrdenesPartidas::where('ordenes_id',$record->orden)->count();
+                        $partidasEnlazadas = OrdenesPartidas::where('ordenes_id',$record->orden)->whereNotNull('idcompra')->count();
+                        $estado = 'Activa';
+                        if($partidasEnlazadas > 0 && $partidasEnlazadas < $totalPartidasOrden){
+                            $estado = 'Parcial';
+                        } elseif($totalPartidasOrden > 0 && $partidasEnlazadas == $totalPartidasOrden){
+                            $estado = 'Enlazada';
+                        }
+                        Ordenes::where('id',$record->orden)->update([
+                            'estado'=>$estado,
+                            'compra'=>$record->folio
+                        ]);
+                    }
                 })
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([

@@ -10,6 +10,7 @@ use App\Models\Esquemasimp;
 use App\Models\Inventario;
 use App\Models\Ordenes;
 use App\Models\Proveedores;
+use App\Models\Proyectos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
@@ -115,6 +116,10 @@ class OrdenesResource extends Resource
                             ->readOnly()
                             ->prefix('$')
                             ->default(1.00)->currencyMask(),
+                        TextInput::make('solicita')->columnSpan(2),
+                        Select::make('proyecto')
+                            ->options(Proyectos::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
+                            ->columnSpan(2),
                         TableRepeater::make('partidas')
                             ->relationship()
                             ->addActionLabel('Agregar')
@@ -314,23 +319,13 @@ class OrdenesResource extends Resource
                                 ->icon('fas-print')
                                 ->modalCancelActionLabel('Cerrar')
                                 ->modalSubmitAction('')
-                                ->modalContent(function(Get $get){
-                                    $idorden = $get('id');
-                                    if($idorden != null)
-                                    {
-                                        $archivo = public_path('/Reportes/OrdenCompra.pdf');
-                                        if(File::exists($archivo)) unlink($archivo);
-                                        SnappyPdf::loadView('OrdenCompraCarta',['idorden'=>$idorden])
-                                            ->setOption("footer-right", "Pagina [page] de [topage]")
-                                            ->setOption('encoding', 'utf-8')
-                                            ->save($archivo);
-                                        $ruta = env('APP_URL').'/Reportes/OrdenCompra.pdf';
-                                        //dd($ruta);
-                                    }
-                                })->form([
-                                    PdfViewerField::make('archivo')
-                                    ->fileUrl(env('APP_URL').'/Reportes/OrdenCompra.pdf')
-                                ])
+                                ->action(function($record,$livewire){
+                                    $livewire->idorden = $record->id;
+                                    $livewire->id_empresa = Filament::getTenant()->id;
+                                    $livewire->getAction('Imprimir_Doc_E')->visible(true);
+                                    $livewire->replaceMountedAction('Imprimir_Doc_E');
+                                    $livewire->getAction('Imprimir_Doc_E')->visible(false);
+                                })
                         ])->visibleOn('edit'),
                         ])->grow(false),
 
@@ -428,13 +423,14 @@ class OrdenesResource extends Resource
                     if($record->estado == 'Activa') return true;
                     else return false;
                 }),
-                Tables\Actions\Action::make('Imprimir')
-                ->icon('fas-print')
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction('')
-                ->modalContent(function(Get $get){
-                    $idorden = $get('id');
-                }),
+                Tables\Actions\Action::make('Imprimir')->icon('fas-print')
+                    ->action(function($record,$livewire){
+                        $livewire->idorden = $record->id;
+                        $livewire->id_empresa = Filament::getTenant()->id;
+                        $livewire->getAction('Imprimir_Doc_E')->visible(true);
+                        $livewire->replaceMountedAction('Imprimir_Doc_E');
+                        $livewire->getAction('Imprimir_Doc_E')->visible(false);
+                    }),
                 Tables\Actions\ViewAction::make()
                     ->modalWidth('full')
                     ->visible(function ($record) {

@@ -10,6 +10,7 @@ use App\Models\Clientes;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Pagos;
+use App\Models\ParPagos;
 use Carbon\Carbon;
 use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
@@ -151,13 +152,14 @@ class PagosResource extends Resource
                                             ->where('clie', $get('../../cve_clie'))
                                             ->where('estado','Timbrada')
                                             ->where('forma','PPD')
+                                            ->where('pendiente_pago','>',0)
                                             ->pluck('folio', 'id'))
                                         ->live()
                                         ->afterStateUpdated(
                                             function (Forms\Get $get, Forms\Set $set) {
                                                 $facturas = Facturas::where('id', $get('uuidrel'))->get();
                                                 //dd($facturas);
-                                                $total = $facturas[0]->total;
+                                                $total = $facturas[0]->pendiente_pago;
                                                 $set('tasaiva', 0.16);
                                                 $set('unitario', $total);
                                                 $set('importe', $total);
@@ -349,6 +351,10 @@ class PagosResource extends Resource
                         $codigores = $resultado->codigo;
                         if($codigores == "200")
                         {
+                            $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
+                            foreach($partidas_pagos as $partida){
+                                $factura = Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
+                            }
                             $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
                             $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
                             $facturamodel = Pagos::find($factura);
@@ -430,6 +436,10 @@ class PagosResource extends Resource
                 $codigores = $resultado->codigo;
                 if($codigores == "200")
                 {
+                    $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
+                    foreach($partidas_pagos as $partida){
+                        $factura = Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
+                    }
                     $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
                     $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
                     $facturamodel = Pagos::find($factura);

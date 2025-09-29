@@ -707,6 +707,97 @@ class FacturasResource extends Resource
                         }
                     }),
 
+                Action::make('Copiar')
+                    ->icon('fas-copy')
+                    ->label('Copiar Factura')
+                    ->requiresConfirmation()
+                    ->action(function(Model $record){
+                        DB::transaction(function () use ($record) {
+                            $teamId = Filament::getTenant()->id;
+                            $serieRow = SeriesFacturas::where('team_id', $teamId)->where('tipo', 'F')->lockForUpdate()->first();
+                            $serie = $serieRow->serie ?? 'A';
+                            $nuevoFolio = ($serieRow->folio ?? 0) + 1;
+
+                            // Crear encabezado de factura copiada
+                            $nueva = new Facturas();
+                            $nueva->team_id = $teamId;
+                            $nueva->serie = $serie;
+                            $nueva->folio = $nuevoFolio;
+                            $nueva->docto = $serie . $nuevoFolio;
+                            $nueva->fecha = Carbon::now();
+                            $nueva->clie = $record->clie;
+                            $nueva->nombre = $record->nombre;
+                            $nueva->esquema = $record->esquema;
+                            $nueva->subtotal = $record->subtotal;
+                            $nueva->iva = $record->iva;
+                            $nueva->retiva = $record->retiva;
+                            $nueva->retisr = $record->retisr;
+                            $nueva->ieps = $record->ieps;
+                            $nueva->total = $record->total;
+                            $nueva->observa = $record->observa;
+                            $nueva->estado = 'Activa';
+                            $nueva->metodo = $record->metodo;
+                            $nueva->forma = $record->forma;
+                            $nueva->uso = $record->uso;
+                            $nueva->condiciones = $record->condiciones;
+                            $nueva->vendedor = $record->vendedor;
+                            $nueva->moneda = $record->moneda;
+                            $nueva->tcambio = $record->tcambio;
+                            $nueva->pendiente_pago = $record->total; // nuevo saldo pendiente
+                            // Campos que no se deben copiar tal cual (timbrado / CFDI)
+                            $nueva->uuid = null;
+                            $nueva->timbrado = null;
+                            $nueva->xml = null;
+                            $nueva->fecha_tim = null;
+                            $nueva->fecha_cancela = null;
+                            $nueva->motivo = null;
+                            $nueva->sustituye = null;
+                            $nueva->xml_cancela = null;
+                            $nueva->error_timbrado = null;
+                            $nueva->save();
+
+                            // Duplicar partidas
+                            $partidas = FacturasPartidas::where('facturas_id', $record->id)->get();
+                            foreach ($partidas as $par) {
+                                FacturasPartidas::create([
+                                    'facturas_id' => $nueva->id,
+                                    'item' => $par->item,
+                                    'descripcion' => $par->descripcion,
+                                    'cant' => $par->cant,
+                                    'precio' => $par->precio,
+                                    'subtotal' => $par->subtotal,
+                                    'iva' => $par->iva,
+                                    'retiva' => $par->retiva,
+                                    'retisr' => $par->retisr,
+                                    'ieps' => $par->ieps,
+                                    'total' => $par->total,
+                                    'unidad' => $par->unidad,
+                                    'cvesat' => $par->cvesat,
+                                    'costo' => $par->costo,
+                                    'clie' => $par->clie,
+                                    'observa' => $par->observa,
+                                    'anterior' => $par->anterior,
+                                    'siguiente' => $par->siguiente,
+                                    'por_imp1' => $par->por_imp1,
+                                    'por_imp2' => $par->por_imp2,
+                                    'por_imp3' => $par->por_imp3,
+                                    'por_imp4' => $par->por_imp4,
+                                    'team_id' => $teamId,
+                                ]);
+                            }
+
+                            // Incrementar folio de la serie utilizada
+                            if ($serieRow) {
+                                $serieRow->folio = $nuevoFolio;
+                                $serieRow->save();
+                            }
+
+                            Notification::make()
+                                ->title('Factura copiada correctamente: ' . $nueva->docto)
+                                ->success()
+                                ->send();
+                        });
+                    }),
                 Action::make('Enviar por Correo')
                 ->icon('fas-envelope')
                 ->action(function($record,$livewire){
@@ -998,25 +1089,7 @@ class FacturasResource extends Resource
                         }
                     }
                     Notification::make()->title('Proceso Terminado')->success()->send();
-                }),
-                Action::make('Actualziar Folios')
-                    ->action(function(){
-                        $records = DB::table('facturas')->where('estado','Timbrada')->get();;
-                        $count = 0;
-                        foreach($records as $record) {
-                            $xml = $record->xml;
-                            $xml = Cleaner::staticClean($xml);
-                            $cfdiData = \CfdiUtils\Cfdi::newFromString($xml);
-                            $comprobante = $cfdiData->getQuickReader();
-                            $serie = $comprobante['Serie'];
-                            Facturas::where('id',$record->id)->update([
-                                'serie' => $serie,
-                                'docto' => $serie.$record->folio,
-                            ]);
-                            $count++;
-                        }
-                        Notification::make()->title('Proceso Terminado '.$count.' Registros')->success()->send();
-                    })
+                })
             ],HeaderActionsPosition::Bottom);
     }
 

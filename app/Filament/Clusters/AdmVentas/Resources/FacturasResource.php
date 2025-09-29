@@ -851,8 +851,21 @@ class FacturasResource extends Resource
                             ->duration(2000)
                             ->send();
                     }
-                })
+                }),
+                    Action::make('Ver Error')
+                        ->icon('fas-exclamation-triangle')
+                        ->visible(fn($record)=>$record->estado == 'Activa')
+                        ->form(function (Form $form,$record) {
+                            return $form
+                                ->schema([
+                                    Forms\Components\Textarea::make('error_timbrado')
+                                        ->label('Error Timbrado')->default($record->error_timbrado)
+                                        ->readOnly()
+                                ]);
+                        })->modalWidth('7xl')
+                        ->modalSubmitAction(false)
                 ]),
+
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')

@@ -1063,6 +1063,7 @@ class FacturasResource extends Resource
                                 'fecha_tim' => $comprobante['fecha'],
                                 'moneda' => $comprobante['Moneda'],
                                 'tcambio' => $tipocambio,
+                                'pendiente_pago' => $total,
                                 'team_id' => Filament::getTenant()->id
                             ]);
                             foreach ($conceptos() as $concepto) {

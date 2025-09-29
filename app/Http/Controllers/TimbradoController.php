@@ -417,42 +417,12 @@ class TimbradoController extends Controller
         } else {
             $uuid= $tfd['UUID'];
         }
-        if($tipodoc == "F"){
-            DB::table('facturas')->where('id',$idfactura)->update([
-                'uuid'=>$uuid,
-                'estado' => 'Timbrada'
-            ]);
-        }
-        if($tipodoc == "N"){
-            DB::table('notascreds')->where('id',$idfactura)->update([
-                'uuid'=>$uuid,
-                'estado' => 'Timbrada'
-            ]);
-        }
-        if($tipodoc == "P"){
-            DB::table('pagos')->where('id',$idfactura)->update([
-                'uuid'=>$uuid,
-                'estado' => 'Timbrada'
-            ]);
-        }
-        if($tipodoc == "R"){
-            DB::table('retenciones')->where('id',$idfactura)->update([
-                'uuid'=>$uuid,
-                'estado' => 'Timbrada'
-            ]);
-        }
-        if($tipodoc == "C"){
-            DB::table('cartas')->where('id',$idfactura)->update([
-                'uuid'=>$uuid,
-                'estado' => 'Timbrada'
-            ]);
-        }
-        if($tipodoc == "T"){
-            DB::table('traslados')->where('id',$idfactura)->update([
-                'uuid'=>$uuid,
-                'estado' => 'Timbrada'
-            ]);
-        }
+
+        DB::table('pagos')->where('id',$idfactura)->update([
+            'uuid'=>$uuid,
+            'estado' => 'Timbrada'
+        ]);
+
         return $uuid;
     }
     public function genera_pdf($factura):string

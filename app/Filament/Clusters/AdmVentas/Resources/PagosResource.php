@@ -341,7 +341,7 @@ class PagosResource extends Resource
                     ->disabled(fn($record) => $record->estado != 'Activa')
                     ->action(function (Pagos $record) {
                         $data = $record;
-                        $factura = $record->getKey();
+                        $factura = $record->id;
                         $receptor = $data->cve_clie;
                         $emisor = $data->dat_fiscal;
                         $serie = $data->serie;
@@ -352,20 +352,20 @@ class PagosResource extends Resource
                         if($codigores == "200")
                         {
                             $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
-                            foreach($partidas_pagos as $partida){
-                                $factura = Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
-                            }
-                            $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
+                            //$pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
                             $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
-                            $facturamodel = Pagos::find($factura);
+                            $facturamodel = Pagos::where('id',$factura)->first();
                             $facturamodel->timbrado = 'SI';
                             $facturamodel->xml = $resultado->cfdi;
                             $facturamodel->fecha_tim = $date;
-                            $facturamodel->pdf_file = $pdf_file;
+                            //$facturamodel->pdf_file = $pdf_file;
                             $facturamodel->save();
                             $res2 = app(TimbradoController::class)->actualiza_pag_tim($factura,$resultado->cfdi,"P");
                             $mensaje_tipo = "1";
                             $mensaje_graba = 'Comprobante Timbrado Se genero el CFDI UUID: '.$res2;
+                            foreach($partidas_pagos as $partida){
+                                $factura = Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
+                            }
                             Notification::make()
                                 ->success()
                                 ->title('Pago Timbrado Correctamente')
@@ -442,7 +442,7 @@ class PagosResource extends Resource
                     }
                     $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
                     $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
-                    $facturamodel = Pagos::find($factura);
+                    $facturamodel = Pagos::where('id',$factura)->first();
                     $facturamodel->timbrado = 'SI';
                     $facturamodel->xml = $resultado->cfdi;
                     $facturamodel->fecha_tim = $date;

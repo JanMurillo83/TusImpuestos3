@@ -45,7 +45,7 @@ class visemip extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
-    use HasResizableColumn;
+
     protected static ?string $cluster = Viscfdi::class;
     protected static ?string $title = 'Comprobantes de Pago';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemip';

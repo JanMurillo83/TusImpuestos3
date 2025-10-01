@@ -45,7 +45,7 @@ class visemir extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
-    use HasResizableColumn;
+
     protected static ?string $cluster = Viscfdi::class;
     protected static ?string $title = 'Nomina';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemir';

@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmVentas;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\Pages;
 use App\Filament\Clusters\AdmVentas\Resources\FacturasResource\RelationManagers;
 use App\Http\Controllers\TimbradoController;
+use App\Http\Middleware\ApplyTenantScopes;
 use App\Models\Almacencfdis;
 use App\Models\Claves;
 use App\Models\CuentasCobrar;
@@ -1103,6 +1104,33 @@ class FacturasResource extends Resource
                         }
                     }
                     Notification::make()->title('Proceso Terminado')->success()->send();
+                }),
+                Action::make('Actualizar Facturas')
+                ->icon('fas-sync')
+                ->action(function(){
+                    $facturas = DB::table('facturas')
+                        ->where('team_id','>',0)
+                        ->where('estado','Timbrada')
+                        ->get();
+
+                    //$facturas = Facturas::all();
+                    $recs = 0;
+                    foreach ($facturas as $factura)
+                    {
+                        $cfd = $factura->xml ?? 'NE';
+                        if($cfd != 'NE') {
+                            $cfd_i = Cleaner::staticClean($cfd);
+                            $cfdi = \CfdiUtils\Cfdi::newFromString($cfd_i);
+                            $comprobante = $cfdi->getQuickReader();
+                            $serie = $comprobante['serie'] ?? '';
+                            DB::table('facturas')->where('id',$factura->id)->update([
+                                'serie' => $serie,
+                                'docto' => $serie . $factura->folio,
+                            ]);
+                            $recs ++;
+                        }
+                    }
+                    Notification::make()->title('Proceso Terminado '.$recs.' Procesados')->success()->send();
                 })
             ],HeaderActionsPosition::Bottom);
     }

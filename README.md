@@ -64,3 +64,68 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# TusImpuestos3
+
+## Reportes semanales por correo (automatización)
+
+Se agregó un comando y programación para generar y enviar cada lunes por correo los siguientes reportes en PDF:
+
+- Estado de Cuenta de Clientes
+- Estado de Cuenta de Proveedores
+- Costo del Inventario
+- Reporte de Facturación
+- Reporte de Compras
+
+### Configuración requerida (.env)
+
+Defina estas variables en su archivo .env:
+
+- WEEKLY_REPORTS_EMAIL=correo@ejemplo.com
+- REPORTS_TEAM_ID=1
+- WEEKLY_REPORTS_TIME=08:00
+
+Notas:
+- WEEKLY_REPORTS_EMAIL: correo destino donde se enviarán los reportes.
+- REPORTS_TEAM_ID: ID del equipo (tenant) para el cual se generarán los reportes.
+- WEEKLY_REPORTS_TIME: hora del servidor a la cual se ejecutará el envío cada lunes (formato HH:MM de 24 horas). Por defecto 08:00.
+
+### Ejecución manual
+
+Puede ejecutar el envío manualmente con:
+
+```
+php artisan reports:send-weekly --team_id=1 --to=correo@ejemplo.com
+```
+
+Si omite las opciones, se usarán los valores de .env.
+
+### Programación automática
+
+La tarea está programada en `routes/console.php`:
+
+```
+Schedule::command('reports:send-weekly')
+    ->weeklyOn(1, env('WEEKLY_REPORTS_TIME', '08:00'))
+    ->withoutOverlapping();
+```
+
+Esto ejecutará el comando cada lunes a la hora configurada.
+
+### Personalización del rango de fechas
+
+Por diseño, cuando se ejecuta los lunes, el comando genera los reportes de la semana anterior completa (lunes a domingo). Esto evita reportes parciales del día en curso.
+
+### Plantillas utilizadas
+
+Se reutilizan las vistas Blade existentes para los reportes:
+- resources/views/EstadoCuentaClientes.blade.php
+- resources/views/EstadoCuentaProveedores.blade.php
+- resources/views/CostoInventario.blade.php
+- resources/views/RepFacturacion.blade.php
+- resources/views/RepCompras.blade.php
+
+### Solución de problemas
+
+- Verifique su configuración de correo en .env (MAIL_MAILER, MAIL_HOST, etc.).
+- Revise los logs en storage/logs/laravel.log si ocurre algún error al generar PDFs o enviar correos.

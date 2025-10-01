@@ -282,7 +282,7 @@ class PagosResource extends Resource
                             Select::make('Folio')
                                 ->disabled(fn(Get $get) => $get('motivo') != '01')
                                 ->label('Folio Sustituye')->options(
-                                    Facturas::where('estado','Timbrada')
+                                    Pagos::where('estado','Timbrada')
                                         ->where('team_id',Filament::getTenant()->id)
                                         ->select(DB::raw("concat(serie,folio) as Folio,uuid"))
                                         ->pluck('Folio','uuid')
@@ -300,12 +300,16 @@ class PagosResource extends Resource
                                     $resultado = json_decode($res);
 
                                     if ($resultado->codigo == 201) {
-                                        Facturas::where('id', $record->id)->update([
+                                        Pagos::where('id', $record->id)->update([
                                             'fecha_cancela' => Carbon::now(),
                                             'motivo' => $data['motivo'],
                                             'sustituye' => $folio,
                                             'xml_cancela' => $resultado->acuse,
                                         ]);
+                                        $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
+                                        foreach($partidas_pagos as $partida){
+                                            Facturas::where('id',$partida->uuidrel)->increment('pendiente_pago', $partida->imppagado);
+                                        }
                                         Notification::make()
                                             ->title($resultado->mensaje)
                                             ->success()
@@ -364,7 +368,7 @@ class PagosResource extends Resource
                             $mensaje_tipo = "1";
                             $mensaje_graba = 'Comprobante Timbrado Se genero el CFDI UUID: '.$res2;
                             foreach($partidas_pagos as $partida){
-                                $factura = Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
+                                Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
                             }
                             Notification::make()
                                 ->success()

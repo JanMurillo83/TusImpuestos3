@@ -446,11 +446,11 @@ class FacturaModelosResource extends Resource
                 TextInput::make('cada_dias')->numeric()->default(30)
                 ->live(onBlur: true)
                 ->afterStateUpdated(function(Get $get, Set $set){
-                    $t = $get('cada_dias');
+                    $t = floatval($get('cada_dias'));
                     $set('proxima_emision',now()->addDays($t));
                 }),
                 Forms\Components\Toggle::make('activa')->default(true),
-                DatePicker::make('proxima_emision')->default(now()->addDays(30))->readOnly(),
+                DatePicker::make('proxima_emision')->default(now()->addDays(30)->format('Y-m-d'))->readOnly(),
 
             ]);
     }

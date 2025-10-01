@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DoctosRelacionados;
 use App\Models\Facturas;
 use Carbon\Carbon;
 use CfdiUtils\SumasPagos20\PagosWriter;
@@ -14,10 +15,10 @@ use Illuminate\Support\Facades\DB;
 class TimbradoController extends Controller
 {
 
-    public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
-    public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';
-    //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
-    //public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
+    //public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
+    //public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';
+    public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
+    public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
     public function CancelarFactura($factura,$receptor,$motivo,$folio):string
     {
         $objConexion = new ConexionController($this->url);
@@ -129,7 +130,15 @@ class TimbradoController extends Controller
             'DomicilioFiscalReceptor'=>$recdata[0]->codigo,
             'UsoCFDI'=>$facdata[0]->uso
         ]);
-
+        if(count(DoctosRelacionados::where('docto_type','F')->where('docto_id',$facdata[0]->id)->get())>0){
+            $doctorel = DoctosRelacionados::where('docto_type','F')->where('docto_id',$facdata[0]->id)->first();
+            //dd($doctorel);
+            $facrel = Facturas::where('id',$doctorel->rel_id)->first();
+            $rel01 = $comprobante->addCfdiRelacionados(['TipoRelacion'=>$doctorel->rel_cause]);
+            $rel01->addCfdiRelacionado([
+                'UUID'=>$facrel->uuid
+            ]);
+        }
 
 
         for($i=0;$i<$nopardata;$i++)

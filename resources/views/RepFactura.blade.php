@@ -134,8 +134,27 @@
             </div>
             <div class="row" style="margin-top: 5rem; margin-left: -2rem !important">
                 <div class="col-8" style="font-size: 10px !important;">
-                    <label><b>TIPO RELACIÓN:</b></label><br>
-                    <label><b>CFDI RELACIONADO:</b></label>
+                    <?php
+                    $tiporel = '';
+                    $doctore = '';
+                    if(count(\App\Models\DoctosRelacionados::where('docto_type','F')->where('docto_id',$orden->id)->get())>0){
+                        $doctorel = \App\Models\DoctosRelacionados::where('docto_type','F')->where('docto_id',$orden->id)->first();
+                        //dd($doctorel);
+                        $facrel = \App\Models\Facturas::where('id',$doctorel->rel_id)->first();
+                        $doctore = $facrel->uuid;
+                        switch ($doctorel->rel_cause){
+                            case '01': $tiporel = '01-Nota de crédito de los documentos relacionados'; break;
+                            case '02': $tiporel = '02-Nota de débito de los documentos relacionados'; break;
+                            case '03': $tiporel = '03-Devolución de mercancía sobre facturas o traslados previos'; break;
+                            case '04': $tiporel = '04-Sustitución de los CFDI previos'; break;
+                            case '05': $tiporel = '05-Traslados de mercancias facturados previamente'; break;
+                            case '06': $tiporel = '06-Factura generada por los traslados previos'; break;
+                            case '07': $tiporel = '07-CFDI por aplicación de anticipo'; break;
+                        }
+                    }
+                    ?>
+                    <label><b>TIPO RELACIÓN: </b>{{$tiporel}}</label><br>
+                    <label><b>CFDI RELACIONADO: </b>{{$doctore}}</label>
                 </div>
                 <div class="col-4" style="font-size: 10px !important;margin-left: -2rem !important;">
                     <table style="padding-right: 2rem !important; width: 100% !important;font-size: 15px !important; margin-right: 1rem !important;">

@@ -11,6 +11,7 @@ use App\Models\Almacencfdis;
 use App\Models\Claves;
 use App\Models\CuentasCobrar;
 use App\Models\DatosFiscales;
+use App\Models\DoctosRelacionados;
 use App\Models\Facturas;
 use App\Models\Clientes;
 use App\Models\Cotizaciones;
@@ -165,6 +166,24 @@ class FacturasResource extends Resource
                         ->options(Usos::all()->pluck('mostrar','clave'))
                         ->default('G03')
                         ->columnSpan(2),
+                    Forms\Components\Select::make('docto_rela')
+                        ->label('Documento Relacionado')
+                        ->options(Facturas::all()->pluck('docto','id'))
+                        ->columnSpan(2)->live(onBlur: true),
+                    Forms\Components\Select::make('tipo_rela')
+                        ->label('Tipo de Relación')
+                        ->options(['01'=>'01-Nota de crédito de los documentos relacionados',
+                        '02'=>'02-Nota de débito de los documentos relacionados',
+                        '03'=>'03-Devolución de mercancía sobre facturas o traslados previos',
+                        '04'=>'04-Sustitución de los CFDI previos',
+                        '05'=>'05-Traslados de mercancias facturados previamente',
+                        '06'=>'06-Factura generada por los traslados previos',
+                        '07'=>'07-CFDI por aplicación de anticipo'])
+                        ->columnSpan(2)
+                        ->disabled(function (Get $get) {
+                            if($get('docto_rela') == '') return true;
+                            else return false;
+                        }),
                     TableRepeater::make('partidas')
                         ->relationship()
                         ->disabled(function(Get $get){
@@ -940,11 +959,22 @@ class FacturasResource extends Resource
                     ]);
                     $record->pendiente_pago = $record->total;
                     $record->save();
+                    if($record->docto_rela != ''){
+                        DoctosRelacionados::create([
+                            'docto_type'=>'F',
+                            'docto_id'=>$record->id,
+                            'rel_id'=>$record->docto_rela,
+                            'rel_type'=>'F',
+                            'rel_cause'=>$record->tipo_rela,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                    }
                     //-----------------------------
                         $data = $record;
                         $factura = $data->id;
                         $receptor = $data->clie;
                         $emp = Team::where('id',Filament::getTenant()->id)->first();
+
                         if($emp->archivokey != null&&$emp->archivokey != '')
                         {
                             $res = app(TimbradoController::class)->TimbrarFactura($factura, $receptor);
@@ -1107,6 +1137,7 @@ class FacturasResource extends Resource
                 }),
                 Action::make('Actualizar Facturas')
                 ->icon('fas-sync')
+                ->visible(false)
                 ->action(function(){
                     $facturas = DB::table('facturas')
                         ->where('team_id','>',0)

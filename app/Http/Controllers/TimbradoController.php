@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\DB;
 class TimbradoController extends Controller
 {
 
-    //public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
-    //public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';
-    public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
-    public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
+    public string $url = 'https://app.facturaloplus.com/ws/servicio.do?wsdl';
+    public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';
+    //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
+    //public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
     public function CancelarFactura($factura,$receptor,$motivo,$folio):string
     {
         $objConexion = new ConexionController($this->url);

@@ -520,7 +520,8 @@ class RegisterTeam extends RegisterTenant
             'team_id'=>$empresa
         ]);*/
         DB::table('series_facturas')->insert([
-            'serie'=>'A', 'tipo'=>'F', 'folio'=>0,'team_id'=>$empresa
+            'serie'=>'A', 'tipo'=>'F', 'folio'=>0,'team_id'=>$empresa,
+            'serie'=>'B', 'tipo'=>'N', 'folio'=>0,'team_id'=>$empresa,
         ]);
         return $team;
     }

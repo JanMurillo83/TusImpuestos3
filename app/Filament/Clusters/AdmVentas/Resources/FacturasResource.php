@@ -838,7 +838,7 @@ class FacturasResource extends Resource
                     $Cliente = Clientes::where('id',$record->clie)->first();
                     $mail = new PHPMailer();
                     $mail->isSMTP();
-                    $mail->SMTPDebug = 2;
+                    //$mail->SMTPDebug = 2;
                     $mail->Host = $mailConf->host;
                     $mail->Port = $mailConf->port;
                     $mail->AuthType = 'LOGIN';
@@ -853,24 +853,12 @@ class FacturasResource extends Resource
                     $mail->Subject = 'Factura CFDI '.$record->docto.' '.$Cliente->nombre;
                     $mail->msgHTML('<b>Factura CFDI</b>');
                     $mail->Body = 'Factura CFDI';
-
-                    $msg = "";
-                    if (!$mail->send()) {
-                        Notification::make()
-                            ->warning()
-                            ->title('Factura Enviada')
-                            ->body($mail->ErrorInfo)
-                            ->duration(2000)
-                            ->send();
-                        //$msg = ;
-                    } else {
-                        Notification::make()
-                            ->success()
-                            ->title('Factura Enviada')
-                            ->body('Factura Enviada Correctamente')
-                            ->duration(2000)
-                            ->send();
-                    }
+                    $mail->send();
+                    Notification::make()
+                        ->success()
+                        ->title('Envio de Correo')
+                        ->body('Factura Enviada '.$mail->ErrorInfo)
+                        ->send();
                 }),
                     Action::make('Ver Error')
                         ->icon('fas-exclamation-triangle')

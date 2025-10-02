@@ -1147,7 +1147,7 @@ class NotasdeCreditoResource extends Resource
                         Notification::make()->title('Proceso Terminado '.$recs.' Procesados')->success()->send();
                     }),
                 Action::make('Llenar Folios')
-                ->visible()
+                ->visible(false)
                 ->icon('fas-sync')
                 ->action(function(){
                     $teams = DB::table('teams')->get();

@@ -59,9 +59,8 @@ class TimbradoController extends Controller
         $datetime = new DateTime();
         $mex_zone = new DateTimeZone('America/Mexico_City');
         $datetime->setTimezone($mex_zone);
-        $fecha = $datetime->format('Y-m-d');
-        $hora = $datetime->format('H:i:s');
-        $fechahora = $fecha.'T'.$hora;
+        //$fecha = $datetime->format('Y-m-d');
+
 
         $openssl = new \CfdiUtils\OpenSSL\OpenSSL();
         $emidata = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->first();
@@ -69,6 +68,9 @@ class TimbradoController extends Controller
         $facdata = DB::table('facturas')->where('id',$factura)->get();
         $esquema = DB::table('esquemasimps')->where('id',$facdata[0]->esquema)->first();
         $pardata = DB::table('facturas_partidas')->where('facturas_id',$factura)->get();
+        $fecha = Carbon::create($facdata[0]->fecha)->format('Y-m-d');
+        $hora = $datetime->format('H:i:s');
+        $fechahora = $fecha.'T'.$hora;
         $nopardata = count($pardata);
         $tido = "I";
         $csdpass = $emidata->csdpass;

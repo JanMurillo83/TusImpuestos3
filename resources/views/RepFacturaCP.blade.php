@@ -147,14 +147,14 @@
                         ?>
                         <tr>
                             <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$factura->docto ?? ''}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;font-size: small"><p>{{$doc_ant['IdDocumento']}}</p></th>
+                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;font-size: 5px"><p>{{$doc_ant['IdDocumento']}}</p></th>
                             <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['MonedaDR']}}</th>
                             <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['TipoCambioP']}}</th>
                             <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['FormaDePagoP']}}</th>
                             <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['ImpSaldoAnt']}}</th>
                             <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['ImpPagado']}}</th>
                             <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['ImpSaldoInsoluto']}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center; font-size: small">{{$DetallePago['FechaPago']}}</th>
+                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 5px">{{$DetallePago['FechaPago']}}</th>
                         </tr>
                     @endforeach
 

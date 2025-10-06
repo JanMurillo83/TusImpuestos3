@@ -37,6 +37,7 @@ class ReembolsosResource extends Resource
     protected static ?string $navigationIcon = 'fas-arrow-right-arrow-left';
     protected static ?string $navigationGroup = 'Registro CFDI';
     protected static ?int $navigationSort = 3;
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

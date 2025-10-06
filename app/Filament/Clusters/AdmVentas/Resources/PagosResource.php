@@ -7,6 +7,7 @@ use App\Filament\Clusters\AdmVentas\Resources\PagosResource\Pages;
 use App\Filament\Clusters\AdmVentas\Resources\PagosResource\RelationManagers;
 use App\Http\Controllers\TimbradoController;
 use App\Models\Clientes;
+use App\Models\CuentasCobrar;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Pagos;
@@ -442,7 +443,21 @@ class PagosResource extends Resource
                 {
                     $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
                     foreach($partidas_pagos as $partida){
-                        $factura = Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
+                        $fact_pag = Facturas::where('id',$partida->uuidrel)->first();
+                        Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
+                        CuentasCobrar::where('team_id',Filament::getTenant()->id)->where('concepto',1)->where('documento',$fact_pag->docto)->decrement('saldo',$partida->imppagado);
+                        CuentasCobrar::create([
+                            'cliente'=>$record->cve_clie,
+                            'concepto'=>9,
+                            'descripcion'=>'Pago Factura',
+                            'documento'=>$record->serie.$record->folio,
+                            'fecha'=>Carbon::now(),
+                            'vencimiento'=>Carbon::now(),
+                            'importe'=>$partida->imppagado,
+                            'saldo'=> 0,
+                            'team_id'=>Filament::getTenant()->id,
+                            'refer'=>$fact_pag->id
+                        ]);
                     }
                     $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
                     $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));

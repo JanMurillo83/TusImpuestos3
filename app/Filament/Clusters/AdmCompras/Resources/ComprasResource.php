@@ -263,6 +263,60 @@ class ComprasResource extends Resource
                         ->numeric()
                         ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                     Actions::make([
+                        Action::make('ImportarOrden')
+                            ->visible(function(Get $get){
+                                return $get('prov') > 0 && $get('subtotal') == 0;
+                            })
+                            ->label('Importar Orden')
+                            ->badge()->tooltip('Importar Orden de Compra')
+                            ->modalCancelActionLabel('Cancelar')
+                            ->modalSubmitActionLabel('Importar')
+                            ->icon('fas-cart-arrow-down')
+                            ->form([
+                                Select::make('ordenSel')
+                                    ->label('Orden de Compra')
+                                    ->searchable()
+                                    ->options(function(Get $get){
+                                        $prov = $get('prov');
+                                        if(!$prov) return [];
+                                        return Ordenes::where('team_id',Filament::getTenant()->id)
+                                            ->where('prov',$prov)
+                                            ->where('estado','Activa')
+                                            ->orderBy('fecha','desc')
+                                            ->pluck('folio','id');
+                                    })
+                            ])
+                            ->action(function(Get $get, Set $set, $data){
+                                $ordenId = $data['ordenSel'] ?? null;
+                                if(!$ordenId){
+                                    return;
+                                }
+                                $partidasDB = OrdenesPartidas::where('ordenes_id',$ordenId)->get();
+                                $partidas = [];
+                                foreach($partidasDB as $p){
+                                    $partidas[] = [
+                                        'cant' => $p->cant,
+                                        'item' => $p->item,
+                                        'descripcion' => $p->descripcion,
+                                        'costo' => $p->costo,
+                                        'subtotal' => $p->subtotal,
+                                        'iva' => $p->iva,
+                                        'retiva' => $p->retiva,
+                                        'retisr' => $p->retisr,
+                                        'ieps' => $p->ieps,
+                                        'total' => $p->total,
+                                        'prov' => $get('prov'),
+                                        'unidad' => $p->unidad,
+                                        'cvesat' => $p->cvesat,
+                                        'observa' => $p->observa,
+                                        'idorden' => $ordenId,
+                                        'team_id' => Filament::getTenant()->id,
+                                    ];
+                                }
+                                $set('partidas', $partidas);
+                                $set('orden', $ordenId);
+                                Self::updateTotals2($get,$set);
+                            }),
                         Action::make('ImportarExcel')
                             ->visible(function(Get $get){
                                 if($get('prov') > 0&&$get('subtotal') == 0) return true;
@@ -341,46 +395,7 @@ class ComprasResource extends Resource
                                 ->fileUrl(env('APP_URL').'/Reportes/RecCompra.pdf')
                             ])
                     ])->visibleOn('view'),
-                    Actions::make([
-                        Action::make('Enlazar Orden')
-                            ->badge()->tooltip('Enlazar Orden de Compra')
-                            ->icon('fas-file-import')
-                            ->modalCancelActionLabel('Cerrar')
-                            ->modalSubmitActionLabel('Seleccionar')
-                            ->form([
-                                Select::make('OrdenC')
-                                ->searchable()
-                                ->label('Seleccionar Orden de Compra')
-                                ->options(
-                                    Ordenes::whereIn('estado',['Activa','Parcial'])
-                                    ->select(DB::raw("concat('Folio: ',folio,' Fecha: ',fecha,' Proveedor: ',nombre,' Importe: ',total) as Orden"),'id')
-                                    ->pluck('Orden','id'))
-                            ])->action(function(Get $get,Set $set,$data){
-                                $selorden = $data['OrdenC'];
-                                $set('orden',$selorden);
-                                $orden = Ordenes::where('id',$data['OrdenC'])->get();
-                                $Opartidas = OrdenesPartidas::where('ordenes_id',$data['OrdenC'])->get();
-                                $orden = $orden[0];
-                                $set('prov',$orden->prov);
-                                $set('nombre',$orden->nombre);
-                                $set('observa',$orden->observa);
-                                $set('proyecto',$orden->proyecto);
-                                $partidas = [];
-                                foreach($Opartidas as $opar)
-                                {
-                                    $data = ['cant'=>$opar->cant,'item'=>$opar->item,'descripcion'=>$opar->descripcion,
-                                            'costo'=>$opar->costo,'subtotal'=>$opar->subtotal,'iva'=>$opar->iva,
-                                            'retiva'=>$opar->retiva,'retisr'=>$opar->retisr,
-                                            'ieps'=>$opar->ieps,'total'=>$opar->total,'prov'=>$orden->prov,'idorden'=>$orden->id];
-                                    array_push($partidas,$data);
-                                }
-                                $set('partidas', $partidas);
-                                $set('orden', $orden->id);
-                                Self::updateTotals2($get,$set);
-                            })
-                    ])
                     ])->grow(false),
-
             ])->columnSpanFull(),
             Forms\Components\Hidden::make('nombre'),
             Forms\Components\Hidden::make('estado')->default('Activa'),
@@ -559,18 +574,10 @@ class ComprasResource extends Resource
                         }
                     }
 
-                    // Actualizar estado de la orden segun partidas enlazadas
+                    // Actualizar estado de la orden: al grabar la compra desde una orden, marcar como 'Comprada'
                     if($record->orden){
-                        $totalPartidasOrden = OrdenesPartidas::where('ordenes_id',$record->orden)->count();
-                        $partidasEnlazadas = OrdenesPartidas::where('ordenes_id',$record->orden)->whereNotNull('idcompra')->count();
-                        $estado = 'Activa';
-                        if($partidasEnlazadas > 0 && $partidasEnlazadas < $totalPartidasOrden){
-                            $estado = 'Parcial';
-                        } elseif($totalPartidasOrden > 0 && $partidasEnlazadas == $totalPartidasOrden){
-                            $estado = 'Enlazada';
-                        }
                         Ordenes::where('id',$record->orden)->update([
-                            'estado'=>$estado,
+                            'estado'=>'Comprada',
                             'compra'=>$record->folio
                         ]);
                     }

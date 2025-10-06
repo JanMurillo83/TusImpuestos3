@@ -6,7 +6,7 @@ use App\Filament\Clusters\AdmCatalogos;
 use App\Filament\Clusters\AdmCatalogos\Resources\ClientesResource\Pages;
 use App\Filament\Clusters\AdmCatalogos\Resources\ClientesResource\Pages\ListClientes;
 use App\Filament\Clusters\AdmCatalogos\Resources\ClientesResource\RelationManagers;
-use App\Livewire\Cuentas_Cobrar_Widget;
+use App\Livewire\CuentasCobrarWidget;
 use App\Models\Clientes;
 use App\Models\Regimenes;
 use Filament\Facades\Filament;
@@ -146,10 +146,12 @@ class ClientesResource extends Resource
                     $record->save();
                 }),
                     Action::make('CxC')->label('Cuentas x Cobrar')
-                    ->icon('fas-money-bill-transfer')
-                    ->form(function($record){ return [
-                        Forms\Components\Livewire::make(Cuentas_Cobrar_Widget::class,['cliente'=>$record->id])
-                    ];})
+                        ->icon('fas-money-bill-transfer')
+                        ->form(function($record){ return [
+                            Forms\Components\Livewire::make(CuentasCobrarWidget::class,['cliente'=>$record->id])
+                        ];
+                    })->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
             ])->dropdownPlacement('top-end'),
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([

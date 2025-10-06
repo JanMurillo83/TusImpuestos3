@@ -8,12 +8,11 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
-use Filament\Notifications\Notification;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 
-class Cuentas_Cobrar_Widget extends BaseWidget
+class CuentasCobrarWidget extends BaseWidget
 {
     public ?int $cliente = null;
 
@@ -48,7 +47,6 @@ class Cuentas_Cobrar_Widget extends BaseWidget
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['team_id'] = Filament::getTenant()->id;
                         $data['cliente'] = $this->cliente;
-                        // Si no se especifica saldo, igualarlo al importe
                         if (!isset($data['saldo']) || $data['saldo'] === null || $data['saldo'] === '') {
                             $data['saldo'] = $data['importe'] ?? 0;
                         }
@@ -70,8 +68,9 @@ class Cuentas_Cobrar_Widget extends BaseWidget
                             TextInput::make('saldo')->label('Saldo')->numeric()->prefix('$'),
                         ])->columns(2);
                     }),
-            ])
+            ],Tables\Actions\HeaderActionsPosition::Bottom)
             ->actions([
+                Tables\Actions\ActionGroup::make([
                 Tables\Actions\EditAction::make()
                     ->modalHeading('Editar cuenta por cobrar')
                     ->successNotificationTitle('Cuenta actualizada')
@@ -95,6 +94,7 @@ class Cuentas_Cobrar_Widget extends BaseWidget
                 Tables\Actions\DeleteAction::make()
                     ->modalHeading('Eliminar cuenta por cobrar')
                     ->successNotificationTitle('Cuenta eliminada'),
+                ])
             ], Tables\Enums\ActionsPosition::BeforeColumns);
     }
 }

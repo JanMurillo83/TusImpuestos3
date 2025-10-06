@@ -10,7 +10,7 @@ class Cotizaciones extends Model
 {
     protected $fillable = ['serie','folio','docto','fecha','clie','nombre','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','observa','estado','metodo',
-    'forma','uso','uuid','condiciones','vendedor','siguiente','team_id'];
+    'forma','uso','moneda','tcambio','uuid','condiciones','vendedor','siguiente','team_id'];
     public function partidas(): HasMany
     {
         return $this->hasMany(related: CotizacionesPartidas::class);

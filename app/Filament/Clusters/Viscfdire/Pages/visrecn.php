@@ -45,7 +45,7 @@ class visrecn extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
-    use HasResizableColumn;
+
     protected static ?string $cluster = Viscfdire::class;
     protected static ?string $title = 'Notas de Credito';
     protected static string $view = 'filament.clusters.viscfdire.pages.visrecn';

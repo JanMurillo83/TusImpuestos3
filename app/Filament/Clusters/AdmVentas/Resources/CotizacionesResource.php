@@ -69,14 +69,14 @@ class CotizacionesResource extends Resource
                         Forms\Components\Hidden::make('serie')->default('C'),
                         Forms\Components\Hidden::make('folio')
                         ->default(function(){
-                            return count(Cotizaciones::all()) + 1;
+                            return count(Cotizaciones::where('team_id',Filament::getTenant()->id)->get()) + 1;
                         }),
                         Forms\Components\TextInput::make('docto')
                         ->label('Documento')
                         ->required()
                         ->readOnly()
                         ->default(function(){
-                            $fol = count(Cotizaciones::all()) + 1;
+                            $fol = count(Cotizaciones::where('team_id',Filament::getTenant()->id)->get()) + 1;
                             return 'C'.$fol;
                         }),
                     Forms\Components\Select::make('clie')
@@ -97,13 +97,29 @@ class CotizacionesResource extends Resource
                         ->required()
                         ->default(Carbon::now())->disabledOn('edit'),
                     Forms\Components\Select::make('esquema')
-                        ->options(Esquemasimp::all()->pluck('descripcion','id'))
-                        ->default(1)->disabledOn('edit'),
+                        ->options(Esquemasimp::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
+                        ->default(Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id)->disabledOn('edit'),
                     Forms\Components\Textarea::make('observa')
                         ->columnSpan(3)->label('Observaciones')
                         ->rows(1),
                     Forms\Components\TextInput::make('condiciones')
                     ->columnSpan(2)->default('CONTADO'),
+                    Forms\Components\Select::make('moneda')
+                        ->label('Moneda')
+                        ->options([
+                            'MXN' => 'MXN - Peso Mexicano', 'USD' => 'USD - Dólar'
+                        ])
+                        ->default('MXN')
+                        ->live(),
+                    Forms\Components\TextInput::make('tcambio')
+                        ->label('Tipo de Cambio')
+                        ->numeric()
+                        ->default(1)
+                        ->rule('gte:0')
+                        ->visible(fn(Forms\Get $get) => $get('moneda') !== 'MXN')
+                        ->required(fn(Forms\Get $get) => $get('moneda') !== 'MXN')
+                        ->prefix('$')
+                        ->currencyMask(decimalSeparator:'.', precision:6),
                     TableRepeater::make('partidas')
                         ->relationship()
                         ->addActionLabel('Agregar')
@@ -171,7 +187,7 @@ class CotizacionesResource extends Resource
                                         Select::make('SelItem')
                                         ->label('Seleccionar')
                                         ->searchable()
-                                        ->options(Inventario::all()->pluck('descripcion','id'))
+                                        ->options(Inventario::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
                                     ])
                                     ->action(function(Set $set,Get $get,$data){
                                         $cli = $get('../../clie');
@@ -466,6 +482,14 @@ class CotizacionesResource extends Resource
                 ->numeric()
                 ->sortable()
                 ->currency('USD',true),
+            Tables\Columns\TextColumn::make('moneda')
+                ->label('Moneda')
+                ->searchable(),
+            Tables\Columns\TextColumn::make('tcambio')
+                ->label('T.Cambio')
+                ->numeric()
+                ->formatStateUsing(fn($state) => number_format((float)$state, 6))
+                ->toggleable(isToggledHiddenByDefault: true),
             Tables\Columns\TextColumn::make('estado')
                 ->searchable(),
             ])

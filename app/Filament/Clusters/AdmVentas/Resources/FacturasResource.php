@@ -448,6 +448,64 @@ class FacturasResource extends Resource
                             })
                         ]),
                         Actions::make([
+                        ActionsAction::make('Importar Cotización')
+                            ->badge()->tooltip('Importar Cotización')
+                            ->icon('fas-file-import')
+                            ->modalCancelActionLabel('Cerrar')
+                            ->modalSubmitActionLabel('Seleccionar')
+                            ->form([
+                                Select::make('CotizacionSel')
+                                    ->searchable()
+                                    ->label('Seleccionar Cotización')
+                                    ->options(
+                                        Cotizaciones::whereIn('estado',["Activa","Parcial"])
+                                            ->where('team_id',Filament::getTenant()->id)
+                                            ->select(DB::raw("concat('Folio: ',folio,' Fecha: ',fecha,' Cliente: ',nombre,' Importe: ',total) as Cot"),'id')
+                                            ->pluck('Cot','id')
+                                    )
+                            ])->action(function(Get $get, Set $set, $data){
+                                $cotId = $data['CotizacionSel'] ?? null;
+                                if(!$cotId) return;
+                                $set('cotizacion_id',$cotId);
+                                $cot = Cotizaciones::where('id',$cotId)->first();
+                                if(!$cot) return;
+                                // Set header fields (respect current if already chosen)
+                                if(!$get('clie')) {
+                                    $set('clie', $cot->clie);
+                                    $set('nombre', $cot->nombre);
+                                }
+                                if($cot->esquema) $set('esquema',$cot->esquema);
+                                if($cot->moneda) $set('moneda',$cot->moneda);
+                                if($cot->tcambio) $set('tcambio',$cot->tcambio);
+                                if($cot->condiciones) $set('condiciones',$cot->condiciones);
+                                if($cot->forma) $set('forma',$cot->forma);
+                                if($cot->metodo) $set('metodo',$cot->metodo);
+                                if($cot->uso) $set('uso',$cot->uso);
+                                if($cot->observa) $set('observa',$cot->observa);
+                                $Qpartidas = CotizacionesPartidas::where('cotizaciones_id',$cotId)->get();
+                                $partidas = [];
+                                foreach($Qpartidas as $opar){
+                                    $pdata = [
+                                        'cant'=>$opar->cant,
+                                        'item'=>$opar->item,
+                                        'descripcion'=>$opar->descripcion,
+                                        'precio'=>$opar->precio,
+                                        'subtotal'=>$opar->subtotal,
+                                        'iva'=>$opar->iva,
+                                        'retiva'=>$opar->retiva,
+                                        'retisr'=>$opar->retisr,
+                                        'ieps'=>$opar->ieps,
+                                        'total'=>$opar->total,
+                                        'unidad'=>$opar->unidad,
+                                        'cvesat'=>$opar->cvesat,
+                                        'clie'=>$cot->clie,
+                                        'costo'=>$opar->precio,
+                                    ];
+                                    array_push($partidas,$pdata);
+                                }
+                                $set('partidas', $partidas);
+                                Self::updateTotals2($get,$set);
+                            }),
                         ActionsAction::make('Enlazar Nota')
                             ->badge()->tooltip('Enlazar Nota de Venta')
                             ->icon('fas-file-import')
@@ -485,6 +543,7 @@ class FacturasResource extends Resource
                     ])
                     ])->grow(false),
             ])->columnSpanFull(),
+            Forms\Components\Hidden::make('cotizacion_id')->dehydrated(false),
             Forms\Components\Hidden::make('nombre'),
             Forms\Components\Hidden::make('estado')->default('Activa'),
             Forms\Components\Textarea::make('observa')

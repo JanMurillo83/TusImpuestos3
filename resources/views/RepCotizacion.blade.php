@@ -63,6 +63,16 @@ use Filament\Facades\Filament;
                             <td><b>Condiciones:</b></td>
                             <td>{{$orden->condiciones}}</td>
                         </tr>
+                        <tr>
+                            <td><b>Moneda:</b></td>
+                            <td>{{$orden->moneda ?? 'MXN'}}</td>
+                        </tr>
+                        @if(($orden->moneda ?? 'MXN') !== 'MXN')
+                        <tr>
+                            <td><b>Tipo de Cambio:</b></td>
+                            <td>{{ number_format($orden->tcambio ?? 1, 6, '.') }}</td>
+                        </tr>
+                        @endif
                     </table>
                 </div>
             </div>

@@ -146,15 +146,15 @@
                             $factura = \App\Models\Facturas::where('uuid',$doc_ant['IdDocumento'])->first();
                         ?>
                         <tr>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$factura->docto ?? ''}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;font-size: 8px"><p style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;max-width: 20px;">{{$doc_ant['IdDocumento']}}</p></th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['MonedaDR']}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['TipoCambioP']}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['FormaDePagoP']}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['ImpSaldoAnt']}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['ImpPagado']}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['ImpSaldoInsoluto']}}</th>
-                            <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 8px">{{$DetallePago['FechaPago']}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$factura->docto ?? ''}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;">{{substr($doc_ant['IdDocumento'],0,14)}}<br>{{substr($doc_ant['IdDocumento'],14,10)}}<br>{{substr($doc_ant['IdDocumento'],24,strlen($doc_ant['IdDocumento']))}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['MonedaDR']}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['TipoCambioP']}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['FormaDePagoP']}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpSaldoAnt'],2)}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpPagado'],2)}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpSaldoInsoluto'],2)}}</th>
+                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;">{{substr($DetallePago['FechaPago'],0,10)}}</th>
                         </tr>
                     @endforeach
 

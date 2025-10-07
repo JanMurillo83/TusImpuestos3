@@ -82,24 +82,13 @@ class MovbancosResource extends Resource
                     ->tabs([
                         Tabs\Tab::make('Datos Generales')
                             ->schema([
-                                Forms\Components\DatePicker::make('fecha')
+                                Forms\Components\TextInput::make('fecha_dia')
                                     ->required()
-                                ->default(function (){
-                                    $day = Carbon::now()->day;
-                                    $month = Filament::getTenant()->periodo;
-                                    $year = Filament::getTenant()->ejercicio;
-                                    return $year.'-'.$month.'-'.$day;
-                                })->maxDate(function (){
-                                        $month = Filament::getTenant()->periodo;
-                                        $year = Filament::getTenant()->ejercicio;
-                                        $date = Carbon::create($year, $month, 1);
-                                        return $date->lastOfMonth();
-                                })->minDate(function (){
-                                        $month = Filament::getTenant()->periodo;
-                                        $year = Filament::getTenant()->ejercicio;
-                                        $date = Carbon::create($year, $month, 1);
-                                        return $date->firstOfMonth();
-                                })->disabledOn('edit')->format('d'),
+                                    ->label('Fecha')
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(31)
+                                ->default(Carbon::now()->day)->disabledOn('edit'),
                                 Forms\Components\Select::make('tipo')
                                     ->required()
                                     ->options([

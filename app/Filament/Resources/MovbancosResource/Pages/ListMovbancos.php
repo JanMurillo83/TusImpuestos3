@@ -7,6 +7,7 @@ use App\Models\BancoCuentas;
 use App\Models\Movbancos;
 use App\Models\Saldosbanco;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Carbon\Carbon;
 use Filament\Actions;
 use Filament\Actions\Action as ActionsAction;
 use Filament\Facades\Filament;
@@ -254,10 +255,13 @@ class ListMovbancos extends ListRecords
                 ->label('Agregar')
                 ->icon('fas-plus')
                 ->createAnother(false)
-                ->after(function ($record){
+                ->after(function ($record,$data){
                     $id = $record->id;
                     $importe = $record->importe;
+                    $dia = intval($data['fecha_dia']);
+                    $fecha = Carbon::create(Filament::getTenant()->ejercicio,Filament::getTenant()->periodo,$dia);
                     Movbancos::where('id',$id)->update([
+                        'fecha'=>$fecha,
                         'pendiente_apli'=>$importe
                     ]);
                 })

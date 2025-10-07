@@ -99,7 +99,7 @@ class MovbancosResource extends Resource
                                         $year = Filament::getTenant()->ejercicio;
                                         $date = Carbon::create($year, $month, 1);
                                         return $date->firstOfMonth();
-                                }),
+                                })->disabledOn('edit')->format('d'),
                                 Forms\Components\Select::make('tipo')
                                     ->required()
                                     ->options([
@@ -126,9 +126,9 @@ class MovbancosResource extends Resource
                                         ->maxLength(255)
                                         ->columnSpan(2),
                                 Forms\Components\TextInput::make('ejercicio')
-                                        ->default(Filament::getTenant()->ejercicio),
+                                        ->default(Filament::getTenant()->ejercicio)->readOnly(),
                                 Forms\Components\TextInput::make('periodo')
-                                        ->default(Filament::getTenant()->periodo),
+                                        ->default(Filament::getTenant()->periodo)->readOnly(),
                                 Forms\Components\TextInput::make('contabilizada')
                                         ->required()
                                         ->maxLength(45)
@@ -582,7 +582,7 @@ class MovbancosResource extends Resource
                                         if($get('Movimiento')== 3) return true;
                                         else return false;
                                     })
-                                    ->options(Terceros::where('tipo','Proveedor')->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                                    ->options(Terceros::where('tipo','Proveedor')->where('team_id',Filament::getTenant()->id)->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
                                     ->createOptionForm(function($form){
                                         return $form
                                         ->schema([
@@ -830,7 +830,7 @@ class MovbancosResource extends Resource
                                         if($get('Movimiento')== 2||$get('Movimiento')== 4) return true;
                                         else return false;
                                     })
-                                    ->options(Terceros::where('tipo','Acreedor')->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                                    ->options(Terceros::where('tipo','Acreedor')->where('team_id',Filament::getTenant()->id)->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
                                     ->createOptionForm(function($form){
                                         return $form
                                         ->schema([
@@ -1231,7 +1231,7 @@ class MovbancosResource extends Resource
                                         if($get('Movimiento')== 3) return true;
                                         else return false;
                                     })
-                                    ->options(Terceros::select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                                    ->options(Terceros::where('team_id',Filament::getTenant()->id)->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
                                     ->createOptionForm(function($form){
                                         return $form
                                         ->schema([

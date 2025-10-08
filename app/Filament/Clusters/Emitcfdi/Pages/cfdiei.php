@@ -61,7 +61,7 @@ class cfdiei extends Page implements HasForms, HasTable
                 Almacencfdis::where('team_id',Filament::getTenant()->id)
                 ->where('xml_type','Emitidos')
                 ->where('TipoDeComprobante','I')
-                ->where('used','NO')
+                ->where('used','NO')->query()
                  )
             ->columns([
                 TextColumn::make('id')
@@ -142,10 +142,6 @@ class cfdiei extends Page implements HasForms, HasTable
                     ->sortable(),
                 TextColumn::make('MetodoPago')
                     ->label('Forma de Pago')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('FormaPago')
-                    ->label('Metodo de Pago')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('xml_type')

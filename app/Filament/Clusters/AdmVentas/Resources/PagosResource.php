@@ -185,10 +185,10 @@ class PagosResource extends Resource
                                     Forms\Components\TextInput::make('saldoant')
                                         ->label('Saldo Anterior')
                                         ->numeric()
-                                        ->default(0)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2),
+                                        ->default(0)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:6),
                                     Forms\Components\TextInput::make('imppagado')
                                         ->label('Monto del Pago')
-                                        ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                        ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:6)
                                         ->default(0)
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
@@ -208,7 +208,7 @@ class PagosResource extends Resource
                                     Forms\Components\TextInput::make('equivalencia')
                                         ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2),
                                     Forms\Components\TextInput::make('parcialidad')
-                                        ->default(1),
+                                        ->default(1)->numeric(),
                                     Forms\Components\Hidden::make('objeto')
                                         ->default('02'),
                                     Forms\Components\Hidden::make('tasaiva')

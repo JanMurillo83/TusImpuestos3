@@ -61,7 +61,7 @@ class cfdiei extends Page implements HasForms, HasTable
                 Almacencfdis::where('team_id',Filament::getTenant()->id)
                 ->where('xml_type','Emitidos')
                 ->where('TipoDeComprobante','I')
-                ->where('used','NO')->query()
+                ->where('used','NO')
                  )
             ->columns([
                 TextColumn::make('id')

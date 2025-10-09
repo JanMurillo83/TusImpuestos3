@@ -2,40 +2,37 @@
 
 namespace App\Filament\Pages\Paginas;
 
-use Filament\Forms\Components\Select;
-use Filament\Pages\Page;
 use Filament\Actions\Action;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Form;
-use Illuminate\Support\Facades\DB;
-use Filament\Support\Enums\MaxWidth;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Support\Enums\MaxWidth;
+use Illuminate\Support\Facades\DB;
 
-class CamPer extends Page
+class CamTent extends Page
 {
-    protected static ?string $navigationIcon = 'fas-calendar-check';
-    protected static ?string $title = '';
-    protected static string $view = 'filament.pages.paginas.cam-per';
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
+    protected static string $view = 'filament.pages.paginas.cam-tent';
     protected static bool $shouldRegisterNavigation = false;
     public $defaultAction = 'onboarding';
     public function onboardingAction(): Action
     {
         return Action::make('onboarding')
-            ->modalHeading('Seleccion de Periodo')
+            ->modalHeading('Seleccion de Empresa')
             ->form([
                 Select::make('empresa')
-                    ->options(DB::table('teams')->pluck('name','id'))
-                    ->default(Filament::getTenant()->id)
-                    ->searchable(),
+                ->options(DB::table('teams')->pluck('name','id')),
                 TextInput::make('periodo')
                     ->numeric()->minValue(1)->maxValue(12)
                     ->default(Filament::getTenant()->periodo),
                 TextInput::make('ejercicio')
                     ->numeric()
                     ->default(Filament::getTenant()->ejercicio),
-            ])->modalWidth(MaxWidth::Small)
+
+            ])->modalWidth(MaxWidth::ExtraSmall)
             ->modalCancelAction(false)
             ->action(function($livewire,$data){
                 $livewire->cambia_per($data);
@@ -51,7 +48,6 @@ class CamPer extends Page
             ->title(' Periodo de Trabajo Actualizado')
             ->success()
             ->send();
-            redirect('/'.$data['empresa']);
+        redirect('/'.$data['empresa']);
     }
-
 }

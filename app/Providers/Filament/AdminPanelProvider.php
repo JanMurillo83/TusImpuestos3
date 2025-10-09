@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Clusters\ContReportes;
+use App\Filament\Pages\Paginas\CamTent;
 use App\Livewire\GraficasWidget;
 use App\Livewire\IndicadoresWidget;
 use Asmit\ResizedColumn\ResizedColumnPlugin;
@@ -99,7 +100,7 @@ class AdminPanelProvider extends PanelProvider
             ->tenantMenuItems([
                 MenuItem::make()->label('Cambio de Periodo')
                 ->url(fn (): string => CamPer::getUrl())
-                ->icon('fas-calendar-check')
+                ->icon('fas-calendar-check'),
 
             ])
             ->topNavigation()

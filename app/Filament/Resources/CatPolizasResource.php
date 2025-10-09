@@ -163,6 +163,8 @@ class CatPolizasResource extends Resource
                             ->default(0)
                             ->live(onBlur:true)
                             ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
+                                $cargo = $get('cargo');
+                                if($cargo === ''||$cargo === null) $set('cargo',0);
                                 Self::TotalizarCA($get,$set);
                             }),
                         TextInput::make('abono')
@@ -171,6 +173,8 @@ class CatPolizasResource extends Resource
                             ->default(0)
                             ->live(onBlur:true)
                             ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
+                                $abono = $get('abono');
+                                if($abono === ''||$abono === null) $set('abono',0);
                                 Self::TotalizarCA($get,$set);
                             }),
                         TextInput::make('factura')

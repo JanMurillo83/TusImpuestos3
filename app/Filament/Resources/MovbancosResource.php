@@ -161,20 +161,15 @@ class MovbancosResource extends Resource
             ->heading(function ($livewire) {
                 $cuenta_id = $livewire->selected_tier;
                 $cuenta = BancoCuentas::where('id',$cuenta_id)->first();
+                $inicial_origen = floatval($cuenta->inicial);
                 $periodo = Filament::getTenant()->periodo ?? 1;
                 $ejercicio = Filament::getTenant()->ejercicio ?? 2020;
-                $sdo_banco =DB::table('saldosbancos')->where('cuenta',$cuenta_id)
-                ->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first();
-                $sdo_banco_ant =DB::table('saldosbancos')->where('cuenta',$cuenta_id)
-                ->where('periodo','<',$periodo)->where('ejercicio',$ejercicio)
-                ->orWhere('ejercicio','<',$ejercicio)->get();
-                $ingresos = array_sum(array_column($sdo_banco_ant->toArray(),'ingresos'));
-                $egresos = array_sum(array_column($sdo_banco_ant->toArray(),'egresos'));
-                $inicial = floatval($cuenta->inicial) + floatval($ingresos) - floatval($egresos);
-                if($sdo_banco)
-                    $actual = floatval($inicial) + floatval($sdo_banco->ingresos) - floatval($sdo_banco->egresos);
-                else
-                    $actual = floatval($inicial);
+                $entradas_act = Movbancos::where('cuenta',$cuenta_id)->where('tipo','E')->where('ejercicio',$ejercicio)->where('periodo',$periodo)->sum('importe') ?? 0;
+                $salidas_act = Movbancos::where('cuenta',$cuenta_id)->where('tipo','S')->where('ejercicio',$ejercicio)->where('periodo',$periodo)->sum('importe') ?? 0;
+                $entradas_ant = Movbancos::where('cuenta',$cuenta_id)->where('tipo','E')->where('ejercicio',$ejercicio)->where('periodo','<',$periodo)->sum('importe') ?? 0;
+                $salidas_ant = Movbancos::where('cuenta',$cuenta_id)->where('tipo','S')->where('ejercicio',$ejercicio)->where('periodo','<',$periodo)->sum('importe') ?? 0;
+                $inicial = $inicial_origen + $entradas_ant - $salidas_ant;
+                $actual = $inicial + $entradas_act - $salidas_act;
                 $livewire->saldo_cuenta_ant = $inicial;
                 return 'Saldo Inicial: $'.number_format($inicial,2,'.',',').'       Saldo Actual: $'.number_format($actual,2,'.',',');
             })

@@ -422,35 +422,35 @@ class FacturaModelosResource extends Resource
                 Forms\Components\Textarea::make('observa')
                     ->columnSpan(2)->label('Observaciones')
                     ->rows(3),
-                Select::make('peridiocidad')
-                ->options(['manual'=>'Manual','custom'=>'Personalizado','daily'=>'Diaria','weekly'=>'Semanal','monthly'=>'Mensual'])
-                ->default('custom')
+                Select::make('periodicidad')
+                ->options(['Manual'=>'Manual','Personalizado'=>'Personalizado','Diaria'=>'Diaria','Semanal'=>'Semanal','Mensual'=>'Mensual'])
+                ->default('Mensual')
                 ->live(onBlur: true)
                 ->afterStateUpdated(function(Get $get, Set $set){
                     $t = $get('periodicidad');
                     switch ($t){
-                        case 'daily': $set('proxima_emision',now()->addDays(1)); break;
-                        case 'weekly': $set('proxima_emision',now()->addDays(7)); break;
-                        case 'monthly': $set('proxima_emision',now()->addDays(30)); break;
-                        case 'manual': $set('proxima_emision',null); break;
-                        case 'custom': $set('proxima_emision',now()->addDays(30)); break;
+                        case 'Diaria': $set('proxima_emision',now()->addDays(1)); break;
+                        case 'Semanal': $set('proxima_emision',now()->addDays(7)); break;
+                        case 'Mensual': $set('proxima_emision',now()->addDays(30)); break;
+                        case 'Manual': $set('proxima_emision',null); break;
+                        case 'Personalizado': $set('proxima_emision',now()->addDays(30)); break;
                     }
                     switch ($t){
-                        case 'daily': $set('cada_dias',1); break;
-                        case 'weekly': $set('cada_dias',7); break;
-                        case 'monthly': $set('cada_dias',30); break;
-                        case 'manual': $set('cada_dias',0); break;
-                        case 'custom': $set('cada_dias',30); break;
+                        case 'Diaria': $set('cada_dias',1); break;
+                        case 'Semanal': $set('cada_dias',7); break;
+                        case 'Mensual': $set('cada_dias',30); break;
+                        case 'Manual': $set('cada_dias',0); break;
+                        case 'Personalizado': $set('cada_dias',30); break;
                     }
                 }),
                 TextInput::make('cada_dias')->numeric()->default(30)
                 ->live(onBlur: true)
                 ->afterStateUpdated(function(Get $get, Set $set){
-                    $t = floatval($get('cada_dias'));
+                    $t = integerValue($get('cada_dias'));
                     $set('proxima_emision',now()->addDays($t));
                 }),
                 Forms\Components\Toggle::make('activa')->default(true),
-                DatePicker::make('proxima_emision')->default(now()->addDays(30)->format('Y-m-d'))->readOnly(),
+                DatePicker::make('proxima_emision')->default(now()->addDays(30)->format('d-m-Y'))->readOnly(),
 
             ]);
     }
@@ -473,7 +473,19 @@ class FacturaModelosResource extends Resource
                     ->label('Emitir ahora')
                     ->button()
                     ->icon('heroicon-m-paper-airplane')
-                    ->action(fn (FacturaModelo $record) => static::emitirDesdePlantilla($record))
+                    ->action(fn (FacturaModelo $record) => static::emitirDesdePlantilla($record)),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make('editar')
+                        ->icon('fas-edit')
+                        ->modalSubmitActionLabel('Grabar')
+                        ->modalCancelActionLabel('Cerrar')
+                        ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
+                        ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
+                        ->modalFooterActionsAlignment(Alignment::Left)
+                        ->modalWidth('full'),
+                    Tables\Actions\DeleteAction::make('eliminar')
+                    ->icon('fas-trash')->requiresConfirmation()
+                ],Tables\Enums\ActionsPosition::BeforeColumns)
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->bulkActions([
                 BulkAction::make('emitirSeleccion')

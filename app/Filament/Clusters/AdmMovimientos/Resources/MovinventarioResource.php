@@ -46,7 +46,7 @@ class MovinventarioResource extends Resource
                     ->required()
                     ->searchable()
                     ->options(
-                        DB::table('inventarios')->where('servicio','NO')->select(DB::raw("CONCAT(clave,' ',descripcion) as Producto"),'id')->pluck('Producto','id')
+                        DB::table('inventarios')->where('team_id',Filament::getTenant()->id)->where('servicio','NO')->select(DB::raw("CONCAT(clave,' ',descripcion) as Producto"),'id')->pluck('Producto','id')
                     )->columnSpan(3),
                 Forms\Components\DatePicker::make('fecha')
                     ->required()
@@ -109,9 +109,8 @@ class MovinventarioResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('producto')
                     ->formatStateUsing(function(Model $record){
-                        $inve = Inventario::where('id',$record->producto)->get();
-                        $inve = $inve[0];
-                        return $inve->descripcion;
+                        $inve = Inventario::where('id',$record->producto)->first();
+                        return $inve?->descripcion ?? 'Sin descripcion';
                     })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('tipo')

@@ -250,6 +250,12 @@ class MovbancosResource extends Resource
                         if($record->contabilizada == 'SI') return true;
                         if($record->contabilizada == 'NO') return false;
                     }),
+                    Tables\Actions\DeleteAction::make()
+                        ->requiresConfirmation()
+                        ->visible(function($record){
+                            if($record->contabilizada == 'SI') return false;
+                            if($record->contabilizada == 'NO') return true;
+                        }),
                     Action::make('ver_poliza')
                         ->label('Ver Póliza')
                         ->icon('heroicon-o-document-text')

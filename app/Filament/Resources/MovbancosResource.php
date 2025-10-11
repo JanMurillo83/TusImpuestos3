@@ -252,6 +252,11 @@ class MovbancosResource extends Resource
                     }),
                     Tables\Actions\DeleteAction::make()
                         ->requiresConfirmation()
+                        ->before(function (Model $record) {
+                            DB::table('movbancos_team')->where('movbancos_id', $record->id)
+                                ->where('team_id', Filament::getTenant()->id)
+                                ->delete();
+                        })
                         ->visible(function($record){
                             if($record->contabilizada == 'SI') return false;
                             if($record->contabilizada == 'NO') return true;

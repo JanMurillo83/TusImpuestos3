@@ -339,6 +339,9 @@ class Pagos extends Page implements HasForms
             'idmovb' => $this->record_id
         ]);
         $polno = $poliza['id'];
+        $no_intera = 0;
+        $id_cta_banco = 0;
+        $mon_apli_ban = 0;
         foreach ($facturas as $factura) {
             if (floatval($factura['Monto a Pagar']) > 0) {
                 $fac_id = $factura['id_xml'];
@@ -400,23 +403,30 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => $ban->codigo,
-                        'cuenta' => $ban->banco,
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $monto_par,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id,
-                        'igeg_id' => $igeg->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $no_intera++;
+                        $id_cta_banco = $aux['id'];
+                        $mon_apli_ban += $monto_par;
+                    }else{
+                        $mon_apli_ban += $monto_par;
+                    }
                     $st_con = 'NO';
                     $n_pen = floatval($get('pendiente')) - floatval($monto_par);
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);
@@ -491,23 +501,30 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => $ban->codigo,
-                        'cuenta' => $ban->banco,
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $pesos,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id,
-                        'igeg_id' => $igeg->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => $pesos,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $no_intera++;
+                        $id_cta_banco = $aux['id'];
+                        $mon_apli_ban += $monto_par;
+                    }else{
+                        $mon_apli_ban += $monto_par;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => '11801000',
@@ -661,22 +678,28 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => $ban->codigo,
-                        'cuenta' => $ban->banco,
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $pesos,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => $pesos,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $id_cta_banco = $aux['id'];
+                        $mon_apli_ban += $monto_par;
+                    }else{
+                        $mon_apli_ban += $monto_par;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $cod_uti,
@@ -798,23 +821,29 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => $ban->codigo,
-                        'cuenta' => $ban->banco,
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $pesos,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id,
-                        'igeg_id' => $igeg->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => $pesos,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $id_cta_banco = $aux['id'];
+                        $mon_apli_ban += $monto_par;
+                    }else{
+                        $mon_apli_ban += $monto_par;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $cod_uti,
@@ -847,6 +876,7 @@ class Pagos extends Page implements HasForms
                 }
             }
         }
+        Auxiliares::where('id', $id_cta_banco)->update(['abono' => $mon_apli_ban]);
         return $nopoliza;
     }
     public function graba_mov(Get $get)

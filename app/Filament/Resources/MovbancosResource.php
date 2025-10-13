@@ -83,12 +83,20 @@ class MovbancosResource extends Resource
                         Tabs\Tab::make('Datos Generales')
                             ->schema([
                                 Forms\Components\TextInput::make('fecha_dia')
-                                    ->required()
+                                    ->required(function ($context){
+                                        if($context != 'create')
+                                            return false;
+                                        else
+                                            return true;
+                                    })
                                     ->label('Fecha')
                                     ->numeric()
                                     ->minValue(1)
                                     ->maxValue(31)
-                                ->default(Carbon::now()->day)->disabledOn('edit'),
+                                    ->default(Carbon::now()->day)->disabledOn('edit')
+                                    ->visibleOn('create'),
+                                DatePicker::make('fecha')->readOnly()
+                                ->visibleOn(['edit','view']),
                                 Forms\Components\Select::make('tipo')
                                     ->required()
                                     ->options([

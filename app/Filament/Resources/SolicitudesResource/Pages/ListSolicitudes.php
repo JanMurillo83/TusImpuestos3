@@ -273,8 +273,9 @@ class ListSolicitudes extends ListRecords
             {
                 if($emisor['Rfc'] == $taxid)
                 {
-                    $uuidno = count(Almacencfdis::where(['UUID'=>$tfd['UUID'],'team_id'=>Filament::getTenant()->id])->get() ?? 0);
-                    if($uuidno == 0)
+                    //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
+                    $uuid_v = Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->exists();
+                    if (!$uuid_v)
                     {
                         Almacencfdis::firstOrCreate([
                             'Serie' =>$comprobante['Serie'],
@@ -323,8 +324,9 @@ class ListSolicitudes extends ListRecords
             {
                 if($receptor['Rfc'] == $taxid)
                 {
-                    $uuidno = count(Almacencfdis::where(['UUID'=>$tfd['UUID'],'team_id'=>Filament::getTenant()->id])->get() ?? 0);
-                    if($uuidno == 0)
+                    //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
+                    $uuid_v = Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->exists();
+                    if (!$uuid_v)
                     {
                         Almacencfdis::firstOrCreate([
                             'Serie' =>$comprobante['Serie'],
@@ -443,8 +445,9 @@ class ListSolicitudes extends ListRecords
                 //dd($emisor['Rfc'] .'-'. $taxid);
                 if($emisor['Rfc'] == $taxid)
                 {
-                    $uuidno = count(Almacencfdis::where(['UUID'=>$tfd['UUID'],'team_id'=>Filament::getTenant()->id])->get() ?? 0);
-                    if($uuidno == 0)
+                    //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
+                    $uuid_v = Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->exists();
+                    if (!$uuid_v)
                     {
                     $almcfdi = Almacencfdis::firstOrCreate([
                         'Serie' =>$comprobante['Serie'],
@@ -612,8 +615,9 @@ class ListSolicitudes extends ListRecords
                 $team = Filament::getTenant()->id;
                 if ($tiposol == 'Emitidos') {
                     if ($emisor['Rfc'] == $taxid) {
-                        $uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
-                        if ($uuidno == 0) {
+                        //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
+                        $uuid_v = Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->exists();
+                        if (!$uuid_v) {
                             Almacencfdis::firstOrCreate([
                                 'Serie' => $comprobante['Serie'],
                                 'Folio' => $comprobante['Folio'],
@@ -657,8 +661,9 @@ class ListSolicitudes extends ListRecords
                     }
                 } else {
                     if ($receptor['Rfc'] == $taxid) {
-                        $uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
-                        if ($uuidno == 0) {
+                        //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
+                        $uuid_v = Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->exists();
+                        if (!$uuid_v){
                             Almacencfdis::firstOrCreate([
                                 'Serie' => $comprobante['Serie'],
                                 'Folio' => $comprobante['Folio'],

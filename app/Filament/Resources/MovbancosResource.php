@@ -1037,6 +1037,7 @@ class MovbancosResource extends Resource
                                         ->schema([
                                             TableRepeater::make('detalle')
                                                 ->streamlined()
+                                                ->defaultItems(5)
                                                 ->columnSpanFull()
                                                 ->headers([
                                                     Header::make('codigo')->width('250px'),
@@ -1054,7 +1055,7 @@ class MovbancosResource extends Resource
                                                         )
                                                         ->searchable()
                                                         ->columnSpan(2)
-                                                        ->live()
+                                                        ->live(onBlur: true)
                                                         ->afterStateUpdated(function(Get $get,Set $set){
                                                             $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
                                                             $nom = $cuenta[0]->nombre;
@@ -1063,18 +1064,22 @@ class MovbancosResource extends Resource
                                                         }),
                                                     TextInput::make('cargo')
                                                         ->numeric()
-                                                        ->mask(RawJs::make('$money($input)'))
-                                                        ->stripCharacters([',','$'])
+                                                        ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$'),
+                                                        ->prefix('$')
+                                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                                            self::sumas_partidas_manual($get,$set);
+                                                        }),
                                                     TextInput::make('abono')
                                                         ->numeric()
-                                                        ->mask(RawJs::make('$money($input)'))
-                                                        ->stripCharacters([',','$'])
+                                                        ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$'),
+                                                        ->prefix('$')
+                                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                                            self::sumas_partidas_manual($get,$set);
+                                                        }),
                                                     TextInput::make('factura')
                                                         ->label('Referencia')
                                                         ->prefix('F-'),
@@ -1087,7 +1092,17 @@ class MovbancosResource extends Resource
                                                         ->default(0),
                                                 ]),
                                         ]),
-                                ])->columnSpanFull()
+                                    Fieldset::make('Sumas Iguales')
+                                        ->schema([
+                                            TextInput::make('cargos_tot')
+                                                ->label('Cargos')
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                            TextInput::make('abonos_tot')
+                                                ->label('Abonos')
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                        ])->columns(5)
+                                ])->columnSpanFull(),
+
                         ])->columns(4);
                     })
                     ->modalWidth('full')
@@ -1379,6 +1394,7 @@ class MovbancosResource extends Resource
                                             TableRepeater::make('detalle')
                                                 ->streamlined()
                                                 ->columnSpanFull()
+                                                ->defaultItems(5)
                                                 ->headers([
                                                     Header::make('codigo')->width('250px'),
                                                     Header::make('cargo')->width('100px'),
@@ -1408,14 +1424,19 @@ class MovbancosResource extends Resource
                                                         ->stripCharacters([',','$'])
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$'),
+                                                        ->prefix('$')
+                                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                                            self::sumas_partidas_manual($get,$set);
+                                                        }),
                                                     TextInput::make('abono')
                                                         ->numeric()
-                                                        ->mask(RawJs::make('$money($input)'))
-                                                        ->stripCharacters([',','$'])
+                                                        ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$'),
+                                                        ->prefix('$')
+                                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                                            self::sumas_partidas_manual($get,$set);
+                                                        }),
                                                     TextInput::make('factura')
                                                         ->label('Referencia')
                                                         ->prefix('F-'),
@@ -1428,6 +1449,15 @@ class MovbancosResource extends Resource
                                                         ->default(0),
                                                 ]),
                                         ]),
+                                    Fieldset::make('Sumas Iguales')
+                                        ->schema([
+                                            TextInput::make('cargos_tot')
+                                                ->label('Cargos')
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                            TextInput::make('abonos_tot')
+                                                ->label('Abonos')
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                        ])->columns(5)
                                 ])->columnSpanFull()
                         ])->columns(4);
                     })
@@ -3372,6 +3402,18 @@ class MovbancosResource extends Resource
         ->send();
     }
 
+    public static function sumas_partidas_manual(Get $get,Set $set) :void
+    {
+        $detalle = $get('../../detalle');
+        $cargos = 0;
+        $abonos = 0;
+        foreach ($detalle as $det) {
+            $cargos += $det['cargo'];
+            $abonos += $det['abono'];
+        }
+        $set('../../cargos_tot',$cargos);
+        $set('../../abonos_tot',$abonos);
+    }
     public static function procesa_s_f($record,$data)
     {
         //dd($data);

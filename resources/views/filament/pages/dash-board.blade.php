@@ -1,4 +1,5 @@
 <x-filament-panels::page>
+    {{$this->form}}
 <style>
     .container-fluid {width: 100%; padding-right: 5px; padding-left: 5px; margin-right: auto; margin-left: auto;}
     .row {display: flex; flex-wrap: wrap; margin-right: -15px; margin-left: -15px; page-break-inside: avoid;}

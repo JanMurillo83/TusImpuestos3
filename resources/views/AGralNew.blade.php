@@ -57,8 +57,8 @@ $saldo5 = 0;
                             else $saldo1 -= $cuenta->anterior;
                             $saldo2 += $cuenta->cargos;
                             $saldo3 += $cuenta->abonos;
-                            if ($cuenta->naturaleza == 'D') $saldo3 += $cuenta->final;
-                            else $saldo3 -= $cuenta->final;
+                            if ($cuenta->naturaleza == 'D') $saldo4 += $cuenta->final;
+                            else $saldo4 -= $cuenta->final;
                         }
                         ?>
                         @if($cuenta->anterior > 0||$cuenta->cargos > 0||$cuenta->abonos > 0||$cuenta->final > 0)

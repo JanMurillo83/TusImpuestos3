@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string $concepto
  * @property string $contabilizada
  * @property string|null $movbancoscol
+ * @property int|null $dia
  *
  * @package App\Models
  */
@@ -37,7 +38,8 @@ class Movbancos extends Model
 
 	protected $casts = [
 		'fecha' => 'datetime',
-		'importe' => 'float'
+		'importe' => 'float',
+        'dia' => 'int'
 	];
 
 	protected $fillable = [
@@ -57,7 +59,8 @@ class Movbancos extends Model
         'moneda',
         'tcambio',
         'pendiente_apli',
-        'team_id'
+        'team_id',
+        'dia'
 	];
     public function team(): BelongsTo
     {

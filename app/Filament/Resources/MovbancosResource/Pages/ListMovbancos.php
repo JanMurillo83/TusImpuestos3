@@ -13,6 +13,7 @@ use Filament\Actions\Action as ActionsAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Hidden;
@@ -20,11 +21,13 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Resources\Components\Tab;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ListMovbancos extends ListRecords
 {
     use HasResizableColumn;
+
     protected static string $resource = MovbancosResource::class;
     public ?float $saldo_cuenta = 0;
     public ?float $saldo_cuenta_ant = 0;
@@ -99,12 +102,12 @@ class ListMovbancos extends ListRecords
                     Select::make('cuenta')
                         ->label('Cuenta Bancaria')
                         ->required()
-                        ->options(BancoCuentas::where('team_id',Filament::getTenant()->id)->pluck('banco','id'))
+                        ->options(BancoCuentas::where('team_id', Filament::getTenant()->id)->pluck('banco', 'id'))
                 ])
                 ->sampleExcel(
                     sampleData: [
-                        ['fecha' => '2024-01-01', 'Tipo' => 'E', 'importe' => '1000.00', 'concepto' => 'Ejemplo Entrada', 'ejercicio' => 2024, 'periodo' => 1],
-                        ['fecha' => '2024-01-01', 'Tipo' => 'S', 'importe' => '1000.00', 'concepto' => 'Ejemplo Salida', 'ejercicio' => 2024, 'periodo' => 1],
+                        ['dia' => '1', 'Tipo' => 'E', 'importe' => '1000.00', 'concepto' => 'Ejemplo Entrada', 'ejercicio' => 2024, 'periodo' => 1],
+                        ['dia' => '31', 'Tipo' => 'S', 'importe' => '1000.00', 'concepto' => 'Ejemplo Salida', 'ejercicio' => 2024, 'periodo' => 1],
                     ],
                     fileName: 'ImportaMovBanco.xlsx',
                     sampleButtonLabel: 'Descargar Layout',
@@ -112,7 +115,6 @@ class ListMovbancos extends ListRecords
                         ->icon('heroicon-m-clipboard')
                         ->requiresConfirmation(),
                 )->beforeImport(function (array $data, $livewire, $excelImportAction) {
-                    //dd($excelImportAction);
                     $tax_id = $data['tax_id'];
                     $team_id = $data['team_id'];
                     $contabilizada = $data['contabilizada'];
@@ -125,75 +127,30 @@ class ListMovbancos extends ListRecords
                         'cuenta' => $cuenta,
 
                     ]);
-                })->validateUsing([
-                    'importe' => 'required|numeric',
-                ])
-                ->mutateAfterValidationUsing(
-                    closure: function(array $data): array{
-                        $tip = $data['tipo'];
-                        $sdos = DB::table('saldosbancos')
-                        ->where('cuenta',$data['cuenta'])
-                        ->where('ejercicio',$data['ejercicio'])
-                        ->where('periodo',$data['periodo'])->get();
-                        $inicia = $sdos[0]->inicial;
-                        $ingre = $sdos[0]->ingre + $data['importe'];
-                        $salid = $sdos[0]->salid + $data['importe'];
-                        if($tip == 'E'){
-                            DB::table('saldosbancos')
-                            ->where('cuenta',$data['cuenta'])
-                            ->where('ejercicio',$data['ejercicio'])
-                            ->where('periodo',$data['periodo'])->update([
-                                'ingresos'=>$ingre
-                            ]);
-                        }
-                        else{
-                            DB::table('saldosbancos')
-                            ->where('cuenta',$data['cuenta'])
-                            ->where('ejercicio',$data['ejercicio'])
-                            ->where('periodo',$data['periodo'])->update([
-                                'egresos'=>$salid
-                            ]);
-                        }
-                        $sdos = DB::table('saldosbancos')
-                        ->where('cuenta',$data['cuenta'])
-                        ->where('ejercicio',$data['ejercicio'])
-                        ->where('periodo',$data['periodo'])->get();
-                        $inicia = $sdos[0]->inicial;
-                        $ingre = $sdos[0]->ingre;
-                        $salid = $sdos[0]->salid;
-                        $term = $inicia + $ingre - $salid;
-                        DB::table('saldosbancos')
-                        ->where('cuenta',$data['cuenta'])
-                        ->where('ejercicio',$data['ejercicio'])
-                        ->where('periodo',$data['periodo'])->update([
-                            'actual'=>$term
-                        ]);
-                        return $data;
-                    },
-                )->afterImport(closure: function(array $data){
+                })->afterImport(closure: function (array $data) {
                     $filen = $data['upload']->getFilename();
-                    $fileName = storage_path('app/livewire-tmp/'.$filen);
+                    $fileName = storage_path('app/livewire-tmp/' . $filen);
                     $inputFileType = \PhpOffice\PhpSpreadsheet\IOFactory::identify($fileName);
                     $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader($inputFileType);
-                    $reader->setReadEmptyCells(true);
+                    $reader->setReadEmptyCells(false);
                     $spreadsheet = $reader->load($fileName);
                     $spreadsheet = $spreadsheet->getActiveSheet();
-                    $data_array =  $spreadsheet->toArray();
+                    $data_array = $spreadsheet->toArray();
                     $arrs = count($data_array);
-                    for($i=0;$i<$arrs;$i++)
-                    {
-                        if($i > 0)
-                        {
+                    for ($i = 0; $i < $arrs; $i++) {
+                        if ($i > 0) {
+                            $fecha = Carbon::create($data_array[$i][0])->format('Y-m-d');
                             $tipo = $data_array[$i][1];
-                            $importe = $data_array[$i][2];
-                            $peri = $data_array[$i][5];
-                            $ejer = $data_array[$i][4];
+                            $importe = floatval($data_array[$i][2]);
+                            $peri = intval($data_array[$i][5]);
+                            $ejer = intval($data_array[$i][4]);
+                            //dd($tipo,$importe,$peri,$ejer);
                             //------------------------------------------------------
                             $val_sdos = DB::table('saldosbancos')
-                                ->where('cuenta',$data['cuenta'])
-                                ->where('ejercicio',$ejer)->get();
-                            if(count($val_sdos) == 0){
-                                for($i=1;$i<13;$i++) {
+                                ->where('cuenta', $data['cuenta'])
+                                ->where('ejercicio', $ejer)->get();
+                            if (count($val_sdos) == 0) {
+                                for ($i = 1; $i < 13; $i++) {
                                     DB::table('saldosbancos')->insert([
                                         'cuenta' => $data['cuenta'],
                                         'inicial' => 0.00,
@@ -206,64 +163,183 @@ class ListMovbancos extends ListRecords
                                 }
                             }
                             $sdos = DB::table('saldosbancos')
-                                ->where('cuenta',$data['cuenta'])
-                                ->where('ejercicio',$ejer)
-                                ->where('periodo',$peri)->get();
-                                //dd($sdos);
+                                ->where('cuenta', $data['cuenta'])
+                                ->where('ejercicio', $ejer)
+                                ->where('periodo', $peri)->get();
+                            //dd($sdos);
+                            if (count($sdos) == 0) return;
                             $inicia = $sdos[0]->inicial;
                             $ingre = $sdos[0]->ingresos + $importe;
                             $salid = $sdos[0]->egresos + $importe;
-                            if($tipo == 'E'){
+                            if ($tipo == 'E') {
                                 DB::table('saldosbancos')
-                                ->where('cuenta',$data['cuenta'])
-                                ->where('ejercicio',$ejer)
-                                ->where('periodo',$peri)->update([
-                                    'ingresos'=>$ingre
-                                ]);
-                            }
-                            else{
+                                    ->where('cuenta', $data['cuenta'])
+                                    ->where('ejercicio', $ejer)
+                                    ->where('periodo', $peri)->update([
+                                        'ingresos' => $ingre
+                                    ]);
+                            } else {
                                 DB::table('saldosbancos')
-                                ->where('cuenta',$data['cuenta'])
-                                ->where('ejercicio',$ejer)
-                                ->where('periodo',$peri)->update([
-                                    'egresos'=>$salid
-                                ]);
+                                    ->where('cuenta', $data['cuenta'])
+                                    ->where('ejercicio', $ejer)
+                                    ->where('periodo', $peri)->update([
+                                        'egresos' => $salid
+                                    ]);
                             }
                             $sdos = DB::table('saldosbancos')
-                            ->where('cuenta',$data['cuenta'])
-                            ->where('ejercicio',$ejer)
-                            ->where('periodo',$peri)->get();
+                                ->where('cuenta', $data['cuenta'])
+                                ->where('ejercicio', $ejer)
+                                ->where('periodo', $peri)->get();
                             $inicia = $sdos[0]->inicial;
                             $ingre = $sdos[0]->ingresos;
                             $salid = $sdos[0]->egresos;
                             $term = $inicia + $ingre - $salid;
                             DB::table('saldosbancos')
-                            ->where('cuenta',$data['cuenta'])
-                            ->where('ejercicio',$ejer)
-                            ->where('periodo',$peri)->update([
-                                'actual'=>$term
-                            ]);
-                            $emp_a = Filament::getTenant()->id;
-                            DB::statement("UPDATE movbancos SET pendiente_apli = importe
-                            WHERE pendiente_apli = 0 AND contabilizada = 'NO' AND periodo = $peri AND ejercicio = $ejer AND team_id = $emp_a");
+                                ->where('cuenta', $data['cuenta'])
+                                ->where('ejercicio', $ejer)
+                                ->where('periodo', $peri)->update([
+                                    'actual' => $term
+                                ]);
+                            //$emp_a = Filament::getTenant()->id;
+                            //DB::statement("DELETE FROM movbancos WHERE pendiente_apli = 0 AND contabilizada = 'NO' AND periodo = $peri AND ejercicio = $ejer AND team_id = $emp_a");
                             //------------------------------------------------------
                         }
                     }
-                    //dd(count($data_array));
+                    //Notification::make()->title('Proceso Concluido')->success()->send();
+                })->processCollectionUsing(function (string $modelClass, Collection $collection,$data) {
+
+                    $ejercicio = Filament::getTenant()->ejercicio;
+                    $periodo = Filament::getTenant()->periodo;
+                    $tax_id = Filament::getTenant()->taxid;
+                    $team_id = Filament::getTenant()->id;
+                    /*for($i=0;$i<count($collection);$i++){
+                        $fecha = Carbon::create($ejercicio,$periodo,intval($collection[$i]['dia']))->format('Y-m-d');
+                        $collection[$i]['fecha'] = $fecha;
+                        $collection[$i]['pendiente_apli'] = floatval($collection[$i]['importe']);
+                        /*Movbancos::create([
+                            'fecha'=>$fecha,
+                            'tax_id'=>$tax_id,
+                            'tipo'=>$collection[$i]['tipo'],
+                            'cuenta'=>$data['cuenta'],
+                            'importe'=>floatval($collection[$i]['importe']),
+                            'concepto'=>$collection[$i]['concepto'],
+                            'contabilizada'=>'NO',
+                            'ejercicio'=>$ejercicio,
+                            'periodo'=>$periodo,
+                            'moneda'=>'MXN',
+                            'tcambio'=>1.0,
+                            'pendiente_apli'=>floatval($collection[$i]['importe']),
+                            'team_id'=>$team_id,
+                            'dia'=>intval($collection[$i]['dia'])
+                        ]);
+                    }*/
+                    /*foreach ($collection as $datos) {
+                        $fecha = Carbon::create($ejercicio,$periodo,intval($datos['dia']))->format('Y-m-d');
+
+                        Movbancos::create([
+                            'fecha'=>$fecha,
+                            'tax_id'=>$tax_id,
+                            'tipo'=>$datos['tipo'],
+                            'cuenta'=>$data['cuenta'],
+                            'importe'=>floatval($datos['importe']),
+                            'concepto'=>$datos['concepto'],
+                            'contabilizada'=>'NO',
+                            'ejercicio'=>$ejercicio,
+                            'periodo'=>$periodo,
+                            'moneda'=>'MXN',
+                            'tcambio'=>1.0,
+                            'pendiente_apli'=>floatval($datos['importe']),
+                            'team_id'=>$team_id,
+                            'dia'=>intval($datos['dia'])
+                        ]);
+                    }*/
+                    return $collection;
                 }),
             Actions\CreateAction::make()
                 ->label('Agregar')
                 ->icon('fas-plus')
                 ->createAnother(false)
-                ->after(function ($record,$data){
+                ->after(function ($record, $data) {
                     $id = $record->id;
                     $importe = $record->importe;
                     $dia = intval($data['fecha_dia']);
-                    $fecha = Carbon::create(Filament::getTenant()->ejercicio,Filament::getTenant()->periodo,$dia);
-                    Movbancos::where('id',$id)->update([
-                        'fecha'=>$fecha,
-                        'pendiente_apli'=>$importe
+                    $fecha = Carbon::create(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, $dia);
+                    Movbancos::where('id', $id)->update([
+                        'fecha' => $fecha,
+                        'pendiente_apli' => $importe
                     ]);
+                }),
+            \EightyNine\ExcelImport\ExcelImportAction::make('Importar2')
+                ->label('Importar')
+                ->color("primary")
+                ->beforeUploadField([
+                    Hidden::make('tax_id')
+                        ->default(Filament::getTenant()->taxid),
+                    Hidden::make('team_id')
+                        ->default(Filament::getTenant()->id),
+                    Hidden::make('ejercicio')
+                        ->default(Filament::getTenant()->ejercicio),
+                    Hidden::make('periodo')
+                        ->default(Filament::getTenant()->periodo),
+                    Hidden::make('contabilizada')
+                        ->default('NO'),
+                    Select::make('cuenta')
+                        ->label('Cuenta Bancaria')
+                        ->required()
+                        ->options(BancoCuentas::where('team_id', Filament::getTenant()->id)->pluck('banco', 'id'))
+                ])
+                ->sampleExcel(
+                    sampleData: [
+                        ['dia' => '1', 'Tipo' => 'E', 'importe' => '1000.00', 'concepto' => 'Ejemplo Entrada', 'ejercicio' => 2024, 'periodo' => 1],
+                        ['dia' => '31', 'Tipo' => 'S', 'importe' => '1000.00', 'concepto' => 'Ejemplo Salida', 'ejercicio' => 2024, 'periodo' => 1],
+                    ],
+                    fileName: 'ImportaMovBanco.xlsx',
+                    sampleButtonLabel: 'Descargar Layout',
+                    customiseActionUsing: fn(Action $action) => $action->color('gray')
+                        ->icon('heroicon-m-clipboard')
+                        ->requiresConfirmation(),
+                )
+                ->beforeImport(function (array $data, $livewire, $excelImportAction) {
+                    $tax_id = $data['tax_id'];
+                    $team_id = $data['team_id'];
+                    $contabilizada = $data['contabilizada'];
+                    $cuenta = $data['cuenta'];
+                    //$pendiente = $data['importe'];
+                    $excelImportAction->additionalData([
+                        'tax_id' => $tax_id,
+                        'team_id' => $team_id,
+                        'contabilizada' => $contabilizada,
+                        'cuenta' => $cuenta,
+
+                    ]);
+                })
+                ->processCollectionUsing(function (string $modelClass, Collection $collection,$data) {
+                    //dd($data);
+                    $ejercicio = Filament::getTenant()->ejercicio;
+                    $periodo = Filament::getTenant()->periodo;
+                    $tax_id = Filament::getTenant()->taxid;
+                    $team_id = Filament::getTenant()->id;
+                    for($i=0;$i<count($collection);$i++) {
+                        $fecha = Carbon::create($ejercicio, $periodo, intval($collection[$i]['dia']))->format('Y-m-d');
+                        $collection[$i]['fecha'] = $fecha;
+                        Movbancos::create([
+                            'fecha'=>$fecha,
+                            'tax_id'=>$tax_id,
+                            'tipo'=>$collection[$i]['tipo'],
+                            'cuenta'=>$data['cuenta'],
+                            'importe'=>floatval($collection[$i]['importe']),
+                            'concepto'=>$collection[$i]['concepto'],
+                            'contabilizada'=>'NO',
+                            'ejercicio'=>$ejercicio,
+                            'periodo'=>$periodo,
+                            'moneda'=>'MXN',
+                            'tcambio'=>1.0,
+                            'pendiente_apli'=>floatval($collection[$i]['importe']),
+                            'team_id'=>$team_id,
+                            'dia'=>intval($collection[$i]['dia'])
+                        ]);
+                    }
+                    return $collection;
                 })
         ];
     }

@@ -55,6 +55,17 @@ class ReportesConta extends Page implements HasForms
                             $this->replaceMountedAction('Balanza General');
                             $this->getAction('Balanza General')->visible(false);
                         }),
+                    Actions\Action::make('Balanza_Nueva')
+                        ->label('Balanza de Comprobación (Nuevo)')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $this->getAction('Balanza Nueva')->visible(true);
+                            $this->replaceMountedAction('Balanza Nueva');
+                            $this->getAction('Balanza Nueva')->visible(false);
+                        })->visible(false),
                     Actions\Action::make('EdoRes')
                         ->label('Estado de Resultados')
                         ->action(function (){
@@ -76,6 +87,17 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('Auxiliares del Periodo')->visible(true);
                             $this->replaceMountedAction('Auxiliares del Periodo');
                             $this->getAction('Auxiliares del Periodo')->visible(false);
+                        }),
+                    Actions\Action::make('Polizas_Descuadradas')
+                        ->label('Pólizas Descuadradas')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $this->getAction('Polizas Descuadradas')->visible(true);
+                            $this->replaceMountedAction('Polizas Descuadradas');
+                            $this->getAction('Polizas Descuadradas')->visible(false);
                         })
                 ])
                 ]),
@@ -141,6 +163,16 @@ class ReportesConta extends Page implements HasForms
                 view('AGralNew',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
                 )->visible(false)
                 ->modalWidth('7xl'),
+            Html2MediaAction::make('Balanza Nueva')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Balanza de Comprobacion (Nuevo)')
+                ->margin([10, 10, 10, 10])
+                ->content(fn()=>
+                view('BalanzaNew',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
+                )->visible(false)
+                ->modalWidth('7xl'),
             Html2MediaAction::make('Estado de Resultados')
                 ->preview()
                 ->print(false)
@@ -159,6 +191,16 @@ class ReportesConta extends Page implements HasForms
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
                 view('AuxiliaresPeriodo',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
+                )->visible(false)
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('Polizas Descuadradas')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Polizas Descuadradas')
+                ->margin([10, 10, 10, 10])
+                ->content(fn()=>
+                view('PolizasDescuadradas',[ 'empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
                 )->visible(false)
                 ->modalWidth('7xl')
         ];

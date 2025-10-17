@@ -254,7 +254,7 @@ class ListMovbancos extends ListRecords
                         ]);
                     }*/
                     return $collection;
-                }),
+                })->visible(false),
             Actions\CreateAction::make()
                 ->label('Agregar')
                 ->icon('fas-plus')
@@ -290,8 +290,8 @@ class ListMovbancos extends ListRecords
                 ])
                 ->sampleExcel(
                     sampleData: [
-                        ['dia' => '1', 'Tipo' => 'E', 'importe' => '1000.00', 'concepto' => 'Ejemplo Entrada', 'ejercicio' => 2024, 'periodo' => 1],
-                        ['dia' => '31', 'Tipo' => 'S', 'importe' => '1000.00', 'concepto' => 'Ejemplo Salida', 'ejercicio' => 2024, 'periodo' => 1],
+                        ['fecha' => '1', 'Tipo' => 'E', 'importe' => '1000.00', 'concepto' => 'Ejemplo Entrada', 'ejercicio' => 2024, 'periodo' => 1],
+                        ['fecha' => '31', 'Tipo' => 'S', 'importe' => '1000.00', 'concepto' => 'Ejemplo Salida', 'ejercicio' => 2024, 'periodo' => 1],
                     ],
                     fileName: 'ImportaMovBanco.xlsx',
                     sampleButtonLabel: 'Descargar Layout',
@@ -315,13 +315,13 @@ class ListMovbancos extends ListRecords
                 })
                 ->processCollectionUsing(function (string $modelClass, Collection $collection,$data) {
                     //dd($data);
-                    $ejercicio = Filament::getTenant()->ejercicio;
-                    $periodo = Filament::getTenant()->periodo;
+
                     $tax_id = Filament::getTenant()->taxid;
                     $team_id = Filament::getTenant()->id;
                     for($i=0;$i<count($collection);$i++) {
-                        $fecha = Carbon::create($ejercicio, $periodo, intval($collection[$i]['dia']))->format('Y-m-d');
-                        $collection[$i]['fecha'] = $fecha;
+                        $fecha = Carbon::create($collection[$i]['fecha'])->format('Y-m-d');
+                        $ejercicio = intval(Carbon::create($collection[$i]['fecha'])->format('Y'));
+                        $periodo = intval(Carbon::create($collection[$i]['fecha'])->format('m'));
                         Movbancos::create([
                             'fecha'=>$fecha,
                             'tax_id'=>$tax_id,
@@ -336,7 +336,7 @@ class ListMovbancos extends ListRecords
                             'tcambio'=>1.0,
                             'pendiente_apli'=>floatval($collection[$i]['importe']),
                             'team_id'=>$team_id,
-                            'dia'=>intval($collection[$i]['dia'])
+                            'dia'=>intval(Carbon::create($collection[$i]['fecha'])->format('d'))
                         ]);
                     }
                     return $collection;

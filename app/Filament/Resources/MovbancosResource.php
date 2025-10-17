@@ -94,7 +94,14 @@ class MovbancosResource extends Resource
                                     ->minValue(1)
                                     ->maxValue(31)
                                     ->default(Carbon::now()->day)->disabledOn('edit')
-                                    ->visibleOn('create'),
+                                    ->visibleOn('create')
+                                    ->suffix(function ($record,$context){
+                                        if($context == 'create')
+                                            return '-'.Filament::getTenant()->periodo.'-'.Filament::getTenant()->ejercicio;
+                                        else
+                                            return '-'.$record->periodo.'-'.$record->ejercicio;
+
+                                    }),
                                 DatePicker::make('fecha')->readOnly()
                                 ->visibleOn(['edit','view']),
                                 Forms\Components\Select::make('tipo')
@@ -905,22 +912,28 @@ class MovbancosResource extends Resource
                                 })
                             ->schema([
                                 Select::make('nom_reggasto_cta')->label('Registro del Gasto')->inlineLabel()->columnSpan(2)
-                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))
+                                    ->searchable()->default(function(){return CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo','60301000')->first()->codigo;}),
                                 TextInput::make('nom_reggasto')->numeric()->prefix('$')->hiddenLabel()->default(fn(Get $get)=>$get('importe')),
                                 Select::make('nom_retisr_cta')->label('Retencion de ISR')->inlineLabel()->columnSpan(2)
-                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))
+                                    ->searchable()->default(function(){return CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo','21601000')->first()->codigo;}),
                                 TextInput::make('nom_retisr')->numeric()->prefix('$')->hiddenLabel()->default(0),
                                 Select::make('nom_retimss_cta')->label('Retencion IMSS')->inlineLabel()->columnSpan(2)
-                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))
+                                    ->searchable()->default(function(){return CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo','21611000')->first()->codigo;}),
                                 TextInput::make('nom_retimss')->numeric()->prefix('$')->hiddenLabel()->default(0),
                                 Select::make('nom_infonavit_cta')->label('Credito Infonavit')->inlineLabel()->columnSpan(2)
-                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))
+                                    ->searchable()->default(function(){return CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo','21612000')->first()->codigo;}),
                                 TextInput::make('nom_infonavit')->numeric()->prefix('$')->hiddenLabel()->default(0),
                                 Select::make('nom_presempre_cta')->label('Prestamo Empresa')->inlineLabel()->columnSpan(2)
-                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable(),
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))
+                                    ->searchable()->default(function(){return CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo','21613000')->first()->codigo;}),
                                 TextInput::make('nom_presempre')->numeric()->prefix('$')->hiddenLabel()->default(0),
                                 Select::make('nom_banco_cta')->label('Cuenta Bancaria')->inlineLabel()->columnSpan(2)
-                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))->searchable()
+                                    ->options(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo'))
+                                    ->searchable()
                                     ->default(function ($record){
                                         return BancoCuentas::where('id',$record->cuenta)->get()[0]->codigo;
                                     }),

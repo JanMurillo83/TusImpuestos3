@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('movbancos', function (Blueprint $table) {
+        /*Schema::table('movbancos', function (Blueprint $table) {
             $table->integer('dia')->nullable()->default(1);
-        });
+        });*/
     }
 
     /**

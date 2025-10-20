@@ -252,7 +252,10 @@ class DatabaseSeeder extends Seeder
             ['codigo'=>'70110000','nombre'=>'Comisiones bancarias','acumula'=>'70100000','tipo'=>'A','naturaleza'=>'A','csat'=>'701.1','team_id'=>$empresa],
             ['codigo'=>'70200000','nombre'=>'Productos Financieros','acumula'=>'70000000','tipo'=>'A','naturaleza'=>'A','csat'=>'702','team_id'=>$empresa],
             ['codigo'=>'70201000','nombre'=>'Utilidad cambiaria','acumula'=>'70200000','tipo'=>'A','naturaleza'=>'A','csat'=>'702.01','team_id'=>$empresa],
-            ['codigo'=>'70204000','nombre'=>'Intereses a favor bancarios nacional','acumula'=>'70200000','tipo'=>'A','naturaleza'=>'A','csat'=>'702.04','team_id'=>$empresa]];
+            ['codigo'=>'70204000','nombre'=>'Intereses a favor bancarios nacional','acumula'=>'70200000','tipo'=>'A','naturaleza'=>'A','csat'=>'702.04','team_id'=>$empresa],
+            ['codigo' => '21611000', 'nombre' => 'Retenciones de IMSS a los trabajadores', 'acumula' => '21600000', 'tipo' => 'D', 'naturaleza' => 'A', 'csat' => '216.11', 'team_id' => $empresa],
+            ['codigo' => '21612000', 'nombre' => 'Descuento credito Infonavit', 'acumula' => '21600000', 'tipo' => 'D', 'naturaleza' => 'A', 'csat' => '216.11', 'team_id' => $empresa],
+            ['codigo' => '21613000', 'nombre' => 'Descuentos prestamo empresa', 'acumula' => '21600000', 'tipo' => 'D', 'naturaleza' => 'A', 'csat' => '216.11', 'team_id' => $empresa]];
             CatCuentas::insert($data);
             //---------------------------------------------------------------------
             $data = [

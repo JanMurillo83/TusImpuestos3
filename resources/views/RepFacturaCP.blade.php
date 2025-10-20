@@ -172,7 +172,7 @@
             <hr style="margin-top: -1rem !important;">
             <div class="row" style="font-size: 8px !important; width: 98% !important; margin-top: -1rem !important;">
                 <label style="margin-top: -0.1rem !important;"><b>Cadena Original:</b></label>
-                <p>{{chunk_split($cadenaOrigen ?? '', 150)}}</p>
+                <p style="font-size: 7px !important;">{{chunk_split($cadenaOrigen ?? '', 180)}}</p>
             </div>
             <hr style="margin-top: -1rem !important;">
     </div>

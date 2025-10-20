@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CatPolizasResource\Pages;
 
 use App\Filament\Resources\CatPolizasResource;
 use App\Models\Auxiliares;
+use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\TableSettings;
 use Asmit\ResizedColumn\HasResizableColumn;
@@ -43,6 +44,11 @@ class ListCatPolizas extends ListRecords
             $abonos = 0;
             $auxiliar = Auxiliares::where('cat_polizas_id',$poliza->id)->get();
             foreach ($auxiliar as $auxiliar) {
+                if($auxiliar->codigo == '10201000'&&$auxiliar->cuenta == '10201000'){
+                    $cta = CatCuentas::where('codigo','10201000')->where('team_id',Filament::getTenant()->id)->first();
+                    $auxiliar->cuenta = $cta->nombre;
+                    $auxiliar->save();
+                }
                 $cargos += $auxiliar->cargo;
                 $abonos += $auxiliar->abono;
             }

@@ -7,6 +7,9 @@ use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\Clientes;
+use App\Models\DatosFiscales;
+use App\Models\Proveedores;
 use App\Models\Regimenes;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
@@ -14,6 +17,7 @@ use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Group;
@@ -28,6 +32,7 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -42,6 +47,7 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\File;
 use stdClass;
 
 class cfdiri extends Page implements HasForms, HasTable
@@ -160,6 +166,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 ])
                 ->recordAction('Notas')
             ->actions([
+                ActionGroup::make([
                 EditAction::make('Notas')
                 ->label('')
                 ->icon(null)
@@ -281,10 +288,11 @@ class cfdiri extends Page implements HasForms, HasTable
                             })
                     ])
                     ->action(function(Model $record,$data,$livewire){
-                        Self::contabiliza_r($record,$data,$livewire);
-                    }),
+                        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                        self::contabiliza_r($record,$data,$livewire,$nopoliza);
+                    })->label('Contabilizar'),
                 Action::make('ver_xml')->icon('fas-eye')
-                    ->iconButton()
+                    ->label('Consultar XML')
                     ->modalWidth('6xl')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')
@@ -306,6 +314,14 @@ class cfdiri extends Page implements HasForms, HasTable
                                 'Subtotal'=>$concepto['Importe'],
                             ];
                         }
+                        $ret = $comp->impuestos->retenciones;
+                        $ret_iva = 0;
+                        $ret_isr = 0;
+                        foreach ($ret() as $ret) {
+                            if($ret['Impuesto'] == '002') $ret_iva = $ret['Importe'];
+                            if($ret['Impuesto'] == '001') $ret_isr = $ret['Importe'];
+                        }
+
                         return $form
                             ->disabled(true)
                             ->schema([
@@ -361,13 +377,35 @@ class cfdiri extends Page implements HasForms, HasTable
                                         ->default(function () use ($comp){
                                             return $comp->impuestos['totalImpuestosTrasladados'];
                                         })->inlineLabel()->currencyMask()->prefix('$'),
+                                    TextInput::make('RETIVA')->label('RET I.V.A')
+                                        ->default(function () use ($ret_iva){
+                                            return $ret_iva ?? 0;
+                                        })->inlineLabel()->currencyMask()->prefix('$'),
+                                    TextInput::make('RETISR')->label('RET I.S.R')
+                                        ->default(function () use ($ret_isr){
+                                            return $ret_isr ?? 0;
+                                        })->inlineLabel()->currencyMask()->prefix('$'),
                                     TextInput::make('Total')
                                         ->default(function () use ($comp){
                                             return $comp['total'];
                                         })->inlineLabel()->currencyMask()->prefix('$'),
                                 ])
                             ])->columns(4);
-                    })
+                    }),
+                    Action::make('Descarga XML')
+                        ->label('Descarga XML')
+                        ->icon('fas-download')
+                        ->action(function($record){
+                            $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            if(File::exists($archivo)) unlink($archivo);
+                            $xml = $record->content;
+                            $xml = Cleaner::staticClean($xml);
+                            File::put($archivo,$xml);
+                            $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            return response()->download($ruta);
+                        })
+                ])
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
                 BulkAction::make('multi_Contabilizar')
@@ -479,8 +517,10 @@ class cfdiri extends Page implements HasForms, HasTable
                         })
                 ])
                 ->action(function(Collection $records,array $data,$livewire){
+                    $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
                     foreach($records as $record){
-                        Self::contabiliza_r($record,$data,$livewire);
+                        self::contabiliza_r($record,$data,$livewire,$nopoliza);
+                        $nopoliza++;
                     }
                 })
 
@@ -523,7 +563,7 @@ class cfdiri extends Page implements HasForms, HasTable
                 ->defaultSort('Fecha', 'asc');
     }
 
-    public static function contabiliza_r($record,$data,$livewire)
+    public static function contabiliza_r($record,$data,$livewire,$nopoliza)
     {
         $tipoxml = $record['xml_type'];
         $tipocom = $record['TipoDeComprobante'];
@@ -543,6 +583,16 @@ class cfdiri extends Page implements HasForms, HasTable
         $cfperiodo = $record['periodo'];
         $cfejercicio = $record['ejercicio'];
         $cffecha1 = $record['Fecha'];
+        $xml_content = $record->content;
+        $cfdi = Cfdi::newFromString($xml_content);
+        $comp = $cfdi->getQuickReader();
+        $ret = $comp->impuestos->retenciones;
+        $ret_iva = 0;
+        $ret_isr = 0;
+        foreach ($ret() as $ret) {
+            if($ret['Impuesto'] == '002') $ret_iva = $ret['Importe'];
+            if($ret['Impuesto'] == '001') $ret_isr = $ret['Importe'];
+        }
         list($cffecha,$cfhora) = explode('T',$cffecha1);
         $forma = $data['forma'] ?? 'CXP';
         $ctagas = $data['detallegas'];
@@ -578,7 +628,6 @@ class cfdiri extends Page implements HasForms, HasTable
                 ]);
                 $ctaclie = $nuecta;
             }
-            $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
             Almacencfdis::where('id',$record['id'])->update([
                 'metodo'=>$forma
             ]);
@@ -650,6 +699,45 @@ class cfdiri extends Page implements HasForms, HasTable
                     'auxiliares_id' => $aux['id'],
                     'cat_polizas_id' => $polno
                 ]);
+                $rets = 3;
+                if($ret_iva > 0){
+                    $rets++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '21610000',
+                        'cuenta' => 'Impuestos retenidos de IVA',
+                        'concepto' => $nom_emi,
+                        'cargo' => 0,
+                        'abono' => $ret_iva,
+                        'factura' => $serie . $folio,
+                        'nopartida' => $rets,
+                        'uuid' => $uuid,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
+                if($ret_isr > 0){
+                    $rets++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '21604000',
+                        'cuenta' => 'Impuestos ret de ISR x servicios prof',
+                        'concepto' => $nom_emi,
+                        'cargo' => 0,
+                        'abono' => $ret_isr,
+                        'factura' => $serie . $folio,
+                        'nopartida' => $rets,
+                        'uuid' => $uuid,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
             }
             else
             {
@@ -752,6 +840,45 @@ class cfdiri extends Page implements HasForms, HasTable
                     'auxiliares_id' => $aux['id'],
                     'cat_polizas_id' => $polno
                 ]);
+                $rets = 5;
+                if($ret_iva > 0){
+                    $rets++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '21610000',
+                        'cuenta' => 'Impuestos retenidos de IVA',
+                        'concepto' => $nom_emi,
+                        'cargo' => 0,
+                        'abono' => $ret_iva,
+                        'factura' => $serie . $folio,
+                        'nopartida' => $rets,
+                        'uuid' => $uuid,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
+                if($ret_isr > 0){
+                    $rets++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '21604000',
+                        'cuenta' => 'Impuestos ret de ISR x servicios prof',
+                        'concepto' => $nom_emi,
+                        'cargo' => 0,
+                        'abono' => $ret_isr,
+                        'factura' => $serie . $folio,
+                        'nopartida' => $rets,
+                        'uuid' => $uuid,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
             }
             DB::table('almacencfdis')->where('id',$record->id)->update([
                 'used'=> 'SI',

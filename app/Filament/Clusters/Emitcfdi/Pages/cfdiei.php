@@ -13,6 +13,7 @@ use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Group;
@@ -26,6 +27,7 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -40,6 +42,7 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\File;
 use stdClass;
 
 class cfdiei extends Page implements HasForms, HasTable
@@ -159,8 +162,9 @@ class cfdiei extends Page implements HasForms, HasTable
                 ])
                 ->recordAction('Notas')
             ->actions([
+                ActionGroup::make([
                 EditAction::make('Notas')
-                ->label('')
+                ->label('Notas')
                 ->icon(null)
                 ->modalHeading('Referecnia')
                 ->form([
@@ -172,7 +176,7 @@ class cfdiei extends Page implements HasForms, HasTable
                     $record->save();
                 }),
                 Action::make('ContabilizarE')
-                ->label('')
+                ->label('Contabilizar')
                 ->tooltip('Contabilizar')
                 ->icon('fas-scale-balanced')
                 ->modalWidth(MaxWidth::ExtraSmall)
@@ -190,7 +194,7 @@ class cfdiei extends Page implements HasForms, HasTable
                         Self::contabiliza_e($record,$data);
                 }),
                 Action::make('ver_xml')->icon('fas-eye')
-                ->iconButton()
+                ->label('Consultar XML')
                 ->modalWidth('6xl')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Cerrar')
@@ -273,11 +277,25 @@ class cfdiei extends Page implements HasForms, HasTable
                                 })->inlineLabel()->currencyMask()->prefix('$'),
                             ])
                         ])->columns(4);
-                })
+                }),
+                Action::make('Descarga XML')
+                    ->label('Descarga XML')
+                    ->icon('fas-download')
+                    ->action(function($record){
+                        $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                        $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                        if(File::exists($archivo)) unlink($archivo);
+                        $xml = $record->content;
+                        $xml = Cleaner::staticClean($xml);
+                        File::put($archivo,$xml);
+                        $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                        return response()->download($ruta);
+                    })
+                ])
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
                 BulkAction::make('multi_Contabilizar')
-                ->label('')
+                ->label('Contabilizar')
                 ->tooltip('Contabilizar')
                 ->icon('fas-scale-balanced')
                 ->modalWidth(MaxWidth::ExtraSmall)
@@ -292,9 +310,11 @@ class cfdiei extends Page implements HasForms, HasTable
                         ->disabled()
                         ->required()
                 ])
-                ->action(function(Collection $records,array $data,$livewire){
+                ->action(function(Collection $records,array $data){
+                    $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PV')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
                     foreach($records as $record){
-                        Self::contabiliza_e($record,$data,$livewire);
+                        self::contabiliza_e($record,$data,$nopoliza);
+                        $nopoliza++;
                     }
                 })
 
@@ -337,7 +357,7 @@ class cfdiei extends Page implements HasForms, HasTable
                 ->defaultSort('Fecha', 'asc');
     }
 
-    public static function contabiliza_e($record,$data)
+    public static function contabiliza_e($record,$data,$nopoliza)
     {
         $tipoxml = $record['xml_type'];
         $tipocom = $record['TipoDeComprobante'];
@@ -390,7 +410,7 @@ class cfdiei extends Page implements HasForms, HasTable
                 ]);
                 $ctaclie = $nuecta;
             }
-            $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PV')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+
             Almacencfdis::where('id',$record['id'])->update([
                 'metodo'=>'Bancario'
             ]);

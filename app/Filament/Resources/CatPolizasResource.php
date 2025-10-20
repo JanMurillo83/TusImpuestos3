@@ -442,7 +442,12 @@ class CatPolizasResource extends Resource
                             'abonos'=>$abonos,
                         ]);
                     }),
-            ])->striped()->defaultPaginationPageOption(8)
+            ])->bulkActions([
+                Tables\Actions\DeleteBulkAction::make('Eliminar')
+                ->icon('fas-trash')
+                ->requiresConfirmation()
+            ])
+            ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all']);
     }
 

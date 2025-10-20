@@ -160,37 +160,21 @@
 
                 </table>
             </div>
-            <div class="row" style="margin-top: 5rem; margin-left: -2rem !important">
-                <!--<div class="col-8" style="font-size: 10px !important;">
-                    <label><b>TIPO RELACIÓN:</b></label><br>
-                    <label><b>CFDI RELACIONADO:</b></label>
-                </div>-->
-                <div class="col-4" style="font-size: 10px !important;margin-left: -2rem !important;">
-
-                </div>
-            </div>
-            <div class="row">
-
-
-            </div>
-            <div class="row" style="font-size: 10px !important;">
-
-            </div>
-            <div class="row" style="font-size: 8px !important; width: 98% !important;">
+            <div class="row" style="font-size: 8px !important; width: 98% !important; margin-top: 1rem !important;">
                 <label><b>Sello CFDI:</b></label><br>
                 <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 150)}}</p>
             </div>
-            <hr>
-            <div class="row" style="font-size: 8px !important; width: 98% !important;">
-                <label><b>Sello SAT:</b></label><br>
-                {{chunk_split($tfd['SelloSAT'] ?? '', 150)}}
+            <hr style="margin-top: -1rem !important;">
+            <div class="row" style="font-size: 8px !important; width: 98% !important;margin-top: -1rem !important;">
+                <label style="margin-top: -0.1rem !important;"><b>Sello SAT:</b></label>
+                <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloSAT'] ?? '', 150)}}</p>
             </div>
-            <hr>
-            <div class="row" style="font-size: 8px !important; width: 98% !important;">
-                <label><b>Cadena Original:</b></label><br>
-                {{chunk_split($cadenaOrigen ?? '', 150)}}
+            <hr style="margin-top: -1rem !important;">
+            <div class="row" style="font-size: 8px !important; width: 98% !important; margin-top: -1rem !important;">
+                <label style="margin-top: -0.1rem !important;"><b>Cadena Original:</b></label>
+                <p>{{chunk_split($cadenaOrigen ?? '', 150)}}</p>
             </div>
-            <hr>
+            <hr style="margin-top: -1rem !important;">
     </div>
     </body>
 </html>

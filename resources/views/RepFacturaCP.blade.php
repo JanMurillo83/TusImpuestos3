@@ -28,7 +28,13 @@
         $ComPagos = $comprobante->complemento->Pagos;
         $PagosTotales = $ComPagos->Totales;
         $DetPagos = $ComPagos('Pago');
-
+        /*dd($Det_Pagos);
+        $DetPagos = $Det_Pagos('DoctoRelacionado');
+        $iterator = new RecursiveArrayIterator($DetPagos);
+        foreach ($iterator->getChildren() as $key => $value) {
+            dd("$key : $value\n");
+        }
+        dd($DetPagos);*/
     }
 
     //$logo = $dafis->logo64 ?? '';
@@ -142,8 +148,12 @@
                     </tr>
                     @foreach ($DetPagos as $DetallePago)
                         <?php
-                            $doc_ant = $DetallePago->DoctoRelacionado;
+                            $doc_ants = $DetallePago('DoctoRelacionado');
+                        ?>
+                        @foreach($doc_ants as $doc_ant)
+                        <?php
                             $factura = \App\Models\Facturas::where('uuid',$doc_ant['IdDocumento'])->first();
+                            //dd($doc_ant);
                         ?>
                         <tr>
                             <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$factura->docto ?? ''}}</th>
@@ -156,6 +166,7 @@
                             <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpSaldoInsoluto'],2)}}</th>
                             <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;">{{substr($DetallePago['FechaPago'],0,10)}}</th>
                         </tr>
+                        @endforeach
                     @endforeach
 
                 </table>

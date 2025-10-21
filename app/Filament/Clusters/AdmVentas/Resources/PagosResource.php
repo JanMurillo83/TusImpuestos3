@@ -220,7 +220,10 @@ class PagosResource extends Resource
                                     Forms\Components\Hidden::make('team_id')
                                         ->default(Filament::getTenant()->id),
                                 ])->columns(7)->columnSpanFull()
-                        ])->columnspanfull()
+                        ])->columnspanfull(),
+                Select::make('tipo_compro')->label('Tipo de comprobante')
+                ->options(['MUL'=>'Multi Nodo','UNI'=>'Unico Nodo'])
+                ->default('UNI')
             ]);
     }
 
@@ -351,7 +354,10 @@ class PagosResource extends Resource
                         $emisor = $data->dat_fiscal;
                         $serie = $data->serie;
                         //DB::statement("UPDATE series_facs SET folio = folio + 1 WHERE id = $serie");
-                        $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
+                        if($record->tipo_compro == 'MUL')
+                            $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
+                        else
+                            $res = app(TimbradoController::class)->TimbrarPagos_Uni($factura,$emisor,$receptor);
                         $resultado = json_decode($res);
                         $codigores = $resultado->codigo;
                         if($codigores == "200")
@@ -436,7 +442,10 @@ class PagosResource extends Resource
                 $emisor = $data->dat_fiscal;
                 $serie = $data->serie;
                 //DB::statement("UPDATE series_facs SET folio = folio + 1 WHERE id = $serie");
-                $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
+                if($data['tipo_compro'] == 'MUL')
+                    $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
+                else
+                    $res = app(TimbradoController::class)->TimbrarPagos_Uni($factura,$emisor,$receptor);
                 $resultado = json_decode($res);
                 $codigores = $resultado->codigo;
                 if($codigores == "200")

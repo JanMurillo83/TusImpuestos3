@@ -3,17 +3,27 @@
 namespace App\Filament\Clusters\Emitcfdi\Pages;
 
 use App\Filament\Clusters\Emitcfdi;
+use App\Http\Controllers\TimbradoController;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
+use CfdiUtils\Cfdi;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Split;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -21,6 +31,7 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -35,6 +46,7 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\File;
 use stdClass;
 
 class cfdieo extends Page implements HasForms, HasTable
@@ -154,9 +166,10 @@ class cfdieo extends Page implements HasForms, HasTable
                 ])
                 ->recordAction('Notas')
             ->actions([
+                ActionGroup::make([
                 EditAction::make('Notas')
-                ->label('')
-                ->icon(null)
+                    ->icon('fas-pen-to-square')
+                ->label('Notas')
                 ->modalHeading('Referecnia')
                 ->form([
                     Textarea::make('notas')
@@ -166,8 +179,168 @@ class cfdieo extends Page implements HasForms, HasTable
                     $record['notas'] = $data['notas'];
                     $record->save();
                 }),
+                Action::make('Imprimir')
+                    ->icon('fas-print')
+                    ->action(function($record){
+                        $xml_content = $record->content;
+                        $pdf_file = app(TimbradoController::class)->genera_pdf($xml_content);
+                        $decoded_data = base64_decode($pdf_file);
+                        $archivo = $_SERVER["DOCUMENT_ROOT"].'storage/TMPPDFFiles/'.$record->id.'.pdf';
+                        file_put_contents($archivo, $decoded_data);
+                        return response()->download($archivo);
+                    }),
+                Action::make('Visualizar')
+                    ->icon('fas-eye')
+                    ->modalWidth('full')
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalSubmitAction(false)
+                    ->form(function ($record,Form $form) {
+                        $xml_content = $record->content;
+                        $cfdi = Cfdi::newFromString($xml_content);
+                        $comp = $cfdi->getQuickReader();
+                        $emisor = $comp->Emisor;
+                        $receptor = $comp->Receptor;
+                        $complemento = $comp->Complemento;
+                        $nomina = $complemento->Nomina;
+                        $receptor_nomina = $nomina->Receptor;
+                        $emisor_nomina = $nomina->Emisor;
+                        $percepciones = $nomina->Percepciones;
+                        $otros_pagos = $nomina->OtrosPagos;
+                        $deducciones = $nomina->Deducciones;
+                        //dd($comp,$emisor,$receptor,$complemento);
+                        //dd($otros_pagos);
+                        $perc = [];
+                        foreach($percepciones() as $percepcion){
+                            $perc[] = [
+                                "TipoPercepcion" => $percepcion['TipoPercepcion'],
+                                "Clave" => $percepcion['Clave'],
+                                "Concepto" => $percepcion['Concepto'],
+                                "ImporteGravado" => $percepcion['ImporteGravado'],
+                                "ImporteExento" => $percepcion['ImporteExento'],
+                                "Importe" => floatval($percepcion['ImporteGravado'])+floatval($percepcion['ImporteExento'])
+                            ];
+                        }
+                        $opags = [];
+                        foreach($otros_pagos() as $otropago){
+                            $opags[] = [
+                                "TipoOtroPago" => $otropago['TipoOtroPago'],
+                                "Clave" => $otropago['Clave'],
+                                "Concepto" => $otropago['Concepto'],
+                                "Importe" => $otropago['Importe']
+                            ];
+
+                        }
+                        $decs = [];
+                        foreach($deducciones() as $deduccion){
+                            $decs[] = [
+                                "TipoDeduccion" => $deduccion['TipoDeduccion'],
+                                "Clave" => $deduccion['Clave'],
+                                "Concepto" => $deduccion['Concepto'],
+                                "Importe" => $deduccion['Importe']
+                            ];
+
+                        }
+                        //dd($decs);
+                        return $form->schema([
+                            Split::make([
+                                Fieldset::make('Emisor')
+                                ->schema([
+                                    Placeholder::make('E_Nombre')->label('Nombre')
+                                    ->content($emisor['Nombre'])->inlineLabel(),
+                                    Placeholder::make('E_Rfc')->label('RFC')
+                                        ->content($emisor['Rfc'])->inlineLabel(),
+                                    Placeholder::make('E_Rfc')->label('Reg Patronal')
+                                        ->content($emisor_nomina['RegistroPatronal'])->inlineLabel(),
+                                    Placeholder::make('E_Fecha')->label('Fecha Emision')
+                                        ->content(Carbon::create($comp['Fecha'])->format('d-m-Y'))->inlineLabel(),
+                                ])->columns(1),
+                                Fieldset::make('Receptor')
+                                    ->schema([
+                                        Placeholder::make('R_Nombre')->label('Nombre')
+                                            ->content($receptor['Nombre'])->inlineLabel(),
+                                        Placeholder::make('R_Rfc')->label('RFC')
+                                            ->content($receptor['Rfc'])->inlineLabel(),
+                                        Placeholder::make('R_Curp')->label('CURP')
+                                            ->content($receptor_nomina['CURP'])->inlineLabel(),
+                                        Placeholder::make('R_Nss')->label('N.S.S.')
+                                            ->content($receptor_nomina['NumSeguridadSocial'])->inlineLabel(),
+                                    ])->columns(1)
+                            ])->columnSpan(4),
+                            Split::make([
+                            Fieldset::make('Recibo')
+                            ->schema([
+                                Placeholder::make('E_Folio')->label('Folio')
+                                ->content($comp['Serie'].$comp['Folio'])->inlineLabel(),
+                                Placeholder::make('E_FechaIni')->label('Fecha Inicial')
+                                    ->content(Carbon::create($nomina['FechaInicialPago'])->format('d-m-Y'))->inlineLabel(),
+                                Placeholder::make('E_FechaFin')->label('Fecha Final')
+                                    ->content(Carbon::create($nomina['FechaFinalPago'])->format('d-m-Y'))->inlineLabel(),
+                                Placeholder::make('E_FechaPag')->label('Fecha Pago')
+                                    ->content(Carbon::create($nomina['FechaPago'])->format('d-m-Y'))->inlineLabel()
+                            ])->columns(1),
+                                Fieldset::make('Importes')
+                                    ->schema([
+                                        Placeholder::make('TotalPercepciones')->label('Percepciones')
+                                        ->content('$'.number_format($nomina['TotalPercepciones'],2))->inlineLabel(),
+                                        Placeholder::make('TotalOtrosPagos')->label('Otros pagos')
+                                            ->content('$'.number_format($nomina['TotalOtrosPagos'],2))->inlineLabel(),
+                                        Placeholder::make('TotalDeducciones')->label('Deducciones')
+                                            ->content('$'.number_format($nomina['TotalDeducciones'],2))->inlineLabel(),
+                                        Placeholder::make('NetoPagado')->label('Neto Pagado')
+                                            ->content('$'.number_format($comp['Total'],2))->inlineLabel(),
+                                    ])->columns(1)
+
+                            ])->columnSpan(4),
+                            TableRepeater::make('Percepciones')
+                                ->addable(false)->reorderable(false)->deletable(false)
+                                ->streamlined()
+                                ->headers([
+                                    Header::make("Tipo de Percepcion"),
+                                    Header::make("Clave"),
+                                    Header::make("Concepto"),
+                                    Header::make("ImporteGravado"),
+                                    Header::make("ImporteExento"),
+                                    Header::make("Importe"),
+                                ])->schema([
+                                    TextInput::make("TipoPercepcion"),
+                                    TextInput::make("Clave"),
+                                    TextInput::make("Concepto"),
+                                    TextInput::make("ImporteGravado")->prefix('$')->currencyMask(decimalSeparator: '.',precision: 2),
+                                    TextInput::make("ImporteExento")->prefix('$')->currencyMask(decimalSeparator: '.',precision: 2),
+                                    TextInput::make("Importe")->prefix('$')->currencyMask(decimalSeparator: '.',precision: 2)
+                                ])->default($perc)->columnSpanFull(),
+                            TableRepeater::make('Otros Pagos')
+                                ->addable(false)->reorderable(false)->deletable(false)
+                                ->streamlined()
+                                ->headers([
+                                    Header::make("Tipo de Otros Pagos"),
+                                    Header::make("Clave"),
+                                    Header::make("Concepto"),
+                                    Header::make("Importe"),
+                                ])->schema([
+                                    TextInput::make("TipoOtroPago"),
+                                    TextInput::make("Clave"),
+                                    TextInput::make("Concepto"),
+                                    TextInput::make("Importe")->prefix('$')->currencyMask(decimalSeparator: '.',precision: 2),
+                                ])->default($opags)->columnSpanFull(),
+                            TableRepeater::make('Deducciones')
+                                ->addable(false)->reorderable(false)->deletable(false)
+                                ->streamlined()
+                                ->headers([
+                                    Header::make("Tipo de Deduccion"),
+                                    Header::make("Clave"),
+                                    Header::make("Concepto"),
+                                    Header::make("Importe"),
+                                ])->schema([
+                                    TextInput::make("TipoDeduccion"),
+                                    TextInput::make("Clave"),
+                                    TextInput::make("Concepto"),
+                                    TextInput::make("Importe")->prefix('$')->currencyMask(decimalSeparator: '.',precision: 2),
+                            ])->default($decs)->columnSpanFull()
+                        ])->columns(8);
+                    }),
                 Action::make('ContabilizarE')
-                ->label('')
+                ->label('Contabilizar')
                 ->tooltip('Contabilizar')
                 ->icon('fas-scale-balanced')
                 ->modalWidth(MaxWidth::ExtraSmall)
@@ -183,7 +356,21 @@ class cfdieo extends Page implements HasForms, HasTable
                         ->required()
                 ])->action(function(Model $record,$data){
                         Self::contabiliza_e($record,$data);
-                })
+                }),
+                Action::make('Descarga XML')
+                    ->label('Descarga XML')
+                    ->icon('fas-download')
+                    ->action(function($record){
+                        $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                        $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                        if(File::exists($archivo)) unlink($archivo);
+                        $xml = $record->content;
+                        $xml = Cleaner::staticClean($xml);
+                        File::put($archivo,$xml);
+                        $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                        return response()->download($ruta);
+                    })
+            ])
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
                 BulkAction::make('multi_Contabilizar')

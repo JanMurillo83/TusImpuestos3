@@ -22,6 +22,7 @@ use App\Models\Terceros;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
+use CfdiUtils\Cfdi;
 use CfdiUtils\Elements\Cfdi33\Comprobante;
 use CfdiUtils\SumasPagos20\Decimal;
 use Dvarilek\FilamentTableSelect\Components\Form\TableSelect;
@@ -64,6 +65,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
+use Mockery\Matcher\Not;
 use phpDocumentor\Reflection\Types\Parent_;
 use PhpOffice\PhpSpreadsheet\Calculation\MathTrig\Sum as MathTrigSum;
 
@@ -2247,7 +2249,212 @@ class MovbancosResource extends Resource
                             if($record->contabilizada == 'SI') return false;
                             if($record->contabilizada != 'SI'&&$record->tipo == 'S') return true;
                         })
-                        ->url(fn($record)=>Pages\Pagos::getUrl(['record'=>$record]))   ,
+                        ->url(fn($record)=>Pages\Pagos::getUrl(['record'=>$record])),
+                Action::make('Pago de Nomina')
+                    ->icon('fas-user')
+                    ->visible(function($record){
+                        if($record->contabilizada == 'SI') return false;
+                        if($record->contabilizada == 'NO'&&$record->tipo == 'S') return true;
+                    })
+                    ->modalWidth('full')
+                    ->modalSubmitActionLabel('Grabar')
+                    ->form(function($record,Form $form){
+                        return
+                            $form->schema([
+                                TextInput::make('importe_p')->label('Importe')
+                                ->default($record->importe)->readOnly()->prefix('$')->currencyMask(),
+                                Select::make('recibo_nomina')
+                                    ->searchable()
+                                    ->label('Recibo de Nomina')
+                                    ->options(Almacencfdis::select(DB::raw("CONCAT('Recibo:',Serie,Folio,'  -  Receptor: ',Receptor_Nombre,'  -  Fecha: ',Fecha,'  -  Importe: ',Total) as recibo,id"))
+                                        ->where('team_id',Filament::getTenant()->id)
+                                        ->where('xml_type','Emitidos')
+                                        ->where('TipoDeComprobante','N')
+                                        ->where('used','NO')
+                                        ->pluck('recibo','id'))
+                                    ->live(onBlur: true)
+                                    ->columnSpan(3)
+                                    ->afterStateUpdated(function(Get $get,Set $set)use ($record){
+                                        $record_a = Almacencfdis::where('id',$get('recibo_nomina'))->first();
+                                        $xml_content = $record_a->content;
+                                        $cfdi = Cfdi::newFromString($xml_content);
+                                        $comp = $cfdi->getQuickReader();
+                                        $receptor = $comp->Receptor;
+                                        $complemento = $comp->Complemento;
+                                        $fisc = $complemento->TimbreFiscalDigital;
+                                        $nomina = $complemento->Nomina;
+                                        $percepciones = $nomina->Percepciones;
+                                        $otros_pagos = $nomina->OtrosPagos;
+                                        $deducciones = $nomina->Deducciones;
+                                        //dd($comp);
+                                        $set('importe_p_nomina',number_format($comp['Total'],2));
+                                        $conce = 'NOMINA '.$receptor['Nombre'];
+                                        $set('concepto_poliza','NOMINA '.$receptor['Nombre']);
+                                        $set('pol_referencia',$comp['serie'].$comp['folio']);
+                                        $set('pol_uuid',$fisc['UUID']);
+                                        $detalle = $get('detalle_nomina');
+                                        $banco_cta = BancoCuentas::where('id',$record->cuenta)->first();
+                                        $cta_con_ban = CatCuentas::where('codigo',$banco_cta->codigo)
+                                            ->where('team_id',Filament::getTenant()->id)
+                                            ->first();
+                                        $cargos_t = 0;
+                                        $abonos_t = 0;
+                                        $detalle[] = [
+                                            'Cuenta_Con'=>$cta_con_ban->id,
+                                            'Cuenta'=>$cta_con_ban->codigo,
+                                            'Nombre'=>$cta_con_ban->nombre,
+                                            'Concepto'=>$conce,
+                                            'Cargo'=>0,
+                                            'Abono'=>$record->importe,
+                                            'Referencia'=>$comp['serie'].$comp['folio'],
+                                            'UUID'=>$fisc['UUID'],
+                                        ];
+                                        $abonos_t+=floatval($record->importe);
+                                        foreach($percepciones() as $percepcion){
+                                            $detalle[] = [
+                                                'Cuenta_Con'=>'',
+                                                'Cuenta'=>'',
+                                                'Nombre'=>$percepcion['Clave'].' '.$percepcion['Concepto'],
+                                                'Concepto'=>$conce,
+                                                'Cargo'=>floatval($percepcion['ImporteGravado'])+floatval($percepcion['ImporteExento']),
+                                                'Abono'=>0,
+                                                'Referencia'=>$comp['serie'].$comp['folio'],
+                                                'UUID'=>$fisc['UUID'],
+                                            ];
+                                            $cargos_t+=floatval($percepcion['ImporteGravado'])+floatval($percepcion['ImporteExento']);
+                                        }
+                                        foreach($otros_pagos() as $otropago){
+                                            if(floatval($otropago['Importe']) > 0) {
+                                                $detalle[] = [
+                                                    'Cuenta_Con' => '',
+                                                    'Cuenta' => '',
+                                                    'Nombre' => $otropago['Clave'].' '.$otropago['Concepto'],
+                                                    'Concepto' => $conce,
+                                                    'Cargo' => floatval($otropago['Importe']),
+                                                    'Abono' => 0,
+                                                    'Referencia' => $comp['serie'] . $comp['folio'],
+                                                    'UUID' => $fisc['UUID'],
+                                                ];
+                                                $cargos_t+=floatval($otropago['Importe']);
+                                            }
+                                        }
+                                        foreach($deducciones() as $deduccion){
+                                            $detalle[] = [
+                                                'Cuenta_Con'=>'',
+                                                'Cuenta'=>'',
+                                                'Nombre'=>$deduccion['Clave'].' '.$deduccion['Concepto'],
+                                                'Concepto'=>$conce,
+                                                'Cargo'=>0,
+                                                'Abono'=>floatval($deduccion['Importe']),
+                                                'Referencia'=>$comp['serie'].$comp['folio'],
+                                                'UUID'=>$fisc['UUID'],
+                                            ];
+                                            $abonos_t+=floatval($deduccion['Importe']);
+                                        }
+                                        //dd($detalle);
+                                        $set('detalle_nomina',$detalle);
+                                        $set('cargos_poliza',$cargos_t);
+                                        $set('abonos_poliza',$abonos_t);
+                                    }),
+                                TextInput::make('importe_p_nomina')->label('Importe Nomina')->readOnly()->prefix('$')->currencyMask()->default(0.00),
+                                TextInput::make('concepto_poliza')->label('Concepto'),
+                                TextInput::make('cargos_poliza')->label('Cargos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
+                                TextInput::make('abonos_poliza')->label('Abonos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
+                                TextInput::make('pol_referencia')->label('Referencia')->readOnly(),
+                                TextInput::make('pol_uuid')->label('UUID')->readOnly(),
+                                TableRepeater::make('detalle_nomina')
+                                ->columnSpanFull()->streamlined()
+                                ->defaultItems(0)
+                                ->reorderable(false)->addable(false)->deletable(false)
+                                ->emptyLabel('No hay datos')
+                                ->headers([
+                                    Header::make('Cuenta_Con')->label('Cuenta'),
+                                    //Header::make('Cuenta'),
+                                    Header::make('Nombre'),
+                                    Header::make('Concepto'),
+                                    Header::make('Cargo'),
+                                    Header::make('Abono'),
+                                    Header::make('Referencia'),
+                                    Header::make('UUID'),
+                                ])->schema([
+                                    Select::make('Cuenta_Con')
+                                        ->searchable()
+                                        ->required()
+                                        ->options(CatCuentas::select(DB::raw("CONCAT(codigo,' - ',nombre) as cuenta,id"))
+                                        ->where('team_id',Filament::getTenant()->id)
+                                        ->pluck('cuenta','id'))
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function(Get $get,Set $set)use ($record){
+                                            $cta = $get('Cuenta_Con');
+                                            $cat = CatCuentas::where('id',$cta)->first();
+                                            $set('Cuenta',$cat->codigo);
+                                            $set('Nombre',$cat->nombre);
+                                        }),
+                                    Hidden::make('Cuenta'),
+                                    TextInput::make('Nombre'),
+                                    TextInput::make('Concepto'),
+                                    TextInput::make('Cargo')->readOnly()->prefix('$')->currencyMask(),
+                                    TextInput::make('Abono')->readOnly()->prefix('$')->currencyMask(),
+                                    TextInput::make('Referencia'),
+                                    TextInput::make('UUID'),
+                                ])
+
+                            ])->columns(4);
+                    })
+                    ->before(function($record,$data,$action){
+                        $cargos = floatval($data['cargos_poliza']);
+                        $abonos = floatval($data['abonos_poliza']);
+                        if($cargos != $abonos ){
+                            Notification::make()->title('Cargos y Abonos no son iguales')->warning()->send();
+                            $action->cancel();
+                        }
+                    })
+                    ->action(function($record,$data)
+                    {
+                        $detalles = $data['detalle_nomina'];
+                        //dd($detalles);
+                        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Dr')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                        $poliza = CatPolizas::create([
+                            'tipo' => 'Dr',
+                            'folio' => $nopoliza,
+                            'fecha' => Carbon::create($record->fecha)->format('Y-m-d'),
+                            'concepto' => $data['concepto_poliza'],
+                            'cargos' => floatval($data['cargos_poliza']),
+                            'abonos' => floatval($data['abonos_poliza']),
+                            'periodo' => Filament::getTenant()->periodo,
+                            'ejercicio' => Filament::getTenant()->ejercicio,
+                            'referencia' => $data['pol_referencia'],
+                            'uuid' => $data['pol_uuid'],
+                            'tiposat' => 'Dr',
+                            'team_id' => Filament::getTenant()->id,
+                            'idmovb' => $record->id
+                        ]);
+                        $polno = $poliza['id'];
+                        $partida = 1;
+                        foreach ($detalles as $detalle) {
+                            $aux = Auxiliares::create([
+                                'cat_polizas_id' => $polno,
+                                'codigo' => $detalle['Cuenta'],
+                                'cuenta' => $detalle['Nombre'],
+                                'concepto' => $detalle['Concepto'],
+                                'cargo' => $detalle['Cargo'],
+                                'abono' => $detalle['Abono'],
+                                'factura' => $detalle['Referencia'],
+                                'nopartida' => $partida,
+                                'team_id' => Filament::getTenant()->id,
+                            ]);
+                            DB::table('auxiliares_cat_polizas')->insert([
+                                'auxiliares_id' => $aux['id'],
+                                'cat_polizas_id' => $polno
+                            ]);
+                            $partida++;
+                        }
+                        Movbancos::where('id',$record->id)->decrement('pendiente_apli',floatval($data['importe_p']));
+                        Movbancos::where('id',$record->id)->update([
+                            'contabilizada' => 'SI'
+                        ]);
+                        Notification::make()->title('Poliza -Dr '.$nopoliza.'- Grabada')->success()->send();
+                    }),
                 //--------------------------------------------------------------------------------------------------
                 /*Action::make('multi_s')
                     ->label('Cobro a Factura Individual')->icon('fas-money-bill-transfer')

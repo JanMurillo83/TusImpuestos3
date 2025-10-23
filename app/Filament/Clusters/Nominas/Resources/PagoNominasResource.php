@@ -22,6 +22,7 @@ class PagoNominasResource extends Resource
     protected static ?int $navigationSort = 2;
     protected static ?string $label = 'Pago de Nomina';
     protected static ?string $pluralLabel = 'Pago de Nominas';
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $cluster = Nominas::class;
 

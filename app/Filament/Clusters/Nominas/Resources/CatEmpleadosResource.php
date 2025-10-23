@@ -23,6 +23,7 @@ class CatEmpleadosResource extends Resource
     protected static ?int $navigationSort = 1;
     protected static ?string $label = 'Empleado';
     protected static ?string $pluralLabel = 'Empleados';
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $cluster = Nominas::class;
 

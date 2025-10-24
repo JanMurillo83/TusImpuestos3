@@ -206,7 +206,7 @@
                         $cant_letras = $formatter->toInvoice($orden->total, 2, 'USD');
                     }
                 ?>
-                    <h6 style="font-weight: bold">{{$cant_letras}}</h6>
+                    <h6 style="font-weight: bold; margin-right: 10px !important; ">{{$cant_letras}}</h6>
                     <h6>MONEDA: <b>{{$orden->moneda}}</b>   TIPO DE CAMBIO: <b>{{number_format($orden->tcambio,2)}}</b></h6>
                 </div>
 
@@ -245,17 +245,17 @@
                 </table>
             </div>
             <div class="row" style="font-size: 8px !important; width: 98% !important;">
-                <label><b>Sello CFDI:</b></label><br>
+                <label><b>Sello CFDI:</b></label>
                 <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 150)}}</p>
             </div>
-            <hr>
-            <div class="row" style="font-size: 8px !important; width: 98% !important;">
-                <label><b>Sello SAT:</b></label><br>
+            <hr style="margin-top: -1rem !important;">
+            <div class="row" style="font-size: 8px !important; width: 98% !important;margin-top: -1rem !important;">
+                <label><b>Sello SAT:</b></label>
                 {{chunk_split($tfd['SelloSAT'] ?? '', 150)}}
             </div>
             <hr>
-            <div class="row" style="font-size: 8px !important; width: 98% !important;">
-                <label><b>Cadena Original:</b></label><br>
+            <div class="row" style="font-size: 8px !important; width: 98% !important;margin-top: -1rem !important;">
+                <label><b>Cadena Original:</b></label>
                 {{chunk_split($cadenaOrigen ?? '', 150)}}
             </div>
             <hr>

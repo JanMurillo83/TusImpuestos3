@@ -164,6 +164,9 @@ class BancoCuentasResource extends Resource
                 Forms\Components\Hidden::make('ejercicio')
                     ->required()
                     ->default(Filament::getTenant()->ejercicio),
+                Select::make('complementaria')->label('Complementaria')
+                    ->searchable()
+                    ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select(DB::raw("CONCAT(codigo,' - ',nombre) as nombre,id"))->pluck('nombre','id')),
             ])->columns(4);
     }
 
@@ -273,12 +276,138 @@ class BancoCuentasResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                ]),
-            ])->striped()->defaultPaginationPageOption(8)
+                Tables\Actions\EditAction::make()->visible(false),
+                Tables\Actions\Action::make('Editar')
+                ->icon('fas-edit')
+                ->form(function (Form $form,$record) {
+                    return $form
+                        ->schema([
+                            Forms\Components\Select::make('clave')
+                                ->searchable()
+                                ->default($record->clave)
+                                ->options([
+                                    '002'=> '002- BANAMEX',
+                                    '006'=> '006- BANCOMEXT',
+                                    '009'=> '009- BANOBRAS',
+                                    '012'=> '012- BBVA BANCOMER',
+                                    '014'=> '014- SANTANDER',
+                                    '019'=> '019- BANJERCITO',
+                                    '021'=> '021- HSBC',
+                                    '030'=> '030- BAJIO',
+                                    '032'=> '032- IXE',
+                                    '036'=> '036- INBURSA',
+                                    '037'=> '037- INTERACCIONES',
+                                    '042'=> '042- MIFEL',
+                                    '044'=> '044- SCOTIABANK',
+                                    '058'=> '058- BANREGIO',
+                                    '059'=> '059- INVEX',
+                                    '060'=> '060- BANSI',
+                                    '062'=> '062- AFIRME',
+                                    '072'=> '072- BANORTE',
+                                    '102'=> '102- THE ROYAL BANK',
+                                    '103'=> '103- AMERICAN EXPRESS',
+                                    '106'=> '106- BAMSA',
+                                    '108'=> '108- TOKYO',
+                                    '110'=> '110- JP MORGAN',
+                                    '112'=> '112- BMONEX',
+                                    '113'=> '113- VE POR MAS',
+                                    '116'=> '116- ING',
+                                    '124'=> '124- DEUTSCHE',
+                                    '126'=> '126- CREDIT SUISSE',
+                                    '127'=> '127- AZTECA',
+                                    '128'=> '128- AUTOFIN',
+                                    '129'=> '129- BARCLAYS',
+                                    '130'=> '130- COMPARTAMOS',
+                                    '131'=> '131- BANCO FAMSA',
+                                    '132'=> '132- BMULTIVA',
+                                    '133'=> '133- ACTINVER',
+                                    '134'=> '134- WAL-MART',
+                                    '135'=> '135- NAFIN',
+                                    '136'=> '136- INTERBANCO',
+                                    '137'=> '137- BANCOPPEL',
+                                    '138'=> '138- ABC CAPITAL',
+                                    '139'=> '139- UBS BANK',
+                                    '140'=> '140- CONSUBANCO',
+                                    '141'=> '141- VOLKSWAGEN',
+                                    '143'=> '143- CIBANCO',
+                                    '145'=> '145- BBASE',
+                                    '166'=> '166- BANSEFI',
+                                    '168'=> '168- HIPOTECARIA',
+                                    '600'=> '600- MONEXCB',
+                                    '601'=> '601- GBM',
+                                    '602'=> '602- MASARI',
+                                    '605'=> '605- VALUE',
+                                    '606'=> '606- ESTRUCTURADORES',
+                                    '607'=> '607- TIBER',
+                                    '608'=> '608- VECTOR',
+                                    '610'=> '610- B&B',
+                                    '614'=> '614- ACCIVAL',
+                                    '615'=> '615- MERRILL LYNCH',
+                                    '616'=> '616- FINAMEX',
+                                    '617'=> '617- VALMEX',
+                                    '618'=> '618- UNICA',
+                                    '619'=> '619- MAPFRE',
+                                    '620'=> '620- PROFUTURO',
+                                    '621'=> '621- CB ACTINVER',
+                                    '622'=> '622- OACTIN',
+                                    '623'=> '623- SKANDIA',
+                                    '626'=> '626- CBDEUTSCHE',
+                                    '627'=> '627- ZURICH',
+                                    '628'=> '628- ZURICHVI',
+                                    '629'=> '629- SU CASITA',
+                                    '630'=> '630- CB INTERCAM',
+                                    '631'=> '631- CI BOLSA',
+                                    '632'=> '632- BULLTICK CB',
+                                    '633'=> '633- STERLING',
+                                    '634'=> '634- FINCOMUN',
+                                    '636'=> '636- HDI SEGUROS',
+                                    '637'=> '637- ORDER',
+                                    '638'=> '638- AKALA',
+                                    '640'=> '640- CB JPMORGAN',
+                                    '642'=> '642- REFORMA',
+                                    '646'=> '646- STP',
+                                    '647'=> '647- TELECOMM',
+                                    '648'=> '648- EVERCORE',
+                                    '649'=> '649- SKANDIA',
+                                    '651'=> '651- SEGMTY',
+                                    '652'=> '652- ASEA',
+                                    '653'=> '653- KUSPIT',
+                                    '655'=> '655- SOFIEXPRESS',
+                                    '656'=> '656- UNAGRA',
+                                    '659'=> '659- OPCIONES EMPRESARIALES DEL NORESTE',
+                                    '901'=> '901- CLS',
+                                    '902'=> '902- INDEVAL',
+                                    '670'=> '670- LIBERTAD',
+                                    '999'=> '999- NA',
+                                ]),
+                            Forms\Components\TextInput::make('banco')
+                                ->maxLength(255)
+                                ->label('Descripcion')
+                                ->columnSpan(3)->default($record->banco),
+                            Forms\Components\TextInput::make('codigo')
+                                ->maxLength(255)
+                                ->readOnly()->default($record->codigo),
+                            Forms\Components\TextInput::make('inicial')
+                                ->label('Saldo Inicial')
+                                ->default(0)->default($record->inicial),
+                            Select::make('moneda')
+                                ->label('Moneda')
+                                ->options(['MXN'=>'MXN','USD'=>'USD'])->default($record->moneda),
+                            Forms\Components\Hidden::make('tax_id')->default($record->tax_id),
+                            Forms\Components\Hidden::make('cuenta')->default($record->cuenta),
+                            Forms\Components\Hidden::make('team_id')->default($record->team_id),
+                            Forms\Components\Hidden::make('ejercicio')->default($record->ejercicio),
+                            Select::make('complementaria')->label('Complementaria')
+                                ->searchable()->default($record->complementaria)
+                                ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select(DB::raw("CONCAT(codigo,' - ',nombre) as nombre,id"))->pluck('nombre','id')),
+                        ])->columns(4);
+                })->action(function ($data,$record){
+                    $record->update($data);
+                    $record->save();
+                    Notification::make()->title('Registro Actualizado')->success()->send();
+                })
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
+            ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all'])
             ->headerActions([
                 Tables\Actions\CreateAction::make('Nuevo')

@@ -6,6 +6,7 @@ use App\Filament\Resources\MovbancosResource;
 use App\Http\Controllers\DescargaSAT;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
+use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\IngresosEgresos;
 use App\Models\Movbancos;
@@ -254,7 +255,7 @@ class Pagos extends Page implements HasForms
                 Hidden::make('pendiente_fac')->default(0),
                 Hidden::make('monto_pago')->default(0),
                 Hidden::make('monto_pago_usd')->default(0),
-                TextInput::make('tipo_cambio')->default(1.00)->numeric()->currencyMask(precision: 6)->prefix('$'),
+                TextInput::make('tipo_cambio')->default(1.000000)->numeric()->currencyMask(precision: 6)->prefix('$'),
                 TextInput::make('numero_total')->label('Numero de Facturas')->numeric()->readOnly()->default(0),
                 TextInput::make('monto_total')->label('Pagos Totales')->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
                 Hidden::make('igeg_id'),
@@ -277,10 +278,10 @@ class Pagos extends Page implements HasForms
                     TextInput::make('Referencia')->readOnly(),
                     DatePicker::make('Fecha')->readOnly(),
                     TextInput::make('Tercero')->readOnly(),
-                    TextInput::make('Pendiente')->readOnly()->numeric()->currencyMask()->prefix('$'),
+                    TextInput::make('Pendiente')->readOnly()->numeric()->currencyMask(precision: 6)->prefix('$'),
                     TextInput::make('Moneda')->readOnly(),
-                    TextInput::make('Tipo Cambio')->numeric()->currencyMask()->prefix('$'),
-                    TextInput::make('Monto a Pagar')->numeric()->currencyMask()->prefix('$')
+                    TextInput::make('Tipo Cambio')->numeric()->currencyMask(precision: 6)->prefix('$'),
+                    TextInput::make('Monto a Pagar')->numeric()->currencyMask(precision: 6)->prefix('$')
                         ->live(onBlur: true)
                         ->afterStateUpdated(function (Get $get, Set $set) {
                             $data_tmp = $get('../../facturas_a_pagar');
@@ -341,7 +342,9 @@ class Pagos extends Page implements HasForms
         $polno = $poliza['id'];
         $no_intera = 0;
         $id_cta_banco = 0;
+        $id_cta_banco_com = 0;
         $mon_apli_ban = 0;
+        $mon_apli_com = 0;
         foreach ($facturas as $factura) {
             if (floatval($factura['Monto a Pagar']) > 0) {
                 $fac_id = $factura['id_xml'];
@@ -349,6 +352,7 @@ class Pagos extends Page implements HasForms
                 $igeg = IngresosEgresos::where('xml_id', $fac_id)->first();
                 $fss = DB::table('almacencfdis')->where('id', $igeg->xml_id)->first();
                 $ban = DB::table('banco_cuentas')->where('id', $this->datos_mov->cuenta)->first();
+                $ban_com = CatCuentas::where('id', $ban->complementaria)->first();
                 $ter = DB::table('terceros')->where('rfc', $fss->Emisor_Rfc)->first();
                 $monto_par = 0;
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
@@ -685,7 +689,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => $ban->banco,
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => $pesos,
+                            'abono' => $dolares,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -696,9 +700,28 @@ class Pagos extends Page implements HasForms
                         ]);
                         $partida++;
                         $id_cta_banco = $aux['id'];
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban_com?->codigo ?? $ban->codigo,
+                            'cuenta' => $ban_com?->nombre ?? $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => $pesos - $dolares,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $id_cta_banco_com = $aux['id'];
+                        $partida++;
                         $mon_apli_ban += $monto_par;
+                        $mon_apli_com += $pesos - $dolares;
                     }else{
                         $mon_apli_ban += $monto_par;
+                        $mon_apli_com += $pesos - $dolares;
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
@@ -877,6 +900,7 @@ class Pagos extends Page implements HasForms
             }
         }
         Auxiliares::where('id', $id_cta_banco)->update(['abono' => $mon_apli_ban]);
+        if($id_cta_banco_com > 0) Auxiliares::where('id', $id_cta_banco_com)->update(['abono' => $mon_apli_com]);
         return $nopoliza;
     }
     public function graba_mov(Get $get)

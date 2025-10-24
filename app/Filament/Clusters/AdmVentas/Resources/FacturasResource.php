@@ -1184,7 +1184,7 @@ class FacturasResource extends Resource
                 }),
                 Action::make('Actualizar Facturas')
                 ->icon('fas-sync')
-                ->visible(false)
+                //->visible(false)
                 ->action(function(){
                     $facturas = DB::table('facturas')
                         ->where('team_id','>',0)
@@ -1201,9 +1201,10 @@ class FacturasResource extends Resource
                             $cfdi = \CfdiUtils\Cfdi::newFromString($cfd_i);
                             $comprobante = $cfdi->getQuickReader();
                             $serie = $comprobante['serie'] ?? '';
+                            $receptor = $comprobante->Receptor;
+                            $nombre = $receptor['Nombre'];
                             DB::table('facturas')->where('id',$factura->id)->update([
-                                'serie' => $serie,
-                                'docto' => $serie . $factura->folio,
+                                'nombre' => $nombre
                             ]);
                             $recs ++;
                         }

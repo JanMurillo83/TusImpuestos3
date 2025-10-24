@@ -30,7 +30,7 @@ class ListFacturas extends ListRecords
             ->print(false)
             ->savePdf()
             ->preview()
-            ->margin([0,0,0,2])
+            ->format('letter', 'mm')
             ->content(fn() => view('RepFactura',['idorden'=>$this->idorden,'id_empresa'=>$this->id_empresa]))
             ->modalWidth('7xl')
             ->filename(function () {
@@ -47,6 +47,8 @@ class ListFacturas extends ListRecords
                 ->margin([0,0,0,2])
                 ->content(fn() => view('RepFactura',['idorden'=>$this->idorden,'id_empresa'=>$this->id_empresa]))
                 ->modalWidth('7xl')
+                ->format('letter', 'in')
+                ->scale(0.80)
                 ->filename(function () {
                     $record = Facturas::where('id',$this->idorden)->first();
                     $emp = DatosFiscales::where('team_id',$record->team_id)->first();

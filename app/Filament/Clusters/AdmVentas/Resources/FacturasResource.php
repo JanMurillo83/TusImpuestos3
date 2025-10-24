@@ -1184,7 +1184,7 @@ class FacturasResource extends Resource
                 }),
                 Action::make('Actualizar Facturas')
                 ->icon('fas-sync')
-                //->visible(false)
+                ->visible(false)
                 ->action(function(){
                     $facturas = DB::table('facturas')
                         ->where('team_id','>',0)

@@ -6,6 +6,8 @@ use App\Filament\Resources\MovbancosResource;
 use App\Http\Controllers\DescargaSAT;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
+use App\Models\BancoCuentas;
+use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\IngresosEgresos;
 use App\Models\Movbancos;
@@ -307,6 +309,7 @@ class Cobros extends Page implements HasForms
 
     public function graba_poliza(Get $get)
     {
+        $record = Movbancos::where('id', $this->record_id)->first();
         $moneda_pago = $get('moneda');
         $facturas = $get('facturas_a_pagar');
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id', Filament::getTenant()->id)->where('tipo', 'Ig')->where('periodo', Filament::getTenant()->periodo)->where('ejercicio', Filament::getTenant()->ejercicio)->max('folio')) + 1;
@@ -330,6 +333,11 @@ class Cobros extends Page implements HasForms
             'idmovb' => $this->record_id
         ]);
         $polno = $poliza['id'];
+        $no_intera = 0;
+        $imp_pesos = 0;
+        $imp_dolares = 0;
+        $id_cta_banco = 0;
+        $id_cta_comple = 0;
         foreach ($facturas as $factura) {
             if(floatval($factura['Monto a Pagar']) > 0) {
                 $fac_id = $factura['id_xml'];
@@ -560,10 +568,14 @@ class Cobros extends Page implements HasForms
                     ]);
                 }
                 if ($factura['Moneda'] == 'USD' && $moneda_pago == 'USD') {
+                    $cta_ban = BancoCuentas::where('id',$record->cuenta)->first();
+                    $cta_comple = CatCuentas::where('id',$cta_ban->complementaria)->first();
+                    //dd($cta_comple);
                     $pesos = floatval($monto_par) * floatval($factura['Tipo Cambio']);
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
-                    $tipoc = floatval($get('tipo_cambio'));
+                    $tipoc = floatval($record->tcambio);
+                    //dd($tipoc,$tipoc_f);
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
                     $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
@@ -586,24 +598,50 @@ class Cobros extends Page implements HasForms
                         $cod_uti = '70101000';
                         $cta_uti = 'Perdida Cambiaria';
                     }
-
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => $ban->codigo,
-                        'cuenta' => $ban->banco,
-                        'concepto' => $fss->Receptor_Nombre,
-                        'cargo' => $pesos,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id,
-                        'igeg_id' => $igeg->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Receptor_Nombre,
+                            'cargo' => 0,
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $id_cta_banco = $aux['id'];
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $cta_comple->codigo,
+                            'cuenta' => $cta_comple->nombre,
+                            'concepto' => $fss->Receptor_Nombre,
+                            'cargo' => 0,
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $id_cta_comple = $aux['id'];
+                        $imp_dolares+= $dolares;
+                        $imp_pesos+= $pesos;
+                        $no_intera++;
+                    }else{
+                        $imp_dolares+= $dolares;
+                        $imp_pesos+= $pesos;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => '20901000',
@@ -838,7 +876,8 @@ class Cobros extends Page implements HasForms
                 }
             }
         }
-
+        Auxiliares::where('id',$id_cta_banco)->update(['cargo' => $imp_dolares]);
+        if($id_cta_comple != 0) Auxiliares::where('id',$id_cta_comple)->update(['cargo' => $imp_pesos - $imp_dolares]);
         $cargos = Auxiliares::where('cat_polizas_id',$polno)->where('team_id',Filament::getTenant()->id)->sum('cargo');
         $abonos = Auxiliares::where('cat_polizas_id',$polno)->where('team_id',Filament::getTenant()->id)->sum('abono');
         CatPolizas::where('id',$polno)->update([

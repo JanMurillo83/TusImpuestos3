@@ -87,12 +87,16 @@ class DatosFiscalesResource extends Resource
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->after(function($record){
                     $logo = $record->logo;
-                    $logo = storage_path('app/public/').$logo;
-                    $type = pathinfo($logo, PATHINFO_EXTENSION);
-                    $data = file_get_contents($logo);
-                    $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
-                    //dd($base64);
-                    $record->logo64 = $base64;
+                    if($logo == null) {
+                        $record->logo64 = null;
+                    }else {
+                        $logo = storage_path('app/public/') . $logo;
+                        $type = pathinfo($logo, PATHINFO_EXTENSION);
+                        $data = file_get_contents($logo);
+                        $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+                        //dd($base64);
+                        $record->logo64 = $base64;
+                    }
                     $record->save();
                 }),
             ]);

@@ -269,7 +269,7 @@ class Cobros extends Page implements HasForms
                     TextInput::make('Tercero')->readOnly(),
                     TextInput::make('Pendiente')->readOnly()->numeric()->currencyMask()->prefix('$'),
                     TextInput::make('Moneda')->readOnly(),
-                    TextInput::make('Tipo Cambio')->readOnly()->numeric()->currencyMask()->prefix('$'),
+                    TextInput::make('Tipo Cambio')->readOnly()->numeric()->currencyMask(precision: 4)->prefix('$'),
                     TextInput::make('Monto a Pagar')->numeric()->currencyMask()->prefix('$')
                         ->live(onBlur: true)
                         ->afterStateUpdated(function (Get $get, Set $set) {

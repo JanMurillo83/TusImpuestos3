@@ -78,7 +78,7 @@ class OrdenesResource extends Resource
                             ->searchable()
                             ->label('Proveedor')
                             ->columnSpan(3)
-                            ->live()
+                            ->live(onBlur: true)
                             ->required()
                             ->options(Proveedores::all()->pluck('nombre','id'))
                             ->afterStateUpdated(function(Get $get,Set $set){
@@ -131,7 +131,7 @@ class OrdenesResource extends Resource
                                 Header::make('Subtotal'),
                             ])->schema([
                                 TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
-                                ->live()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function(Get $get, Set $set){
                                     $cant = $get('cant');
                                     $cost = $get('costo');
@@ -200,7 +200,7 @@ class OrdenesResource extends Resource
                                 TextInput::make('costo')
                                     ->numeric()
                                     ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
-                                    ->live()
+                                    ->live(onBlur: true)
                                     ->afterStateUpdated(function(Get $get, Set $set){
                                         $cant = $get('cant');
                                         $cost = $get('costo');

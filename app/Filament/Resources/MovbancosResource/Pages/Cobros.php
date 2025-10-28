@@ -575,13 +575,15 @@ class Cobros extends Page implements HasForms
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
                     $tipoc = floatval($record->tcambio);
-                    //dd($tipoc,$tipoc_f);
+                    $cfdi  = Almacencfdis::where('id', $fac_id)->first();
+                    $iva_fac = floatval($cfdi->TotalImpuestosTrasladados);
+                    //dd($factura,$cfdi->TotalImpuestosTrasladados);
                     $complemento = (($dolares * $tipoc_f) - $dolares);
-                    $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
-                    $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
+                    $iva_1 = $iva_fac * $tipoc;
+                    $iva_2 = $iva_fac * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
-                    $uti_per = $importe_cargos - $importe_abonos;
+                    $uti_per = $iva_1 - $iva_2;
                     $importe_abonos_f = $pesos + $iva_2 + $uti_per;
                     $imp_uti_c = 0;
                     $imp_uti_a = 0;
@@ -606,7 +608,7 @@ class Cobros extends Page implements HasForms
                             'concepto' => $fss->Receptor_Nombre,
                             'cargo' => 0,
                             'abono' => 0,
-                            'factura' => $fss->Serie . $fss->Folio,
+                            'factura' => $this->fact_nombres,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
@@ -624,7 +626,7 @@ class Cobros extends Page implements HasForms
                             'concepto' => $fss->Receptor_Nombre,
                             'cargo' => 0,
                             'abono' => 0,
-                            'factura' => $fss->Serie . $fss->Folio,
+                            'factura' => $this->fact_nombres,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
@@ -647,7 +649,7 @@ class Cobros extends Page implements HasForms
                         'codigo' => '20901000',
                         'cuenta' => 'IVA trasladado no cobrado',
                         'concepto' => $fss->Receptor_Nombre,
-                        'cargo' => $iva_1,
+                        'cargo' => $iva_2,
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
@@ -664,7 +666,7 @@ class Cobros extends Page implements HasForms
                         'cuenta' => 'IVA trasladado cobrado',
                         'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
-                        'abono' => $iva_2,
+                        'abono' => $iva_1,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' =>$partida,
                         'team_id' => Filament::getTenant()->id
@@ -876,8 +878,12 @@ class Cobros extends Page implements HasForms
                 }
             }
         }
-        Auxiliares::where('id',$id_cta_banco)->update(['cargo' => $imp_dolares]);
-        if($id_cta_comple != 0) Auxiliares::where('id',$id_cta_comple)->update(['cargo' => $imp_pesos - $imp_dolares]);
+        Auxiliares::where('id',$id_cta_banco)->update(['cargo' => $record->importe]);
+        if($id_cta_comple != 0) {
+            $n_imp = ($record->importe * $record->tcambio) - $record->importe;
+            Auxiliares::where('id',$id_cta_comple)->update(['cargo' => $n_imp]);
+
+        }
         $cargos = Auxiliares::where('cat_polizas_id',$polno)->where('team_id',Filament::getTenant()->id)->sum('cargo');
         $abonos = Auxiliares::where('cat_polizas_id',$polno)->where('team_id',Filament::getTenant()->id)->sum('abono');
         CatPolizas::where('id',$polno)->update([

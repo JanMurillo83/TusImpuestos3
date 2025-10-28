@@ -72,7 +72,8 @@ class OrdenesResource extends Resource
                             ->numeric()
                             ->readOnly()
                             ->default(function(){
-                                return count(Ordenes::all()) + 1;
+                                $las_fol = Ordenes::where('team_id',Filament::getTenant()->id)->max('folio') ?? 0;
+                                return  $las_fol + 1;
                             }),
                         Forms\Components\Select::make('prov')
                             ->searchable()

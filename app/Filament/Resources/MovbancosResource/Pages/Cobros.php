@@ -583,7 +583,12 @@ class Cobros extends Page implements HasForms
                     $iva_2 = $iva_fac * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
-                    $uti_per = $iva_1 - $iva_2;
+                    ///------Calcula Utilidad---------------------------------------
+                    $uti_1 = floatval($cfdi->Total) * floatval($record->tcambio);
+                    $uti_2 = floatval($cfdi->Total) * floatval($cfdi->TipoCambio);
+                    $uti_per = $uti_1 - $uti_2 + $iva_2 - $iva_1;
+                    //--------------------------------------------------------------
+                    //$uti_per = $iva_1 - $iva_2;
                     $importe_abonos_f = $pesos + $iva_2 + $uti_per;
                     $imp_uti_c = 0;
                     $imp_uti_a = 0;

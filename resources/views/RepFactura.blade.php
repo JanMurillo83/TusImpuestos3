@@ -214,10 +214,10 @@
             <div class="row" style="font-size: 10px !important;">
                 <table style="width: 98% !important;">
                     <tr>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES LOCALES</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS LOCALES</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES FEDERALES</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS FEDERALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES LOCALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS LOCALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES FEDERALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS FEDERALES</th>
                     </tr>
                     <tr>
                         <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">ninguna</td>
@@ -248,7 +248,7 @@
                 <label><b>Sello CFDI:</b></label>
                 <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 150)}}</p>
             </div>
-            <hr style="margin-top: -1rem !important;">
+            <hr style="margin-top: -0.5rem !important;">
             <div class="row" style="font-size: 7px !important; width: 98% !important;margin-top: -1rem !important;">
                 <label><b>Sello SAT:</b></label>
                 {{chunk_split($tfd['SelloSAT'] ?? '', 150)}}

@@ -124,7 +124,7 @@
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{number_format(floatval($part->cant), 2, '.')}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->cvesat}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->unidad}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center" colspan="2">{{$part->descripcion}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 9px !important" colspan="2">{{$part->descripcion}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(0)}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>

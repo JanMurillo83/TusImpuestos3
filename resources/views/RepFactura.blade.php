@@ -120,11 +120,11 @@
                         <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">IMPORTE</th>
                     </tr>
                     @foreach ($partidas as $part)
-                        <tr style="font-size: 8px !important">
+                        <tr style="font-size: 7px !important">
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{number_format(floatval($part->cant), 2, '.')}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->cvesat}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->unidad}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 8px !important" colspan="2">{{$part->descripcion}}</td>
+                            <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 7px !important" colspan="2">{{$part->descripcion}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(0)}}</td>
                             <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>
@@ -193,7 +193,7 @@
             </div>
             <div class="row">
                 <div class="col-7"></div>
-                <div class="col-5" font-size: 10px !important;>
+                <div class="col-5" style="font-size: 10px !important;">
                 <?php
                     $formatter = new \Luecano\NumeroALetras\NumeroALetras();
                     $cant_letras = '';
@@ -244,17 +244,17 @@
                     </tr>
                 </table>
             </div>
-            <div class="row" style="font-size: 8px !important; width: 98% !important;">
+            <div class="row" style="font-size: 7px !important; width: 98% !important;">
                 <label><b>Sello CFDI:</b></label>
                 <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 150)}}</p>
             </div>
             <hr style="margin-top: -1rem !important;">
-            <div class="row" style="font-size: 8px !important; width: 98% !important;margin-top: -1rem !important;">
+            <div class="row" style="font-size: 7px !important; width: 98% !important;margin-top: -1rem !important;">
                 <label><b>Sello SAT:</b></label>
                 {{chunk_split($tfd['SelloSAT'] ?? '', 150)}}
             </div>
             <hr>
-            <div class="row" style="font-size: 8px !important; width: 98% !important;margin-top: -1rem !important;">
+            <div class="row" style="font-size: 7px !important; width: 98% !important;margin-top: -1rem !important;">
                 <label><b>Cadena Original:</b></label>
                 {{chunk_split($cadenaOrigen ?? '', 150)}}
             </div>

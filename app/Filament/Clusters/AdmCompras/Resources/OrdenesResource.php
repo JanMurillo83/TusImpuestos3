@@ -114,7 +114,6 @@ class OrdenesResource extends Resource
                                 else return false;
                             })
                             ->numeric()
-                            ->readOnly()
                             ->prefix('$')
                             ->default(1.00)->currencyMask(),
                         TextInput::make('solicita')->columnSpan(2),

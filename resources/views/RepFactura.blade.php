@@ -111,23 +111,23 @@
             <div class="row" style="font-size: 10px !important;">
                 <table style="width: 98% !important;margin-bottom: 0.2rem !important;">
                     <tr>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CANTIDAD</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CLAVE PROD/SERV</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">CLAVE UNIDAD</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center" colspan="2">DESCRIPCION</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">VALOR UNITARIO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">DESCUENTO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">IMPORTE</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CANTIDAD</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CLAVE PROD/SERV</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CLAVE UNIDAD</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;" colspan="2">DESCRIPCION</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">VALOR UNITARIO</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">DESCUENTO</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">IMPORTE</th>
                     </tr>
                     @foreach ($partidas as $part)
                         <tr style="font-size: 7px !important;margin-bottom: 0.2rem !important;">
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{number_format(floatval($part->cant), 2, '.')}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->cvesat}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$part->unidad}}</td>
-                            <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 7px !important" colspan="2">{{$part->descripcion}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(0)}}</td>
-                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{number_format(floatval($part->cant), 2, '.')}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{$part->cvesat}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{$part->unidad}}</td>
+                            <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 7px !important;vertical-align: top !important;" colspan="2">{{$part->descripcion}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{'$ '.number_format(0)}}</td>
+                            <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>
                         </tr>
                     @endforeach
                 </table>
@@ -214,15 +214,15 @@
             <div class="row" style="font-size: 10px !important;">
                 <table style="width: 98% !important;">
                     <tr style="margin-bottom: 0.2rem !important;">
-                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES LOCALES</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS LOCALES</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">RETENCIONES FEDERALES</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center">TRASLADOS FEDERALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; vertical-align: top !important;">RETENCIONES LOCALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">TRASLADOS LOCALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">RETENCIONES FEDERALES</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">TRASLADOS FEDERALES</th>
                     </tr>
                     <tr style="margin-bottom: 0.2rem !important;">
-                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">ninguna</td>
-                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">ninguna</td>
-                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">ninguna</td>
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">ninguna</td>
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">
                             <?php
                             $ret = '';
                             if($orden->retiva > 0) $ret.=' IVA RETENIDO'.' '.number_format($orden->retiva,2);
@@ -231,7 +231,7 @@
                             echo $ret;
                             ?>
                         </td>
-                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">
+                        <td style="border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">
                             <?php
                             $ret = '';
                             if($orden->iva > 0) $ret.=' IVA'.' '.number_format($orden->iva,2);

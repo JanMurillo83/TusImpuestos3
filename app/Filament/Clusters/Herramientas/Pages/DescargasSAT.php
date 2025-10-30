@@ -11,10 +11,14 @@ use App\Models\Team;
 use App\Models\Xmlfiles;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
+use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
@@ -48,8 +52,25 @@ class DescargasSAT extends Page implements HasTable,HasForms
             ->query(Team::query())
             ->striped()
             ->columns([
-                TextColumn::make('taxid')->label('RFC'),
-                TextColumn::make('name')->label('Razón Social'),
+                TextColumn::make('id')->label('Registro'),
+                TextColumn::make('taxid')->label('RFC')->searchable(),
+                TextColumn::make('name')->label('Razón Social')->searchable(),
+                TextColumn::make('archivocer')->label('FIEL CER'),
+                TextColumn::make('archivokey')->label('FIEL KEY'),
+            ])
+            ->actions([
+                \Filament\Tables\Actions\EditAction::make()
+                ->label('Editar')
+                ->icon('fas-edit')
+                ->form(function ($record,Form $form) {
+                    return $form->schema([
+                        TextInput::make('taxid')->label('RFC')->required()->maxLength(14)->default($record->taxid),
+                        TextInput::make('name')->label('RFC')->required()->default($record->name)->columnSpan(3),
+                        FileUpload::make('archivocer')->label('FIEL CER')->required()->disk('public')->visibility('public')->columnSpan(2),
+                        FileUpload::make('archivokey')->label('FIEL KEY')->required()->disk('public')->visibility('public')->columnSpan(2),
+                        TextInput::make('fielpass')->label('Contraseña FIEL')->required()->password()->default($record->fielpass)->revealable(),
+                    ])->columns(4);
+                }),
             ])
             ->headerActions([
                 Action::make('Descarga')

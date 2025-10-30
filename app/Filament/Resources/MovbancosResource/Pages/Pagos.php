@@ -6,6 +6,7 @@ use App\Filament\Resources\MovbancosResource;
 use App\Http\Controllers\DescargaSAT;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
+use App\Models\BancoCuentas;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\IngresosEgresos;
@@ -255,7 +256,7 @@ class Pagos extends Page implements HasForms
                 Hidden::make('pendiente_fac')->default(0),
                 Hidden::make('monto_pago')->default(0),
                 Hidden::make('monto_pago_usd')->default(0),
-                TextInput::make('tipo_cambio')->default(1.000000)->numeric()->currencyMask(precision: 6)->prefix('$'),
+                Hidden::make('tipo_cambio')->default(1.00),
                 TextInput::make('numero_total')->label('Numero de Facturas')->numeric()->readOnly()->default(0),
                 TextInput::make('monto_total')->label('Pagos Totales')->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
                 Hidden::make('igeg_id'),
@@ -317,6 +318,7 @@ class Pagos extends Page implements HasForms
     }
     public function graba_poliza(Get $get)
     {
+        $record = Movbancos::where('id', $this->record_id)->first();
         $moneda_pago = $get('moneda');
         $facturas = $get('facturas_a_pagar');
         $terceros = '';
@@ -345,6 +347,8 @@ class Pagos extends Page implements HasForms
         $id_cta_banco_com = 0;
         $mon_apli_ban = 0;
         $mon_apli_com = 0;
+        $imp_dolares= 0;
+        $imp_pesos= 0;
         foreach ($facturas as $factura) {
             if (floatval($factura['Monto a Pagar']) > 0) {
                 $fac_id = $factura['id_xml'];
@@ -592,32 +596,124 @@ class Pagos extends Page implements HasForms
                     ]);
                 }
                 if ($factura['Moneda'] == 'USD' && $moneda_pago == 'USD') {
+                    $cta_ban = BancoCuentas::where('id',$record->cuenta)->first();
+                    $cta_comple = CatCuentas::where('id',$cta_ban->complementaria)->first();
+                    //dd($cta_comple);
                     $pesos = floatval($monto_par) * floatval($factura['Tipo Cambio']);
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
-                    $tipoc = floatval($get('tipo_cambio'));
-                    $complemento = (($dolares * $tipoc) - $dolares);
-                    $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
-                    $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
+                    $tipoc = floatval($record->tcambio);
+                    $cfdi  = Almacencfdis::where('id', $fac_id)->first();
+                    $iva_fac = floatval($cfdi->TotalImpuestosTrasladados);
+                    //dd($factura,$cfdi->TotalImpuestosTrasladados);
+                    $complemento = (($dolares * $tipoc_f) - $dolares);
+                    $iva_1 = $iva_fac * $tipoc;
+                    $iva_2 = $iva_fac * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
-                    $uti_per = $importe_cargos - $importe_abonos;
+                    ///------Calcula Utilidad---------------------------------------
+                    $uti_1 = floatval($cfdi->Total) * floatval($record->tcambio);
+                    $uti_2 = floatval($cfdi->Total) * floatval($cfdi->TipoCambio);
+                    $uti_per = $uti_1 - $uti_2 + $iva_2 - $iva_1;
+                    //--------------------------------------------------------------
+                    //$uti_per = $iva_1 - $iva_2;
                     $importe_abonos_f = $pesos + $iva_2 + $uti_per;
                     $imp_uti_c = 0;
                     $imp_uti_a = 0;
                     $cod_uti = '';
                     $cta_uti = '';
                     if ($uti_per > 0) {
-                        $imp_uti_c = 0;
-                        $imp_uti_a = $uti_per;
+                        $imp_uti_c = $uti_per;
+                        $imp_uti_a = 0;
                         $cod_uti = '70201000';
                         $cta_uti = 'Utilidad Cambiaria';
                     } else {
-                        $imp_uti_a = 0;
-                        $imp_uti_c = $uti_per * -1;
+                        $imp_uti_a = $uti_per * -1;
+                        $imp_uti_c = 0;
                         $cod_uti = '70101000';
                         $cta_uti = 'Perdida Cambiaria';
                     }
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => 0,
+                            'factura' => $this->fact_nombres,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $id_cta_banco = $aux['id'];
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $cta_comple->codigo,
+                            'cuenta' => $cta_comple->nombre,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => 0,
+                            'factura' => $this->fact_nombres,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $id_cta_banco_com = $aux['id'];
+                        $partida++;
+
+                        $mon_apli_ban+= $dolares;
+                        $imp_dolares+= $dolares;
+                        $imp_pesos+= $pesos;
+                        $mon_apli_com+= $pesos;
+                        $no_intera++;
+                    }else{
+                        $mon_apli_ban+= $dolares;
+                        $imp_dolares+= $dolares;
+                        $imp_pesos+= $pesos;
+                        $mon_apli_com+= $pesos;
+                    }
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '11801000',
+                        'cuenta' => 'IVA acreditable pagado',
+                        'concepto' => $fss->Emisor_Nombre,
+                        'cargo' => $iva_1,
+                        'abono' => 0,
+                        'factura' => $fss->Serie . $fss->Folio,
+                        'nopartida' => $partida,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $partida++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '11901000',
+                        'cuenta' => 'IVA pendiente de pago',
+                        'concepto' => $fss->Emisor_Nombre,
+                        'cargo' => 0,
+                        'abono' => $iva_2,
+                        'factura' => $fss->Serie . $fss->Folio,
+                        'nopartida' =>$partida,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $ter->cuenta,
@@ -650,79 +746,6 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11801000',
-                        'cuenta' => 'IVA acreditable pagado',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => $iva_1,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11901000',
-                        'cuenta' => 'IVA pendiente de pago',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $iva_2,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    if($no_intera == 0) {
-                        $aux = Auxiliares::create([
-                            'cat_polizas_id' => $polno,
-                            'codigo' => $ban->codigo,
-                            'cuenta' => $ban->banco,
-                            'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => 0,
-                            'abono' => $dolares,
-                            'factura' => $fss->Serie . $fss->Folio,
-                            'nopartida' => $partida,
-                            'team_id' => Filament::getTenant()->id
-                        ]);
-                        DB::table('auxiliares_cat_polizas')->insert([
-                            'auxiliares_id' => $aux['id'],
-                            'cat_polizas_id' => $polno
-                        ]);
-                        $partida++;
-                        $id_cta_banco = $aux['id'];
-                        $aux = Auxiliares::create([
-                            'cat_polizas_id' => $polno,
-                            'codigo' => $ban_com?->codigo ?? $ban->codigo,
-                            'cuenta' => $ban_com?->nombre ?? $ban->banco,
-                            'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => 0,
-                            'abono' => $pesos - $dolares,
-                            'factura' => $fss->Serie . $fss->Folio,
-                            'nopartida' => $partida,
-                            'team_id' => Filament::getTenant()->id
-                        ]);
-                        DB::table('auxiliares_cat_polizas')->insert([
-                            'auxiliares_id' => $aux['id'],
-                            'cat_polizas_id' => $polno
-                        ]);
-                        $id_cta_banco_com = $aux['id'];
-                        $partida++;
-                        $mon_apli_ban += $monto_par;
-                        $mon_apli_com += $pesos - $dolares;
-                    }else{
-                        $mon_apli_ban += $monto_par;
-                        $mon_apli_com += $pesos - $dolares;
-                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $cod_uti,
@@ -900,7 +923,10 @@ class Pagos extends Page implements HasForms
             }
         }
         Auxiliares::where('id', $id_cta_banco)->update(['abono' => $mon_apli_ban]);
-        if($id_cta_banco_com > 0) Auxiliares::where('id', $id_cta_banco_com)->update(['abono' => $mon_apli_com]);
+        if($id_cta_banco_com > 0) {
+            $n_imp = ($record->importe * $record->tcambio) - $record->importe;
+            Auxiliares::where('id', $id_cta_banco_com)->update(['abono' => $n_imp]);
+        }
         return $nopoliza;
     }
     public function graba_mov(Get $get)

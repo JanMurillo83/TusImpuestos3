@@ -522,7 +522,7 @@ class TimbradoController extends Controller
                 'codigo'=>"300",
                 'mensaje'=>$var1
             ];
-            return json_encode($ress);
+            //return json_encode($ress);
         }
         $creator->saveXml($tmpxml);
         $cfdi = $creator->asXml();
@@ -672,12 +672,13 @@ class TimbradoController extends Controller
         $creator->saveXml($tmpxml);
         $asserts = $creator->validate();
         if ($asserts->hasErrors()) {
+            //dd($asserts);
             $var1 = $asserts->get('XSD01')->getExplanation();
             $ress = [
                 'codigo'=>"300",
                 'mensaje'=>$var1
             ];
-            return json_encode($ress);
+            //return json_encode($ress);
         }
         $creator->saveXml($tmpxml);
         $cfdi = $creator->asXml();

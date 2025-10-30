@@ -389,7 +389,7 @@ class PagosResource extends Resource
                             $mensaje_graba = $resultado->mensaje;
                             Notification::make()
                                 ->warning()
-                                ->title('Error al Timbrar el Documento')
+                                ->title('Error al Timbrar el Documento '.$resultado)
                                 ->body($mensaje_graba)
                                 ->persistent()
                                 ->send();

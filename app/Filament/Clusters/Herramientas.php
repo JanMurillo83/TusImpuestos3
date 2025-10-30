@@ -11,6 +11,6 @@ class Herramientas extends Cluster
     protected static ?int $navigationSort = 8;
     public static function shouldRegisterNavigation(): bool
     {
-        return false;
+        return true;
     }
 }

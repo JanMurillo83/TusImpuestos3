@@ -37,6 +37,24 @@ class TimbradoController extends Controller
         return $resultado;
     }
 
+    public function CancelarPago($factura,$receptor,$motivo,$folio):string
+    {
+        $objConexion = new ConexionController($this->url);
+        $emidata = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->first();
+        $recdata = DB::table('clientes')->where('id',$receptor)->first();
+        $facdata = DB::table('pagos')->where('id',$factura)->first();
+        $apikey = $this->api_key;
+        $cerCSD = public_path('storage/'.$emidata->cer);
+        $keyCSD = public_path('storage/'.$emidata->key);
+        $passCSD = $emidata->csdpass;
+        $uuid = $facdata->uuid;
+        $rfcEmisor =$emidata->rfc;
+        $rfcReceptor = $recdata->rfc;
+        $total = $facdata->total;
+        $resultado = $objConexion->operacion_cancelar($apikey, $keyCSD, $cerCSD, $passCSD, $uuid, $rfcEmisor, $rfcReceptor, $total,$motivo,$folio);
+        return $resultado;
+    }
+
     public function ConsultarFacturaSAT($factura,$receptor):string
     {
         $objConexion = new ConexionController($this->url);

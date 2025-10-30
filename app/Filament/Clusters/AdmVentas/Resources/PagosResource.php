@@ -300,7 +300,7 @@ class PagosResource extends Resource
                             if($est == 'Activa'||$est == 'Timbrada') {
 
                                 if ($est == 'Timbrada') {
-                                    $res = app(TimbradoController::class)->CancelarFactura($factura, $receptor, $data['motivo'], $folio);
+                                    $res = app(TimbradoController::class)->CancelarPago($factura, $receptor, $data['motivo'], $folio);
                                     $resultado = json_decode($res);
 
                                     if ($resultado->codigo == 201) {

@@ -276,10 +276,10 @@ class AdmRepoPage extends Page implements HasForms
                 ->print(false)
                 ->savePdf()
                 ->filename('Reporte de Facturación')
-                ->content(fn() => view('RepFacturacion',[
-                    'team' => $this->team_id,
-                    'fecha_inicio' => $this->fecha_inicio,
-                    'fecha_fin' => $this->fecha_fin,
+                ->content(fn() => view('ResumenFacturas',[
+                    'idempresa' => $this->team_id,
+                    'inicial' => $this->fecha_inicio,
+                    'final' => $this->fecha_fin,
                 ]))
                 ->modalWidth('7xl'),
             Html2MediaAction::make('ComprasAction')

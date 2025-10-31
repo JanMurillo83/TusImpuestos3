@@ -2354,8 +2354,8 @@ class MovbancosResource extends Resource
                                         }
                                         //dd($detalle);
                                         $set('detalle_nomina',$detalle);
-                                        $set('cargos_poliza',$cargos_t);
-                                        $set('abonos_poliza',$abonos_t);
+                                        $set('cargos_poliza',round($cargos_t,2));
+                                        $set('abonos_poliza',round($abonos_t,2));
                                     }),
                                 TextInput::make('importe_p_nomina')->label('Importe Nomina')->readOnly()->prefix('$')->currencyMask()->default(0.00),
                                 TextInput::make('concepto_poliza')->label('Concepto'),
@@ -2527,8 +2527,8 @@ class MovbancosResource extends Resource
             $cargos+=floatval($detalle['Cargo']);
             $abonos+=floatval($detalle['Abono']);
         }
-        $set('../../cargos_poliza',$cargos);
-        $set('../../abonos_poliza',$abonos);
+        $set('../../cargos_poliza',round($cargos,2));
+        $set('../../abonos_poliza',round($abonos,2));
     }
     public static function sumas(Get $get,Set $set,$data) :void
     {

@@ -2532,7 +2532,6 @@ class MovbancosResource extends Resource
     }
     public static function sumas(Get $get,Set $set,$data) :void
     {
-        //dd($data);
         $col = array_column($get('../../Facturas'),'Importe');
         $suma = array_sum($col);
         $set('importefactu',$suma);

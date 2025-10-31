@@ -2392,12 +2392,12 @@ class MovbancosResource extends Resource
                                     Hidden::make('Cuenta'),
                                     TextInput::make('Nombre'),
                                     TextInput::make('Concepto'),
-                                    TextInput::make('Cargo')->prefix('$')->currencyMask()
+                                    TextInput::make('Cargo')->prefix('$')->currencyMask(decimalSeparator: '.',precision: 4)
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function(Get $get,Set $set){
                                             self::sumas_nomina($get,$set);
                                         }),
-                                    TextInput::make('Abono')->prefix('$')->currencyMask()
+                                    TextInput::make('Abono')->prefix('$')->currencyMask(decimalSeparator: '.',precision: 4)
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function(Get $get,Set $set){
                                             self::sumas_nomina($get,$set);
@@ -2405,9 +2405,9 @@ class MovbancosResource extends Resource
                                     TextInput::make('Referencia'),
                                     TextInput::make('UUID'),
                                 ]),
-                                Fieldset::make('Totalles')->schema([
-                                    TextInput::make('cargos_poliza')->label('Cargos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
-                                    TextInput::make('abonos_poliza')->label('Abonos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
+                                Fieldset::make('Totales')->schema([
+                                    TextInput::make('cargos_poliza')->label('Cargos')->readOnly()->prefix('$')->currencyMask(decimalSeparator: '.',precision: 4)->default(0.00),
+                                    TextInput::make('abonos_poliza')->label('Abonos')->readOnly()->prefix('$')->currencyMask(decimalSeparator: '.',precision: 4)->default(0.00),
                                 ])->columnSpanFull()
                             ])->columns(4);
                     })

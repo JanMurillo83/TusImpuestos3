@@ -106,8 +106,10 @@ class AdminPanelProvider extends PanelProvider
             ->topNavigation()
             ->maxContentWidth('full')
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->sidebarFullyCollapsibleOnDesktop()
+            ->sidebarWidth('10rem')
             ->plugins([
-                ResizedColumnPlugin::make()->preserveOnDB(true),
+               // ResizedColumnPlugin::make()->preserveOnDB(true),
                 StickyHeaderPlugin::make(),
                 FilamentThemeInspectorPlugin::make()->toggle()->disabled(true),
 

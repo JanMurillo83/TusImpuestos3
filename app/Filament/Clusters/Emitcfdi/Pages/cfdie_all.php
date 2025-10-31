@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Clusters\Rececfdi\Pages;
+namespace App\Filament\Clusters\Emitcfdi\Pages;
 
-use App\Filament\Clusters\Rececfdi;
+use App\Filament\Clusters\Emitcfdi;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
@@ -35,15 +35,17 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use stdClass;
 
-class cfdirp extends Page implements HasForms, HasTable
+class cfdie_all extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    protected static ?string $cluster = Rececfdi::class;
-    protected static ?string $title = 'Comprobantes de Pago';
-    protected static string $view = 'filament.clusters.rececfdi.pages.cfdirp';
+    protected static ?string $cluster = Emitcfdi::class;
+    protected static ?string $title = 'Todos los CFDI';
+    protected static string $view = 'filament.clusters.emitcfdi.pages.cfdiep';
+    protected static ?int $navigationSort = 5;
     protected static ?string $headerActionsposition = 'bottom';
     public ?Date $Fecha_Inicial = null;
     public ?Date $Fecha_Final = null;
@@ -54,9 +56,7 @@ class cfdirp extends Page implements HasForms, HasTable
             ->query(Almacencfdis::query())
             ->modifyQueryUsing(function (Builder $query) {
                 $query->where('team_id',Filament::getTenant()->id)
-                    ->where('xml_type','Recibidos')
-                    ->where('TipoDeComprobante','P')
-                    ->where('used','NO');
+                    ->where('xml_type','Emitidos');
             })
             ->columns([
                 TextColumn::make('id')
@@ -83,22 +83,23 @@ class cfdirp extends Page implements HasForms, HasTable
                 TextColumn::make('Receptor_Rfc')
                     ->label('RFC Receptor')
                     ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
                 TextColumn::make('Receptor_Nombre')
                     ->label('Nombre Receptor')
                     ->searchable()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->limit(20),
                 TextColumn::make('Emisor_Rfc')
                     ->label('RFC Emisor')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('Emisor_Nombre')
                     ->label('Nombre Emisor')
                     ->searchable()
                     ->sortable()
-                    ->limit(20),
+                    ->limit(20)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('Moneda')
                     ->label('Moneda')
                     ->searchable()
@@ -133,7 +134,7 @@ class cfdirp extends Page implements HasForms, HasTable
                 TextColumn::make('UUID')
                     ->label('UUID')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()->wrap(),
                 TextColumn::make('MetodoPago')
                     ->label('Forma de Pago')
                     ->searchable()
@@ -165,6 +166,24 @@ class cfdirp extends Page implements HasForms, HasTable
                     $record['notas'] = $data['notas'];
                     $record->save();
                 }),
+                /*Action::make('ContabilizarE')
+                ->label('')
+                ->tooltip('Contabilizar')
+                ->icon('fas-scale-balanced')
+                ->modalWidth(MaxWidth::ExtraSmall)
+                ->form([
+                    Select::make('forma')
+                        ->label('Forma de Pago')
+                        ->options([
+                            'Bancario'=>'Cuentas por Cobrar',
+                            'Efectivo'=>'Efectivo'
+                        ])
+                        ->default('Bancario')
+                        ->disabled()
+                        ->required()
+                ])->action(function(Model $record,$data){
+                        Self::contabiliza_e($record,$data);
+                })*/
             ])->actionsPosition(ActionsPosition::BeforeCells)
                 ->striped()->defaultPaginationPageOption(8)
                 ->paginated([8, 'all'])
@@ -204,7 +223,7 @@ class cfdirp extends Page implements HasForms, HasTable
                 ->defaultSort('Fecha', 'asc');
     }
 
-    public static function contabiliza_r($record,$data,$livewire)
+    public static function contabiliza_e($record,$data)
     {
         $tipoxml = $record['xml_type'];
         $tipocom = $record['TipoDeComprobante'];
@@ -223,31 +242,31 @@ class cfdirp extends Page implements HasForms, HasTable
         $cfperiodo = $record['periodo'];
         $cfejercicio = $record['ejercicio'];
         $cffecha1 = $record['Fecha'];
+        //dd($cffecha1);
         list($cffecha,$cfhora) = explode('T',$cffecha1);
-        $forma = $data['forma'] ?? 'CXP';
-        $ctagas = $data['detallegas'];
-        if($tipoxml == 'Recibidos'&&$tipocom == 'P')
+        $forma = 'CXC';
+        if($tipoxml == 'Emitidos'&&$tipocom == 'P')
         {
-            $existe = CatCuentas::where('nombre',$nom_rec)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first();
+            $existe = CatCuentas::where('nombre',$nom_rec)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first();
             if($existe)
             {
                 $ctaclie = $existe->codigo;
             }
             else
             {
-                $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20101000')->max('codigo')) + 1;
+                $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','10501000')->max('codigo')) + 1;
                 CatCuentas::firstOrCreate([
                     'nombre' =>  $nom_rec,
                     'team_id' => Filament::getTenant()->id,
                     'codigo'=>$nuecta,
-                    'acumula'=>'20101000',
+                    'acumula'=>'10501000',
                     'tipo'=>'D',
                     'naturaleza'=>'D',
                 ]);
                 Terceros::create([
                     'rfc'=>$rfc_rec,
                     'nombre'=>$nom_rec,
-                    'tipo'=>'Proveedor',
+                    'tipo'=>'Cliente',
                     'cuenta'=>$nuecta,
                     'telefono'=>'',
                     'correo'=>'',
@@ -257,12 +276,12 @@ class cfdirp extends Page implements HasForms, HasTable
                 ]);
                 $ctaclie = $nuecta;
             }
-            $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+            $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PV')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
             Almacencfdis::where('id',$record['id'])->update([
-                'metodo'=>$forma
+                'metodo'=>'Bancario'
             ]);
             $poliza = CatPolizas::create([
-                'tipo'=>'PG',
+                'tipo'=>'PV',
                 'folio'=>$nopoliza,
                 'fecha'=>$cffecha,
                 'concepto'=>$nom_rec,
@@ -282,8 +301,8 @@ class cfdirp extends Page implements HasForms, HasTable
                 'codigo'=>$ctaclie,
                 'cuenta'=>$nom_rec,
                 'concepto'=>$nom_rec,
-                'cargo'=>0,
-                'abono'=>$total,
+                'cargo'=>$total,
+                'abono'=>0,
                 'factura'=>$serie.$folio,
                 'nopartida'=>1,
                 'uuid'=>$uuid,
@@ -295,11 +314,11 @@ class cfdirp extends Page implements HasForms, HasTable
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>$ctagas,
+                'codigo'=>'40101000',
                 'cuenta'=>'Ventas',
                 'concepto'=>$nom_rec,
-                'cargo'=>$subtotal,
-                'abono'=>0,
+                'cargo'=>0,
+                'abono'=>$subtotal,
                 'factura'=>$serie.$folio,
                 'nopartida'=>2,
                 'uuid'=>$uuid,
@@ -311,16 +330,17 @@ class cfdirp extends Page implements HasForms, HasTable
             ]);
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>'11901000',
+                'codigo'=>'20901000',
                 'cuenta'=>'IVA trasladado no cobrado',
                 'concepto'=>$nom_rec,
-                'cargo'=>$iva,
-                'abono'=>0,
+                'cargo'=>0,
+                'abono'=>$iva,
                 'factura'=>$serie.$folio,
                 'nopartida'=>3,
                 'uuid'=>$uuid,
                 'team_id'=>Filament::getTenant()->id
             ]);
+
             DB::table('auxiliares_cat_polizas')->insert([
                 'auxiliares_id'=>$aux['id'],
                 'cat_polizas_id'=>$polno
@@ -334,7 +354,7 @@ class cfdirp extends Page implements HasForms, HasTable
                 ->body('Poliza '.$nopoliza.' Generada Correctamente')
                 ->success()
                 ->send();
-                $livewire->resetTable();
         }
+
     }
 }

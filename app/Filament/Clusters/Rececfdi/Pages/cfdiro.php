@@ -51,12 +51,13 @@ class cfdiro extends Page implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-        ->query(
-            Almacencfdis::where('team_id',Filament::getTenant()->id)
-            ->where('xml_type','Recibidos')
-            ->where('TipoDeComprobante','N')
-            ->where('used','NO')
-             )
+            ->query(Almacencfdis::query())
+            ->modifyQueryUsing(function (Builder $query) {
+                $query->where('team_id',Filament::getTenant()->id)
+                    ->where('xml_type','Recibidos')
+                    ->where('TipoDeComprobante','N')
+                    ->where('used','NO');
+            })
         ->columns([
             TextColumn::make('id')
                 ->label('#')
@@ -164,80 +165,7 @@ class cfdiro extends Page implements HasForms, HasTable
                 $record['notas'] = $data['notas'];
                 $record->save();
             }),
-            Action::make('ContabilizarR')
-                ->label('')
-                ->tooltip('Contabilizar')
-                ->icon('fas-scale-balanced')
-                ->modalWidth(MaxWidth::ExtraSmall)
-                ->form([
-                    Select::make('rubrogas')
-                        ->label('Rubro del Gasto')
-                        ->required()
-                        ->live()
-                        ->options([
-                           '50100000' => 'Costo de Ventas',
-                           '60200000' => 'Gastos de Venta',
-                           '60300000' => 'Gastos de Administracion',
-                           '70100000' => 'Gastos Financieros',
-                           '70200000' => 'Productos Financieros'
-                        ]),
-                    Select::make('detallegas')
-                        ->label('Rubro del Gasto')
-                        ->required()
-                        ->options(function(Get $get) {
-                            return
-                            CatCuentas::where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
-                        }),
-                    Select::make('forma')
-                        ->label('Forma de Pago')
-                        ->options([
-                            'CXP'=>'Cuenta por Pagar',
-                            'PAG'=>'Pagado'
-                        ])
-                        ->required()
-                ])
-                ->action(function(Model $record,$data,$livewire){
-                    Self::contabiliza_r($record,$data,$livewire);
-                })
         ])->actionsPosition(ActionsPosition::BeforeCells)
-        ->bulkActions([
-            BulkAction::make('multi_Contabilizar')
-            ->label('Contabilizar')
-            ->tooltip('Contabilizar')
-            ->icon('fas-scale-balanced')
-            ->modalWidth(MaxWidth::ExtraSmall)
-            ->form([
-                Select::make('rubrogas')
-                    ->label('Rubro del Gasto')
-                    ->required()
-                    ->live()
-                    ->options([
-                       '50100000' => 'Costo de Ventas',
-                       '60200000' => 'Gastos de Venta',
-                       '60300000' => 'Gastos de Administracion',
-                       '70100000' => 'Gastos Financieros',
-                       '70200000' => 'Productos Financieros'
-                    ]),
-                Select::make('detallegas')
-                    ->label('Rubro del Gasto')
-                    ->required()
-                    ->options(function(Get $get) {
-                        return
-                        CatCuentas::where('team_id',Filament::getTenant()->id)->where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
-                    }),
-                Select::make('forma')
-                    ->label('Forma de Pago')
-                    ->options([
-                        'CXP'=>'Cuenta por Pagar',
-                        'PAG'=>'Pagado'
-                    ])->required()])
-            ->action(function(Collection $records,array $data,$livewire){
-                foreach($records as $record){
-                    Self::contabiliza_r($record,$data,$livewire);
-                }
-            })
-
-            ])
             ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all'])
             ->filters([

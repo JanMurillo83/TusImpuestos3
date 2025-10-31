@@ -65,12 +65,13 @@ class cfdiri extends Page implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                Almacencfdis::where('team_id',Filament::getTenant()->id)
-                ->where('xml_type','Recibidos')
-                ->where('TipoDeComprobante','I')
-                ->where('used','NO')
-                 )
+            ->query(Almacencfdis::query())
+            ->modifyQueryUsing(function (Builder $query) {
+                $query->where('team_id',Filament::getTenant()->id)
+                    ->where('xml_type','Recibidos')
+                    ->where('TipoDeComprobante','I')
+                    ->where('used','NO');
+            })
             ->columns([
                 TextColumn::make('id')
                     ->label('#')

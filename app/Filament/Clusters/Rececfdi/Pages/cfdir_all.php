@@ -36,17 +36,18 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
 
-class cfdirp extends Page implements HasForms, HasTable
+class cfdir_all extends Page implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
     protected static ?string $cluster = Rececfdi::class;
-    protected static ?string $title = 'Comprobantes de Pago';
+    protected static ?string $title = 'Todos los CFDI';
     protected static string $view = 'filament.clusters.rececfdi.pages.cfdirp';
     protected static ?string $headerActionsposition = 'bottom';
     public ?Date $Fecha_Inicial = null;
     public ?Date $Fecha_Final = null;
+    protected static ?int $navigationSort = 5;
 
     public function table(Table $table): Table
     {
@@ -54,9 +55,7 @@ class cfdirp extends Page implements HasForms, HasTable
             ->query(Almacencfdis::query())
             ->modifyQueryUsing(function (Builder $query) {
                 $query->where('team_id',Filament::getTenant()->id)
-                    ->where('xml_type','Recibidos')
-                    ->where('TipoDeComprobante','P')
-                    ->where('used','NO');
+                    ->where('xml_type','Recibidos');
             })
             ->columns([
                 TextColumn::make('id')
@@ -165,6 +164,41 @@ class cfdirp extends Page implements HasForms, HasTable
                     $record['notas'] = $data['notas'];
                     $record->save();
                 }),
+                Action::make('ContabilizarR')
+                    ->label('')
+                    ->tooltip('Contabilizar')
+                    ->icon('fas-scale-balanced')
+                    ->modalWidth(MaxWidth::ExtraSmall)
+                    ->form([
+                        Select::make('rubrogas')
+                            ->label('Rubro del Gasto')
+                            ->required()
+                            ->live()
+                            ->options([
+                               '50100000' => 'Costo de Ventas',
+                               '60200000' => 'Gastos de Venta',
+                               '60300000' => 'Gastos de Administracion',
+                               '70100000' => 'Gastos Financieros',
+                               '70200000' => 'Productos Financieros'
+                            ]),
+                        Select::make('detallegas')
+                            ->label('Rubro del Gasto')
+                            ->required()
+                            ->options(function(Get $get) {
+                                return
+                                CatCuentas::where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
+                            }),
+                        Select::make('forma')
+                            ->label('Forma de Pago')
+                            ->options([
+                                'CXP'=>'Cuenta por Pagar',
+                                'PAG'=>'Pagado'
+                            ])
+                            ->required()
+                    ])
+                    ->action(function(Model $record,$data,$livewire){
+                        Self::contabiliza_r($record,$data,$livewire);
+                    })
             ])->actionsPosition(ActionsPosition::BeforeCells)
                 ->striped()->defaultPaginationPageOption(8)
                 ->paginated([8, 'all'])

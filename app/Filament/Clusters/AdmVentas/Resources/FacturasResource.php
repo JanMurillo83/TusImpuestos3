@@ -601,7 +601,7 @@ class FacturasResource extends Resource
             Tables\Columns\TextColumn::make('docto')
                 ->label('Factura')
                 ->numeric()
-                ->sortable()->width('20%'),
+                ->sortable()->width('20%')->searchable(),
             Tables\Columns\TextColumn::make('fecha')
                 ->date('d-m-Y')
                 ->sortable()->width('20%'),

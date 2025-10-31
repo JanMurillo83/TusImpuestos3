@@ -193,15 +193,15 @@ class Cobros extends Page implements HasForms
                                 $fecha = $fec[0];
                                 $pend_f = $ineg->pendienteusd;
                                 $tpen_or = $ineg->pendienteusd;
-                                if($fact->Moneda == 'USD'&&$mon_pago == 'MXN'){
+                                if($fact->Moneda != 'MXN'&&$mon_pago == 'MXN'){
                                     $pend_f = $ineg->pendienteusd * $ineg->tcambio;
 
                                 }
-                                if($fact->Moneda == 'MXN'&&$mon_pago == 'USD'){
+                                if($fact->Moneda == 'MXN'&&$mon_pago != 'MXN'){
                                     $pend_f = $ineg->pendienteusd / $t_cambio;
                                     $tpen_or = $ineg->pendienteusd / $t_cambio;
                                 }
-                                if($fact->Moneda == 'USD'&&$mon_pago == 'USD'){
+                                if($fact->Moneda != 'MXN'&&$mon_pago != 'MXN'){
                                     $pend_f = $ineg->pendienteusd;
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago == 'MXN'){
@@ -348,7 +348,7 @@ class Cobros extends Page implements HasForms
                 $ter = DB::table('terceros')->where('rfc', $fss->Receptor_Rfc)->first();
                 $monto_par = 0;
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
-                if ($factura['Moneda'] == 'USD') $monto_par = floatval($factura['USD a Pagar']);
+                if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['USD a Pagar']);
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'MXN') {
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
@@ -429,7 +429,7 @@ class Cobros extends Page implements HasForms
                         'pendientemxn' => $n_pen2
                     ]);
                 }
-                if ($factura['Moneda'] == 'USD' && $moneda_pago == 'MXN') {
+                if ($factura['Moneda'] != 'MXN' && $moneda_pago == 'MXN') {
                     $pesos = floatval($monto_par) * floatval($factura['Tipo Cambio']);
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
@@ -567,7 +567,7 @@ class Cobros extends Page implements HasForms
                         'pendientemxn' => $n_pen2
                     ]);
                 }
-                if ($factura['Moneda'] == 'USD' && $moneda_pago == 'USD') {
+                if ($factura['Moneda'] != 'MXN' && $moneda_pago != 'MXN') {
                     $cta_ban = BancoCuentas::where('id',$record->cuenta)->first();
                     $cta_comple = CatCuentas::where('id',$cta_ban->complementaria)->first();
                     //dd($cta_comple);
@@ -743,7 +743,7 @@ class Cobros extends Page implements HasForms
                         'pendientemxn' => $n_pen2
                     ]);
                 }
-                if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'USD') {
+                if ($factura['Moneda'] == 'MXN' && $moneda_pago != 'MXN') {
                     $pesos = floatval($monto_par) * floatval($factura['Tipo Cambio']);
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);

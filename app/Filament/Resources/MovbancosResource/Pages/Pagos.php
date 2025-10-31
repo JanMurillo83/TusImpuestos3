@@ -201,17 +201,17 @@ class Pagos extends Page implements HasForms
                                 $fecha = $fec[0];
                                 $pend_f = $ineg->pendienteusd;
                                 $tpen_or = $ineg->pendienteusd;
-                                if($fact->Moneda == 'USD'&&$mon_pago == 'MXN'){
+                                if($fact->Moneda != 'MXN'&&$mon_pago == 'MXN'){
                                     $pend_f = $ineg->pendienteusd * $ineg->tcambio;
                                     $n_tc = floatval($pend_pag)/floatval($fact->Total);
                                     $set('tipo_cambio', $n_tc);
                                     $pend_f = floatval($pend_pag);
                                 }
-                                if($fact->Moneda == 'MXN'&&$mon_pago == 'USD'){
+                                if($fact->Moneda == 'MXN'&&$mon_pago != 'MXN'){
                                     $pend_f = $ineg->pendienteusd / $t_cambio;
                                     $tpen_or = $ineg->pendienteusd / $t_cambio;
                                 }
-                                if($fact->Moneda == 'USD'&&$mon_pago == 'USD'){
+                                if($fact->Moneda != 'MXN'&&$mon_pago != 'MXN'){
                                     $pend_f = $ineg->pendienteusd;
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago == 'MXN'){
@@ -360,7 +360,7 @@ class Pagos extends Page implements HasForms
                 $ter = DB::table('terceros')->where('rfc', $fss->Emisor_Rfc)->first();
                 $monto_par = 0;
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
-                if ($factura['Moneda'] == 'USD') $monto_par = floatval($factura['USD a Pagar']);
+                if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['USD a Pagar']);
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'MXN') {
 
                     $aux = Auxiliares::create([
@@ -449,7 +449,7 @@ class Pagos extends Page implements HasForms
                         'pendientemxn' => $n_pen2
                     ]);
                 }
-                if ($factura['Moneda'] == 'USD' && $moneda_pago == 'MXN') {
+                if ($factura['Moneda'] != 'MXN' && $moneda_pago == 'MXN') {
                     $pesos = floatval($monto_par) * floatval($get('tipo_cambio'));
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
@@ -595,7 +595,7 @@ class Pagos extends Page implements HasForms
                         'pendientemxn' => $n_pen2
                     ]);
                 }
-                if ($factura['Moneda'] == 'USD' && $moneda_pago == 'USD') {
+                if ($factura['Moneda'] != 'MXN' && $moneda_pago != 'MXN') {
                     $cta_ban = BancoCuentas::where('id',$record->cuenta)->first();
                     $cta_comple = CatCuentas::where('id',$cta_ban->complementaria)->first();
                     //dd($cta_comple);
@@ -776,7 +776,7 @@ class Pagos extends Page implements HasForms
                         'pendientemxn' => $n_pen2
                     ]);
                 }
-                if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'USD') {
+                if ($factura['Moneda'] == 'MXN' && $moneda_pago != 'MXN') {
                     $pesos = floatval($monto_par) * floatval($factura['Tipo Cambio']);
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);

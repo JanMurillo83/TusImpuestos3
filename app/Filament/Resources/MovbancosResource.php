@@ -66,6 +66,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
 use Mockery\Matcher\Not;
+use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\Fiel;
 use phpDocumentor\Reflection\Types\Parent_;
 use PhpOffice\PhpSpreadsheet\Calculation\MathTrig\Sum as MathTrigSum;
 
@@ -2358,8 +2359,6 @@ class MovbancosResource extends Resource
                                     }),
                                 TextInput::make('importe_p_nomina')->label('Importe Nomina')->readOnly()->prefix('$')->currencyMask()->default(0.00),
                                 TextInput::make('concepto_poliza')->label('Concepto'),
-                                TextInput::make('cargos_poliza')->label('Cargos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
-                                TextInput::make('abonos_poliza')->label('Abonos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
                                 TextInput::make('pol_referencia')->label('Referencia')->readOnly(),
                                 TextInput::make('pol_uuid')->label('UUID')->readOnly(),
                                 TableRepeater::make('detalle_nomina')
@@ -2405,8 +2404,11 @@ class MovbancosResource extends Resource
                                         }),
                                     TextInput::make('Referencia'),
                                     TextInput::make('UUID'),
-                                ])
-
+                                ]),
+                                Fieldset::make('Totalles')->schema([
+                                    TextInput::make('cargos_poliza')->label('Cargos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
+                                    TextInput::make('abonos_poliza')->label('Abonos')->readOnly()->prefix('$')->currencyMask()->default(0.00),
+                                ])->columnSpanFull()
                             ])->columns(4);
                     })
                     ->before(function($record,$data,$action){
@@ -2518,13 +2520,15 @@ class MovbancosResource extends Resource
 
     public static function sumas_nomina(Get $get,Set $set) :void
     {
-        //dd($data);
-        $cargos = array_column($get('../../detalle_nomina'),'cargo');
-        $abonos = array_column($get('../../detalle_nomina'),'abono');
-        $suma_ca = array_sum($cargos);
-        $suma_ab = array_sum($abonos);
-        $set('cargos_poliza',$suma_ca);
-        $set('abonos_poliza',$suma_ab);
+        $detalles =$get('../../detalle_nomina');
+        $cargos = 0;
+        $abonos = 0;
+        foreach($detalles as $detalle){
+            $cargos+=floatval($detalle['Cargo']);
+            $abonos+=floatval($detalle['Abono']);
+        }
+        $set('../../cargos_poliza',$cargos);
+        $set('../../abonos_poliza',$abonos);
     }
     public static function sumas(Get $get,Set $set,$data) :void
     {

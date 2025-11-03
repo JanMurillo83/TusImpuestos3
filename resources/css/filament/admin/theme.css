@@ -43,3 +43,33 @@
 html {
     font-size: 0.8em !important;
 }
+
+.row_si{
+    background-color: #00bb00;
+    color: #fcfcfc;
+}
+
+.row_si:hover{
+    background-color: #3f6212;
+    color: #fcfcfc;
+}
+
+.row_si:active{
+    background-color: #3f6212;
+    color: #fcfcfc;
+}
+
+.row_pa{
+    background-color: #aa5500;
+    color: #fcfcfc;
+}
+
+.row_pa:hover{
+    background-color: #aa2222;
+    color: #fcfcfc;
+}
+
+.row_si:active{
+    background-color: #aa2222;
+    color: #fcfcfc;
+}

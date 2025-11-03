@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9be6b9ba3f493086e5d2c587221627b5",
+    "content-hash": "2f391f29d459d1027d185e218038d20c",
     "packages": [
         {
             "name": "akaunting/laravel-money",
@@ -13771,9 +13771,9 @@
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2",
+        "ext-calendar": "*",
         "ext-intl": "*",
         "ext-soap": "*",
-        "ext-calendar": "*",
         "ext-zip": "*"
     },
     "platform-dev": [],

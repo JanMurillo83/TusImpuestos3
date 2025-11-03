@@ -639,6 +639,11 @@ class FacturasResource extends Resource
                     $livewire->getAction('Imprimir_Doc_P')->visible(true);
                     $livewire->replaceMountedAction('Imprimir_Doc_P');
                     $livewire->getAction('Imprimir_Doc_P')->visible(false);
+                    /*$data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                    $pdf = Pdf::loadView('RepFactura', $data);
+                    return response()->streamDownload(function () use ($pdf) {
+                        echo $pdf->stream();
+                    }, 'name.pdf');*/
                 }),
                 Action::make('Cancelar')
                     ->icon('fas-ban')

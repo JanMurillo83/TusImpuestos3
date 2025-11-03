@@ -3,16 +3,19 @@
 namespace App\Filament\Clusters\Herramientas\Pages;
 
 use App\Filament\Clusters\Herramientas;
+use App\Models\CatCuentas;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\DB;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class Tools extends Page implements HasForms, HasActions
@@ -66,6 +69,31 @@ class Tools extends Page implements HasForms, HasActions
                         $livewire->getAction('Imprimir_Doc_E')->visible(true);
                         $livewire->replaceMountedAction('Imprimir_Doc_E');
                         $livewire->getAction('Imprimir_Doc_E')->visible(false);
+                    }),
+                    Actions\Action::make('Alta masiva de Cuenta')
+                    ->form([
+                        TextInput::make('cuenta'),
+                        TextInput::make('nombre'),
+                        TextInput::make('acumula'),
+                        Select::make('tipo')->options(['A'=>'Acumulativa','D'=>'Detalle']),
+                        Select::make('naturaleza')->options(['D'=>'Deudora','A'=>'Acreedora']),
+                        TextInput::make('csat')->label('Clave SAT'),
+                    ])
+                    ->action(function (array $data){
+                        $teams = DB::table('teams')->get();
+                        foreach ($teams as $team) {
+                            if(!CatCuentas::where('codigo',$data['cuenta'])->where('team_id',$team->id)->exists()) {
+                                CatCuentas::create([
+                                    'codigo' => $data['cuenta'],
+                                    'nombre' => $data['nombre'],
+                                    'acumula' => $data['acumula'],
+                                    'tipo' => $data['tipo'],
+                                    'naturaleza' => $data['naturaleza'],
+                                    'csat' => $data['csat'],
+                                    'team_id' => $team->id
+                                ]);
+                            }
+                        }
                     })
                 ])
             ]);

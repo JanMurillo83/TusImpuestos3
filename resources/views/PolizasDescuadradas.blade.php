@@ -161,8 +161,8 @@ foreach ($auxiliar_es as $auxili_ar)
                     <tr>
                         <td>{{$auxi['Poliza']}}</td>
                         <td>{{$auxi['Codigo']}}</td>
-                        <td>{{$auxi['Cargo']}}</td>
-                        <td>{{$auxi['Abono']}}</td>
+                        <td>{{'$'.number_format($auxi['Cargo'],2)}}</td>
+                        <td>{{'$'.number_format($auxi['Abono'],2)}}</td>
                         <td>{{$auxi['Auxiliar']}}</td>
                         <td>{{$auxi['Error']}}</td>
                     </tr>
@@ -171,8 +171,8 @@ foreach ($auxiliar_es as $auxili_ar)
                 <tfoot>
                     <tr>
                         <td colspan="2">Totales</td>
-                        <td>{{$cargos}}</td>
-                        <td>{{$abonos}}</td>
+                        <td>{{'$'.number_format($cargos,2)}}</td>
+                        <td>{{'$'.number_format($abonos,2)}}</td>
                     </tr>
                 </tfoot>
             </table>

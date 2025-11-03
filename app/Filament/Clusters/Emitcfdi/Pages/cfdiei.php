@@ -192,7 +192,8 @@ class cfdiei extends Page implements HasForms, HasTable
                         ->disabled()
                         ->required()
                 ])->action(function(Model $record,$data){
-                        Self::contabiliza_e($record,$data);
+                        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PV')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                        Self::contabiliza_e($record,$data,$nopoliza);
                 }),
                 Action::make('ver_xml')->icon('fas-eye')
                 ->label('Consultar XML')

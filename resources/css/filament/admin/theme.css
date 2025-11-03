@@ -45,31 +45,31 @@ html {
 }
 
 .row_si{
-    background-color: #00bb00;
+    background-color: #4ade80;
     color: #fcfcfc;
 }
 
 .row_si:hover{
-    background-color: #3f6212;
+    background-color: #63a35c;
     color: #fcfcfc;
 }
 
 .row_si:active{
-    background-color: #3f6212;
+    background-color: #63a35c;
     color: #fcfcfc;
 }
 
 .row_pa{
-    background-color: #aa5500;
+    background-color: #fd7e14;
     color: #fcfcfc;
 }
 
 .row_pa:hover{
-    background-color: #aa2222;
+    background-color: #aa5500;
     color: #fcfcfc;
 }
 
 .row_si:active{
-    background-color: #aa2222;
+    background-color: #aa5500;
     color: #fcfcfc;
 }

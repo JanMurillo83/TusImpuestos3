@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\AdmCompras\Resources;
 use App\Filament\Clusters\AdmCompras;
 use App\Filament\Clusters\AdmCompras\Resources\ComprasResource\Pages;
 use App\Filament\Clusters\AdmCompras\Resources\OrdenesResource\RelationManagers;
+use App\Models\Almacencfdis;
 use App\Models\Compras;
 use App\Models\CuentasPagar;
 use App\Models\Esquemasimp;
@@ -66,6 +67,42 @@ class ComprasResource extends Resource
         return $form
         ->columns(6)
         ->schema([
+            Select::make('cfdi_prov')
+                ->label('Importar CFDI')
+                ->searchable()
+                ->columnSpanFull()
+                ->options(Almacencfdis::select(DB::raw("CONCAT('Factura: ',Serie,Folio,'  -  Emisor: ',Emisor_Nombre,'  -  Fecha: ',DATE_FORMAT(Fecha,'%d-%m-%Y'),'  -  Importe:  $',FORMAT(Total,2)) as recibo,id"))
+                ->where('team_id',Filament::getTenant()->id)
+                ->where('xml_type','Recibidos')
+                ->where('TipoDeComprobante','I')
+                ->pluck('recibo','id'))
+                ->live(onBlur: true)
+            ->afterStateUpdated(function(Get $get,Set $set){
+                $fact = $get('cfdi_prov');
+                //dd($fact);
+                if($fact > 0){
+                    $fact = Almacencfdis::where('id',$fact)->first();
+                    $prov = 0;
+                    if(!Proveedores::where('rfc',$fact->Emisor_Rfc)->where('team_id',Filament::getTenant()->id)->exists()){
+                        $cve = count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
+                        $prov_ = Proveedores::create([
+                            'clave'=>$cve,
+                            'rfc' => $fact->Emisor_Rfc,
+                            'nombre' => $fact->Emisor_Nombre,
+                            'team_id' => Filament::getTenant()->id,
+                        ]);
+                        $prov = $prov_->id;
+                    }else{
+                        $prov = Proveedores::where('rfc',$fact->Emisor_Rfc)->where('team_id',Filament::getTenant()->id)->first()->id;
+                    }
+                    $set('prov',$prov);
+                    $set('nombre',$fact->Emisor_Nombre);
+                    $set('fecha',Carbon::create($fact->Fecha)->format('Y-m-d'));
+                    $set('moneda',$fact->Moneda);
+                    $set('tcambio',$fact->TipoCambio ?? 1.00);
+                    $set('recibe',$fact->Receptor_Nombre);
+                }
+            }),
             Hidden::make('team_id')->default(Filament::getTenant()->id),
             Split::make([
                 FieldSet::make('Compra')
@@ -84,7 +121,7 @@ class ComprasResource extends Resource
                             ->columnSpan(3)
                             ->live()
                             ->required()
-                            ->options(Proveedores::all()->pluck('nombre','id'))
+                            ->options(Proveedores::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
                             ->afterStateUpdated(function(Get $get,Set $set){
                                 $prov = Proveedores::where('id',$get('prov'))->get();
                                 if(count($prov) > 0){
@@ -603,14 +640,6 @@ class ComprasResource extends Resource
                     }
 
                 }),
-                Tables\Actions\Action::make('Importar')
-                ->icon('fas-cart-arrow-down')
-                ->label('Importar')
-                ->color(Color::Green)
-                ->form([
-                    Select::make('Factura del Proveedor')
-                    ->label('Factura del Proveedor')
-                ])
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -5,6 +5,7 @@ namespace App\Filament\Pages\Tenancy;
 use App\Models\CatCuentas;
 use App\Models\Regimenes;
 use App\Models\Saldosbanco;
+use App\Models\SeriesFacturas;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\Carbon;
@@ -522,10 +523,11 @@ class RegisterTeam extends RegisterTenant
             'folio'=>0,
             'team_id'=>$empresa
         ]);*/
-        DB::table('series_facturas')->create([
+
+        SeriesFacturas::create([
             'serie'=>'A', 'tipo'=>'F', 'folio'=>0,'team_id'=>$empresa,
         ]);
-        DB::table('series_facturas')->create([
+        SeriesFacturas::create([
             'serie'=>'B', 'tipo'=>'N', 'folio'=>0,'team_id'=>$empresa,
         ]);
         return $team;

@@ -71,6 +71,18 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         TextInput::make('fielpass')->label('Contraseña FIEL')->required()->password()->default($record->fielpass)->revealable(),
                     ])->columns(4);
                 }),
+                Action::make('Limpiar')
+                ->icon('fas-trash')
+                ->label('Limpiar')
+                ->action(function($record){
+                    DB::statement("START TRANSACTION;");
+                    DB::statement("DELETE t1 FROM almacencfdis t1
+                        INNER JOIN almacencfdis t2 WHERE t1.id < t2.id
+                        AND t1.team_id = t2.team_id AND t1.UUID = t2.UUID
+                        AND t1.team_id = $record->id;");
+                    DB::statement("COMMIT;");
+                    Notification::make()->title('Proceso Completado')->success()->send();
+                })
             ])
             ->headerActions([
                 Action::make('Descarga')
@@ -205,6 +217,21 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         $team = $team_->id;
                         $taxid = $team_->taxid;
                         $this->extrae_archivos($archivo->archivo,$archivo->id_sat,$archivo->id,$team,$taxid);
+                    }
+                    Notification::make()->title('Proceso Completado')->success()->send();
+                }),
+                Action::make('Limpiar DB')
+                ->icon('fas-trash')
+                ->label('Limpiar DB')
+                ->action(function(){
+                    $teams = Team::all();
+                    foreach ($teams as $team) {
+                        DB::statement("START TRANSACTION;");
+                        DB::statement("DELETE t1 FROM almacencfdis t1
+                        INNER JOIN almacencfdis t2 WHERE t1.id < t2.id
+                        AND t1.team_id = t2.team_id AND t1.UUID = t2.UUID
+                        AND t1.id > 0 AND t1.team_id = $team->id;");
+                        DB::statement("COMMIT;");
                     }
                     Notification::make()->title('Proceso Completado')->success()->send();
                 })

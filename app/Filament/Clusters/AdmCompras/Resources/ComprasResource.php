@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmCompras;
 use App\Filament\Clusters\AdmCompras\Resources\ComprasResource\Pages;
 use App\Filament\Clusters\AdmCompras\Resources\OrdenesResource\RelationManagers;
 use App\Models\Compras;
+use App\Models\CuentasPagar;
 use App\Models\Esquemasimp;
 use App\Models\Inventario;
 use App\Models\Movinventario;
@@ -498,6 +499,8 @@ class ComprasResource extends Resource
                         Compras::where('id',$record->id)->update([
                             'estado'=>'Cancelada'
                         ]);
+                        CuentasPagar::where('refer',$record->id)->delete();
+                        Proveedores::where('id',$record->prov)->decrement('saldo', ($record->total*$record->tcambio));
                         Notification::make()
                         ->title('Compra Cancelada')
                         ->success()
@@ -517,7 +520,7 @@ class ComprasResource extends Resource
             ->headerActions([
                 CreateAction::make('Agregar')
                 ->createAnother(false)
-                ->tooltip('Nuevo Cliente')
+                ->tooltip('Nueva Compra')
                 ->label('Agregar')->icon('fas-circle-plus')->badge()
                 ->modalSubmitActionLabel('Grabar')
                 ->modalCancelActionLabel('Cerrar')
@@ -526,6 +529,23 @@ class ComprasResource extends Resource
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('7xl')->button()
                 ->after(function($record){
+                    $tcambio = $record?->tcambio ?? 1.00;
+                    //dd($record->total,$tcambio);
+                    $cliente_d = Proveedores::where('id',$record->prov)->first();
+                    $dias_cr = intval($cliente_d?->dias_credito ?? 0);
+                    CuentasPagar::create([
+                        'proveedor'=>$record->prov,
+                        'concepto'=>1,
+                        'descripcion'=>'Compra',
+                        'documento'=>$record->folio,
+                        'fecha'=>Carbon::now(),
+                        'vencimiento'=>Carbon::now()->addDays($dias_cr),
+                        'importe'=>$record->total * $tcambio,
+                        'saldo'=>$record->total * $tcambio,
+                        'team_id'=>Filament::getTenant()->id,
+                        'refer'=>$record->id
+                    ]);
+                    Proveedores::where('id',$record->prov)->increment('saldo', ($record->total*$tcambio));
                     $partidas = $record->partidas;
                     // Procesar movimientos de inventario y actualizar enlace con la orden
                     foreach($partidas as $partida)
@@ -581,6 +601,7 @@ class ComprasResource extends Resource
                             'compra'=>$record->folio
                         ]);
                     }
+
                 })
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([

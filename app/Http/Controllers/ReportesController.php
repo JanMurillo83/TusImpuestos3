@@ -334,7 +334,7 @@ class ReportesController extends Controller
             SaldosReportes::insert([
                 'codigo' => $cuenta->codigo,
                 'cuenta' => $cuenta->cuenta,
-                'acumula' => $cuenta->acumula,
+                'acumula' => $cuenta->acumula ?? 0,
                 'naturaleza' => $cuenta->naturaleza,
                 'anterior' => $inicial,
                 'cargos' => $montos->cargos,

@@ -627,6 +627,14 @@ class cfdiri extends Page implements HasForms, HasTable
                     'tax_id'=>$rfc_emi,
                     'team_id'=>Filament::getTenant()->id
                 ]);
+                $cve = Proveedores::where('team_id',Filament::getTenant()->id)
+                        ->max('id') + 1;
+                Proveedores::firstOrCreate([
+                    'clave'=>$cve,
+                    'rfc'=>$rfc_emi,
+                    'nombre' => $nom_emi,
+                    'team_id'=>Filament::getTenant()->id
+                ]);
                 $ctaclie = $nuecta;
             }
             Almacencfdis::where('id',$record['id'])->update([

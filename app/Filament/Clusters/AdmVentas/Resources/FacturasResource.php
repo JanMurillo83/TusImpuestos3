@@ -677,7 +677,8 @@ class FacturasResource extends Resource
                             {
                                 $res = app(TimbradoController::class)->CancelarFactura($factura, $receptor,$data['motivo'],$folio);
                                 $resultado = json_decode($res);
-
+                                CuentasCobrar::where('refer',$record->id)->delete();
+                                Clientes::where('id',$record->clie)->decrement('saldo', ($record->total*$record->tcambio));
                                 if($resultado->codigo == 201){
                                     Facturas::where('id',$record->id)->update([
                                         'fecha_cancela'=>Carbon::now(),
@@ -763,6 +764,20 @@ class FacturasResource extends Resource
                                 $facturamodel->save();
                                 $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
                                 $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
+                                $cliente_d = Clientes::where('id',$record->clie)->first();
+                                $dias_cr = intval($cliente_d?->dias_credito ?? 0);
+                                CuentasCobrar::create([
+                                    'cliente'=>$record->clie,
+                                    'concepto'=>1,
+                                    'descripcion'=>'Factura',
+                                    'documento'=>$record->serie.$record->folio,
+                                    'fecha'=>Carbon::now(),
+                                    'vencimiento'=>Carbon::now()->addDays($dias_cr),
+                                    'importe'=>$record->total * $record->tcambio,
+                                    'saldo'=>$record->total * $record->tcambio,
+                                    'team_id'=>Filament::getTenant()->id,
+                                    'refer'=>$record->id
+                                ]);
                                 Notification::make()
                                     ->success()
                                     ->title('Factura Timbrada Correctamente')
@@ -998,17 +1013,8 @@ class FacturasResource extends Resource
                         $nopar++;
                     }
                     Clientes::where('id',$record->clie)->increment('saldo', $record->total);
-                    CuentasCobrar::create([
-                        'cliente'=>$record->clie,
-                        'concepto'=>1,
-                        'descripcion'=>'Factura',
-                        'documento'=>$record->serie.$record->folio,
-                        'fecha'=>Carbon::now(),
-                        'vencimiento'=>Carbon::now(),
-                        'importe'=>$record->total * $record->tcambio,
-                        'saldo'=>$record->total * $record->tcambio,
-                        'team_id'=>Filament::getTenant()->id
-                    ]);
+                    $cliente_d = Clientes::where('id',$record->clie)->first();
+
                     $record->pendiente_pago = $record->total;
                     $record->save();
                     if($record->docto_rela != ''){
@@ -1041,6 +1047,19 @@ class FacturasResource extends Resource
                                 $facturamodel->save();
                                 $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
                                 $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
+                                $dias_cr = intval($cliente_d?->dias_credito ?? 0);
+                                CuentasCobrar::create([
+                                    'cliente'=>$record->clie,
+                                    'concepto'=>1,
+                                    'descripcion'=>'Factura',
+                                    'documento'=>$record->serie.$record->folio,
+                                    'fecha'=>Carbon::now(),
+                                    'vencimiento'=>Carbon::now()->addDays($dias_cr),
+                                    'importe'=>$record->total * $record->tcambio,
+                                    'saldo'=>$record->total * $record->tcambio,
+                                    'team_id'=>Filament::getTenant()->id,
+                                    'refer'=>$record->id
+                                ]);
                                 Notification::make()
                                     ->success()
                                     ->title('Factura Timbrada Correctamente')

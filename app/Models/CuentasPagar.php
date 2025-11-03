@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CuentasPagar extends Model
 {
-    protected $fillable = ['proveedor','concepto','descripcion','documento','fecha','vencimiento','importe','saldo','refer'];
+    protected $fillable = ['proveedor','concepto','descripcion','documento','fecha','vencimiento','importe','saldo','team_id','refer'];
 
     public function team(): BelongsTo
     {

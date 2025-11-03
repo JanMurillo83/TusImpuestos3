@@ -54,6 +54,9 @@ class ProveedoresResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('contacto')
                     ->maxLength(255),
+                Forms\Components\TextInput::make('dias_credito')
+                    ->label('Dias de Credito')
+                    ->numeric()->default(0),
                 Forms\Components\Textarea::make('direccion')
                     ->maxLength(255)->columnSpanFull(),
                 Forms\Components\TextInput::make('telefono')
@@ -84,6 +87,9 @@ class ProveedoresResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('contacto')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('saldo')
+                    ->numeric(decimalPlaces: 2,decimalSeparator:'.')
+                    ->prefix('$'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

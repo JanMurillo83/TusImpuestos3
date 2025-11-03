@@ -73,6 +73,9 @@ class ClientesResource extends Resource
                         Forms\Components\TextInput::make('codigo')
                             ->label('Codigo Postal')
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('dias_credito')
+                            ->label('Dias de Credito')
+                            ->numeric()->default(0),
                     ]),
                     Fieldset::make('Datos Generales')
                     ->schema([

@@ -1521,6 +1521,8 @@ class MovbancosResource extends Resource
                                         ->where('xml_type','Emitidos')
                                         ->where('TipoDeComprobante','N')
                                         ->where('used','NO')
+                                        ->where('periodo',Filament::getTenant()->periodo)
+                                        ->where('ejercicio',Filament::getTenant()->ejercicio)
                                         ->pluck('recibo','id'))
                                     ->live(onBlur: true)
                                     ->columnSpan(3)
@@ -1671,6 +1673,9 @@ class MovbancosResource extends Resource
                     ->action(function($record,$data)
                     {
                         $detalles = $data['detalle_nomina'];
+                        Almacencfdis::where('id',$data['recibo_nomina'])->update([
+                            'used'=>'SI'
+                        ]);
                         //dd($detalles);
                         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Dr')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
                         $poliza = CatPolizas::create([

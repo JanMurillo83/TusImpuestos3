@@ -2140,8 +2140,8 @@ class MovbancosResource extends Resource
         $cargos = 0;
         $abonos = 0;
         foreach ($detalle as $det) {
-            $cargos += $det['cargo'];
-            $abonos += $det['abono'];
+            $cargos += floatval($det['cargo'] ?? 0);
+            $abonos += floatval($det['abono'] ?? 0);
         }
         $set('../../cargos_tot',$cargos);
         $set('../../abonos_tot',$abonos);

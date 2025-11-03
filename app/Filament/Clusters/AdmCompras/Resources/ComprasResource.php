@@ -602,7 +602,15 @@ class ComprasResource extends Resource
                         ]);
                     }
 
-                })
+                }),
+                Tables\Actions\Action::make('Importar')
+                ->icon('fas-cart-arrow-down')
+                ->label('Importar')
+                ->color(Color::Green)
+                ->form([
+                    Select::make('Factura del Proveedor')
+                    ->label('Factura del Proveedor')
+                ])
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

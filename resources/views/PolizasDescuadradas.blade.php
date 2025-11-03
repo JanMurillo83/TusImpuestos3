@@ -1,6 +1,8 @@
 <?php
 use \Illuminate\Support\Facades\DB;
 use \App\Models\CatPolizas;
+use \App\Models\Auxiliares;
+use \App\Models\CatCuentas;
 $empresas = DB::table('teams')->where('id',$empresa)->first();
 $fecha = \Carbon\Carbon::now();
 $polizas = CatPolizas::where('team_id',$empresa)
@@ -12,6 +14,51 @@ $polizas = CatPolizas::where('team_id',$empresa)
     ->get();
 $totalCargos = $polizas->sum('cargos');
 $totalAbonos = $polizas->sum('abonos');
+$auxiliar_es = Auxiliares::where('team_id',$empresa)
+    ->where('a_periodo',$periodo)
+    ->where('a_ejercicio',$ejercicio)->get();
+$auxiliares = [];
+foreach ($auxiliar_es as $auxili_ar)
+{
+    if(!CatPolizas::where('id',$auxili_ar->cat_polizas_id)->exists())
+    {
+        $auxiliares[]=
+            [
+                'Poliza'=>'No Existe',
+                'Codigo'=>$auxili_ar->codigo,
+                'Cargo'=>$auxili_ar->cargo,
+                'Abono'=>$auxili_ar->abono,
+                'Auxiliar'=>$auxili_ar->id,
+                'Error'=>'Poliza No Existente'
+            ];
+    }
+    $poli = CatPolizas::where('id',$auxili_ar->cat_polizas_id)->first();
+    if(!CatCuentas::where('codigo',$auxili_ar->codigo)->where('team_id',$empresa)->exists())
+    {
+        $auxiliares[]=
+            [
+                'Poliza'=>$poli->tipo.$poli->folio,
+                'Codigo'=>$auxili_ar->codigo,
+                'Cargo'=>$auxili_ar->cargo,
+                'Abono'=>$auxili_ar->abono,
+                'Auxiliar'=>$auxili_ar->id,
+                'Error'=>'Cuenta No Existente'
+            ];
+    }
+    $cuenta = CatCuentas::where('codigo',$auxili_ar->codigo)->where('team_id',$empresa)->first();
+    if($cuenta->tipo == 'A')
+    {
+        $auxiliares[]=
+            [
+                'Poliza'=>$poli->tipo.$poli->folio,
+                'Codigo'=>$auxili_ar->codigo,
+                'Cargo'=>$auxili_ar->cargo,
+                'Abono'=>$auxili_ar->abono,
+                'Auxiliar'=>$auxili_ar->id,
+                'Error'=>'Cuenta Acumulativa'
+            ];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -82,6 +129,50 @@ $totalAbonos = $polizas->sum('abonos');
                         <th style="text-align: end">{{ '$'.number_format($totalAbonos,2) }}</th>
                         <th style="text-align: end">{{ '$'.number_format(($totalCargos - $totalAbonos),2) }}</th>
                         <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <hr>
+    <div class="row mt-2">
+        <div class="col-12">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Poliza</th>
+                        <th>Codigo</th>
+                        <th>Cargo</th>
+                        <th>Abono</th>
+                        <th>Auxiliar</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                $cargos = 0;
+                $abonos = 0;
+                ?>
+                @foreach($auxiliares as $auxi)
+                    <?php
+                        $cargos+= floatval($auxi['Cargo']);
+                        $abonos+= floatval($auxi['Abono']);
+                        ?>
+                    <tr>
+                        <td>{{$auxi['Poliza']}}</td>
+                        <td>{{$auxi['Codigo']}}</td>
+                        <td>{{$auxi['Cargo']}}</td>
+                        <td>{{$auxi['Abono']}}</td>
+                        <td>{{$auxi['Auxiliar']}}</td>
+                        <td>{{$auxi['Error']}}</td>
+                    </tr>
+                @endforeach
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2">Totales</td>
+                        <td>{{$cargos}}</td>
+                        <td>{{$abonos}}</td>
                     </tr>
                 </tfoot>
             </table>

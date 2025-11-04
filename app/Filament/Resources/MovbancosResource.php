@@ -1087,7 +1087,7 @@ class MovbancosResource extends Resource
                                                         }),
                                                     TextInput::make('cargo')
                                                         ->numeric()
-                                                        ->currencyMask()
+                                                        ->currencyMask(precision: 4)
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
@@ -1096,7 +1096,7 @@ class MovbancosResource extends Resource
                                                         }),
                                                     TextInput::make('abono')
                                                         ->numeric()
-                                                        ->currencyMask()
+                                                        ->currencyMask(precision: 4)
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
@@ -1119,10 +1119,10 @@ class MovbancosResource extends Resource
                                         ->schema([
                                             TextInput::make('cargos_tot')
                                                 ->label('Cargos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
                                             TextInput::make('abonos_tot')
                                                 ->label('Abonos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
                                         ])->columns(5)
                                 ])->columnSpanFull(),
 
@@ -1443,7 +1443,7 @@ class MovbancosResource extends Resource
                                                         }),
                                                     TextInput::make('cargo')
                                                         ->numeric()
-                                                        ->mask(RawJs::make('$money($input)'))
+                                                        ->currencyMask(precision: 4)
                                                         ->stripCharacters([',','$'])
                                                         ->default(0)
                                                         ->live(onBlur:true)
@@ -1453,7 +1453,7 @@ class MovbancosResource extends Resource
                                                         }),
                                                     TextInput::make('abono')
                                                         ->numeric()
-                                                        ->currencyMask()
+                                                        ->currencyMask(precision: 4)
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
@@ -1476,10 +1476,10 @@ class MovbancosResource extends Resource
                                         ->schema([
                                             TextInput::make('cargos_tot')
                                                 ->label('Cargos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
                                             TextInput::make('abonos_tot')
                                                 ->label('Abonos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask()->default(0),
+                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
                                         ])->columns(5)
                                 ])->columnSpanFull()
                         ])->columns(4);

@@ -68,14 +68,14 @@ class ClientesResource extends Resource
                             ->maxLength(255)
                             ->default('XAXX010101000'),
                         Forms\Components\Select::make('regimen')
-                            ->label('Regimen Fiscal')
+                            ->label('Regimen Fiscal')->required()
                             ->options(Regimenes::all()->pluck('mostrar','clave')),
                         Forms\Components\TextInput::make('codigo')
                             ->label('Codigo Postal')
-                            ->maxLength(255),
+                            ->maxLength(255)->required(),
                         Forms\Components\TextInput::make('dias_credito')
                             ->label('Dias de Credito')
-                            ->numeric()->default(0),
+                            ->numeric()->default(0)->required(),
                     ]),
                     Fieldset::make('Datos Generales')
                     ->schema([

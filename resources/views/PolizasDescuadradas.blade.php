@@ -46,7 +46,8 @@ foreach ($auxiliar_es as $auxili_ar)
             ];
     }
     $cuenta = CatCuentas::where('codigo',$auxili_ar->codigo)->where('team_id',$empresa)->first();
-    if($cuenta->tipo == 'A')
+    $cue_nta = $cuenta?->tipo ?? '';
+    if($cue_nta == 'A')
     {
         $auxiliares[]=
             [

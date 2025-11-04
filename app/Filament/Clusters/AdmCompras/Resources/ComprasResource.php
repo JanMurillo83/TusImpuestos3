@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmCompras;
 use App\Filament\Clusters\AdmCompras\Resources\ComprasResource\Pages;
 use App\Filament\Clusters\AdmCompras\Resources\OrdenesResource\RelationManagers;
 use App\Models\Almacencfdis;
+use App\Models\CatCuentas;
 use App\Models\Compras;
 use App\Models\CuentasPagar;
 use App\Models\Esquemasimp;
@@ -15,10 +16,12 @@ use App\Models\Ordenes;
 use App\Models\OrdenesPartidas;
 use App\Models\Proveedores;
 use App\Models\Proyectos;
+use App\Models\Terceros;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
+use CfdiUtils\Cfdi;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Actions;
@@ -67,6 +70,7 @@ class ComprasResource extends Resource
         return $form
         ->columns(6)
         ->schema([
+            Hidden::make('cfdi_id')->default(0),
             Select::make('cfdi_prov')
                 ->label('Importar CFDI')
                 ->searchable()
@@ -75,10 +79,12 @@ class ComprasResource extends Resource
                 ->where('team_id',Filament::getTenant()->id)
                 ->where('xml_type','Recibidos')
                 ->where('TipoDeComprobante','I')
+                ->where('comp_used','NO')
                 ->pluck('recibo','id'))
                 ->live(onBlur: true)
             ->afterStateUpdated(function(Get $get,Set $set){
                 $fact = $get('cfdi_prov');
+                $set('cfdi_id',$fact);
                 //dd($fact);
                 if($fact > 0){
                     $fact = Almacencfdis::where('id',$fact)->first();
@@ -101,6 +107,45 @@ class ComprasResource extends Resource
                     $set('moneda',$fact->Moneda);
                     $set('tcambio',$fact->TipoCambio ?? 1.00);
                     $set('recibe',$fact->Receptor_Nombre);
+                    $set('subtotal',$fact->SubTotal);
+                    $set('Impuestos',($fact->TotalImpuestosTrasladados-$fact->TotalImpuestosRetenidos));
+                    $set('iva',$fact->TotalImpuestosTrasladados);
+                    $set('retiva',$fact->TotalImpuestosRetenidos);
+                    $set('total',$fact->Total);
+                    $xml_content = $fact->content;
+                    $cfdi = Cfdi::newFromString($xml_content);
+                    $comp = $cfdi->getQuickReader();
+                    $emisor = $comp->Emisor;
+                    $receptor = $comp->Receptor;
+                    $conceptos = $comp->Conceptos;
+                    $partidas = $get('partidas');
+                    $partidas = [];
+                    foreach($conceptos() as $concepto){
+                        $imp = $concepto->Impuestos;
+                        $trasl = $imp->Traslados;
+                        $tras = $trasl->Traslado['Importe'];
+                        $reten = $imp->Traslados;
+                        $rete = $reten->Retencion['Importe'];
+                        $partidas []= [
+                            'cant'=>$concepto['Cantidad'],
+                            'descripcion'=>$concepto['Descripcion'],
+                            'costo'=>floatval($concepto['ValorUnitario']??0),
+                            'subtotal'=>floatval($concepto['Importe'] ?? 0),
+                            'iva'=>floatval($tras ?? 0),
+                            'retiva'=>floatval($rete ?? 0),
+                            'retisr'=>0,
+                            'ieps'=>0,
+                            'total'=>floatval($concepto['Importe']??0)+floatval($tras??0)-floatval($rete??0),
+                            'unidad'=>$concepto['ClaveUnidad'],
+                            'cvesat'=>$concepto['ClaveProdServ'],
+                            'prov'=>$prov,
+                            'observa'=>'',
+                            'idorden'=>0,
+                            'team_id'=>Filament::getTenant()->id,
+                            'es_xml'=>'SI',
+                        ];
+                    }
+                    $set('partidas',$partidas);
                 }
             }),
             Hidden::make('team_id')->default(Filament::getTenant()->id),
@@ -197,6 +242,7 @@ class ComprasResource extends Resource
                                 TextInput::make('item')
                                     ->live(onBlur:true)
                                     ->afterStateUpdated(function(Get $get, Set $set){
+                                        if($get('es_xml') == 'SI') return;
                                         $prod = Inventario::where('id',$get('item'))->get();
                                         $prod = $prod[0];
                                         $set('descripcion',$prod->descripcion);
@@ -211,9 +257,10 @@ class ComprasResource extends Resource
                                                     ->options(Inventario::all()->pluck('descripcion','id'))
                                             ])
                                             ->action(function(Set $set,Get $get,$data){
-                                                $cant = $get('cant');
                                                 $item = $data['SelItem'];
                                                 $set('item',$item);
+                                                if($get('es_xml') == 'SI') return;
+                                                $cant = $get('cant');
                                                 $prod = Inventario::where('id',$item)->get();
                                                 $prod = $prod[0];
                                                 $set('descripcion',$prod->descripcion);
@@ -278,6 +325,7 @@ class ComprasResource extends Resource
                                 Hidden::make('prov'),
                                 Hidden::make('idorden'),
                                 Hidden::make('team_id')->default(Filament::getTenant()->id),
+                                Hidden::make('es_xml')->default('NO'),
                             ])->columnSpan('full')->streamlined(),
                         Forms\Components\Textarea::make('observa')
                             ->columnSpanFull()->label('Observaciones')
@@ -568,6 +616,41 @@ class ComprasResource extends Resource
                 ->after(function($record){
                     $tcambio = $record?->tcambio ?? 1.00;
                     //dd($record->total,$tcambio);
+                    $existe = CatCuentas::where('nombre',$record->nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first();
+                    $ctaclie = '20101000';
+                    $provee = Proveedores::where('id',$record->prov)->first();
+                    if($existe)
+                    {
+                        $ctaclie = $existe->codigo;
+                    }
+                    else
+                    {
+                        $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20101000')->max('codigo')) + 1;
+                        CatCuentas::firstOrCreate([
+                            'nombre' =>  $record->nombre,
+                            'team_id' => Filament::getTenant()->id,
+                            'codigo'=>$nuecta,
+                            'acumula'=>'20101000',
+                            'tipo'=>'D',
+                            'naturaleza'=>'A',
+                        ]);
+                        Terceros::create([
+                            'rfc'=>$provee->rfc,
+                            'nombre'=>$record->nombre,
+                            'tipo'=>'Proveedor',
+                            'cuenta'=>$nuecta,
+                            'telefono'=>'',
+                            'correo'=>'',
+                            'contacto'=>'',
+                            'tax_id'=>$provee->rfc,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        $ctaclie = $nuecta;
+                    }
+                    //-----------------------------------------------------------------------------------
+                    Almacencfdis::where('id',$record->cfdi_id)->update([
+                        'comp_used'=>'SI'
+                    ]);
                     $cliente_d = Proveedores::where('id',$record->prov)->first();
                     $dias_cr = intval($cliente_d?->dias_credito ?? 0);
                     CuentasPagar::create([

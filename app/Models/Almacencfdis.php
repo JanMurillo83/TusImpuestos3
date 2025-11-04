@@ -83,7 +83,8 @@ class Almacencfdis extends Model
 		'used',
 		'xml_type',
         'notas',
-        'team_id'
+        'team_id',
+        'comp_used'
 	];
     public function team(): BelongsTo
     {

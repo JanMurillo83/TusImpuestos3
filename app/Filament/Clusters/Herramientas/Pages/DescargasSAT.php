@@ -22,9 +22,11 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,6 +61,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 TextColumn::make('archivokey')->label('FIEL KEY'),
             ])
             ->actions([
+                ActionGroup::make([
                 \Filament\Tables\Actions\EditAction::make()
                 ->label('Editar')
                 ->icon('fas-edit')
@@ -82,8 +85,93 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         AND t1.team_id = $record->id;");
                     DB::statement("COMMIT;");
                     Notification::make()->title('Proceso Completado')->success()->send();
-                })
-            ])
+                }),
+                Action::make('Descargar')
+                ->icon('fas-download')
+                ->label('Descargar')
+                ->form([
+                    DatePicker::make('fecha_inicial')
+                        ->label('Fecha Inicial')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
+                    DatePicker::make('fecha_final')
+                        ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
+                ])
+                ->action(function($record,$data){
+                    $team = $record;
+                    $fecha_inicial = $data['fecha_inicial'];
+                    $fecha_final = $data['fecha_final'];
+                    if($team->archivocer != '' && $team->archivokey != '') {
+                        $request = [
+                            'solicita' => $team->taxid,
+                            'rutacer' => storage_path().'/app/public/'.$team->archivocer,
+                            'rutakey' => storage_path().'/app/public/'.$team->archivokey,
+                            'inicio' => $fecha_inicial,
+                            'final' => $fecha_final,
+                            'version' => 1,
+                            'fielpass' => $team->fielpass
+                        ];
+                        $resultado = $this->solicitud($request);
+                        list($codigo,$mensaje) = explode('|',$resultado);
+                        if($codigo == 'Exito'){
+                            DescargasSolicitudesSat::create([
+                                'id_sat'=>$mensaje,
+                                'estatus'=>'Pendiente',
+                                'estado'=>'Solicitud',
+                                'team_id'=>$team->id,
+                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
+                                'fecha_final'=>Carbon::create( $fecha_final),
+                                'fecha'=>Carbon::now(),
+                            ]);
+                        }else{
+                            DescargasSolicitudesSat::create([
+                                'id_sat'=>0,
+                                'estatus'=>$mensaje,
+                                'estado'=>'Error',
+                                'team_id'=>$team->id,
+                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
+                                'fecha_final'=>Carbon::create( $fecha_final),
+                                'fecha'=>Carbon::now(),
+                            ]);
+                        }
+                        $solicitudes = DescargasSolicitudesSat::where('estatus','Pendiente')
+                        ->where('team_id',$record->id)->get();
+                        $codigos = [];
+                        foreach ($solicitudes as $solicitud)
+                        {
+                            $team = Team::where('id',$solicitud->team_id)->first();
+                            $request = [
+                                'solicita' => $team->taxid,
+                                'rutacer' => storage_path().'/app/public/'.$team->archivocer,
+                                'rutakey' => storage_path().'/app/public/'.$team->archivokey,
+                                'inicio' => $fecha_inicial,
+                                'final' => $fecha_final,
+                                'version' => 1,
+                                'requestId'=>$solicitud->id_sat,
+                                'fielpass' => $team->fielpass,
+                                'team_id'=>$team->id,
+                            ];
+                            $resultado = $this->verifica_solicitud($request);
+                            list($codigo,$mensaje) = explode('|',$resultado);
+                            $codigos[] = [
+                                'codigo'=>$codigo,
+                                'mensaje'=>$mensaje,
+                                'solicitud'=>$solicitud->id_sat,
+                            ];
+                        }
+                        $archivos = DescargasArchivosSat::where('estado','Pendiente')
+                            ->where('team_id',$record->id)->get();
+                        foreach ($archivos as $archivo)
+                        {
+                            $team_ = Team::where('id',$archivo->team_id)->first();
+                            $team = $team_->id;
+                            $taxid = $team_->taxid;
+                            $this->extrae_archivos($archivo->archivo,$archivo->id_sat,$archivo->id,$team,$taxid);
+                        }
+                        //dd($codigos);
+                        Notification::make()->title('Proceso Completado')->success()->send();
+                    }
+                 })
+                ])
+            ],ActionsPosition::BeforeColumns)
             ->headerActions([
                 Action::make('Descarga')
                 ->label('Descargar')
@@ -426,7 +514,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 if ($tiposol == 'Emitidos') {
                     if ($emisor['Rfc'] == $taxid) {
                         //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
-                        $uuid_v = Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => $team])->exists();
+                        $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])->where('team_id',$team)->exists();
                         if (!$uuid_v) {
                             Almacencfdis::firstOrCreate([
                                 'Serie' => $comprobante['Serie'],
@@ -472,7 +560,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 } else {
                     if ($receptor['Rfc'] == $taxid) {
                         //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
-                        $uuid_v = Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => $team])->exists();
+                        $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])->where('team_id',$team)->exists();
                         if (!$uuid_v){
                             Almacencfdis::firstOrCreate([
                                 'Serie' => $comprobante['Serie'],

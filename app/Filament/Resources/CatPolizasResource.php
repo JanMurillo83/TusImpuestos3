@@ -238,13 +238,14 @@ class CatPolizasResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-        ->query(
-            CatPolizas::where('team_id',Filament::getTenant()->id)
-                ->where('periodo',Filament::getTenant()->periodo)
-                ->where('ejercicio',Filament::getTenant()->ejercicio)
-                ->orderBy('tipo', 'ASC')
-                ->orderBy('folio', 'ASC')
-            )
+        ->query(CatPolizas::query())
+            ->modifyQueryUsing(function ($query) {
+                $query->where('team_id',Filament::getTenant()->id)
+                    ->where('periodo',Filament::getTenant()->periodo)
+                    ->where('ejercicio',Filament::getTenant()->ejercicio)
+                    ->orderBy('tipo', 'ASC')
+                    ->orderBy('folio', 'ASC');
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('fecha')
                 ->dateTime('d-m-Y')
@@ -446,6 +447,9 @@ class CatPolizasResource extends Resource
                 Tables\Actions\DeleteBulkAction::make('Eliminar')
                 ->icon('fas-trash')
                 ->requiresConfirmation()
+                ->after(function(){
+
+                })
             ])
             ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all']);

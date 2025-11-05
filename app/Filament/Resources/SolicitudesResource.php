@@ -31,6 +31,7 @@ class SolicitudesResource extends Resource
     protected static ?string $pluralLabel = 'Descargas CFDI';
     protected static ?string $label = 'CFDI';
     protected static ?string $navigationIcon = 'fas-download';
+    protected static bool $shouldRegisterNavigation = false;
 
 
     public static function form(Form $form): Form

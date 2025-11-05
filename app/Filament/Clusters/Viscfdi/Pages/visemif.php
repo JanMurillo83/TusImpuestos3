@@ -52,11 +52,12 @@ class visemif extends Page implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-        ->query(
-            Almacencfdis::where('team_id',Filament::getTenant()->id)
-            ->where('xml_type','Emitidos')
-            ->where('TipoDeComprobante','I')
-             )
+        ->query(Almacencfdis::query())
+            ->modifyQueryUsing(function ($query){
+                $query->where('team_id',Filament::getTenant()->id)
+                    ->where('xml_type','Emitidos')
+                    ->where('TipoDeComprobante','I');
+            })
         ->columns([
             TextColumn::make('id')
                 ->label('#')
@@ -129,6 +130,15 @@ class visemif extends Page implements HasForms, HasTable
                 ->searchable()
                 ->sortable()
                 ->toggleable(isToggledHiddenByDefault: false),
+            TextColumn::make('Poliza')
+            ->getStateUsing(function ($record) {
+                $pols = DB::table('cat_polizas')->where('uuid',$record->UUID)->get();
+                $poli='';
+                foreach ($pols as $pol) {
+                    $poli.=$pol->tipo.$pol->folio;
+                }
+                return $poli;
+            }),
             TextColumn::make('UUID')
                 ->label('UUID')
                 ->searchable()
@@ -241,6 +251,19 @@ class visemif extends Page implements HasForms, HasTable
                             ])
                         ])->columns(5);
                 }
+                }),
+                Action::make('Liberar')
+                ->label('Liberar')->icon('fas-lock')
+                ->visible(function ($record){
+                    $pols = DB::table('cat_polizas')->where('uuid',$record->UUID)->get();
+                    $nopols = count($pols);
+                    if($nopols == 0&&$record->used == 'SI') return true;
+                    else return false;
+                })
+                ->requiresConfirmation()->action(function(Model $record){
+                    $record->used = 'NO';
+                    $record->save();
+                    Notification::make()->title('CFDI Liberado')->success()->send();
                 })
                 ])
             ])->actionsPosition(ActionsPosition::BeforeCells)

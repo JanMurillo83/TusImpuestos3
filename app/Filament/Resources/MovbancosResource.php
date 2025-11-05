@@ -15,6 +15,7 @@ use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\ContaPeriodos;
 use App\Models\IngresosEgresos;
 use App\Models\Movbancos;
 use App\Models\Regimenes;
@@ -1729,7 +1730,21 @@ class MovbancosResource extends Resource
                         })
                     ->url(fn($record)=>Pages\Cobros::getUrl(['record'=>$record]))
                 //--------------------------------------------------------------------------------------------------
-                ])->color('primary'),
+                ])->color('primary')
+                ->visible(function(){
+                    $team = Filament::getTenant()->id;
+                    $periodo = Filament::getTenant()->periodo;
+                    $ejercicio = Filament::getTenant()->ejercicio;
+                    if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                    {
+                        return true;
+                    }
+                    else{
+                        $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                        if($estado == 1) return true;
+                        else return false;
+                    }
+                }),
             ])->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

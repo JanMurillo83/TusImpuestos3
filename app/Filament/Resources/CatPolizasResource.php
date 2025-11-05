@@ -7,6 +7,7 @@ use App\Filament\Resources\CatPolizasResource\RelationManagers;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\ContaPeriodos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -300,6 +301,25 @@ class CatPolizasResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->label('')
+                    ->icon(null)
+                    ->modalSubmitAction(false)
+                    ->modalWidth('7xl')
+                    ->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return false;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return false;
+                            else return true;
+                        }
+                    }),
                 Tables\Actions\EditAction::make()
                 ->label('')
                 ->icon(null)
@@ -323,7 +343,20 @@ class CatPolizasResource extends Resource
                         'cargos'=>$cargos,
                         'abonos'=>$abonos,
                     ]);
-                }),
+                })->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
+                    }),
                 Tables\Actions\DeleteAction::make()
                 ->label('')->icon('fas-trash-can')
                 ->requiresConfirmation()
@@ -364,7 +397,20 @@ class CatPolizasResource extends Resource
                         ]);
                     }
                     DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-                }),
+                })->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
+                    }),
                 Tables\Actions\Action::make('Copiar Poliza')
                 ->icon('fas-copy')->tooltip('Copiar Poliza')->iconButton()->requiresConfirmation()
                 ->action(function ($record){
@@ -410,7 +456,20 @@ class CatPolizasResource extends Resource
                         ->title('Poliza '.$enca->tipo.' '.$nopoliza.' Grabada')
                         ->success()
                         ->send();
-                })
+                })->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
+                    })
             ])
             ->actionsPosition(ActionsPosition::BeforeColumns)
             ->headerActions([
@@ -442,6 +501,19 @@ class CatPolizasResource extends Resource
                             'cargos'=>$cargos,
                             'abonos'=>$abonos,
                         ]);
+                    })->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
                     }),
             ])->bulkActions([
                 Tables\Actions\DeleteBulkAction::make('Eliminar')
@@ -449,7 +521,20 @@ class CatPolizasResource extends Resource
                 ->requiresConfirmation()
                 ->after(function(){
 
-                })
+                })->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
+                    })
             ])
             ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all']);

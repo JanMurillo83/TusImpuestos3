@@ -7,6 +7,7 @@ use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\ContaPeriodos;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
@@ -166,9 +167,36 @@ class cfdiep extends Page implements HasForms, HasTable
                 ->action(function(Model $record,$data){
                     $record['notas'] = $data['notas'];
                     $record->save();
-                }),
+                })->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
+                    }),
                 Action::make('ContabilizarE')
                 ->label('')
+                    ->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
+                    })
                 ->tooltip('Contabilizar')
                 ->icon('fas-scale-balanced')
                 ->modalWidth(MaxWidth::ExtraSmall)

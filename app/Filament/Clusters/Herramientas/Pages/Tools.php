@@ -4,10 +4,12 @@ namespace App\Filament\Clusters\Herramientas\Pages;
 
 use App\Filament\Clusters\Herramientas;
 use App\Models\CatCuentas;
+use App\Models\ContaPeriodos;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -21,7 +23,7 @@ use Torgodly\Html2Media\Actions\Html2MediaAction;
 class Tools extends Page implements HasForms, HasActions
 {
     use InteractsWithForms, InteractsWithActions;
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationIcon = 'fas-tools';
     protected static string $view = 'filament.clusters.herramientas.pages.tools';
     protected static ?string $cluster = Herramientas::class;
     protected static ?string $title = 'Herramientas';
@@ -93,6 +95,27 @@ class Tools extends Page implements HasForms, HasActions
                                     'team_id' => $team->id
                                 ]);
                             }
+                        }
+                    }),
+                    Actions\Action::make('Cierre de Periodo')
+                    ->requiresConfirmation()
+                    ->icon('fas-lock')
+                    ->action(function (){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            ContaPeriodos::create([
+                                'periodo'=>$periodo,
+                                'ejercicio'=>$ejercicio,
+                                'estado'=>2,
+                                'team_id'=>$team,
+                            ]);
+                        }
+                        else{
+                            ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)
+                            ->update(['estado'=>2]);
                         }
                     })
                 ])

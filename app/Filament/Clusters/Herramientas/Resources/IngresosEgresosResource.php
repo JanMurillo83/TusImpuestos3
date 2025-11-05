@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class IngresosEgresosResource extends Resource
@@ -25,6 +26,11 @@ class IngresosEgresosResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $cluster = Herramientas::class;
+    protected static bool $shouldRegisterNavigation = false;
+    public static function scopeEloquentQueryToTenant(Builder $query, ?Model $tenant): Builder
+    {
+        return $query->where('team_id',Filament::getTenant()->id);
+    }
 
     public static function form(Form $form): Form
     {

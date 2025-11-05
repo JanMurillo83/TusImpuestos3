@@ -4,6 +4,7 @@ namespace App\Filament\Resources\MovbancosResource\Pages;
 
 use App\Filament\Resources\MovbancosResource;
 use App\Models\BancoCuentas;
+use App\Models\ContaPeriodos;
 use App\Models\Movbancos;
 use App\Models\Saldosbanco;
 use Asmit\ResizedColumn\HasResizableColumn;
@@ -268,6 +269,19 @@ class ListMovbancos extends ListRecords
                         'fecha' => $fecha,
                         'pendiente_apli' => $importe
                     ]);
+                })->visible(function(){
+                    $team = Filament::getTenant()->id;
+                    $periodo = Filament::getTenant()->periodo;
+                    $ejercicio = Filament::getTenant()->ejercicio;
+                    if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                    {
+                        return true;
+                    }
+                    else{
+                        $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                        if($estado == 1) return true;
+                        else return false;
+                    }
                 }),
             \EightyNine\ExcelImport\ExcelImportAction::make('Importar2')
                 ->label('Importar')
@@ -340,6 +354,19 @@ class ListMovbancos extends ListRecords
                         ]);
                     }
                     return $collection;
+                })->visible(function(){
+                    $team = Filament::getTenant()->id;
+                    $periodo = Filament::getTenant()->periodo;
+                    $ejercicio = Filament::getTenant()->ejercicio;
+                    if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                    {
+                        return true;
+                    }
+                    else{
+                        $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                        if($estado == 1) return true;
+                        else return false;
+                    }
                 })
         ];
     }

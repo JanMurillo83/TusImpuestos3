@@ -13,12 +13,15 @@ use Carbon\Carbon;
 use CfdiUtils\Cfdi;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
@@ -30,6 +33,14 @@ use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpCfdi\CfdiSatScraper\Filters\Options\StatesVoucherOption;
+use PhpCfdi\CfdiSatScraper\QueryByFilters;
+use PhpCfdi\CfdiSatScraper\SatScraper;
+use PhpCfdi\CfdiSatScraper\Sessions\Fiel\FielSessionManager;
+use PhpCfdi\CfdiSatScraper\Sessions\Fiel\FielSessionData;
+use PhpCfdi\Credentials\Credential;
+use PhpCfdi\Credentials\Pfx\PfxExporter;
+use PhpCfdi\Credentials\Pfx\PfxReader;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\Fiel;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\FielRequestBuilder;
 use PhpCfdi\SatWsDescargaMasiva\Service;
@@ -38,15 +49,22 @@ use PhpCfdi\SatWsDescargaMasiva\Shared\DateTimePeriod;
 use PhpCfdi\SatWsDescargaMasiva\Shared\DocumentStatus;
 use PhpCfdi\SatWsDescargaMasiva\Shared\DownloadType;
 use PhpCfdi\SatWsDescargaMasiva\Shared\RequestType;
+use PhpCfdi\SatWsDescargaMasiva\Shared\ServiceType;
 use PhpCfdi\SatWsDescargaMasiva\WebClient\GuzzleWebClient;
+use GuzzleHttp\Client;
+use GuzzleHttp\RequestOptions;
+use PhpCfdi\CfdiSatScraper\SatHttpGateway;
+
+
 
 class DescargasSAT extends Page implements HasTable,HasForms
 {
     use InteractsWithTable,InteractsWithForms;
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationIcon = 'fas-download';
     protected static string $view = 'filament.clusters.herramientas.pages.descargas-s-a-t';
     protected static ?string $cluster = Herramientas::class;
     protected static ?string $title = 'Descargas SAT';
+    protected static ?int $navigationSort = 3;
 
     public function table(Table $table): Table
     {
@@ -110,6 +128,29 @@ class DescargasSAT extends Page implements HasTable,HasForms
                             'fielpass' => $team->fielpass
                         ];
                         $resultado = $this->solicitud($request);
+                        list($codigo,$mensaje) = explode('|',$resultado);
+                        if($codigo == 'Exito'){
+                            DescargasSolicitudesSat::create([
+                                'id_sat'=>$mensaje,
+                                'estatus'=>'Pendiente',
+                                'estado'=>'Solicitud',
+                                'team_id'=>$team->id,
+                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
+                                'fecha_final'=>Carbon::create( $fecha_final),
+                                'fecha'=>Carbon::now(),
+                            ]);
+                        }else{
+                            DescargasSolicitudesSat::create([
+                                'id_sat'=>0,
+                                'estatus'=>$mensaje,
+                                'estado'=>'Error',
+                                'team_id'=>$team->id,
+                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
+                                'fecha_final'=>Carbon::create( $fecha_final),
+                                'fecha'=>Carbon::now(),
+                            ]);
+                        }
+                        $resultado = $this->solicitud_rec($request);
                         list($codigo,$mensaje) = explode('|',$resultado);
                         if($codigo == 'Exito'){
                             DescargasSolicitudesSat::create([
@@ -200,6 +241,29 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 'fielpass' => $team->fielpass
                             ];
                             $resultado = $this->solicitud($request);
+                            list($codigo,$mensaje) = explode('|',$resultado);
+                            if($codigo == 'Exito'){
+                                DescargasSolicitudesSat::create([
+                                    'id_sat'=>$mensaje,
+                                    'estatus'=>'Pendiente',
+                                    'estado'=>'Solicitud',
+                                    'team_id'=>$team->id,
+                                    'fecha_inicial'=>Carbon::create( $fecha_inicial),
+                                    'fecha_final'=>Carbon::create( $fecha_final),
+                                    'fecha'=>Carbon::now(),
+                                ]);
+                            }else{
+                                DescargasSolicitudesSat::create([
+                                    'id_sat'=>0,
+                                    'estatus'=>$mensaje,
+                                    'estado'=>'Error',
+                                    'team_id'=>$team->id,
+                                    'fecha_inicial'=>Carbon::create( $fecha_inicial),
+                                    'fecha_final'=>Carbon::create( $fecha_final),
+                                    'fecha'=>Carbon::now(),
+                                ]);
+                            }
+                            $resultado = $this->solicitud_rec($request);
                             list($codigo,$mensaje) = explode('|',$resultado);
                             if($codigo == 'Exito'){
                                 DescargasSolicitudesSat::create([
@@ -326,6 +390,40 @@ class DescargasSAT extends Page implements HasTable,HasForms
             ]);
     }
 
+    public function solicitud_meta(array $request)
+    {
+        try {
+            $solicita = $request['solicita'];
+            $rutacer = $request['rutacer'];
+            $rutakey = $request['rutakey'];
+            $inicial = $request['inicio'];
+            $final = $request['final'];
+            $version = $request['version'];
+            $fielpass = $request['fielpass'];
+            //$tiposol = $request['tipo'];
+            $fiel = Fiel::create(
+                file_get_contents($rutacer),
+                file_get_contents($rutakey),
+                $fielpass
+            );
+            $webClient = new GuzzleWebClient();
+            $requestBuilder = new FielRequestBuilder($fiel);
+            $service = new Service($requestBuilder, $webClient);
+            $fechainicial = $inicial . ' ' . '00:00:00';
+            $fechafinal = $final . ' ' . '23:59:' . str_pad($version, 2, "0", STR_PAD_LEFT);
+            $requestsol = QueryParameters::create()
+                ->withPeriod(DateTimePeriod::createFromValues($fechainicial, $fechafinal))
+                ->withRequestType(RequestType::metadata());
+            $query = $service->query($requestsol);
+            if (!$query->getStatus()->isAccepted()) {
+                //dd("Fallo al presentar la consulta: {$query->getStatus()->getMessage()}");
+                return 'Error|' . $query->getStatus()->getMessage();
+            }
+            return 'Exito|' .$query->getRequestId();
+        }catch (\Exception $e){
+            return 'Error|' . $e->getMessage();
+        }
+    }
     public function solicitud(array $request)
     {
         try {
@@ -350,6 +448,44 @@ class DescargasSAT extends Page implements HasTable,HasForms
             $requestsol = QueryParameters::create()
                 ->withPeriod(DateTimePeriod::createFromValues($fechainicial, $fechafinal))
                 ->withRequestType(RequestType::xml())
+                ->withDownloadType(DownloadType::issued())
+                ->withDocumentStatus(DocumentStatus::active());
+            $query = $service->query($requestsol);
+            if (!$query->getStatus()->isAccepted()) {
+                //dd("Fallo al presentar la consulta: {$query->getStatus()->getMessage()}");
+                return 'Error|' . $query->getStatus()->getMessage();
+            }
+            return 'Exito|' . $query->getRequestId();
+        }catch (\Exception $e){
+            return 'Error|' . $e->getMessage();
+        }
+    }
+
+    public function solicitud_rec(array $request)
+    {
+        try {
+            $solicita = $request['solicita'];
+            $rutacer = $request['rutacer'];
+            $rutakey = $request['rutakey'];
+            $inicial = $request['inicio'];
+            $final = $request['final'];
+            $version = $request['version'];
+            $fielpass = $request['fielpass'];
+            //$tiposol = $request['tipo'];
+            $fiel = Fiel::create(
+                file_get_contents($rutacer),
+                file_get_contents($rutakey),
+                $fielpass
+            );
+            $webClient = new GuzzleWebClient();
+            $requestBuilder = new FielRequestBuilder($fiel);
+            $service = new Service($requestBuilder, $webClient);
+            $fechainicial = $inicial . ' ' . '00:00:00';
+            $fechafinal = $final . ' ' . '23:59:' . str_pad($version, 2, "0", STR_PAD_LEFT);
+            $requestsol = QueryParameters::create()
+                ->withPeriod(DateTimePeriod::createFromValues($fechainicial, $fechafinal))
+                ->withRequestType(RequestType::xml())
+                ->withDownloadType(DownloadType::received())
                 ->withDocumentStatus(DocumentStatus::active());
             $query = $service->query($requestsol);
             if (!$query->getStatus()->isAccepted()) {
@@ -379,6 +515,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
         $requestBuilder = new FielRequestBuilder($fiel);
         $service = new Service($requestBuilder, $webClient);
         $verify = $service->verify($requestId);
+        //dd($verify);
         if (! $verify->getStatus()->isAccepted()) {
             DescargasSolicitudesSat::where('id_sat',$requestId)->update([
                 'estado'=>$verify->getStatus()->getMessage(),
@@ -403,7 +540,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
             ]);
             return 'Error|La Solicitud No se pudo completar';
         }
-        if ($statusRequest->isInProgress() || $statusRequest->isAccepted()) {
+        if ($statusRequest->isInProgress()) {
             DescargasSolicitudesSat::where('id_sat',$requestId)->update([
                 'estado'=>'Procesando Descarga'
             ]);

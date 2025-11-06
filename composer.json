@@ -36,11 +36,14 @@
         "phpcfdi/cfdi-sat-scraper": "^5.0",
         "phpcfdi/cfditopdf": "^0.4.2",
         "phpcfdi/credentials": "^1.3",
+        "phpcfdi/image-captcha-resolver-boxfactura-ai": "^0.2.0",
         "phpcfdi/sat-ws-descarga-masiva": "^0.5.4",
         "phpmailer/phpmailer": "^6.10",
         "phpoffice/phpspreadsheet": "^1.29",
         "solution-forest/filament-simplelightbox": "^0.0.10",
-        "torgodly/html2media": "^1.1"
+        "torgodly/html2media": "^1.1",
+        "ext-dom": "*",
+        "ext-curl": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -70,7 +73,8 @@
             "@php artisan filament:upgrade"
         ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "OnnxRuntime\\Vendor::check"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
@@ -79,7 +83,11 @@
             "@php artisan key:generate --ansi",
             "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
             "@php artisan migrate --graceful --ansi"
+        ],
+        "post-install-cmd": [
+            "OnnxRuntime\\Vendor::check"
         ]
+
     },
     "extra": {
         "laravel": {

@@ -31,16 +31,22 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Table;
+use GuzzleHttp\Cookie\FileCookieJar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PhpCfdi\CfdiSatScraper\Filters\Options\StatesVoucherOption;
 use PhpCfdi\CfdiSatScraper\QueryByFilters;
+use PhpCfdi\CfdiSatScraper\ResourceType;
 use PhpCfdi\CfdiSatScraper\SatScraper;
+use PhpCfdi\CfdiSatScraper\Sessions\Ciec\CiecSessionManager;
 use PhpCfdi\CfdiSatScraper\Sessions\Fiel\FielSessionManager;
 use PhpCfdi\CfdiSatScraper\Sessions\Fiel\FielSessionData;
 use PhpCfdi\Credentials\Credential;
 use PhpCfdi\Credentials\Pfx\PfxExporter;
 use PhpCfdi\Credentials\Pfx\PfxReader;
+use PhpCfdi\ImageCaptchaResolver\BoxFacturaAI\BoxFacturaAIResolver;
+use PhpCfdi\ImageCaptchaResolver\CaptchaImage;
+use PhpCfdi\ImageCaptchaResolver\UnableToResolveCaptchaException;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\Fiel;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\FielRequestBuilder;
 use PhpCfdi\SatWsDescargaMasiva\Service;
@@ -210,8 +216,66 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         //dd($codigos);
                         Notification::make()->title('Proceso Completado')->success()->send();
                     }
-                 })
-                ])
+                 }),
+                    Action::make('Metadata')
+                        ->icon('fas-file-archive')
+                        ->label('Metadata')
+                        ->form([
+                            DatePicker::make('fecha_inicial')
+                                ->label('Fecha Inicial')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
+                            DatePicker::make('fecha_final')
+                                ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
+                            TextInput::make('Solicitud'),
+                            TextInput::make('Status'),
+                            TextInput::make('Paquete_ID'),
+                            TextInput::make('Estado'),
+                        ])
+                        ->action(function($record,$data) {
+
+                            $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
+                            $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
+                            $rfc = 'NIMA831222HZ9';
+                            $claveCiec = 'eli11088';
+                            $cookieJarPath = storage_path().'/app/public/cookies/';
+                            $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
+                            $downloadsPath = storage_path().'/app/public/cfdis/'.$rfc;
+                            if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
+                            if (!is_dir($downloadsPath)) {mkdir($downloadsPath, 0777, true);}
+                            if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
+                            $client = new Client([
+                                'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
+                            ]);
+                            $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
+
+                            $configsFile = storage_path().'/app/public/Aimodel/configs.yaml';
+                            $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
+
+                            $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
+
+                            $satScraper = new SatScraper($ciecSessionManager, $gateway);
+
+                            $resourceDownloader = $satScraper->resourceDownloader(ResourceType::xml())
+                                ->setConcurrency(20);
+
+                            $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                            $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos()) // default: emitidos
+                            ->setStateVoucher(StatesVoucherOption::vigentes());   // default: todos
+
+                            $list = $satScraper->listByPeriod($query);
+                            $list = $list->filterWithResourceLink(ResourceType::xml());
+
+                            /*if($list->count() > 0) {
+                                $resourceDownloader->setMetadataList($list)
+                                ->saveTo($downloadsPath, true);
+                            }*/
+                            foreach ($list as $item) {
+                                dd($item);
+                                $item->saveTo($downloadsPath, true);
+
+                            }
+                            Notification::make()->title('Proceso Completado')->success()->send();
+                        })
+            ])
             ],ActionsPosition::BeforeColumns)
             ->headerActions([
                 Action::make('Descarga')

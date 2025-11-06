@@ -122,12 +122,12 @@
                 <h4>Totales</h4>
                 <table style="width: 98% !important;">
                     <tr>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">MONTO PAGADO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format($PagosTotales['MontoTotalPagos'],2)}}</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">BASE IVA 16%</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format($PagosTotales['TotalTrasladosBaseIVA16'],2)}}</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">IVA TRASLADADO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format($PagosTotales['TotalTrasladosImpuestoIVA16'],2)}}</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">MONTO PAGADO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format($PagosTotales['MontoTotalPagos'],2)}}<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">BASE IVA 16%<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format($PagosTotales['TotalTrasladosBaseIVA16'],2)}}<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">IVA TRASLADADO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$ '.number_format($PagosTotales['TotalTrasladosImpuestoIVA16'],2)}}<br><label style="color: white">&nbsp;</label></th>
                     </tr>
                 </table>
             </div>
@@ -136,15 +136,15 @@
                 <h4>Pagos</h4>
                 <table style="width: 98% !important;">
                     <tr>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">FOLIO DOCUMENTO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">UUID DOCUMENTO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">MONEDA</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">T. DE CAMBIO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">FORMA DE PAGO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">SALDO ANTERIOR</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">IMPORTE PAGADO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">SALDO INSOLUTO</th>
-                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">FECHA DE PAGO</th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">FOLIO DOCUMENTO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">UUID DOCUMENTO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">MONEDA<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">T. DE CAMBIO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">FORMA DE PAGO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">SALDO ANTERIOR<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">IMPORTE PAGADO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">SALDO INSOLUTO<br><label style="color: white">&nbsp;</label></th>
+                        <th style="font-weight: bold; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">FECHA DE PAGO<br><label style="color: white">&nbsp;</label></th>
                     </tr>
                     @foreach ($DetPagos as $DetallePago)
                         <?php
@@ -156,15 +156,15 @@
                             //dd($doc_ant);
                         ?>
                         <tr>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$factura->docto ?? ''}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;">{{substr($doc_ant['IdDocumento'],0,14)}}<br>{{substr($doc_ant['IdDocumento'],14,10)}}<br>{{substr($doc_ant['IdDocumento'],24,strlen($doc_ant['IdDocumento']))}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['MonedaDR']}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['TipoCambioP']}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['FormaDePagoP']}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpSaldoAnt'],2)}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpPagado'],2)}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpSaldoInsoluto'],2)}}</th>
-                            <th style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;">{{substr($DetallePago['FechaPago'],0,10)}}</th>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$factura->docto ?? ''}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;">{{substr($doc_ant['IdDocumento'],0,14)}}<br>{{substr($doc_ant['IdDocumento'],14,10)}}<br>{{substr($doc_ant['IdDocumento'],24,strlen($doc_ant['IdDocumento']))}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$doc_ant['MonedaDR']}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['TipoCambioP']}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{$DetallePago['FormaDePagoP']}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpSaldoAnt'],2)}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpPagado'],2)}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center">{{'$'.number_format($doc_ant['ImpSaldoInsoluto'],2)}}<br><label style="color: white">&nbsp;</label></td>
+                            <td style="font-weight: normal; border-style: solid; border-width: 2px; border-color: #1a1e21; text-align: center; align-content: center;">{{substr($DetallePago['FechaPago'],0,10)}}<br><label style="color: white">&nbsp;</label></td>
                         </tr>
                         @endforeach
                     @endforeach
@@ -174,16 +174,19 @@
             <div class="row" style="font-size: 8px !important; width: 98% !important; margin-top: 1rem !important;">
                 <label><b>Sello CFDI:</b></label><br>
                 <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloCFD'] ?? '', 150)}}</p>
+                <br><label style="color: white">&nbsp;</label>
             </div>
             <hr style="margin-top: -1rem !important;">
             <div class="row" style="font-size: 8px !important; width: 98% !important;margin-top: -1rem !important;">
                 <label style="margin-top: -0.1rem !important;"><b>Sello SAT:</b></label>
                 <p style="text-align: justify;text-justify: inter-word;">{{chunk_split($tfd['SelloSAT'] ?? '', 150)}}</p>
+                <br><label style="color: white">&nbsp;</label>
             </div>
             <hr style="margin-top: -1rem !important;">
             <div class="row" style="font-size: 8px !important; width: 98% !important; margin-top: -1rem !important;">
                 <label style="margin-top: -0.1rem !important;"><b>Cadena Original:</b></label>
                 <p style="font-size: 7px !important;">{{chunk_split($cadenaOrigen ?? '', 180)}}</p>
+                <br><label style="color: white">&nbsp;</label>
             </div>
             <hr style="margin-top: -1rem !important;">
     </div>

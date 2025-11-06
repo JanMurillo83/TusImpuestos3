@@ -8,6 +8,7 @@ use App\Models\DescargasArchivosSat;
 use App\Models\DescargasSolicitudesSat;
 use App\Models\Solicitudes;
 use App\Models\Team;
+use App\Models\ValidaDescargas;
 use App\Models\Xmlfiles;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
@@ -96,6 +97,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         FileUpload::make('archivocer')->label('FIEL CER')->required()->disk('public')->visibility('public')->columnSpan(2),
                         FileUpload::make('archivokey')->label('FIEL KEY')->required()->disk('public')->visibility('public')->columnSpan(2),
                         TextInput::make('fielpass')->label('Contraseña FIEL')->required()->password()->default($record->fielpass)->revealable(),
+                        TextInput::make('claveciec')->label('Clave CIEC')->required()->password()->default($record->fielpass)->revealable(),
                     ])->columns(4);
                 }),
                 Action::make('Limpiar')
@@ -110,135 +112,25 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     DB::statement("COMMIT;");
                     Notification::make()->title('Proceso Completado')->success()->send();
                 }),
-                Action::make('Descargar')
-                ->icon('fas-download')
-                ->label('Descargar')
-                ->form([
-                    DatePicker::make('fecha_inicial')
-                        ->label('Fecha Inicial')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
-                    DatePicker::make('fecha_final')
-                        ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
-                ])
-                ->action(function($record,$data){
-                    $team = $record;
-                    $fecha_inicial = $data['fecha_inicial'];
-                    $fecha_final = $data['fecha_final'];
-                    if($team->archivocer != '' && $team->archivokey != '') {
-                        $request = [
-                            'solicita' => $team->taxid,
-                            'rutacer' => storage_path().'/app/public/'.$team->archivocer,
-                            'rutakey' => storage_path().'/app/public/'.$team->archivokey,
-                            'inicio' => $fecha_inicial,
-                            'final' => $fecha_final,
-                            'version' => 1,
-                            'fielpass' => $team->fielpass
-                        ];
-                        $resultado = $this->solicitud($request);
-                        list($codigo,$mensaje) = explode('|',$resultado);
-                        if($codigo == 'Exito'){
-                            DescargasSolicitudesSat::create([
-                                'id_sat'=>$mensaje,
-                                'estatus'=>'Pendiente',
-                                'estado'=>'Solicitud',
-                                'team_id'=>$team->id,
-                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                'fecha_final'=>Carbon::create( $fecha_final),
-                                'fecha'=>Carbon::now(),
-                            ]);
-                        }else{
-                            DescargasSolicitudesSat::create([
-                                'id_sat'=>0,
-                                'estatus'=>$mensaje,
-                                'estado'=>'Error',
-                                'team_id'=>$team->id,
-                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                'fecha_final'=>Carbon::create( $fecha_final),
-                                'fecha'=>Carbon::now(),
-                            ]);
-                        }
-                        $resultado = $this->solicitud_rec($request);
-                        list($codigo,$mensaje) = explode('|',$resultado);
-                        if($codigo == 'Exito'){
-                            DescargasSolicitudesSat::create([
-                                'id_sat'=>$mensaje,
-                                'estatus'=>'Pendiente',
-                                'estado'=>'Solicitud',
-                                'team_id'=>$team->id,
-                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                'fecha_final'=>Carbon::create( $fecha_final),
-                                'fecha'=>Carbon::now(),
-                            ]);
-                        }else{
-                            DescargasSolicitudesSat::create([
-                                'id_sat'=>0,
-                                'estatus'=>$mensaje,
-                                'estado'=>'Error',
-                                'team_id'=>$team->id,
-                                'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                'fecha_final'=>Carbon::create( $fecha_final),
-                                'fecha'=>Carbon::now(),
-                            ]);
-                        }
-                        $solicitudes = DescargasSolicitudesSat::where('estatus','Pendiente')
-                        ->where('team_id',$record->id)->get();
-                        $codigos = [];
-                        foreach ($solicitudes as $solicitud)
-                        {
-                            $team = Team::where('id',$solicitud->team_id)->first();
-                            $request = [
-                                'solicita' => $team->taxid,
-                                'rutacer' => storage_path().'/app/public/'.$team->archivocer,
-                                'rutakey' => storage_path().'/app/public/'.$team->archivokey,
-                                'inicio' => $fecha_inicial,
-                                'final' => $fecha_final,
-                                'version' => 1,
-                                'requestId'=>$solicitud->id_sat,
-                                'fielpass' => $team->fielpass,
-                                'team_id'=>$team->id,
-                            ];
-                            $resultado = $this->verifica_solicitud($request);
-                            list($codigo,$mensaje) = explode('|',$resultado);
-                            $codigos[] = [
-                                'codigo'=>$codigo,
-                                'mensaje'=>$mensaje,
-                                'solicitud'=>$solicitud->id_sat,
-                            ];
-                        }
-                        $archivos = DescargasArchivosSat::where('estado','Pendiente')
-                            ->where('team_id',$record->id)->get();
-                        foreach ($archivos as $archivo)
-                        {
-                            $team_ = Team::where('id',$archivo->team_id)->first();
-                            $team = $team_->id;
-                            $taxid = $team_->taxid;
-                            $this->extrae_archivos($archivo->archivo,$archivo->id_sat,$archivo->id,$team,$taxid);
-                        }
-                        //dd($codigos);
-                        Notification::make()->title('Proceso Completado')->success()->send();
-                    }
-                 }),
-                    Action::make('Metadata')
-                        ->icon('fas-file-archive')
-                        ->label('Metadata')
+                    Action::make('Descargas')
+                        ->icon('fas-download')
+                        ->label('Descargar')
                         ->form([
                             DatePicker::make('fecha_inicial')
                                 ->label('Fecha Inicial')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
                             DatePicker::make('fecha_final')
                                 ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
-                            TextInput::make('Solicitud'),
-                            TextInput::make('Status'),
-                            TextInput::make('Paquete_ID'),
-                            TextInput::make('Estado'),
                         ])
                         ->action(function($record,$data) {
-
                             $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
                             $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
-                            $rfc = 'NIMA831222HZ9';
-                            $claveCiec = 'eli11088';
+                            $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
+                            $rfc = $record->taxid;
+                            $claveCiec = $record->claveciec;
                             $cookieJarPath = storage_path().'/app/public/cookies/';
                             $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
-                            $downloadsPath = storage_path().'/app/public/cfdis/'.$rfc;
+                            $downloadsPath = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/';
+                            $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
                             if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
                             if (!is_dir($downloadsPath)) {mkdir($downloadsPath, 0777, true);}
                             if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
@@ -246,33 +138,30 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
                             ]);
                             $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-
                             $configsFile = storage_path().'/app/public/Aimodel/configs.yaml';
                             $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
-
                             $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
-
                             $satScraper = new SatScraper($ciecSessionManager, $gateway);
-
-                            $resourceDownloader = $satScraper->resourceDownloader(ResourceType::xml())
-                                ->setConcurrency(20);
-
                             $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                            $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos()) // default: emitidos
-                            ->setStateVoucher(StatesVoucherOption::vigentes());   // default: todos
-
+                            $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
                             $list = $satScraper->listByPeriod($query);
-                            $list = $list->filterWithResourceLink(ResourceType::xml());
-
-                            /*if($list->count() > 0) {
-                                $resourceDownloader->setMetadataList($list)
-                                ->saveTo($downloadsPath, true);
-                            }*/
-                            foreach ($list as $item) {
-                                dd($item);
-                                $item->saveTo($downloadsPath, true);
-
-                            }
+                            $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath, true, 0777);
+                            $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
+                            $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                            $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
+                            $list2 = $satScraper->listByPeriod($query2);
+                            $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath, true, 0777);
+                            $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
+                            $this->ProcesaArchivoZ_F($downloadsPath,$record->id,$rfc);
+                            ValidaDescargas::create([
+                                'fecha'=>Carbon::now(),
+                                'inicio'=>$fecha_inicial,
+                                'fin'=>$fecha_final,
+                                'recibidos'=>$list2->count(),
+                                'emitidos'=>$list->count(),
+                                'estado'=>'Completado',
+                                'team_id'=>$record->id
+                            ]);
                             Notification::make()->title('Proceso Completado')->success()->send();
                         })
             ])
@@ -289,150 +178,77 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 ])
                 ->action(function($data){
                     $teams = Team::all();
-                    $fecha_inicial = $data['fecha_inicial'];
-                    $fecha_final = $data['fecha_final'];
-                    //dd($fecha_inicial,$fecha_final);
-                    foreach ($teams as $team)
-                    {
-                        if($team->archivocer != '' && $team->archivokey != '') {
-                            $request = [
-                                'solicita' => $team->taxid,
-                                'rutacer' => storage_path().'/app/public/'.$team->archivocer,
-                                'rutakey' => storage_path().'/app/public/'.$team->archivokey,
+                    $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
+                    $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
+                    $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
+                    foreach ($teams as $record) {
+                        $rfc = $record->taxid;
+                        $claveCiec = $record?->claveciec ?? 'NA';
+                        try {
+                            if ($claveCiec != 'NA') {
+                                $cookieJarPath = storage_path() . '/app/public/cookies/';
+                                $cookieJarFile = storage_path() . '/app/public/cookies/' . $rfc . '.json';
+                                $downloadsPath = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/';
+                                $downloadsPath2 = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';
+                                if (!is_dir($cookieJarPath)) {
+                                    mkdir($cookieJarPath, 0777, true);
+                                }
+                                if (!is_dir($downloadsPath)) {
+                                    mkdir($downloadsPath, 0777, true);
+                                }
+                                if (!file_exists($cookieJarFile)) {
+                                    fopen($cookieJarFile, 'w');
+                                }
+                                $client = new Client([
+                                    'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
+                                ]);
+                                $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
+                                $configsFile = storage_path() . '/app/public/Aimodel/configs.yaml';
+                                $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
+                                $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
+                                $satScraper = new SatScraper($ciecSessionManager, $gateway);
+                                $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                                $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
+                                $list = $satScraper->listByPeriod($query);
+                                $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath, true, 0777);
+                                $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
+                                $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                                $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
+                                $list2 = $satScraper->listByPeriod($query2);
+                                $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath, true, 0777);
+                                $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
+                                $this->ProcesaArchivoZ_F($downloadsPath, $record->id, $rfc);
+                                ValidaDescargas::create([
+                                    'fecha' => Carbon::now(),
+                                    'inicio' => $fecha_inicial,
+                                    'fin' => $fecha_final,
+                                    'recibidos' => $list2->count(),
+                                    'emitidos' => $list->count(),
+                                    'estado' => 'Completado',
+                                    'team_id' => $record->id
+                                ]);
+                            } else {
+                                ValidaDescargas::create([
+                                    'fecha' => Carbon::now(),
+                                    'inicio' => $fecha_inicial,
+                                    'fin' => $fecha_final,
+                                    'recibidos' => 0,
+                                    'emitidos' => 0,
+                                    'estado' => 'Error no existe CIEC',
+                                    'team_id' => $record->id
+                                ]);
+                            }
+                        }catch (\Exception $e) {
+                            ValidaDescargas::create([
+                                'fecha' => Carbon::now(),
                                 'inicio' => $fecha_inicial,
-                                'final' => $fecha_final,
-                                'version' => 1,
-                                'fielpass' => $team->fielpass
-                            ];
-                            $resultado = $this->solicitud($request);
-                            list($codigo,$mensaje) = explode('|',$resultado);
-                            if($codigo == 'Exito'){
-                                DescargasSolicitudesSat::create([
-                                    'id_sat'=>$mensaje,
-                                    'estatus'=>'Pendiente',
-                                    'estado'=>'Solicitud',
-                                    'team_id'=>$team->id,
-                                    'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                    'fecha_final'=>Carbon::create( $fecha_final),
-                                    'fecha'=>Carbon::now(),
-                                ]);
-                            }else{
-                                DescargasSolicitudesSat::create([
-                                    'id_sat'=>0,
-                                    'estatus'=>$mensaje,
-                                    'estado'=>'Error',
-                                    'team_id'=>$team->id,
-                                    'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                    'fecha_final'=>Carbon::create( $fecha_final),
-                                    'fecha'=>Carbon::now(),
-                                ]);
-                            }
-                            $resultado = $this->solicitud_rec($request);
-                            list($codigo,$mensaje) = explode('|',$resultado);
-                            if($codigo == 'Exito'){
-                                DescargasSolicitudesSat::create([
-                                    'id_sat'=>$mensaje,
-                                    'estatus'=>'Pendiente',
-                                    'estado'=>'Solicitud',
-                                    'team_id'=>$team->id,
-                                    'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                    'fecha_final'=>Carbon::create( $fecha_final),
-                                    'fecha'=>Carbon::now(),
-                                ]);
-                            }else{
-                                DescargasSolicitudesSat::create([
-                                    'id_sat'=>0,
-                                    'estatus'=>$mensaje,
-                                    'estado'=>'Error',
-                                    'team_id'=>$team->id,
-                                    'fecha_inicial'=>Carbon::create( $fecha_inicial),
-                                    'fecha_final'=>Carbon::create( $fecha_final),
-                                    'fecha'=>Carbon::now(),
-                                ]);
-                            }
-                            //dd($resultado);
+                                'fin' => $fecha_final,
+                                'recibidos' => 0,
+                                'emitidos' => 0,
+                                'estado' => $e->getMessage(),
+                                'team_id' => $record->id
+                            ]);
                         }
-                    }
-                    $solicitudes = DescargasSolicitudesSat::where('estatus','Pendiente')->get();
-                    $codigos = [];
-                    foreach ($solicitudes as $solicitud)
-                    {
-                        $team = Team::where('id',$solicitud->team_id)->first();
-                        $request = [
-                            'solicita' => $team->taxid,
-                            'rutacer' => storage_path().'/app/public/'.$team->archivocer,
-                            'rutakey' => storage_path().'/app/public/'.$team->archivokey,
-                            'inicio' => $fecha_inicial,
-                            'final' => $fecha_final,
-                            'version' => 1,
-                            'requestId'=>$solicitud->id_sat,
-                            'fielpass' => $team->fielpass,
-                            'team_id'=>$team->id,
-                        ];
-                        $resultado = $this->verifica_solicitud($request);
-                        list($codigo,$mensaje) = explode('|',$resultado);
-                        $codigos[] = [
-                            'codigo'=>$codigo,
-                            'mensaje'=>$mensaje,
-                            'solicitud'=>$solicitud->id_sat,
-                        ];
-                    }
-                    $archivos = DescargasArchivosSat::where('estado','Pendiente')->get();
-                    foreach ($archivos as $archivo)
-                    {
-                        $team_ = Team::where('id',$archivo->team_id)->first();
-                        $team = $team_->id;
-                        $taxid = $team_->taxid;
-                        $this->extrae_archivos($archivo->archivo,$archivo->id_sat,$archivo->id,$team,$taxid);
-                    }
-                    //dd($codigos);
-                    Notification::make()->title('Proceso Completado')->success()->send();
-                }),
-                Action::make('Verificar')
-                ->label('Verificar')
-                ->icon('fas-check')
-                ->action(function(){
-                    $solicitudes = DescargasSolicitudesSat::where('estatus','Pendiente')->get();
-                    $codigos = [];
-                    foreach ($solicitudes as $solicitud)
-                    {
-                        $team = Team::where('id',$solicitud->team_id)->first();
-                        $request = [
-                            'solicita' => $team->taxid,
-                            'rutacer' => storage_path().'/app/public/'.$team->archivocer,
-                            'rutakey' => storage_path().'/app/public/'.$team->archivokey,
-                            'inicio' => $solicitud->fecha_inicial,
-                            'final' => $solicitud->fecha_final,
-                            'version' => 1,
-                            'requestId'=>$solicitud->id_sat,
-                            'fielpass' => $team->fielpass,
-                            'team_id'=>$team->id,
-                        ];
-                        $resultado = $this->verifica_solicitud($request);
-                        //dd($resultado);
-                        list($codigo,$mensaje) = explode('|',$resultado);
-                        $codigos[] = [
-                            'codigo'=>$codigo,
-                            'mensaje'=>$mensaje,
-                            'solicitud'=>$solicitud->id_sat,
-                            'id_sat'=>$solicitud->id,
-                        ];
-
-                    }
-                    //dd($codigos);
-                    Notification::make()->title('Proceso Completado')->success()->send();
-                }),
-                Action::make('Extraer')
-                ->icon('fas-file-archive')
-                ->label('Extraer')
-                ->action(function(){
-                    $archivos = DescargasArchivosSat::where('estado','Pendiente')->get();
-                    foreach ($archivos as $archivo)
-                    {
-                        $team_ = Team::where('id',$archivo->team_id)->first();
-                        $team = $team_->id;
-                        $taxid = $team_->taxid;
-                        $this->extrae_archivos($archivo->archivo,$archivo->id_sat,$archivo->id,$team,$taxid);
                     }
                     Notification::make()->title('Proceso Completado')->success()->send();
                 }),
@@ -453,208 +269,6 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 })
             ]);
     }
-
-    public function solicitud_meta(array $request)
-    {
-        try {
-            $solicita = $request['solicita'];
-            $rutacer = $request['rutacer'];
-            $rutakey = $request['rutakey'];
-            $inicial = $request['inicio'];
-            $final = $request['final'];
-            $version = $request['version'];
-            $fielpass = $request['fielpass'];
-            //$tiposol = $request['tipo'];
-            $fiel = Fiel::create(
-                file_get_contents($rutacer),
-                file_get_contents($rutakey),
-                $fielpass
-            );
-            $webClient = new GuzzleWebClient();
-            $requestBuilder = new FielRequestBuilder($fiel);
-            $service = new Service($requestBuilder, $webClient);
-            $fechainicial = $inicial . ' ' . '00:00:00';
-            $fechafinal = $final . ' ' . '23:59:' . str_pad($version, 2, "0", STR_PAD_LEFT);
-            $requestsol = QueryParameters::create()
-                ->withPeriod(DateTimePeriod::createFromValues($fechainicial, $fechafinal))
-                ->withRequestType(RequestType::metadata());
-            $query = $service->query($requestsol);
-            if (!$query->getStatus()->isAccepted()) {
-                //dd("Fallo al presentar la consulta: {$query->getStatus()->getMessage()}");
-                return 'Error|' . $query->getStatus()->getMessage();
-            }
-            return 'Exito|' .$query->getRequestId();
-        }catch (\Exception $e){
-            return 'Error|' . $e->getMessage();
-        }
-    }
-    public function solicitud(array $request)
-    {
-        try {
-            $solicita = $request['solicita'];
-            $rutacer = $request['rutacer'];
-            $rutakey = $request['rutakey'];
-            $inicial = $request['inicio'];
-            $final = $request['final'];
-            $version = $request['version'];
-            $fielpass = $request['fielpass'];
-            //$tiposol = $request['tipo'];
-            $fiel = Fiel::create(
-                file_get_contents($rutacer),
-                file_get_contents($rutakey),
-                $fielpass
-            );
-            $webClient = new GuzzleWebClient();
-            $requestBuilder = new FielRequestBuilder($fiel);
-            $service = new Service($requestBuilder, $webClient);
-            $fechainicial = $inicial . ' ' . '00:00:00';
-            $fechafinal = $final . ' ' . '23:59:' . str_pad($version, 2, "0", STR_PAD_LEFT);
-            $requestsol = QueryParameters::create()
-                ->withPeriod(DateTimePeriod::createFromValues($fechainicial, $fechafinal))
-                ->withRequestType(RequestType::xml())
-                ->withDownloadType(DownloadType::issued())
-                ->withDocumentStatus(DocumentStatus::active());
-            $query = $service->query($requestsol);
-            if (!$query->getStatus()->isAccepted()) {
-                //dd("Fallo al presentar la consulta: {$query->getStatus()->getMessage()}");
-                return 'Error|' . $query->getStatus()->getMessage();
-            }
-            return 'Exito|' . $query->getRequestId();
-        }catch (\Exception $e){
-            return 'Error|' . $e->getMessage();
-        }
-    }
-
-    public function solicitud_rec(array $request)
-    {
-        try {
-            $solicita = $request['solicita'];
-            $rutacer = $request['rutacer'];
-            $rutakey = $request['rutakey'];
-            $inicial = $request['inicio'];
-            $final = $request['final'];
-            $version = $request['version'];
-            $fielpass = $request['fielpass'];
-            //$tiposol = $request['tipo'];
-            $fiel = Fiel::create(
-                file_get_contents($rutacer),
-                file_get_contents($rutakey),
-                $fielpass
-            );
-            $webClient = new GuzzleWebClient();
-            $requestBuilder = new FielRequestBuilder($fiel);
-            $service = new Service($requestBuilder, $webClient);
-            $fechainicial = $inicial . ' ' . '00:00:00';
-            $fechafinal = $final . ' ' . '23:59:' . str_pad($version, 2, "0", STR_PAD_LEFT);
-            $requestsol = QueryParameters::create()
-                ->withPeriod(DateTimePeriod::createFromValues($fechainicial, $fechafinal))
-                ->withRequestType(RequestType::xml())
-                ->withDownloadType(DownloadType::received())
-                ->withDocumentStatus(DocumentStatus::active());
-            $query = $service->query($requestsol);
-            if (!$query->getStatus()->isAccepted()) {
-                //dd("Fallo al presentar la consulta: {$query->getStatus()->getMessage()}");
-                return 'Error|' . $query->getStatus()->getMessage();
-            }
-            return 'Exito|' . $query->getRequestId();
-        }catch (\Exception $e){
-            return 'Error|' . $e->getMessage();
-        }
-    }
-
-    public function verifica_solicitud(array $request)
-    {
-        $solicita = $request['solicita'];
-        $rutacer = $request['rutacer'];
-        $rutakey = $request['rutakey'];
-        $requestId = $request['requestId'];
-        $fielpass = $request['fielpass'];
-        $team_id = $request['team_id'];
-        $fiel = Fiel::create(
-            file_get_contents($rutacer),
-            file_get_contents($rutakey),
-            $fielpass
-        );
-        $webClient = new GuzzleWebClient();
-        $requestBuilder = new FielRequestBuilder($fiel);
-        $service = new Service($requestBuilder, $webClient);
-        $verify = $service->verify($requestId);
-        //dd($verify);
-        if (! $verify->getStatus()->isAccepted()) {
-            DescargasSolicitudesSat::where('id_sat',$requestId)->update([
-                'estado'=>$verify->getStatus()->getMessage(),
-                'estatus'=>'Terminado'
-            ]);
-            return 'Error|'.$verify->getStatus()->getMessage();
-        }
-
-        if (! $verify->getCodeRequest()->isAccepted()) {
-            DescargasSolicitudesSat::where('id_sat',$requestId)->update([
-                'estado'=>$verify->getCodeRequest()->getMessage(),
-                'estatus'=>'Terminado'
-            ]);
-            return 'Error|'.$verify->getCodeRequest()->getMessage();
-        }
-
-        $statusRequest = $verify->getStatusRequest();
-        if ($statusRequest->isExpired() || $statusRequest->isFailure() || $statusRequest->isRejected()) {
-        DescargasSolicitudesSat::where('id_sat',$requestId)->update([
-                'estado'=>'Error, Solicitud Invalida',
-                'estatus'=>'Terminado'
-            ]);
-            return 'Error|La Solicitud No se pudo completar';
-        }
-        if ($statusRequest->isInProgress()) {
-            DescargasSolicitudesSat::where('id_sat',$requestId)->update([
-                'estado'=>'Procesando Descarga'
-            ]);
-            return 'Proceso|La Solicitud se sigue Procesando';
-        }
-
-        foreach ($verify->getPackagesIds() as $packageId) {
-            $download = $service->download($packageId);
-            if (! $download->getStatus()->isAccepted()) {
-                continue;
-            }
-            $zipfile = \storage_path().'/app/public/zipdescargas/'."$packageId.zip";
-            file_put_contents($zipfile, $download->getPackageContent());
-            DescargasArchivosSat::create([
-                'id_sat'=>$requestId,
-                'team_id'=>$team_id,
-                'fecha'=>Carbon::now(),
-                'archivo'=>$zipfile,
-                'estado'=>'Pendiente'
-            ]);
-        }
-        DescargasSolicitudesSat::where('id_sat',$requestId)->update([
-            'estado'=>'Archivo Descargado',
-            'estatus'=>'Terminado'
-        ]);
-        return 'Exito|Terminado';
-    }
-
-    public function extrae_archivos($zipfile,$solicitud,$id_zip,$team,$taxid): void
-    {
-        $archivo = $zipfile;
-        $desfile = \storage_path().'/app/public/zipdescargas/'.$solicitud.'/';
-        $zip = new \ZipArchive;
-        $msj = '';
-        if ($zip->open($archivo) === TRUE) {
-            $zip->extractTo($desfile);
-            $zip->close();
-            $msj = 'Extraido';
-            DescargasArchivosSat::where('id',$id_zip)->update([
-                'estado'=>$msj
-            ]);
-            $this->ProcesaArchivoZ_F($desfile,$team,$taxid);
-        } else {
-            $msj = 'Error al extraer';
-            DescargasArchivosSat::where('id',$id_zip)->update([
-                'estado'=> $msj
-            ]);
-        }
-    }
-
     public function ProcesaArchivoZ_F($archivo,$team,$taxid): int
     {
         $files = array_diff(scandir($archivo), array('.', '..'));

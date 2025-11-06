@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('almacencfdis', function (Blueprint $table) {
+        Schema::table('teams', function (Blueprint $table) {
             $table->string('claveciec')->nullable();
+        });
+        Schema::table('almacencfdis', function (Blueprint $table) {
+            $table->text('archivoxml')->nullable();
+            $table->text('archivopdf')->nullable();
         });
     }
 

@@ -84,6 +84,14 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 TextColumn::make('name')->label('Razón Social')->searchable(),
                 TextColumn::make('archivocer')->label('FIEL CER'),
                 TextColumn::make('archivokey')->label('FIEL KEY'),
+                TextColumn::make('claveciec')->label('CIEC')
+                ->formatStateUsing(function ($state) {
+                    if($state != ''){
+                        return 'Si';
+                    }else{
+                        return 'No';
+                    }
+                }),
             ])
             ->actions([
                 ActionGroup::make([
@@ -129,10 +137,12 @@ class DescargasSAT extends Page implements HasTable,HasForms
                             $claveCiec = $record->claveciec;
                             $cookieJarPath = storage_path().'/app/public/cookies/';
                             $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
-                            $downloadsPath = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/';
+                            $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
+                            $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
                             $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
                             if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
-                            if (!is_dir($downloadsPath)) {mkdir($downloadsPath, 0777, true);}
+                            if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
+                            if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
                             if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
                             $client = new Client([
                                 'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
@@ -145,14 +155,16 @@ class DescargasSAT extends Page implements HasTable,HasForms
                             $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
                             $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
                             $list = $satScraper->listByPeriod($query);
-                            $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath, true, 0777);
+                            $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath_EMI, true, 0777);
                             $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
+                            $this->ProcesaEmitidos($downloadsPath_EMI,$record->id);
                             $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
                             $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
                             $list2 = $satScraper->listByPeriod($query2);
-                            $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath, true, 0777);
+                            $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath_REC, true, 0777);
                             $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
-                            $this->ProcesaArchivoZ_F($downloadsPath,$record->id,$rfc);
+                            $this->ProcesaRecibidos($downloadsPath_REC,$record->id);
+                            $this->ProcesaPDF($downloadsPath2,$record->id);
                             ValidaDescargas::create([
                                 'fecha'=>Carbon::now(),
                                 'inicio'=>$fecha_inicial,
@@ -184,17 +196,21 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     foreach ($teams as $record) {
                         $rfc = $record->taxid;
                         $claveCiec = $record?->claveciec ?? 'NA';
-                        try {
-                            if ($claveCiec != 'NA') {
+                        if($claveCiec != 'NA') {
+                            try {
                                 $cookieJarPath = storage_path() . '/app/public/cookies/';
                                 $cookieJarFile = storage_path() . '/app/public/cookies/' . $rfc . '.json';
-                                $downloadsPath = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/';
+                                $downloadsPath_REC = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/RECIBIDOS/';
+                                $downloadsPath_EMI = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/EMITIDOS/';
                                 $downloadsPath2 = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';
                                 if (!is_dir($cookieJarPath)) {
                                     mkdir($cookieJarPath, 0777, true);
                                 }
-                                if (!is_dir($downloadsPath)) {
-                                    mkdir($downloadsPath, 0777, true);
+                                if (!is_dir($downloadsPath_REC)) {
+                                    mkdir($downloadsPath_REC, 0777, true);
+                                }
+                                if (!is_dir($downloadsPath_EMI)) {
+                                    mkdir($downloadsPath_EMI, 0777, true);
                                 }
                                 if (!file_exists($cookieJarFile)) {
                                     fopen($cookieJarFile, 'w');
@@ -210,14 +226,16 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
                                 $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
                                 $list = $satScraper->listByPeriod($query);
-                                $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath, true, 0777);
+                                $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath_EMI, true, 0777);
                                 $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
+                                $this->ProcesaEmitidos($downloadsPath_EMI, $record->id);
                                 $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
                                 $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
                                 $list2 = $satScraper->listByPeriod($query2);
-                                $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath, true, 0777);
+                                $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath_REC, true, 0777);
                                 $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
-                                $this->ProcesaArchivoZ_F($downloadsPath, $record->id, $rfc);
+                                $this->ProcesaRecibidos($downloadsPath_REC, $record->id);
+                                $this->ProcesaPDF($downloadsPath2, $record->id);
                                 ValidaDescargas::create([
                                     'fecha' => Carbon::now(),
                                     'inicio' => $fecha_inicial,
@@ -227,27 +245,17 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                     'estado' => 'Completado',
                                     'team_id' => $record->id
                                 ]);
-                            } else {
+                            } catch (\Exception $e) {
                                 ValidaDescargas::create([
                                     'fecha' => Carbon::now(),
                                     'inicio' => $fecha_inicial,
                                     'fin' => $fecha_final,
                                     'recibidos' => 0,
                                     'emitidos' => 0,
-                                    'estado' => 'Error no existe CIEC',
+                                    'estado' => $e->getMessage(),
                                     'team_id' => $record->id
                                 ]);
                             }
-                        }catch (\Exception $e) {
-                            ValidaDescargas::create([
-                                'fecha' => Carbon::now(),
-                                'inicio' => $fecha_inicial,
-                                'fin' => $fecha_final,
-                                'recibidos' => 0,
-                                'emitidos' => 0,
-                                'estado' => $e->getMessage(),
-                                'team_id' => $record->id
-                            ]);
                         }
                     }
                     Notification::make()->title('Proceso Completado')->success()->send();
@@ -266,8 +274,263 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         DB::statement("COMMIT;");
                     }
                     Notification::make()->title('Proceso Completado')->success()->send();
+                }),
+                Action::make('Archivos PDF')
+                ->icon('fas-file-pdf')
+                ->label('Archivos PDF')
+                ->action(function(){
+                    $teams = Team::all();
+                    foreach ($teams as $team) {
+                        $ciecc = $team?->claveciec ?? 'NA';
+                        if($ciecc != 'NA') {
+                            $rfc = $team->taxid;
+                            $hoy = Carbon::now()->format('d') . Carbon::now()->format('m') . Carbon::now()->format('Y');
+                            $archivo = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';
+                            $files = array_diff(scandir($archivo), array('.', '..'));
+                            foreach ($files as $desfile) {
+                                try {
+                                    $file = $archivo . $desfile;
+                                    $fileInfo = pathinfo($file);
+                                    $uuid = strtoupper($fileInfo['filename']);
+                                    DB::table('almacencfdis')->where(DB::raw("UPPER(UUID)"), $uuid)->update([
+                                        'archivopdf' => $file,
+                                    ]);
+                                } catch (\Exception $e) {
+                                    dd($file, $e->getMessage());
+                                }
+                            }
+                        }
+                    }
                 })
             ]);
+    }
+
+    public function ProcesaRecibidos($archivo,$team): void
+    {
+        $files = array_diff(scandir($archivo), array('.', '..'));
+        foreach($files as $desfile) {
+            $file = $archivo . $desfile;
+            try{
+                $xmlContents = \file_get_contents($file);
+                $cfdi = Cfdi::newFromString($xmlContents);
+                $comprobante = $cfdi->getNode();
+                //dd($comprobante);
+                $emisor = $comprobante->searchNode('cfdi:Emisor');
+                $receptor = $comprobante->searchNode('cfdi:Receptor');
+                $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+                $impuestos = $comprobante->searchNode('cfdi:Impuestos');
+                $tipocom = $comprobante['TipoDeComprobante'];
+                $subtotal = 0;
+                $descuento = 0;
+                $traslado = 0;
+                $retencion = 0;
+                $total = 0;
+                $tipocambio = 0;
+                if ($tipocom != 'P') {
+                    $subtotal = floatval($comprobante['SubTotal']);
+                    $descuento = floatval($comprobante['Descuento']);
+                    if (isset($impuestos['TotalImpuestosTrasladados'])) $traslado = floatval($impuestos['TotalImpuestosTrasladados']);
+                    if (isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
+                    $total = floatval($comprobante['Total']);
+                    $tipocambio = floatval($comprobante['TipoCambio']);
+                }
+                else
+                {
+                    if (!isset($pagoscom))
+                    {
+                        $pagostot = floatval(0.00);
+                        $subtotal = floatval(0.00);
+                        $traslado = floatval(0.00);
+                        $retencion = floatval(0.00);
+                        $total = floatval(0.00);
+                        $tipocambio = 1;
+                    }
+                    $pagostot = $pagoscom->searchNode('pago20:Totales');
+                    $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
+                    $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
+                    $retencion = floatval(0.00);
+                    $total = floatval($pagostot['MontoTotalPagos']);
+                    $tipocambio = 1;
+                }
+                $xmlContenido = \file_get_contents($file, false);
+                //dd($xmlContenido);
+                $fech = $comprobante['Fecha'];
+                list($fechacom, $horacom) = explode('T', $fech);
+                list($aniocom, $mescom, $diacom) = explode('-', $fechacom);
+                $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])
+                    ->where('team_id',$team)
+                    ->where('xml_type','Recibidos')->exists();
+                if (!$uuid_v) {
+                    Almacencfdis::firstOrCreate([
+                        'Serie' => $comprobante['Serie'],
+                        'Folio' => $comprobante['Folio'],
+                        'Version' => $comprobante['Version'],
+                        'Fecha' => $comprobante['Fecha'],
+                        'Moneda' => $comprobante['Moneda'],
+                        'TipoDeComprobante' => $comprobante['TipoDeComprobante'],
+                        'MetodoPago' => $comprobante['MetodoPago'],
+                        'Emisor_Rfc' => $emisor['Rfc'],
+                        'Emisor_Nombre' => $emisor['Nombre'],
+                        'Emisor_RegimenFiscal' => $emisor['RegimenFiscal'],
+                        'Receptor_Rfc' => $receptor['Rfc'],
+                        'Receptor_Nombre' => $receptor['Nombre'],
+                        'Receptor_RegimenFiscal' => $receptor['RegimenFiscal'],
+                        'UUID' => $tfd['UUID'],
+                        'Total' => $total,
+                        'SubTotal' => $subtotal,
+                        'Descuento' => $descuento,
+                        'TipoCambio' => $tipocambio,
+                        'TotalImpuestosTrasladados' => $traslado,
+                        'TotalImpuestosRetenidos' => $retencion,
+                        'content' => $xmlContenido,
+                        'user_tax' => $emisor['Rfc'],
+                        'used' => 'NO',
+                        'xml_type' => 'Recibidos',
+                        'periodo' => intval($mescom),
+                        'ejercicio' => intval($aniocom),
+                        'team_id' => $team,
+                        'archivoxml'=>$file
+                    ]);
+                    Xmlfiles::firstOrCreate([
+                        'taxid' => $emisor['Rfc'],
+                        'uuid' => $tfd['UUID'],
+                        'content' => $xmlContenido,
+                        'periodo' => $mescom,
+                        'ejercicio' => $aniocom,
+                        'tipo' => 'Recibidos',
+                        'solicitud' => 'Importacion',
+                        'team_id' => $team,
+
+                    ]);
+                }
+            }
+            catch (\Exception $e){
+                dd($file,$e->getMessage());
+            }
+        }
+    }
+
+    public function ProcesaEmitidos($archivo,$team): void
+    {
+        $files = array_diff(scandir($archivo), array('.', '..'));
+        foreach($files as $desfile) {
+            $file = $archivo . $desfile;
+            try{
+                $xmlContents = \file_get_contents($file);
+                $cfdi = Cfdi::newFromString($xmlContents);
+                $comprobante = $cfdi->getNode();
+                //dd($comprobante);
+                $emisor = $comprobante->searchNode('cfdi:Emisor');
+                $receptor = $comprobante->searchNode('cfdi:Receptor');
+                $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+                $impuestos = $comprobante->searchNode('cfdi:Impuestos');
+                $tipocom = $comprobante['TipoDeComprobante'];
+                $subtotal = 0;
+                $descuento = 0;
+                $traslado = 0;
+                $retencion = 0;
+                $total = 0;
+                $tipocambio = 0;
+                if ($tipocom != 'P') {
+                    $subtotal = floatval($comprobante['SubTotal']);
+                    $descuento = floatval($comprobante['Descuento']);
+                    if (isset($impuestos['TotalImpuestosTrasladados'])) $traslado = floatval($impuestos['TotalImpuestosTrasladados']);
+                    if (isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
+                    $total = floatval($comprobante['Total']);
+                    $tipocambio = floatval($comprobante['TipoCambio']);
+                }
+                else
+                {
+                    if (!isset($pagoscom))
+                    {
+                        $pagostot = floatval(0.00);
+                        $subtotal = floatval(0.00);
+                        $traslado = floatval(0.00);
+                        $retencion = floatval(0.00);
+                        $total = floatval(0.00);
+                        $tipocambio = 1;
+                    }
+                    $pagostot = $pagoscom->searchNode('pago20:Totales');
+                    $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
+                    $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
+                    $retencion = floatval(0.00);
+                    $total = floatval($pagostot['MontoTotalPagos']);
+                    $tipocambio = 1;
+                }
+                $xmlContenido = \file_get_contents($file, false);
+                //dd($xmlContenido);
+                $fech = $comprobante['Fecha'];
+                list($fechacom, $horacom) = explode('T', $fech);
+                list($aniocom, $mescom, $diacom) = explode('-', $fechacom);
+                $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])
+                    ->where('team_id',$team)
+                    ->where('xml_type','Emitidos')->exists();
+                if (!$uuid_v) {
+                    Almacencfdis::firstOrCreate([
+                        'Serie' => $comprobante['Serie'],
+                        'Folio' => $comprobante['Folio'],
+                        'Version' => $comprobante['Version'],
+                        'Fecha' => $comprobante['Fecha'],
+                        'Moneda' => $comprobante['Moneda'],
+                        'TipoDeComprobante' => $comprobante['TipoDeComprobante'],
+                        'MetodoPago' => $comprobante['MetodoPago'],
+                        'Emisor_Rfc' => $emisor['Rfc'],
+                        'Emisor_Nombre' => $emisor['Nombre'],
+                        'Emisor_RegimenFiscal' => $emisor['RegimenFiscal'],
+                        'Receptor_Rfc' => $receptor['Rfc'],
+                        'Receptor_Nombre' => $receptor['Nombre'],
+                        'Receptor_RegimenFiscal' => $receptor['RegimenFiscal'],
+                        'UUID' => $tfd['UUID'],
+                        'Total' => $total,
+                        'SubTotal' => $subtotal,
+                        'Descuento' => $descuento,
+                        'TipoCambio' => $tipocambio,
+                        'TotalImpuestosTrasladados' => $traslado,
+                        'TotalImpuestosRetenidos' => $retencion,
+                        'content' => $xmlContenido,
+                        'user_tax' => $emisor['Rfc'],
+                        'used' => 'NO',
+                        'xml_type' => 'Emitidos',
+                        'periodo' => intval($mescom),
+                        'ejercicio' => intval($aniocom),
+                        'team_id' => $team,
+                        'archivoxml'=>$file
+                    ]);
+                    Xmlfiles::firstOrCreate([
+                        'taxid' => $emisor['Rfc'],
+                        'uuid' => $tfd['UUID'],
+                        'content' => $xmlContenido,
+                        'periodo' => $mescom,
+                        'ejercicio' => $aniocom,
+                        'tipo' => 'Emitidos',
+                        'solicitud' => 'Importacion',
+                        'team_id' => $team
+                    ]);
+                }
+            }
+            catch (\Exception $e){
+                dd($file,$e->getMessage());
+            }
+        }
+    }
+
+    public function ProcesaPDF($archivo,$team): void
+    {
+        $files = array_diff(scandir($archivo), array('.', '..'));
+        foreach($files as $desfile) {
+            try {
+                $file = $archivo . $desfile;
+                $fileInfo = pathinfo($file);
+                $uuid = strtoupper($fileInfo['filename']);
+                DB::table('almacencfdis')->where(DB::raw("UPPER(UUID)"), $uuid)->update([
+                    'archivopdf' => $file,
+                ]);
+            }catch (\Exception $e){
+                dd($file,$e->getMessage());
+            }
+        }
     }
     public function ProcesaArchivoZ_F($archivo,$team,$taxid): int
     {
@@ -303,7 +566,8 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     }
                     else
                     {
-                        if (!isset($pagoscom)) {
+                        if (!isset($pagoscom))
+                        {
                             $pagostot = floatval(0.00);
                             $subtotal = floatval(0.00);
                             $traslado = floatval(0.00);

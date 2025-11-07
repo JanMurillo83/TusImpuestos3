@@ -30,10 +30,12 @@ use Filament\Support\RawJs;
 use Filament\Tables\Enums\ActionsPosition;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Excel;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use PHPUnit\Metadata\Group;
+use Shuchkin\SimpleXLSX;
 
 class CatPolizasResource extends Resource
 {
@@ -515,7 +517,294 @@ class CatPolizasResource extends Resource
                             else return false;
                         }
                     }),
-            ])->bulkActions([
+                Tables\Actions\Action::make('Póliza de Apertura')
+                ->label('Póliza de Apertura')
+                ->icon('fas-plus')
+                ->modalSubmitActionLabel('Grabar')
+                ->modalWidth('7xl')
+                ->form(function (Form $form){
+                    return $form
+                    ->schema([
+                        Forms\Components\Group::make([
+                            Forms\Components\DatePicker::make('fecha')
+                            ->default(function (){
+                                return Carbon::create(Filament::getTenant()->ejercicio,Filament::getTenant()->periodo,1)->format('Y-m-d');
+                            }),
+                            Forms\Components\Select::make('metodo')
+                            ->required()
+                            ->live(onBlur: true)
+                            ->options(['MANUAL'=>'Captura Manual','ARCHIVO'=>'Desde Archivo']),
+                        ])->columnSpanFull()->columns(2),
+                        Forms\Components\Fieldset::make('Por Archivo')
+                        ->schema([
+                            Forms\Components\FileUpload::make('archivo')
+                            ->columnSpanFull()
+                            ->afterStateUpdated(function ($state){
+                                if($state){
+                                    $archivo = $state;
+                                    //dd($archivo->getRealPath());
+                                }
+                            }),
+                            Forms\Components\Actions::make([
+                                Forms\Components\Actions\Action::make('Procesar')
+                                ->icon('fas-file-import')
+                                ->action(function (Get $get,Set $set){
+                                    $archivos = $get('archivo');
+                                    foreach ($archivos as $archivo) {
+                                        $file = $archivo->getRealPath();
+                                        $fileInfo = pathinfo($file);
+                                        $extension = $fileInfo['extension'];
+                                        if($extension == 'csv'||$extension == 'CSV'||$extension == 'xls'||$extension == 'XLS'||$extension == 'xlsx'||$extension == 'XLSX') {
+                                            if ( $xlsx = SimpleXLSX::parse($file) ) {
+                                                $rows = $xlsx->rows();
+                                                $datos = [];
+                                                $datos_acum = [];
+                                                $datos_error = [];
+                                                $cargos_tot = 0;
+                                                $abonos_tot = 0;
+                                                for($i = 7;$i<count($rows);$i++) {
+                                                    $row = $rows[$i];
+                                                    if($row[0] != ' '&&$row[0] != ''&&$row[1] != '') {
+                                                        $codigo = $row[0];
+                                                        $cuenta = $row[1];
+                                                        $cargo = floatval($row[6]);
+                                                        $abono = floatval($row[7]);
+                                                        $cargos = 0;
+                                                        $abonos = 0;
+                                                        if($cargo > 0){
+                                                            $cargos+= $cargo;
+                                                            $abonos+= 0;
+                                                        }else {
+                                                            $cargos+= 0;
+                                                            $abonos+= ($cargo*-1);
+                                                        }
+                                                        if($abono > 0){
+                                                            $cargos+= 0;
+                                                            $abonos+= $abono;
+                                                        }else {
+                                                            $cargos+= ($abono*-1);
+                                                            $abonos+= 0;
+                                                        }
+                                                        $codigo = str_replace('-','',$codigo);
+                                                        $cta = CatCuentas::where('codigo',$codigo)->first();
+                                                        $tipo = $cta?->tipo ?? '';
+                                                        if($tipo == 'D'){
+                                                            $cargos_tot+= $cargos;
+                                                            $abonos_tot+= $abonos;
+                                                            $datos[] = ['codigo'=>$codigo,'cuenta'=>$cta?->nombre ?? $cuenta,'cargo'=>$cargos,'abono'=>$abonos,'tipo'=>$tipo];
+                                                        }else if ($tipo == 'A'){
+                                                            $datos_acum[] = ['codigo'=>$codigo,'cuenta'=>$cta?->nombre ?? $cuenta,'cargo'=>$cargos,'abono'=>$abonos,'tipo'=>$tipo];
+                                                        }else{
+                                                            $cod1 = substr($codigo,0,3);
+                                                            $cod2 = substr($codigo,3,2);
+                                                            $cod3 = substr($codigo,5,3);
+                                                            $acumula = '';
+                                                            $tipC = 'E';
+                                                            if(intval($cod1) > 0 &&intval($cod3) > 0 && intval($cod2) > 0){
+                                                                $acumula = $cod1.$cod2.'000';
+                                                                $tipC = 'D';
+                                                            }
+                                                            if(intval($cod1) > 0 &&intval($cod3) == 0 && intval($cod2) > 0){
+                                                                $acumula = $cod1.'00000';
+                                                                $tipC = 'D';
+                                                            }
+                                                            if(intval($cod1) > 0 &&intval($cod3) == 0 && intval($cod2) == 0){
+                                                                $acumula = '0';
+                                                                $tipC = 'A';
+                                                            }
+                                                            $exis_acum = 'NO';
+                                                            $naturaleza = 'E';
+                                                            if(CatCuentas::where('codigo',$acumula)->exists()){
+                                                                $naturaleza = CatCuentas::where('codigo',$acumula)->first()->naturaleza;
+                                                                $exis_acum = 'SI';
+                                                            }
+                                                            $datos_error[] = ['codigo'=>$codigo,'cuenta'=>$cta?->nombre ?? $cuenta,'cargo'=>$cargos,'abono'=>$abonos,'tipo'=>$tipC,'acumula'=>$acumula,'exis_acum'=>$exis_acum,'naturaleza'=>$naturaleza];
+                                                        }
+
+                                                    }
+                                                }
+                                                $set('datos',$datos);
+                                                $set('datos_acumula',$datos_acum);
+                                                $set('datos_error',$datos_error);
+                                                $set('cargos_tot',$cargos_tot);
+                                                $set('abonos_tot',$abonos_tot);
+                                                $set('diferencia',$cargos_tot-$abonos_tot);
+                                            } else {
+                                                dd(SimpleXLSX::parseError());
+                                            }
+                                        }else{
+                                            Notification::make()->title('Archivo no valido')->danger()->send();
+                                        }
+                                    }
+                                })
+                            ]),
+                            Forms\Components\Group::make([
+                                TableRepeater::make('datos')
+                                ->deletable(false)
+                                ->reorderable(false)
+                                ->streamlined()
+                                ->defaultItems(0)
+                                ->headers([
+                                    Header::make('Codigo'),
+                                    Header::make('Cargos'),
+                                    Header::make('Abonos'),
+                                ])
+                                ->schema([
+                                    Select::make('codigo')
+                                    ->options(
+                                        DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                    )
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Get $get,Set $set){
+                                        $codigo = $get('codigo');
+                                        $cuenta = CatCuentas::where('codigo',$codigo)->first();
+                                        $set('cuenta',$cuenta?->nombre ?? '');
+                                    }),
+                                    Hidden::make('cuenta'),
+                                    TextInput::make('cargo')->currencyMask()->prefix('$')->default(0)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Get $get,Set $set){
+                                        self::suma_apertura($get,$set);
+                                    }),
+                                    TextInput::make('abono')->currencyMask()->prefix('$')->default(0)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Get $get,Set $set){
+                                        self::suma_apertura($get,$set);
+                                    }),
+                                ])
+                                ->columnSpanFull(),
+                                Forms\Components\Group::make([
+                                    Forms\Components\Placeholder::make('Totales'),
+                                    TextInput::make('cargos_tot')->currencyMask()->prefix('$')->readOnly()
+                                    ->label('Cargos'),
+                                    TextInput::make('abonos_tot')->currencyMask()->prefix('$')->readOnly()
+                                    ->label('Abonos'),
+                                    Hidden::make('diferencia'),
+                                ])->columnSpanFull()->columns(4),
+                                Forms\Components\Section::make('Acumulativas')
+                                ->collapsible()->collapsed(true)
+                                ->schema([
+                                TableRepeater::make('datos_acumula')
+                                    ->deletable(false)
+                                    ->addable(false)
+                                    ->reorderable(false)
+                                    ->streamlined()
+                                    ->defaultItems(0)
+                                    ->headers([
+                                        Header::make('Codigo'),
+                                        Header::make('Cuenta'),
+                                        Header::make('Cargos'),
+                                        Header::make('Abonos'),
+                                    ])
+                                    ->schema([
+                                        TextInput::make('codigo')->readOnly(),
+                                        TextInput::make('cuenta')->readOnly(),
+                                        TextInput::make('cargo')->currencyMask()->prefix('$')->readOnly(),
+                                        TextInput::make('abono')->currencyMask()->prefix('$')->readOnly(),
+                                    ])
+                                    ->columnSpanFull()->collapsible()->collapsed(true),
+                                ])->columnSpanFull(),
+                                Section::make('Errores')
+                                    ->collapsible()->collapsed(true)
+                                    ->schema([
+                                TableRepeater::make('datos_error')
+                                    ->deletable(false)
+                                    ->addable(false)
+                                    ->reorderable(false)
+                                    ->streamlined()
+                                    ->defaultItems(0)
+                                    ->emptyLabel('No hay errores')
+                                    ->headers([
+                                        Header::make('Codigo'),
+                                        Header::make('Cuenta'),
+                                        Header::make('Cargos'),
+                                        Header::make('Abonos'),
+                                        Header::make('Tipo'),
+                                        Header::make('Acumula'),
+                                        Header::make('Existe Acumulativa'),
+                                        Header::make('Naturaleza'),
+                                    ])
+                                    ->schema([
+                                        TextInput::make('codigo')->readOnly(),
+                                        TextInput::make('cuenta')->readOnly(),
+                                        TextInput::make('cargo')->currencyMask()->prefix('$')->readOnly(),
+                                        TextInput::make('abono')->currencyMask()->prefix('$')->readOnly(),
+                                        Select::make('tipo')->options(['D'=>'Detalle','A'=>'Acumulativa','E'=>'Error']),
+                                        TextInput::make('acumula')->readOnly(),
+                                        TextInput::make('exis_acum')->readOnly(),
+                                        Select::make('naturaleza')->options(['D'=>'Deudora','A'=>'Acreedora','E'=>'Error']),
+                                    ])
+                                    ->columnSpanFull()->collapsible()->collapsed(true),
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('Grabar Cuentas')
+                                    ->icon('fas-save')
+                                    ->action(function (Get $get){
+                                        $datos = $get('datos_error');
+                                        foreach ($datos as $dato) {
+                                            CatCuentas::create([
+                                                'codigo'=>$dato['codigo'],
+                                                'nombre'=>$dato['cuenta'],
+                                                'naturaleza'=>$dato['naturaleza'],
+                                                'tipo'=>$dato['tipo'],
+                                                'acumula'=>$dato['acumula'],
+                                                'team_id'=>Filament::getTenant()->id
+                                            ]);
+                                        }
+                                        Notification::make()->title('Cuentas Grabadas')->success()->send();
+                                    })
+                                ])->columnSpanFull()
+                                ])
+                            ])->columnSpanFull()
+                        ])
+                        ->columnSpanFull()
+                        ->visible(function (Get $get){
+                            if($get('metodo') == 'ARCHIVO') return true;
+                            else return false;
+                        })
+                    ]);
+                })
+                ->action(function ($data){
+                    $datos = $data['datos'];
+                    $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Dr')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                    $poliza = CatPolizas::create([
+                        'tipo'=>'Dr',
+                        'folio'=>$nopoliza,
+                        'fecha'=>$data['fecha'],
+                        'concepto'=>'Poliza de Apertura',
+                        'cargos'=>round(floatval($data['cargos_tot']),2),
+                        'abonos'=>round(floatval($data['abonos_tot']),2),
+                        'periodo'=>Filament::getTenant()->periodo,
+                        'ejercicio'=>Filament::getTenant()->ejercicio,
+                        'referencia'=>'F-',
+                        'uuid'=>'',
+                        'tiposat'=>'Dr',
+                        'team_id'=>Filament::getTenant()->id,
+                        'idmovb'=>0
+                    ]);
+                    $polno = $poliza['id'];
+                    $par_num = 1;
+                    foreach ($datos as $dato) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id'=>$polno,
+                            'codigo'=>$dato['codigo'],
+                            'cuenta'=>$dato['cuenta'],
+                            'concepto'=>'Poliza de Apertura',
+                            'cargo'=>round(floatval($dato['cargo']),2),
+                            'abono'=>round(floatval($dato['abono']),2),
+                            'factura'=>'F-',
+                            'nopartida'=>$par_num,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id'=>$aux['id'],
+                            'cat_polizas_id'=>$polno
+                        ]);
+                        $par_num++;
+                    }
+                    Notification::make()->title('Poliza de Apertura Dr'.$nopoliza.' Grabada')->success()->send();
+                })
+            ],Tables\Actions\HeaderActionsPosition::Bottom)->bulkActions([
                 Tables\Actions\DeleteBulkAction::make('Eliminar')
                 ->icon('fas-trash')
                 ->requiresConfirmation()
@@ -540,6 +829,19 @@ class CatPolizasResource extends Resource
             ->paginated([8, 'all']);
     }
 
+    public static function suma_apertura(Get $get,Set $set): void
+    {
+        $datos = $get('../../datos');
+        $cargos = 0;
+        $abonos = 0;
+        foreach ($datos as $dato) {
+            $cargos+= $dato['cargo'];
+            $abonos+= $dato['abono'];
+        }
+        $set('../../cargos_tot',$cargos);
+        $set('../../abonos_tot',$abonos);
+        $set('../../diferencia',$cargos-$abonos);
+    }
     public static function getRelations(): array
     {
         return [

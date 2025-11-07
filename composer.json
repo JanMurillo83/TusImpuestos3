@@ -7,6 +7,8 @@
     "require": {
         "php": "^8.2",
         "ext-calendar": "*",
+        "ext-curl": "*",
+        "ext-dom": "*",
         "ext-intl": "*",
         "ext-soap": "*",
         "ext-zip": "*",
@@ -40,10 +42,9 @@
         "phpcfdi/sat-ws-descarga-masiva": "^0.5.4",
         "phpmailer/phpmailer": "^6.10",
         "phpoffice/phpspreadsheet": "^1.29",
+        "shuchkin/simplexlsx": "^1.1",
         "solution-forest/filament-simplelightbox": "^0.0.10",
-        "torgodly/html2media": "^1.1",
-        "ext-dom": "*",
-        "ext-curl": "*"
+        "torgodly/html2media": "^1.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

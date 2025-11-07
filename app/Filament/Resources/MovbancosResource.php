@@ -121,14 +121,22 @@ class MovbancosResource extends Resource
                                         ->options(BancoCuentas::where('team_id',Filament::getTenant()->id)->pluck('banco','id')),
                                 Forms\Components\TextInput::make('importe')
                                         ->required()
-                                        ->numeric()->prefix('$'),
+                                        ->currencyMask(precision: 2)->prefix('$')
+                                    ->default(function ($record,$context){
+                                        if($context != 'create')return number_format(floatval($record->importe),2);
+                                        else return number_format(0.00,2);
+                                    }),
                                 Forms\Components\Select::make('moneda')
                                 ->options(['MXN'=>'MXN','USD'=>'USD'])
                                 ->default('MXN'),
                                 Forms\Components\TextInput::make('tcambio')
                                     ->required()
                                     ->label('Tipo de Cambio')
-                                    ->numeric()->prefix('$'),
+                                    ->currencyMask(precision: 4)->prefix('$')
+                                    ->default(function ($record,$context){
+                                        if($context != 'create')return number_format(floatval($record->tcambio),4);
+                                        else return number_format(1.0000,4);
+                                    }),
                                 Forms\Components\TextInput::make('concepto')
                                         ->required()
                                         ->maxLength(255)
@@ -1087,8 +1095,7 @@ class MovbancosResource extends Resource
                                                             $set('concepto',$get('../../concepto'));
                                                         }),
                                                     TextInput::make('cargo')
-                                                        ->numeric()
-                                                        ->currencyMask(precision: 4)
+                                                        ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
@@ -1096,8 +1103,7 @@ class MovbancosResource extends Resource
                                                             self::sumas_partidas_manual($get,$set);
                                                         }),
                                                     TextInput::make('abono')
-                                                        ->numeric()
-                                                        ->currencyMask(precision: 4)
+                                                        ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
@@ -1120,10 +1126,10 @@ class MovbancosResource extends Resource
                                         ->schema([
                                             TextInput::make('cargos_tot')
                                                 ->label('Cargos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
+                                                ->prefix('$')->readOnly()->currencyMask()->default(0),
                                             TextInput::make('abonos_tot')
                                                 ->label('Abonos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
+                                                ->prefix('$')->readOnly()->currencyMask()->default(0),
                                         ])->columns(5)
                                 ])->columnSpanFull(),
 
@@ -1149,10 +1155,10 @@ class MovbancosResource extends Resource
                             TextInput::make('importe')
                             ->label('Importe Movimiento')
                             ->readOnly()
-                            ->numeric()
+                            ->currencyMask()
                             ->prefix('$')
                             ->default(function(Model $record){
-                                return $record->importe;
+                                return number_format($record->importe,2);
                             }),
                             TextInput::make('importefactu')
                             ->visible(false)
@@ -1443,9 +1449,7 @@ class MovbancosResource extends Resource
                                                             $set('concepto',$get('../../concepto'));
                                                         }),
                                                     TextInput::make('cargo')
-                                                        ->numeric()
-                                                        ->currencyMask(precision: 4)
-                                                        ->stripCharacters([',','$'])
+                                                        ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
@@ -1453,8 +1457,7 @@ class MovbancosResource extends Resource
                                                             self::sumas_partidas_manual($get,$set);
                                                         }),
                                                     TextInput::make('abono')
-                                                        ->numeric()
-                                                        ->currencyMask(precision: 4)
+                                                        ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
@@ -1477,10 +1480,10 @@ class MovbancosResource extends Resource
                                         ->schema([
                                             TextInput::make('cargos_tot')
                                                 ->label('Cargos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
+                                                ->prefix('$')->readOnly()->currencyMask()->default(0),
                                             TextInput::make('abonos_tot')
                                                 ->label('Abonos')
-                                                ->numeric()->prefix('$')->readOnly()->currencyMask(precision: 4)->default(0),
+                                                ->prefix('$')->readOnly()->currencyMask()->default(0),
                                         ])->columns(5)
                                 ])->columnSpanFull()
                         ])->columns(4);
@@ -2163,8 +2166,8 @@ class MovbancosResource extends Resource
             $cargos += floatval($det['cargo'] ?? 0);
             $abonos += floatval($det['abono'] ?? 0);
         }
-        $set('../../cargos_tot',$cargos);
-        $set('../../abonos_tot',$abonos);
+        $set('../../cargos_tot',number_format($cargos,2));
+        $set('../../abonos_tot',number_format($abonos,2));
     }
     public static function procesa_s_f($record,$data)
     {
@@ -2574,9 +2577,9 @@ class MovbancosResource extends Resource
                 'tipo'=>'Eg',
                 'folio'=>$nopoliza,
                 'fecha'=>$record->fecha,
-                'concepto'=>'Prestamo',
-                'cargos'=>$record->importe,
-                'abonos'=>$record->importe,
+                'concepto'=>$dater[0].'ACREEDOR',
+                'cargos'=>$record->importe*$record->tcambio,
+                'abonos'=>$record->importe*$record->tcambio,
                 'periodo'=>Filament::getTenant()->periodo,
                 'ejercicio'=>Filament::getTenant()->ejercicio,
                 'referencia'=>'Prestamo',
@@ -2590,8 +2593,8 @@ class MovbancosResource extends Resource
                     'cat_polizas_id'=>$polno,
                     'codigo'=>$dater[1],
                     'cuenta'=>$dater[0],
-                    'concepto'=>'Prestamo',
-                    'cargo'=>$record->importe,
+                    'concepto'=>$dater[0].'ACREEDOR',
+                    'cargo'=>$record->importe*$record->tcambio,
                     'abono'=>0,
                     'factura'=>'Prestamo',
                     'nopartida'=>1,
@@ -2605,7 +2608,7 @@ class MovbancosResource extends Resource
                     'cat_polizas_id'=>$polno,
                     'codigo'=>$ban[0]->codigo,
                     'cuenta'=>$ban[0]->cuenta,
-                    'concepto'=>'Prestamo',
+                    'concepto'=>$dater[0].'ACREEDOR',
                     'cargo'=>0,
                     'abono'=>$record->importe,
                     'factura'=>'Prestamo',
@@ -2616,6 +2619,25 @@ class MovbancosResource extends Resource
                     'auxiliares_id'=>$aux['id'],
                     'cat_polizas_id'=>$polno
                 ]);
+                if($record->tcambio > 1)
+                {
+                    $cta_com = CatCuentas::where('codigo',$ban[0]->complementaria)->first();
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id'=>$polno,
+                        'codigo'=>$cta_com?->codigo ?? $ban[0]->codigo,
+                        'cuenta'=>$cta_com?->nombre ?? $ban[0]->cuenta,
+                        'concepto'=>$dater[0].'ACREEDOR',
+                        'cargo'=>0,
+                        'abono'=>($record->importe*$record->tcambio)-$record->importe,
+                        'factura'=>'Prestamo',
+                        'nopartida'=>3,
+                        'team_id'=>Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id'=>$aux['id'],
+                        'cat_polizas_id'=>$polno
+                    ]);
+                }
         }
         if($tmov == 5)
         {

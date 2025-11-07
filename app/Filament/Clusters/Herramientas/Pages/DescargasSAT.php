@@ -35,6 +35,7 @@ use Filament\Tables\Table;
 use GuzzleHttp\Cookie\FileCookieJar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Mockery\Exception;
 use PhpCfdi\CfdiSatScraper\Filters\Options\StatesVoucherOption;
 use PhpCfdi\CfdiSatScraper\QueryByFilters;
 use PhpCfdi\CfdiSatScraper\ResourceType;
@@ -82,16 +83,17 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 TextColumn::make('id')->label('Registro'),
                 TextColumn::make('taxid')->label('RFC')->searchable(),
                 TextColumn::make('name')->label('Razón Social')->searchable(),
-                TextColumn::make('archivocer')->label('FIEL CER'),
-                TextColumn::make('archivokey')->label('FIEL KEY'),
+                TextColumn::make('estado_fiel')->label('Status FIEL'),
+                TextColumn::make('vigencia_fiel')->label('Vigencia FIEL')->date('d-m-Y'),
                 TextColumn::make('claveciec')->label('CIEC')
-                ->formatStateUsing(function ($state) {
-                    if($state != ''){
-                        return 'Si';
-                    }else{
-                        return 'No';
-                    }
-                }),
+                    ->formatStateUsing(function ($state) {
+                        if($state != ''){
+                            return 'Si';
+                        }else{
+                            return 'No';
+                        }
+                    }),
+                TextColumn::make('descarga_cfdi')->label('Servicio de Descarga')
             ])
             ->actions([
                 ActionGroup::make([
@@ -128,13 +130,22 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 ->label('Fecha Inicial')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
                             DatePicker::make('fecha_final')
                                 ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
-                        ])
+                        ])->visible(function($record){
+                            if($record->descarga_cfdi == 'SI') {
+                                return true;
+                            }else{
+                                return false;
+                            }
+                        })
                         ->action(function($record,$data) {
                             $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
                             $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
                             $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
                             $rfc = $record->taxid;
                             $claveCiec = $record->claveciec;
+                            $fielcer = storage_path().'/app/public/'.$record->archivocer;
+                            $fielkey = storage_path().'/app/public/'.$record->archivokey;
+                            $fielpass = $record->fielpass;
                             $cookieJarPath = storage_path().'/app/public/cookies/';
                             $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
                             $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
@@ -151,7 +162,9 @@ class DescargasSAT extends Page implements HasTable,HasForms
                             $configsFile = storage_path().'/app/public/Aimodel/configs.yaml';
                             $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
                             $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
-                            $satScraper = new SatScraper($ciecSessionManager, $gateway);
+                            $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
+                            $fielSessionManager = FielSessionManager::create($credential);
+                            $satScraper = new SatScraper($fielSessionManager, $gateway);
                             $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
                             $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
                             $list = $satScraper->listByPeriod($query);
@@ -194,67 +207,76 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
                     $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
                     foreach ($teams as $record) {
-                        $rfc = $record->taxid;
-                        $claveCiec = $record?->claveciec ?? 'NA';
-                        if($claveCiec != 'NA') {
-                            try {
-                                $cookieJarPath = storage_path() . '/app/public/cookies/';
-                                $cookieJarFile = storage_path() . '/app/public/cookies/' . $rfc . '.json';
-                                $downloadsPath_REC = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/RECIBIDOS/';
-                                $downloadsPath_EMI = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/EMITIDOS/';
-                                $downloadsPath2 = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';
-                                if (!is_dir($cookieJarPath)) {
-                                    mkdir($cookieJarPath, 0777, true);
+                        if($record->descarga_cfdi == 'SI') {
+                            $rfc = $record->taxid;
+                            $claveCiec = $record?->claveciec ?? 'NA';
+                            $fielcer = storage_path().'/app/public/'.$record->archivocer;
+                            $fielkey = storage_path().'/app/public/'.$record->archivokey;
+                            $fielpass = $record->fielpass;
+                            if(file_exists($fielcer) && file_exists($fielkey) && $fielpass != '') {
+                                try {
+                                    $cookieJarPath = storage_path() . '/app/public/cookies/';
+                                    $cookieJarFile = storage_path() . '/app/public/cookies/' . $rfc . '.json';
+                                    $downloadsPath_REC = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/RECIBIDOS/';
+                                    $downloadsPath_EMI = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/EMITIDOS/';
+                                    $downloadsPath2 = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';
+                                    if (!is_dir($cookieJarPath)) {
+                                        mkdir($cookieJarPath, 0777, true);
+                                    }
+                                    if (!is_dir($downloadsPath_REC)) {
+                                        mkdir($downloadsPath_REC, 0777, true);
+                                    }
+                                    if (!is_dir($downloadsPath_EMI)) {
+                                        mkdir($downloadsPath_EMI, 0777, true);
+                                    }
+                                    if (!file_exists($cookieJarFile)) {
+                                        fopen($cookieJarFile, 'w');
+                                    }
+                                    $client = new Client([
+                                        'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
+                                    ]);
+                                    $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
+                                    /*$configsFile = storage_path() . '/app/public/Aimodel/configs.yaml';
+                                    $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
+                                    $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);*/
+                                    $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
+                                    $fielSessionManager = FielSessionManager::create($credential);
+                                    if($credential->isFiel()&&$credential->certificate()->validOn()) {
+                                        $satScraper = new SatScraper($fielSessionManager, $gateway);
+                                        $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                                        $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
+                                        $list = $satScraper->listByPeriod($query);
+                                        $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath_EMI, true, 0777);
+                                        $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
+                                        $this->ProcesaEmitidos($downloadsPath_EMI, $record->id);
+                                        $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                                        $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
+                                        $list2 = $satScraper->listByPeriod($query2);
+                                        $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath_REC, true, 0777);
+                                        $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
+                                        $this->ProcesaRecibidos($downloadsPath_REC, $record->id);
+                                        $this->ProcesaPDF($downloadsPath2, $record->id);
+                                        ValidaDescargas::create([
+                                            'fecha' => Carbon::now(),
+                                            'inicio' => $fecha_inicial,
+                                            'fin' => $fecha_final,
+                                            'recibidos' => $list2->count(),
+                                            'emitidos' => $list->count(),
+                                            'estado' => 'Completado',
+                                            'team_id' => $record->id
+                                        ]);
+                                    }
+                                } catch (\Exception $e) {
+                                    ValidaDescargas::create([
+                                        'fecha' => Carbon::now(),
+                                        'inicio' => $fecha_inicial,
+                                        'fin' => $fecha_final,
+                                        'recibidos' => 0,
+                                        'emitidos' => 0,
+                                        'estado' => $e->getMessage(),
+                                        'team_id' => $record->id
+                                    ]);
                                 }
-                                if (!is_dir($downloadsPath_REC)) {
-                                    mkdir($downloadsPath_REC, 0777, true);
-                                }
-                                if (!is_dir($downloadsPath_EMI)) {
-                                    mkdir($downloadsPath_EMI, 0777, true);
-                                }
-                                if (!file_exists($cookieJarFile)) {
-                                    fopen($cookieJarFile, 'w');
-                                }
-                                $client = new Client([
-                                    'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
-                                ]);
-                                $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                                $configsFile = storage_path() . '/app/public/Aimodel/configs.yaml';
-                                $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
-                                $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
-                                $satScraper = new SatScraper($ciecSessionManager, $gateway);
-                                $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                                $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
-                                $list = $satScraper->listByPeriod($query);
-                                $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath_EMI, true, 0777);
-                                $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
-                                $this->ProcesaEmitidos($downloadsPath_EMI, $record->id);
-                                $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                                $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
-                                $list2 = $satScraper->listByPeriod($query2);
-                                $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath_REC, true, 0777);
-                                $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
-                                $this->ProcesaRecibidos($downloadsPath_REC, $record->id);
-                                $this->ProcesaPDF($downloadsPath2, $record->id);
-                                ValidaDescargas::create([
-                                    'fecha' => Carbon::now(),
-                                    'inicio' => $fecha_inicial,
-                                    'fin' => $fecha_final,
-                                    'recibidos' => $list2->count(),
-                                    'emitidos' => $list->count(),
-                                    'estado' => 'Completado',
-                                    'team_id' => $record->id
-                                ]);
-                            } catch (\Exception $e) {
-                                ValidaDescargas::create([
-                                    'fecha' => Carbon::now(),
-                                    'inicio' => $fecha_inicial,
-                                    'fin' => $fecha_final,
-                                    'recibidos' => 0,
-                                    'emitidos' => 0,
-                                    'estado' => $e->getMessage(),
-                                    'team_id' => $record->id
-                                ]);
                             }
                         }
                     }
@@ -301,6 +323,52 @@ class DescargasSAT extends Page implements HasTable,HasForms
                             }
                         }
                     }
+                }),
+                Action::make('valida_fiel')
+                ->icon('fas-file-pdf')
+                ->label('Validacion FIEL')
+                ->requiresConfirmation()
+                ->action(function(){
+                    $records = Team::all();
+                    foreach ($records as $record) {
+                        $rfc = $record->taxid;
+                        $fielcer = storage_path() . '/app/public/' . $record->archivocer;
+                        $fielkey = storage_path() . '/app/public/' . $record->archivokey;
+                        $fielpass = $record->fielpass;
+                        if (file_exists($fielcer) && file_exists($fielkey) && $fielpass != '') {
+                            try {
+                                $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
+                                if($credential->isFiel()) {
+                                    if($credential->certificate()->validOn()) {
+                                        $record->estado_fiel = 'VALIDA';
+                                        $record->vigencia_fiel = Carbon::create($credential->certificate()->validToDateTime())->format('Y-m-d');
+                                        $record->descarga_cfdi = 'SI';
+                                        $record->save();
+                                    }
+                                    else{
+                                        $record->estado_fiel = 'EXPIRADA';
+                                        $record->vigencia_fiel = Carbon::create($credential->certificate()->validToDateTime())->format('Y-m-d');
+                                        $record->descarga_cfdi = 'NO';
+                                        $record->save();
+                                    }
+                                }
+                                else {
+                                    $record->estado_fiel = 'NO VALIDA';
+                                    $record->descarga_cfdi = 'NO';
+                                    $record->save();
+                                }
+                            }catch(\Exception $e){
+                                $record->estado_fiel = 'ERROR DE ARCHIVOS';
+                                $record->descarga_cfdi = 'NO';
+                                $record->save();
+                            }
+                        }else{
+                            $record->estado_fiel = 'NO VALIDA';
+                            $record->descarga_cfdi = 'NO';
+                            $record->save();
+                        }
+                    }
+                    Notification::make()->title('Proceso Completado')->success()->send();
                 })
             ]);
     }
@@ -358,11 +426,12 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 $fech = $comprobante['Fecha'];
                 list($fechacom, $horacom) = explode('T', $fech);
                 list($aniocom, $mescom, $diacom) = explode('-', $fechacom);
-                $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])
+                $uuid_val = strtoupper($tfd['UUID']);
+                $uuid_v = DB::table('almacencfdis')->where(DB::raw("UPPER(UUID)"),$uuid_val)
                     ->where('team_id',$team)
                     ->where('xml_type','Recibidos')->exists();
                 if (!$uuid_v) {
-                    Almacencfdis::firstOrCreate([
+                    Almacencfdis::create([
                         'Serie' => $comprobante['Serie'],
                         'Folio' => $comprobante['Folio'],
                         'Version' => $comprobante['Version'],
@@ -392,7 +461,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         'team_id' => $team,
                         'archivoxml'=>$file
                     ]);
-                    Xmlfiles::firstOrCreate([
+                    Xmlfiles::create([
                         'taxid' => $emisor['Rfc'],
                         'uuid' => $tfd['UUID'],
                         'content' => $xmlContenido,
@@ -464,11 +533,12 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 $fech = $comprobante['Fecha'];
                 list($fechacom, $horacom) = explode('T', $fech);
                 list($aniocom, $mescom, $diacom) = explode('-', $fechacom);
-                $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])
+                $uuid_val = strtoupper($tfd['UUID']);
+                $uuid_v = DB::table('almacencfdis')->where(DB::raw("UPPER(UUID)"),$uuid_val)
                     ->where('team_id',$team)
                     ->where('xml_type','Emitidos')->exists();
                 if (!$uuid_v) {
-                    Almacencfdis::firstOrCreate([
+                    Almacencfdis::create([
                         'Serie' => $comprobante['Serie'],
                         'Folio' => $comprobante['Folio'],
                         'Version' => $comprobante['Version'],
@@ -498,7 +568,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         'team_id' => $team,
                         'archivoxml'=>$file
                     ]);
-                    Xmlfiles::firstOrCreate([
+                    Xmlfiles::create([
                         'taxid' => $emisor['Rfc'],
                         'uuid' => $tfd['UUID'],
                         'content' => $xmlContenido,
@@ -531,165 +601,5 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 dd($file,$e->getMessage());
             }
         }
-    }
-    public function ProcesaArchivoZ_F($archivo,$team,$taxid): int
-    {
-        $files = array_diff(scandir($archivo), array('.', '..'));
-        $contador = 0;
-        foreach($files as $desfile)
-        {
-            $file = $archivo.$desfile;
-            try {
-                $xmlContents = \file_get_contents($file);
-                $cfdi = Cfdi::newFromString($xmlContents);
-                $comprobante = $cfdi->getNode();
-                //dd($comprobante);
-                $emisor = $comprobante->searchNode('cfdi:Emisor');
-                $receptor = $comprobante->searchNode('cfdi:Receptor');
-                $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
-                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
-                $impuestos = $comprobante->searchNode('cfdi:Impuestos');
-                $tipocom = $comprobante['TipoDeComprobante'];
-                $subtotal = 0;
-                $descuento = 0;
-                $traslado = 0;
-                $retencion = 0;
-                $total = 0;
-                $tipocambio = 0;
-                    if ($tipocom != 'P') {
-                        $subtotal = floatval($comprobante['SubTotal']);
-                        $descuento = floatval($comprobante['Descuento']);
-                        if (isset($impuestos['TotalImpuestosTrasladados'])) $traslado = floatval($impuestos['TotalImpuestosTrasladados']);
-                        if (isset($impuestos['TotalImpuestosRetenidos'])) $retencion = floatval($impuestos['TotalImpuestosRetenidos']);
-                        $total = floatval($comprobante['Total']);
-                        $tipocambio = floatval($comprobante['TipoCambio']);
-                    }
-                    else
-                    {
-                        if (!isset($pagoscom))
-                        {
-                            $pagostot = floatval(0.00);
-                            $subtotal = floatval(0.00);
-                            $traslado = floatval(0.00);
-                            $retencion = floatval(0.00);
-                            $total = floatval(0.00);
-                            $tipocambio = 1;
-                        }
-                        $pagostot = $pagoscom->searchNode('pago20:Totales');
-                        $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                        $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
-                        $retencion = floatval(0.00);
-                        $total = floatval($pagostot['MontoTotalPagos']);
-                        $tipocambio = 1;
-                    }
-                $xmlContenido = \file_get_contents($file, false);
-                //dd($xmlContenido);
-                $fech = $comprobante['Fecha'];
-                list($fechacom, $horacom) = explode('T', $fech);
-                list($aniocom, $mescom, $diacom) = explode('-', $fechacom);
-                $tiposol = "NO IDENTIFICADO";
-                if ($emisor['Rfc'] == $taxid) $tiposol = "Emitidos";
-                else if ($receptor['Rfc'] == $taxid) $tiposol = "Recibidos";
-                if ($tiposol == 'Emitidos') {
-                    if ($emisor['Rfc'] == $taxid) {
-                        //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
-                        $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])->where('team_id',$team)->exists();
-                        if (!$uuid_v) {
-                            Almacencfdis::firstOrCreate([
-                                'Serie' => $comprobante['Serie'],
-                                'Folio' => $comprobante['Folio'],
-                                'Version' => $comprobante['Version'],
-                                'Fecha' => $comprobante['Fecha'],
-                                'Moneda' => $comprobante['Moneda'],
-                                'TipoDeComprobante' => $comprobante['TipoDeComprobante'],
-                                'MetodoPago' => $comprobante['MetodoPago'],
-                                'Emisor_Rfc' => $emisor['Rfc'],
-                                'Emisor_Nombre' => $emisor['Nombre'],
-                                'Emisor_RegimenFiscal' => $emisor['RegimenFiscal'],
-                                'Receptor_Rfc' => $receptor['Rfc'],
-                                'Receptor_Nombre' => $receptor['Nombre'],
-                                'Receptor_RegimenFiscal' => $receptor['RegimenFiscal'],
-                                'UUID' => $tfd['UUID'],
-                                'Total' => $total,
-                                'SubTotal' => $subtotal,
-                                'Descuento' => $descuento,
-                                'TipoCambio' => $tipocambio,
-                                'TotalImpuestosTrasladados' => $traslado,
-                                'TotalImpuestosRetenidos' => $retencion,
-                                'content' => $xmlContenido,
-                                'user_tax' => $emisor['Rfc'],
-                                'used' => 'NO',
-                                'xml_type' => $tiposol,
-                                'periodo' => intval($mescom),
-                                'ejercicio' => intval($aniocom),
-                                'team_id' => $team
-                            ]);
-                            Xmlfiles::firstOrCreate([
-                                'taxid' => $emisor['Rfc'],
-                                'uuid' => $tfd['UUID'],
-                                'content' => $xmlContenido,
-                                'periodo' => $mescom,
-                                'ejercicio' => $aniocom,
-                                'tipo' => $tiposol,
-                                'solicitud' => 'Importacion',
-                                'team_id' => $team
-                            ]);
-                        }
-                    }
-                } else {
-                    if ($receptor['Rfc'] == $taxid) {
-                        //$uuidno = count(Almacencfdis::where(['UUID' => $tfd['UUID'], 'team_id' => Filament::getTenant()->id])->get() ?? 0);
-                        $uuid_v = Almacencfdis::where('UUID',$tfd['UUID'])->where('team_id',$team)->exists();
-                        if (!$uuid_v){
-                            Almacencfdis::firstOrCreate([
-                                'Serie' => $comprobante['Serie'],
-                                'Folio' => $comprobante['Folio'],
-                                'Version' => $comprobante['Version'],
-                                'Fecha' => $comprobante['Fecha'],
-                                'Moneda' => $comprobante['Moneda'],
-                                'TipoDeComprobante' => $comprobante['TipoDeComprobante'],
-                                'MetodoPago' => $comprobante['MetodoPago'],
-                                'Emisor_Rfc' => $emisor['Rfc'],
-                                'Emisor_Nombre' => $emisor['Nombre'],
-                                'Emisor_RegimenFiscal' => $emisor['RegimenFiscal'],
-                                'Receptor_Rfc' => $receptor['Rfc'],
-                                'Receptor_Nombre' => $receptor['Nombre'],
-                                'Receptor_RegimenFiscal' => $receptor['RegimenFiscal'],
-                                'UUID' => $tfd['UUID'],
-                                'Total' => $total,
-                                'SubTotal' => $subtotal,
-                                'Descuento' => $descuento,
-                                'TipoCambio' => $tipocambio,
-                                'TotalImpuestosTrasladados' => $traslado,
-                                'TotalImpuestosRetenidos' => $retencion,
-                                'content' => $xmlContenido,
-                                'user_tax' => $emisor['Rfc'],
-                                'used' => 'NO',
-                                'xml_type' => $tiposol,
-                                'periodo' => intval($mescom),
-                                'ejercicio' => intval($aniocom),
-                                'team_id' => $team
-                            ]);
-                            Xmlfiles::firstOrCreate([
-                                'taxid' => $emisor['Rfc'],
-                                'uuid' => $tfd['UUID'],
-                                'content' => $xmlContenido,
-                                'periodo' => $mescom,
-                                'ejercicio' => $aniocom,
-                                'tipo' => $tiposol,
-                                'solicitud' => 'Importacion',
-                                'team_id' => $team
-                            ]);
-                        }
-                    }
-                }
-                $contador++;
-            }
-            catch (\Exception $e) {
-                dd($file,$e->getMessage());
-            }
-            //-----------------------------------------
-        }
-        return $contador;
     }
 }

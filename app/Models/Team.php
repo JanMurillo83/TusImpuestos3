@@ -10,7 +10,7 @@ class Team extends Model
 {
     use HasFactory;
     protected $fillable =['name','taxid','archivokey','archivocer','fielpass','periodo',
-    'ejercicio','regimen','codigopos','csdkey','csdcer','csdpass','claveciec'];
+    'ejercicio','regimen','codigopos','csdkey','csdcer','csdpass','claveciec','vigencia_fiel','estado_fiel','descarga_cfdi'];
     public function catPolizas(): BelongsToMany
     {
         return $this->belongsToMany(CatPolizas::class);

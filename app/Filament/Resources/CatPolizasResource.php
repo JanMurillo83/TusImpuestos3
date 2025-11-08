@@ -8,6 +8,8 @@ use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\ContaPeriodos;
+use App\Models\Movbancos;
+use App\Models\RegTraspasos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -397,6 +399,11 @@ class CatPolizasResource extends Resource
                         DB::table('almacencfdis')->where('id',$record->idcfdi)->update([
                             'used'=>'NO'
                         ]);
+                    }
+                    if(RegTraspasos::where('poliza',$record->id)->exists()){
+                        $reg = RegTraspasos::where('poliza',$record->id)->first();
+                        Movbancos::where('id',$reg->mov_ent)->update(['contabilizada' => 'NO']);
+                        Movbancos::where('id',$reg->mov_sal)->update(['contabilizada' => 'NO']);
                     }
                     DB::statement('SET FOREIGN_KEY_CHECKS=1;');
                 })->visible(function(){
@@ -804,8 +811,9 @@ class CatPolizasResource extends Resource
                     }
                     Notification::make()->title('Poliza de Apertura Dr'.$nopoliza.' Grabada')->success()->send();
                 })
-            ],Tables\Actions\HeaderActionsPosition::Bottom)->bulkActions([
-                Tables\Actions\DeleteBulkAction::make('Eliminar')
+            ],Tables\Actions\HeaderActionsPosition::Bottom)
+            ->bulkActions([
+                /*Tables\Actions\DeleteBulkAction::make('Eliminar')
                 ->icon('fas-trash')
                 ->requiresConfirmation()
                 ->after(function(){
@@ -823,7 +831,7 @@ class CatPolizasResource extends Resource
                             if($estado == 1) return true;
                             else return false;
                         }
-                    })
+                    })*/
             ])
             ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all']);

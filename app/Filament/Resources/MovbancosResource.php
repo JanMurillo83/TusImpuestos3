@@ -9,6 +9,7 @@ use App\Filament\Resources\MovbancosResource\RelationManagers;
 use App\Http\Controllers\DescargaSAT;
 use App\Livewire\FacturasEgWidget;
 use App\Livewire\IngEgWidget;
+use App\Livewire\TraspasoBanco;
 use App\Models\Activosfijos;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
@@ -1504,6 +1505,20 @@ class MovbancosResource extends Resource
                             if($record->contabilizada != 'SI'&&$record->tipo == 'S') return true;
                         })
                         ->url(fn($record)=>Pages\Pagos::getUrl(['record'=>$record])),
+                Action::make('traspaso_cuentas')
+                    ->label('Traspaso entre Cuentas')
+                    ->icon('fas-exchange-alt')
+                    ->visible(function($record){
+                        if($record->contabilizada == 'SI') return false;
+                        if($record->contabilizada == 'NO'&&$record->tipo == 'S') return true;
+                    })->form(function(Form $form,$record){
+                          return $form
+                          ->schema([
+                              Forms\Components\Livewire::make(TraspasoBanco::class,['record'=>$record])
+                          ]);
+                    })->modalWidth('7xl')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar'),
                 Action::make('Pago de Nomina')
                     ->icon('fas-user')
                     ->visible(function($record){

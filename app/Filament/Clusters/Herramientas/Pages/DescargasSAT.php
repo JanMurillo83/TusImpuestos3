@@ -122,6 +122,48 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     DB::statement("COMMIT;");
                     Notification::make()->title('Proceso Completado')->success()->send();
                 }),
+                    Action::make('Consulta_cfdi')
+                    ->icon('fas-search')
+                    ->label('Consulta CFDI SAT')
+                    ->form([
+                        DatePicker::make('fecha_inicial')
+                            ->label('Fecha Inicial')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
+                        DatePicker::make('fecha_final')
+                            ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
+                    ])
+                    ->action(function($record,$data){
+                        $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
+                        $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
+                        $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
+                        $rfc = $record->taxid;
+                        $claveCiec = $record->claveciec;
+                        $fielcer = storage_path().'/app/public/'.$record->archivocer;
+                        $fielkey = storage_path().'/app/public/'.$record->archivokey;
+                        $fielpass = $record->fielpass;
+                        $cookieJarPath = storage_path().'/app/public/cookies/';
+                        $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
+                        $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
+                        $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
+                        $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
+                        if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
+                        if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
+                        if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
+                        if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
+                        $client = new Client([
+                            'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
+                        ]);
+                        $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
+                        $configsFile = storage_path().'/app/public/Aimodel/configs.yaml';
+                        $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
+                        $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
+                        $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
+                        $fielSessionManager = FielSessionManager::create($credential);
+                        $satScraper = new SatScraper($fielSessionManager, $gateway);
+                        $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                        $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
+                        $list = $satScraper->listByPeriod($query);
+                        dd($list);
+                    }),
                     Action::make('Descargas')
                         ->icon('fas-download')
                         ->label('Descargar')

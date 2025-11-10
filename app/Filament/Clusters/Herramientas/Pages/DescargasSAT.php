@@ -10,12 +10,15 @@ use App\Models\Solicitudes;
 use App\Models\Team;
 use App\Models\ValidaDescargas;
 use App\Models\Xmlfiles;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -125,44 +128,154 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     Action::make('Consulta_cfdi')
                     ->icon('fas-search')
                     ->label('Consulta CFDI SAT')
-                    ->form([
-                        DatePicker::make('fecha_inicial')
-                            ->label('Fecha Inicial')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
-                        DatePicker::make('fecha_final')
-                            ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
-                    ])
-                    ->action(function($record,$data){
-                        $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
-                        $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
-                        $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
-                        $rfc = $record->taxid;
-                        $claveCiec = $record->claveciec;
-                        $fielcer = storage_path().'/app/public/'.$record->archivocer;
-                        $fielkey = storage_path().'/app/public/'.$record->archivokey;
-                        $fielpass = $record->fielpass;
-                        $cookieJarPath = storage_path().'/app/public/cookies/';
-                        $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
-                        $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
-                        $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
-                        $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
-                        if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
-                        if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
-                        if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
-                        if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
-                        $client = new Client([
-                            'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
+                    ->modalWidth('full')
+                    ->form(function ($record,Form $form) {
+                        return $form->schema([
+                            Fieldset::make('Periodo')
+                            ->schema([
+                                DatePicker::make('fecha_inicial')
+                                    ->label('Fecha Inicial')
+                                    ->default(Carbon::now()
+                                        ->subDays(1)
+                                        ->format('Y-m-d')),
+                                DatePicker::make('fecha_final')
+                                    ->label('Fecha Final')
+                                    ->default(Carbon::now()
+                                        ->subDays(1)
+                                        ->format('Y-m-d')),
+                                Actions::make([
+                                    Actions\Action::make('Consulta')
+                                    ->icon('fas-search')
+                                    ->label('Consulta')
+
+                                    ->action(function($record,Set $set,Get $get){
+                                        $fecha_inicial = Carbon::create($get('fecha_inicial'))->format('Y-m-d');
+                                        $fecha_final = Carbon::create($get('fecha_final'))->format('Y-m-d');
+                                        $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
+                                        $rfc = $record->taxid;
+                                        $fielcer = storage_path().'/app/public/'.$record->archivocer;
+                                        $fielkey = storage_path().'/app/public/'.$record->archivokey;
+                                        $fielpass = $record->fielpass;
+                                        $cookieJarPath = storage_path().'/app/public/cookies/';
+                                        $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
+                                        $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
+                                        $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
+                                        $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
+                                        if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
+                                        if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
+                                        if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
+                                        if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
+                                        $client = new Client([
+                                            'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
+                                        ]);
+                                        $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
+                                        $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
+                                        $fielSessionManager = FielSessionManager::create($credential);
+                                        $satScraper = new SatScraper($fielSessionManager, $gateway);
+                                        $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                                        $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos());
+                                        $list = $satScraper->listByPeriod($query);
+                                        $emitidos = [];
+                                        foreach ($list as $cfdi) {
+                                            $UU = $cfdi->uuid();
+                                            $alm_ = 'NO';
+                                            $asociado = 'N/A';
+                                            if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
+                                                $alm_cfdi = DB::table('almacencfdis')->where('team_id', $record->id)->where('UUID', $UU)->first();
+                                                $alm_ = 'SI';
+                                                $asociado = $alm_cfdi->used;
+                                            }
+                                            $emitidos[] = [
+                                                'rfc_receptor'=>$cfdi->get('rfcReceptor'),
+                                                'nombre'=>$cfdi->get('nombreReceptor'),
+                                                'fecha'=>Carbon::create(substr($cfdi->get('fechaEmision'),10))->format('d-m-Y'),
+                                                'tipo'=>$cfdi->get('efectoComprobante'),
+                                                'total'=>$cfdi->get('total'),
+                                                'estado'=>$cfdi->get('estadoComprobante'),
+                                                'uuid'=>$cfdi->uuid(),
+                                                'en_sistema'=>$alm_,
+                                                'asociado'=>$asociado
+                                            ];
+                                        }
+                                        $set('emitidos', $emitidos);
+                                        $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
+                                        $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos());
+                                        $list2 = $satScraper->listByPeriod($query2);
+                                        $recibidos = [];
+                                        foreach ($list2 as $cfdi) {
+                                            $UU = $cfdi->uuid();
+                                            $alm_ = 'NO';
+                                            $asociado = 'N/A';
+                                            if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
+                                                $alm_cfdi = DB::table('almacencfdis')->where('team_id', $record->id)->where('UUID', $UU)->first();
+                                                $alm_ = 'SI';
+                                                $asociado = $alm_cfdi->used;
+                                            }
+                                            $recibidos[] = [
+                                                'rfc_receptor'=>$cfdi->get('rfcEmisor'),
+                                                'nombre'=>$cfdi->get('nombreEmisor'),
+                                                'fecha'=>Carbon::create(substr($cfdi->get('fechaEmision'),10))->format('d-m-Y'),
+                                                'tipo'=>$cfdi->get('efectoComprobante'),
+                                                'total'=>$cfdi->get('total'),
+                                                'estado'=>$cfdi->get('estadoComprobante'),
+                                                'uuid'=>$cfdi->uuid(),
+                                                'en_sistema'=>$alm_,
+                                                'asociado'=>$asociado
+                                            ];
+                                        }
+                                        $set('recibidos', $recibidos);
+                                    }),
+                                ]),
+                                    TableRepeater::make('emitidos')
+                                    ->addable(false)
+                                    ->reorderable(false)
+                                    ->deletable(false)
+                                    ->emptyLabel('No existen registros')
+                                    ->streamlined()
+                                    ->headers([
+                                        Header::make('RFC Receptor'),
+                                        Header::make('Razón Social'),
+                                        Header::make('Fecha'),
+                                        Header::make('Tipo'),
+                                        Header::make('Total'),
+                                        Header::make('Estado'),
+                                        Header::make('UUID'),
+                                    ])
+                                    ->schema([
+                                        TextInput::make('rfc_receptor'),
+                                        TextInput::make('nombre'),
+                                        TextInput::make('fecha'),
+                                        TextInput::make('tipo'),
+                                        TextInput::make('total'),
+                                        TextInput::make('estado'),
+                                        TextInput::make('uuid'),
+                                    ])->columnSpanFull(),
+                                    TableRepeater::make('recibidos')
+                                        ->addable(false)
+                                        ->reorderable(false)
+                                        ->deletable(false)
+                                        ->emptyLabel('No existen registros')
+                                        ->streamlined()
+                                        ->headers([
+                                            Header::make('RFC Emisor'),
+                                            Header::make('Razón Social'),
+                                            Header::make('Fecha'),
+                                            Header::make('Tipo'),
+                                            Header::make('Total'),
+                                            Header::make('Estado'),
+                                            Header::make('UUID'),
+                                        ])
+                                        ->schema([
+                                            TextInput::make('rfc_receptor'),
+                                            TextInput::make('nombre'),
+                                            TextInput::make('fecha'),
+                                            TextInput::make('tipo'),
+                                            TextInput::make('total'),
+                                            TextInput::make('estado'),
+                                            TextInput::make('uuid'),
+                                        ])->columnSpanFull()
+                                ])->columns(3)
                         ]);
-                        $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                        $configsFile = storage_path().'/app/public/Aimodel/configs.yaml';
-                        $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
-                        $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
-                        $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
-                        $fielSessionManager = FielSessionManager::create($credential);
-                        $satScraper = new SatScraper($fielSessionManager, $gateway);
-                        $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                        $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
-                        $list = $satScraper->listByPeriod($query);
-                        dd($list);
                     }),
                     Action::make('Descargas')
                         ->icon('fas-download')
@@ -201,9 +314,6 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
                             ]);
                             $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                            $configsFile = storage_path().'/app/public/Aimodel/configs.yaml';
-                            $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
-                            $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);
                             $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
                             $fielSessionManager = FielSessionManager::create($credential);
                             $satScraper = new SatScraper($fielSessionManager, $gateway);
@@ -360,7 +470,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                         'archivopdf' => $file,
                                     ]);
                                 } catch (\Exception $e) {
-                                    dd($file, $e->getMessage());
+                                    error_log($e->getMessage());
                                 }
                             }
                         }
@@ -517,7 +627,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 }
             }
             catch (\Exception $e){
-                dd($file,$e->getMessage());
+                error_log($e->getMessage());
             }
         }
     }
@@ -623,7 +733,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 }
             }
             catch (\Exception $e){
-                dd($file,$e->getMessage());
+                error_log($e->getMessage());
             }
         }
     }
@@ -640,7 +750,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     'archivopdf' => $file,
                 ]);
             }catch (\Exception $e){
-                dd($file,$e->getMessage());
+                error_log($e->getMessage());
             }
         }
     }

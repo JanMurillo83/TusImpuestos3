@@ -187,24 +187,24 @@ class TraspasoBanco extends Widget implements HasForms
 
                             if($mon_o != $mon_d&&$mon_o == 'USD'){
                                 $imp_usd = $imp_o * $tc_o;
-                                $imp_mxn = $imp_o * $tc_d;
+                                $imp_mxn = $imp_o * $tc_d_o;
                                 $dif = $imp_mxn - $imp_usd;
                                 $gan_per_c = 0;
                                 $gan_per_a = 0;
                                 $cta_ganper = '';
                                 $cta_ganper_con = '';
                                 if($dif > 0) {
-                                    $cta_ganper = '70101000';
-                                    $cta_ganper_con = 'Perdida Cambiaria';
+                                    $cta_ganper = '70201000';
+                                    $cta_ganper_con = 'Utilidad Cambiaria';
                                     $gan_per_c = $dif;
                                     $gan_per_a = 0;
                                 }else{
-                                    $cta_ganper = '70201000';
-                                    $cta_ganper_con = 'Utilidad Cambiaria';
+                                    $cta_ganper = '70101000';
+                                    $cta_ganper_con = 'Perdida Cambiaria';
                                     $gan_per_c = 0;
-                                    $gan_per_a = $dif * -1;
+                                    $gan_per_a = $dif*-1;
                                 }
-                                $imp_com = $imp_mxn - $imp_o;
+                                $imp_com = $imp_mxn- $imp_o;
                                 $cta_comple = CatCuentas::where('id',$dat_cta_or->complementaria)->first();
                                 $t1_cargos = 0;
                                 $t1_abonos = 0;

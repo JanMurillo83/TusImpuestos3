@@ -19,6 +19,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\DB;
 
@@ -109,7 +110,7 @@ class TraspasoBanco extends Widget implements HasForms
                         Actions\Action::make('Guardar')
                         ->label('Guardar')->color('success')
                         ->icon('fas-save')
-                        ->action(function (Get $get){
+                        ->action(function (Get $get,$action){
                             $mon_o = $get('moneda');
                             $mon_d = $get('moneda_d');
                             $tc_o = $get('tcambio');
@@ -389,6 +390,8 @@ class TraspasoBanco extends Widget implements HasForms
                                 'poliza'=>$polno,
                                 'team_id'=>Filament::getTenant()->id
                             ]);
+                            Notification::make()->title('Traspaso de Cuentas')->success()->body('Se ha registrado el traspaso de cuentas')->send();
+                            $action->success();
                         })
                     ])
 

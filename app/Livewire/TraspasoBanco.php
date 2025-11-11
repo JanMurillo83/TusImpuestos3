@@ -187,8 +187,11 @@ class TraspasoBanco extends Widget implements HasForms
 
                             if($mon_o != $mon_d&&$mon_o == 'USD'){
                                 $imp_usd = $imp_o * $tc_o;
+                                //dd($imp_usd,$imp_o,$tc_o);
                                 $imp_mxn = $imp_d;
                                 $dif = $imp_mxn - $imp_usd;
+                                //dd($imp_usd,$imp_o,$tc_o,$dif);
+                                $mon_comple = $imp_usd -$imp_o;
                                 $gan_per_c = 0;
                                 $gan_per_a = 0;
                                 $cta_ganper = '';
@@ -196,13 +199,13 @@ class TraspasoBanco extends Widget implements HasForms
                                 if($dif > 0) {
                                     $cta_ganper = '70201000';
                                     $cta_ganper_con = 'Utilidad Cambiaria';
-                                    $gan_per_c = $dif;
-                                    $gan_per_a = 0;
+                                    $gan_per_c = 0;
+                                    $gan_per_a = $dif;
                                 }else{
                                     $cta_ganper = '70101000';
                                     $cta_ganper_con = 'Perdida Cambiaria';
-                                    $gan_per_c = 0;
-                                    $gan_per_a = $dif*-1;
+                                    $gan_per_c = $dif*-1;
+                                    $gan_per_a = 0;
                                 }
                                 $imp_com = $imp_mxn- $imp_o;
                                 $cta_comple = CatCuentas::where('id',$dat_cta_or->complementaria)->first();
@@ -250,7 +253,7 @@ class TraspasoBanco extends Widget implements HasForms
                                     'cuenta'=>$cta_comple->nombre,
                                     'concepto'=>'Traspaso entre Cuentas',
                                     'cargo'=>0,
-                                    'abono'=>round(floatval($imp_com),2),
+                                    'abono'=>round(floatval($mon_comple),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
                                     'team_id'=>Filament::getTenant()->id
@@ -394,7 +397,7 @@ class TraspasoBanco extends Widget implements HasForms
                                 'team_id'=>Filament::getTenant()->id
                             ]);
                             Notification::make()->title('Traspaso de Cuentas')->success()->body('Se ha registrado el traspaso de cuentas Póliza Dr'.$nopoliza)->send();
-                            $action->success();
+                            $action->close();
                         })
                     ])
 

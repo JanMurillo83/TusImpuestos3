@@ -371,7 +371,7 @@ class Pagos extends Page implements HasForms
                     Proveedores::where('id', $cxp_->proveedor)->decrement('saldo', $factura['Monto a Pagar']);
                 } catch (\Throwable $e) {
                     // Continuar sin interrumpir en caso de error
-                    dd($e->getMessage());
+                    error_log($e->getMessage());
                 }
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
                 if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['USD a Pagar']);

@@ -215,7 +215,7 @@ class TraspasoBanco extends Widget implements HasForms
                                     'concepto'=>'Traspaso entre Cuentas',
                                     'cargo'=>round(floatval($imp_d),2),
                                     'abono'=>0,
-                                    'factura'=>'F-',
+                                    'factura'=>'F',
                                     'nopartida'=>$par_num,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);

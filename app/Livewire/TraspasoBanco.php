@@ -96,7 +96,8 @@ class TraspasoBanco extends Widget implements HasForms
                     ->afterStateUpdated(function (Get $get, $set){
                         $mov = Movbancos::where('id',$get('movimiento_destino'))->first();
                         $set('moneda_d',$mov->moneda);
-                        $importe_d_d = floatval($mov?->importe ?? 1 / floatval($this->importe ?? 1));
+                        //dd($mov->importe,$this->importe);
+                        $importe_d_d = floatval($mov->importe)  / floatval($this->importe ?? 1);
                         $set('tcambio_d',$importe_d_d);
                         $set('tcambio_d_o',$mov->tcambio);
                         $set('importe_d',$mov->importe);

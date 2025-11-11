@@ -187,7 +187,7 @@ class TraspasoBanco extends Widget implements HasForms
 
                             if($mon_o != $mon_d&&$mon_o == 'USD'){
                                 $imp_usd = $imp_o * $tc_o;
-                                $imp_mxn = $imp_o * $tc_d_o;
+                                $imp_mxn = $imp_d;
                                 $dif = $imp_mxn - $imp_usd;
                                 $gan_per_c = 0;
                                 $gan_per_a = 0;

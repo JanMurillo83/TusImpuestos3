@@ -194,13 +194,13 @@ class TraspasoBanco extends Widget implements HasForms
                                 $cta_ganper = '';
                                 $cta_ganper_con = '';
                                 if($dif > 0) {
-                                    $cta_ganper = '70201000';
-                                    $cta_ganper_con = 'Utilidad Cambiaria';
+                                    $cta_ganper = '70101000';
+                                    $cta_ganper_con = 'Perdida Cambiaria';
                                     $gan_per_c = $dif;
                                     $gan_per_a = 0;
                                 }else{
-                                    $cta_ganper = '70101000';
-                                    $cta_ganper_con = 'Perdida Cambiaria';
+                                    $cta_ganper = '70201000';
+                                    $cta_ganper_con = 'Utilidad Cambiaria';
                                     $gan_per_c = 0;
                                     $gan_per_a = $dif * -1;
                                 }
@@ -213,7 +213,7 @@ class TraspasoBanco extends Widget implements HasForms
                                     'codigo'=>$dat_cta_de->codigo,
                                     'cuenta'=>$dat_cta_de->banco,
                                     'concepto'=>'Traspaso entre Cuentas',
-                                    'cargo'=>round(floatval($imp_o),2),
+                                    'cargo'=>round(floatval($imp_d),2),
                                     'abono'=>0,
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,

@@ -72,7 +72,7 @@ class TraspasoBanco extends Widget implements HasForms
                     TextInput::make('fecha')->default(Carbon::create(substr($this->fecha,0,10))->format('Y-m-d'))->readOnly(),
                     TextInput::make('cuenta')->default($this->cuenta)->readOnly(),
                     TextInput::make('moneda')->default($this->moneda)->readOnly(),
-                    TextInput::make('tcambio')->default($this->tcambio)->currencyMask()->prefix('$')->label('T.Cambio')->readOnly(),
+                    TextInput::make('tcambio')->default($this->tcambio)->currencyMask(precision: 4)->prefix('$')->label('T.Cambio')->readOnly(),
                     TextInput::make('importe')->default($this->importe)->currencyMask()->prefix('$')->readOnly(),
                     TextInput::make('concepto')->default($this->concepto)->readOnly()->columnSpan(2),
                 ])->columnSpanFull()->columns(5),
@@ -96,13 +96,14 @@ class TraspasoBanco extends Widget implements HasForms
                     ->afterStateUpdated(function (Get $get, $set){
                         $mov = Movbancos::where('id',$get('movimiento_destino'))->first();
                         $set('moneda_d',$mov->moneda);
-                        $set('tcambio_d',$mov->tcambio);
+                        $importe_d_d = floatval($mov?->importe ?? 1 / floatval($get('importe') ?? 1));
+                        $set('tcambio_d',$importe_d_d);
                         $set('tcambio_d_o',$mov->tcambio);
                         $set('importe_d',$mov->importe);
                         $set('concepto_d',$mov->concepto);
                     }),
                     TextInput::make('moneda_d')->default($this->moneda)->readOnly()->label('Moneda'),
-                    TextInput::make('tcambio_d')->default($this->tcambio)->currencyMask()->prefix('$')->label('T.Cambio')->label('T.Cambio')->required(),
+                    TextInput::make('tcambio_d')->default($this->tcambio)->currencyMask(precision: 4)->prefix('$')->label('T.Cambio')->label('T.Cambio')->required(),
                     TextInput::make('importe_d')->default($this->importe)->currencyMask()->prefix('$')->readOnly()->label('Importe'),
                     Hidden::make('concepto_d')->default($this->concepto),
                     Hidden::make('tcambio_d_o')->default($this->tcambio),
@@ -390,7 +391,7 @@ class TraspasoBanco extends Widget implements HasForms
                                 'poliza'=>$polno,
                                 'team_id'=>Filament::getTenant()->id
                             ]);
-                            Notification::make()->title('Traspaso de Cuentas')->success()->body('Se ha registrado el traspaso de cuentas')->send();
+                            Notification::make()->title('Traspaso de Cuentas')->success()->body('Se ha registrado el traspaso de cuentas Póliza Dr'.$polno)->send();
                             $action->success();
                         })
                     ])

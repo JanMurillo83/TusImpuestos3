@@ -125,6 +125,7 @@ class TraspasoBanco extends Widget implements HasForms
                             $mov_o = $get('movimiento_destino');
                             $mov_d = $get('movimiento_destino');
                             $dat_cta_or = BancoCuentas::where('id',$this->cuenta_id)->first();
+                            //dd($dat_cta_or);
                             $dat_cta_de = BancoCuentas::where('id',$cta_d)->first();
                             //dd($dat_cta_or->codigo,$dat_cta_or->banco,$dat_cta_de->codigo,$dat_cta_de->banco);
                             $fecha= Carbon::create(substr($get('fecha'),0,10))->format('Y-m-d');
@@ -204,7 +205,7 @@ class TraspasoBanco extends Widget implements HasForms
                                     $gan_per_a = $dif * -1;
                                 }
                                 $imp_com = $imp_mxn - $imp_o;
-                                $cta_comple = CatCuentas::where('codigo',$dat_cta_or->complementaria)->first();
+                                $cta_comple = CatCuentas::where('id',$dat_cta_or->complementaria)->first();
                                 $t1_cargos = 0;
                                 $t1_abonos = 0;
                                 $aux = Auxiliares::create([

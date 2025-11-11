@@ -393,7 +393,7 @@ class TraspasoBanco extends Widget implements HasForms
                                 'poliza'=>$polno,
                                 'team_id'=>Filament::getTenant()->id
                             ]);
-                            Notification::make()->title('Traspaso de Cuentas')->success()->body('Se ha registrado el traspaso de cuentas Póliza Dr'.$polno)->send();
+                            Notification::make()->title('Traspaso de Cuentas')->success()->body('Se ha registrado el traspaso de cuentas Póliza Dr'.$nopoliza)->send();
                             $action->success();
                         })
                     ])

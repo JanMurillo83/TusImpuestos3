@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\AdmCatalogos\Resources\ProveedoresResource\Pages;
 
 use App\Filament\Clusters\AdmCatalogos\Resources\ProveedoresResource;
+use App\Livewire\CuentasPagarWidget;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -16,6 +17,13 @@ class ListProveedores extends ListRecords
     {
         return [
             //Actions\CreateAction::make(),
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+
         ];
     }
 }

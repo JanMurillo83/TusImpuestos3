@@ -14,12 +14,14 @@ use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
+use Faker\Core\File;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -129,6 +131,8 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     ->icon('fas-search')
                     ->label('Consulta CFDI SAT')
                     ->modalWidth('full')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
                     ->form(function ($record,Form $form) {
                         return $form->schema([
                             Fieldset::make('Periodo')
@@ -178,6 +182,14 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                         $emitidos = [];
                                         foreach ($list as $cfdi) {
                                             $UU = $cfdi->uuid();
+                                            $uuids = [$UU];
+                                            $file_path = storage_path().'/app/public/TEMP_'.$record->taxid;
+                                            $xml_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.xml';
+                                            $pdf_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.pdf';
+                                            $list_f = $satScraper->listByUuids($uuids,\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos());
+                                            $satScraper->resourceDownloader(ResourceType::xml(), $list_f, 50)->saveTo($file_path, true, 0777);
+                                            $satScraper->resourceDownloader(ResourceType::pdf(), $list_f, 50)->saveTo($file_path, true, 0777);
+                                            //dd($archivo_xml,$archivo_pdf);
                                             $alm_ = 'NO';
                                             $asociado = 'N/A';
                                             if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
@@ -194,7 +206,9 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                                 'estado'=>$cfdi->get('estadoComprobante'),
                                                 'uuid'=>$cfdi->uuid(),
                                                 'en_sistema'=>$alm_,
-                                                'asociado'=>$asociado
+                                                'asociado'=>$asociado,
+                                                'archivo_xml'=>$xml_file,
+                                                'archivo_pdf'=>$pdf_file
                                             ];
                                         }
                                         $set('emitidos', $emitidos);
@@ -204,6 +218,13 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                         $recibidos = [];
                                         foreach ($list2 as $cfdi) {
                                             $UU = $cfdi->uuid();
+                                            $uuids = [$UU];
+                                            $file_path = storage_path().'/app/public/TEMP_'.$record->taxid;
+                                            $xml_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.xml';
+                                            $pdf_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.pdf';
+                                            $list_f = $satScraper->listByUuids($uuids,\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos());
+                                            $satScraper->resourceDownloader(ResourceType::xml(), $list_f, 50)->saveTo($file_path, true, 0777);
+                                            $satScraper->resourceDownloader(ResourceType::pdf(), $list_f, 50)->saveTo($file_path, true, 0777);
                                             $alm_ = 'NO';
                                             $asociado = 'N/A';
                                             if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
@@ -220,7 +241,9 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                                 'estado'=>$cfdi->get('estadoComprobante'),
                                                 'uuid'=>$cfdi->uuid(),
                                                 'en_sistema'=>$alm_,
-                                                'asociado'=>$asociado
+                                                'asociado'=>$asociado,
+                                                'archivo_xml'=>$xml_file,
+                                                'archivo_pdf'=>$pdf_file
                                             ];
                                         }
                                         $set('recibidos', $recibidos);
@@ -240,15 +263,34 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                         Header::make('Total'),
                                         Header::make('Estado'),
                                         Header::make('UUID'),
+                                        Header::make('Existe en Sistema'),
+                                        Header::make('Asociado'),
+                                        Header::make('')
                                     ])
                                     ->schema([
-                                        TextInput::make('rfc_receptor'),
-                                        TextInput::make('nombre'),
-                                        TextInput::make('fecha'),
-                                        TextInput::make('tipo'),
-                                        TextInput::make('total'),
-                                        TextInput::make('estado'),
-                                        TextInput::make('uuid'),
+                                        TextInput::make('rfc_receptor')->readOnly(),
+                                        TextInput::make('nombre')->readOnly(),
+                                        TextInput::make('fecha')->readOnly(),
+                                        TextInput::make('tipo')->readOnly(),
+                                        TextInput::make('total')->readOnly(),
+                                        TextInput::make('estado')->readOnly(),
+                                        TextInput::make('uuid')->readOnly(),
+                                        TextInput::make('en_sistema')->readOnly(),
+                                        TextInput::make('asociado')->readOnly(),
+                                        Hidden::make('archivo_xml'),
+                                        Hidden::make('archivo_pdf'),
+                                        Actions::make([
+                                            Actions\Action::make('XML')
+                                                ->icon('fas-file')->iconButton()
+                                                ->action(function(Get $get){
+                                                    return response()->download($get('archivo_xml'));
+                                                }),
+                                            Actions\Action::make('PDF')
+                                                ->icon('fas-file-pdf')->iconButton()
+                                                ->action(function(Get $get){
+                                                    return response()->download($get('archivo_pdf'));
+                                                }),
+                                        ])
                                     ])->columnSpanFull(),
                                     TableRepeater::make('recibidos')
                                         ->addable(false)
@@ -264,15 +306,34 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                             Header::make('Total'),
                                             Header::make('Estado'),
                                             Header::make('UUID'),
+                                            Header::make('Existe en Sistema'),
+                                            Header::make('Asociado'),
+                                            Header::make(''),
                                         ])
                                         ->schema([
-                                            TextInput::make('rfc_receptor'),
-                                            TextInput::make('nombre'),
-                                            TextInput::make('fecha'),
-                                            TextInput::make('tipo'),
-                                            TextInput::make('total'),
-                                            TextInput::make('estado'),
-                                            TextInput::make('uuid'),
+                                            TextInput::make('rfc_receptor')->readOnly(),
+                                            TextInput::make('nombre')->readOnly(),
+                                            TextInput::make('fecha')->readOnly(),
+                                            TextInput::make('tipo')->readOnly(),
+                                            TextInput::make('total')->readOnly(),
+                                            TextInput::make('estado')->readOnly(),
+                                            TextInput::make('uuid')->readOnly(),
+                                            TextInput::make('en_sistema')->readOnly(),
+                                            TextInput::make('asociado')->readOnly(),
+                                            Hidden::make('archivo_xml'),
+                                            Hidden::make('archivo_pdf'),
+                                            Actions::make([
+                                                Actions\Action::make('XML')
+                                                ->icon('fas-file')->iconButton()
+                                                ->action(function(Get $get){
+                                                    return response()->download($get('archivo_xml'));
+                                                }),
+                                                Actions\Action::make('PDF')
+                                                ->icon('fas-file-pdf')->iconButton()
+                                                    ->action(function(Get $get){
+                                                        return response()->download($get('archivo_pdf'));
+                                                    }),
+                                            ])
                                         ])->columnSpanFull()
                                 ])->columns(3)
                         ]);

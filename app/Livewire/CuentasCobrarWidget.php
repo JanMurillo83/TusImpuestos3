@@ -34,11 +34,13 @@ class CuentasCobrarWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('importe')->label('Importe')
                     ->numeric(decimalPlaces: 2, decimalSeparator: '.')
                     ->prefix('$')
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total importe')->money('MXN', locale: 'es_MX')->numeric(2, '.', ',')),
                 Tables\Columns\TextColumn::make('saldo')->label('Saldo')
                     ->numeric(decimalPlaces: 2, decimalSeparator: '.')
                     ->prefix('$')
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total saldo')->money('MXN', locale: 'es_MX')->numeric(2, '.', ',')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make('agregar')

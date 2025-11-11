@@ -10,6 +10,8 @@ use App\Models\BancoCuentas;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\IngresosEgresos;
+use App\Models\CuentasPagar;
+use App\Models\Proveedores;
 use App\Models\Movbancos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -359,8 +361,21 @@ class Pagos extends Page implements HasForms
                 $ban_com = CatCuentas::where('id', $ban->complementaria)->first();
                 $ter = DB::table('terceros')->where('rfc', $fss->Emisor_Rfc)->first();
                 $monto_par = 0;
+                try {
+                    $aplicar = floatval($factura['Monto a Pagar']);
+                    $cxp_ =CuentasPagar::where('team_id', Filament::getTenant()->id)
+                        ->where('refer', $fac_id)->first();
+                    CuentasPagar::where('team_id', Filament::getTenant()->id)
+                        ->where('refer', $fac_id)
+                        ->decrement('saldo', $aplicar);
+                    Proveedores::where('id', $cxp_->proveedor)->decrement('saldo', $factura['Monto a Pagar']);
+                } catch (\Throwable $e) {
+                    // Continuar sin interrumpir en caso de error
+                    dd($e->getMessage());
+                }
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
                 if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['USD a Pagar']);
+
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'MXN') {
 
                     $aux = Auxiliares::create([
@@ -776,6 +791,7 @@ class Pagos extends Page implements HasForms
                         'pendientemxn' => $n_pen2
                     ]);
                 }
+
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago != 'MXN') {
                     $pesos = floatval($monto_par) * floatval($factura['Tipo Cambio']);
                     $dolares = floatval($monto_par);
@@ -919,6 +935,28 @@ class Pagos extends Page implements HasForms
                     IngresosEgresos::where('id', $fac_id)->update([
                         'pendientemxn' => $n_pen2
                     ]);
+
+                    // Aplicar pago a Cuenta por Pagar y disminuir saldo del proveedor
+                    try {
+                        $cxp = CuentasPagar::where('team_id', Filament::getTenant()->id)
+                            ->where(function($q) use ($igeg, $fss) {
+                                $q->where('refer', $igeg->xml_id)
+                                  ->orWhere('documento', ($fss->Serie . $fss->Folio));
+                            })
+                            ->first();
+                        if ($cxp) {
+                            $aplicar = min(max(0, (float) $monto_par), (float) $cxp->saldo);
+                            if ($aplicar > 0) {
+                                // Actualiza saldo de la CxP
+                                $nuevoSaldo = max(0, (float) $cxp->saldo - $aplicar);
+                                CuentasPagar::where('id', $cxp->id)->update(['saldo' => $nuevoSaldo]);
+                                // Disminuye saldo del proveedor
+                                Proveedores::where('id', $cxp->proveedor)->decrement('saldo', $aplicar);
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        // En caso de error, continuamos sin detener el flujo de contabilización
+                    }
                 }
             }
         }
@@ -927,6 +965,8 @@ class Pagos extends Page implements HasForms
             $n_imp = ($record->importe * $record->tcambio) - $record->importe;
             Auxiliares::where('id', $id_cta_banco_com)->update(['abono' => $n_imp]);
         }
+
+
         return $nopoliza;
     }
     public function graba_mov(Get $get)
@@ -1008,6 +1048,9 @@ class Pagos extends Page implements HasForms
             IngresosEgresos::where('id',$data['id_fac'])->update([
                 'pendientemxn' => $n_pen2
             ]);
+
+            // Aplicar pago a CxP y disminuir saldo del proveedor
+
         }
         $aux = Auxiliares::create([
             'cat_polizas_id'=>$polno,

@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\AdmCatalogos\Resources;
 use App\Filament\Clusters\AdmCatalogos;
 use App\Filament\Clusters\AdmCatalogos\Resources\ProveedoresResource\Pages;
 use App\Filament\Clusters\AdmCatalogos\Resources\ProveedoresResource\RelationManagers;
+use App\Livewire\CuentasPagarWidget;
 use App\Models\Proveedores;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
@@ -103,14 +104,26 @@ class ProveedoresResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
-                ->label('')->icon(null)
-                ->modalSubmitActionLabel('Grabar')
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
-                ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                ->modalFooterActionsAlignment(Alignment::Left),
-            ])
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->label('Editar')->icon('fas-edit')
+                        ->modalSubmitActionLabel('Grabar')
+                        ->modalCancelActionLabel('Cerrar')
+                        ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
+                        ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
+                        ->modalFooterActionsAlignment(Alignment::Left),
+                    Action::make('CxP')->label('Cuentas x Pagar')
+                    ->form(function($record){
+                        return[Forms\Components\Livewire::make(CuentasPagarWidget::class,['proveedor'=>$record->id])];
+                    })->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->icon('fas-money-bill-transfer')
+                    ->color(Color::Blue)
+                    ->modalwidth('7xl'),
+
+                ])
+
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
                 ->createAnother(false)

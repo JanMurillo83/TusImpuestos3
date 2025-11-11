@@ -13,6 +13,7 @@ use App\Models\DatosFiscales;
 use App\Models\Proveedores;
 use App\Models\Regimenes;
 use App\Models\Terceros;
+use App\Models\CuentasPagar;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -214,6 +215,9 @@ class cfdiri extends Page implements HasForms, HasTable
                     ->icon('fas-scale-balanced')
                     ->modalWidth(MaxWidth::ExtraSmall)
                     ->form([
+                        TextInput::make('dias_cred')
+                        ->label('Dias de Crédito')
+                        ->numeric()->default(60),
                         Select::make('rubrogas')
                             ->label('Rubro del Gasto')
                             ->required()
@@ -443,6 +447,9 @@ class cfdiri extends Page implements HasForms, HasTable
                 ->icon('fas-scale-balanced')
                 ->modalWidth(MaxWidth::ExtraSmall)
                 ->form([
+                    TextInput::make('dias_cred')
+                        ->label('Dias de Crédito')
+                        ->numeric()->default(60),
                     Select::make('rubrogas')
                         ->label('Rubro del Gasto')
                         ->required()
@@ -655,14 +662,7 @@ class cfdiri extends Page implements HasForms, HasTable
                     'tax_id'=>$rfc_emi,
                     'team_id'=>Filament::getTenant()->id
                 ]);
-                $cve = Proveedores::where('team_id',Filament::getTenant()->id)
-                        ->max('id') + 1;
-                Proveedores::firstOrCreate([
-                    'clave'=>$cve,
-                    'rfc'=>$rfc_emi,
-                    'nombre' => $nom_emi,
-                    'team_id'=>Filament::getTenant()->id
-                ]);
+
                 $ctaclie = $nuecta;
             }
             Almacencfdis::where('id',$record['id'])->update([
@@ -775,6 +775,52 @@ class cfdiri extends Page implements HasForms, HasTable
                         'cat_polizas_id' => $polno
                     ]);
                 }
+
+                try {
+                    $prov = Proveedores::where('rfc', $rfc_emi)
+                        ->where('team_id', Filament::getTenant()->id)
+                        ->first();
+                    $proveedorId = $prov?->id ?? null;
+                    $tc = ($tipoc == null || $tipoc == '' || $tipoc == 0) ? 1 : floatval($tipoc);
+                    $diasCredito = intval($data['dias_cred'] ?? 0);
+                    $fechaDoc = Carbon::parse($cffecha);
+                    $venc = (clone $fechaDoc)->addDays($diasCredito);
+                    if(!$proveedorId){
+                        $cve = Proveedores::where('team_id',Filament::getTenant()->id)
+                                ->max('id') + 1;
+                        $proveedorId = Proveedores::Create([
+                            'clave'=>$cve,
+                            'rfc'=>$rfc_emi,
+                            'nombre' => $nom_emi,
+                            'dias_credito' => $diasCredito,
+                            'team_id'=>Filament::getTenant()->id
+                        ])->id;
+                    }
+                    if ($proveedorId) {
+                        $existeCxp = CuentasPagar::where('team_id', Filament::getTenant()->id)
+                            ->where('refer', $record->id)
+                            ->first();
+                        if (!$existeCxp) {
+                            CuentasPagar::create([
+                                'proveedor'   => $proveedorId,
+                                'concepto'    => 1,
+                                'descripcion' => 'CFDI Proveedor',
+                                'documento'   => ($serie . $folio) ?: $uuid,
+                                'fecha'       => $fechaDoc->toDateString(),
+                                'vencimiento' => $venc->toDateString(),
+                                'importe'     => $ntotal * $tc,
+                                'saldo'       => $ntotal * $tc,
+                                'team_id'     => Filament::getTenant()->id,
+                                'refer'       => $record->id,
+                            ]);
+                            // Ajustar saldo del proveedor al crear la CxP desde CFDI
+                            Proveedores::where('id', $proveedorId)->increment('saldo', ($ntotal * $tc));
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    dd($e->getMessage());
+                }
+
             }
             else
             {

@@ -85,6 +85,7 @@ foreach ($movimientos as $m) {
             <div class="col-12">
                 <div class="cuenta-header p-2">
                     <?php echo e($group['codigo']); ?> - <?php echo e($group['cuenta']); ?>
+
                 </div>
                 <table class="table table-sm border">
                     <thead>

@@ -44,14 +44,14 @@ foreach ($movimientos as $m) {
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="utf-8">
     <title>Auxiliares del Periodo</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script src="{{public_path('WH/jquery-3.7.1.js')}}"></script>
+    <link href="{{public_path('WH/bootstrap.min.css')}}" rel="stylesheet">
+    <link href="{{public_path('WH/bootstrap-theme.min.css')}}" rel="stylesheet">
+    <script src="{{public_path('WH/bootstrap.min.js')}}"></script>
     <style>
-        th, td { font-size: 12px; }
+        th, td { font-size: 10px; }
         .cuenta-header { background: #f5f5f5; font-weight: bold; }
         .totales { font-weight: bold; }
     </style>
@@ -60,7 +60,7 @@ foreach ($movimientos as $m) {
 <div class="container">
     <div class="row mt-5">
         <div class="col-3">
-            <img src="{{asset('images/MainLogo.png')}}" alt="Tus-Impuestos" width="120px">
+            <img src="{{public_path('images/MainLogo.png')}}" alt="Tus-Impuestos" width="120px">
         </div>
         <div class="col-6">
             <center>

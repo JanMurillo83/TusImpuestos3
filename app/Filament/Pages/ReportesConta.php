@@ -6,7 +6,10 @@ use App\Exports\AuxiliaresExport;
 use App\Exports\BalanceExport;
 use App\Exports\BalanzaExport;
 use App\Exports\EdoreExport;
+use App\Http\Controllers\RepContables;
 use App\Http\Controllers\ReportesController;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\Snappy\Facades\SnappyPdf;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Fieldset;
@@ -78,7 +81,7 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('Estado de Resultados')->visible(false);
                         }),
                     Actions\Action::make('Auxiliares_Periodo')
-                        ->label('Auxiliares del Periodo')
+                        ->label('Auxiliares del Periodo (VP)')
                         ->action(function (){
                             $ejercicio = Filament::getTenant()->ejercicio;
                             $periodo = Filament::getTenant()->periodo;
@@ -87,6 +90,22 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('Auxiliares del Periodo')->visible(true);
                             $this->replaceMountedAction('Auxiliares del Periodo');
                             $this->getAction('Auxiliares del Periodo')->visible(false);
+                        }),
+                    Actions\Action::make('Auxiliares_Periodo_des')
+                        ->label('Auxiliares del Periodo (Descarga)')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                           // (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $archivo = 'Auxiliar-'.$periodo.'-'.$ejercicio.'.pdf';
+                            $data = ['empresa'=>$team_id,'periodo'=>$periodo,'ejercicio'=>$ejercicio];
+                            //dd(storage_path().'/app/public/WH/wkhtmltoimage-amd64');
+                            $pdf = Pdf::loadView('AuxiliaresPeriodo', $data);
+                            //return $pdf->download($archivo);
+                            return response()->streamDownload(function () use ($pdf) {
+                                echo $pdf->stream();
+                            }, $archivo);
                         }),
                     Actions\Action::make('Polizas_Descuadradas')
                         ->label('Pólizas Descuadradas')

@@ -102,7 +102,7 @@ class ReportesConta extends Page implements HasForms
                             $data = ['empresa'=>$team_id,'periodo'=>$periodo,'ejercicio'=>$ejercicio];
                             //dd(storage_path().'/app/public/WH/wkhtmltoimage-amd64');
                             $pdf = Pdf::loadView('AuxiliaresPeriodo', $data);
-                            //return $pdf->download($archivo);
+                            //return $pdf->stream();
                             return response()->streamDownload(function () use ($pdf) {
                                 echo $pdf->stream();
                             }, $archivo);

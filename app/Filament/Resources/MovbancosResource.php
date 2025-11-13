@@ -1605,9 +1605,14 @@ class MovbancosResource extends Resource
                                         }
                                         foreach($otros_pagos() as $otropago){
                                             if(floatval($otropago['Importe']) > 0) {
+                                                $cta = '50102000';
+                                                if($otropago['Clave'] == '052') $cta = '21611000';
+                                                if($otropago['Clave'] == '045') $cta = '21601000';
+                                                if($otropago['Clave'] == '016') $cta = '21612000';
+                                                $nom = CatCuentas::where('codigo',$cta)->where('team_id',Filament::getTenant()->id)->first();
                                                 $detalle[] = [
-                                                    'Cuenta_Con' => '',
-                                                    'Cuenta' => '',
+                                                    'Cuenta_Con' => $cta,
+                                                    'Cuenta' => $nom?->nombre ?? 'NO REGISTRADA',
                                                     'Nombre' => $otropago['Clave'].' '.$otropago['Concepto'],
                                                     'Concepto' => $conce,
                                                     'Cargo' => floatval($otropago['Importe']),
@@ -1619,9 +1624,14 @@ class MovbancosResource extends Resource
                                             }
                                         }
                                         foreach($deducciones() as $deduccion){
+                                            $cta = '50102000';
+                                            if($deduccion['Clave'] == '052') $cta = '21611000';
+                                            if($deduccion['Clave'] == '045') $cta = '21601000';
+                                            if($deduccion['Clave'] == '016') $cta = '21612000';
+                                            $nom = CatCuentas::where('codigo',$cta)->where('team_id',Filament::getTenant()->id)->first();
                                             $detalle[] = [
-                                                'Cuenta_Con'=>'',
-                                                'Cuenta'=>'',
+                                                'Cuenta_Con'=>$cta,
+                                                'Cuenta'=>$nom?->nombre ?? 'NO REGISTRADA',
                                                 'Nombre'=>$deduccion['Clave'].' '.$deduccion['Concepto'],
                                                 'Concepto'=>$conce,
                                                 'Cargo'=>0,

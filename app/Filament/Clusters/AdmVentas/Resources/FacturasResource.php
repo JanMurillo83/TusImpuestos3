@@ -637,7 +637,20 @@ class FacturasResource extends Resource
                 ->modalWidth('full'),
                 Action::make('Imprimir')->icon('fas-print')
                 ->action(function($record){
-                    self::DescargaPdf($record);
+                    //self::DescargaPdf($record);
+                    $emp = Team::where('id',Filament::getTenant()->id)->first();
+                    $cli = Clientes::where('id',$record->clie)->first();
+                    $archivo = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                    $ruta = public_path().'/TMPCFDI/'.$archivo;
+                    if(File::exists($ruta))File::delete($ruta);
+                    $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                    $html = View::make('RepFactura',$data)->render();
+                    Browsershot::html($html)->format('Letter')
+                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                        ->noSandbox()
+                        ->scale(0.8)->savePdf($ruta);
+                    return response()->download($ruta);
                 }),
                 Action::make('Cancelar')
                     ->icon('fas-ban')
@@ -1072,7 +1085,20 @@ class FacturasResource extends Resource
                                     ->persistent()
                                     ->send();
                             }
-                            self::DescargaPdf($record);
+                            //self::DescargaPdf($record);
+                            $emp = Team::where('id',Filament::getTenant()->id)->first();
+                            $cli = Clientes::where('id',$record->clie)->first();
+                            $archivo = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                            $ruta = public_path().'/TMPCFDI/'.$archivo;
+                            if(File::exists($ruta))File::delete($ruta);
+                            $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                            $html = View::make('RepFactura',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
                         }
                     //------------------------------------------
 

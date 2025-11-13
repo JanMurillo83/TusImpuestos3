@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Herramientas\Pages;
 use App\Filament\Clusters\Herramientas;
 use App\Models\Almacencfdis;
 use App\Models\Team;
+use CfdiUtils\Cfdi;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
 use Filament\Pages\Page;
@@ -154,6 +155,21 @@ class AlmacenCFDIGral extends Page implements HasTable
                     ->label('Refer.')
                     ->searchable()
                     ->sortable(),
+            ])->headerActions([
+                Action::make('ActFormade')
+                ->label('Act. Forma de Pago')
+                ->action(function () {
+                    $cfdis = DB::table('almacencfdis')->get();
+                    foreach ($cfdis as $cfdi) {
+                        $xml_content = $cfdi->content;
+                        $cfdi_s = Cfdi::newFromString($xml_content);
+                        $comp = $cfdi_s->getQuickReader();
+                        $forma = $comp['FormaPago'];
+                        Almacencfdis::where('id', $cfdi->id)->update([
+                            'FormaPago' => $forma,
+                        ]);
+                    }
+                })
             ]);
     }
 }

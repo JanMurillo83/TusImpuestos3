@@ -210,14 +210,14 @@ class Pagos extends Page implements HasForms
                                     $pend_f = floatval($pend_pag);
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago != 'MXN'){
-                                    $pend_f = $ineg->pendienteusd / $t_cambio;
-                                    $tpen_or = $ineg->pendienteusd / $t_cambio;
+                                    $pend_f = $ineg->pendienteusd ?? $ineg->pendientemxn / $t_cambio;
+                                    $tpen_or = $ineg->pendienteusd ?? $ineg->pendientemxn / $t_cambio;
                                 }
                                 if($fact->Moneda != 'MXN'&&$mon_pago != 'MXN'){
-                                    $pend_f = $ineg->pendienteusd;
+                                    $pend_f = $ineg->pendienteusd ?? $ineg->pendientemxn;
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago == 'MXN'){
-                                    $pend_f = $ineg->pendienteusd;
+                                    $pend_f = $ineg->pendienteusd ?? $ineg->pendientemxn;
                                     $tpen_or = 0;
                                 }
                                 if($pend_pag < $pend_f && $pend_pag > 0) $pend_f = $pend_pag;

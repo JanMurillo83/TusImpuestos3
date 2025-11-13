@@ -1,3 +1,3 @@
 <x-filament-panels::page>
-    {{$this->form}}
+    <img src="{{asset('images/MainLogoTR.png')}}" alt="Tus - Impuestos" width="20%">
 </x-filament-panels::page>

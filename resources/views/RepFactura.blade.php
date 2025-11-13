@@ -26,8 +26,9 @@ if($a_xml != null&&$a_xml!='')
     $receptor = $comprobante->receptor;
     $tfd = $comprobante->complemento->TimbreFiscalDigital;
 }
-
-//$logo = $dafis->logo64 ?? '';
+$QrPath = public_path('storage/QrCode.svg');
+$QrText = $parameters->expression();
+app(\App\Http\Controllers\QrController::class)->generar_2($QrText,$QrPath);
 $logo = public_path('storage/'.$dafis->logo);
 ?>
 <!DOCTYPE html>
@@ -85,13 +86,7 @@ $logo = public_path('storage/'.$dafis->logo);
     <div style="border-top: 1px solid black"></div>
     <div class="row">
         <div class="col-4">
-            <?php
-            if($parameters) {
-                $qr = QRCode::getMinimumQRCode(str_replace('?', "\n?", $parameters->expression() ?? ''), QR_ERROR_CORRECT_LEVEL_L);
-                $qr->make();
-                $qr->printHTML();
-            }
-            ?>
+           <img src="{{$QrPath}}" alt="" width="90px" style="margin-top: 0.5rem !important;margin-bottom: 0.5rem !important;">
         </div>
         <div class="col-6" style="font-size: 10px !important;">
             <label><b>PARA:</b></label><br>

@@ -377,7 +377,30 @@ class Pagos extends Page implements HasForms
                 if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['USD a Pagar']);
 
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'MXN') {
-
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $no_intera++;
+                        $id_cta_banco = $aux['id'];
+                        $mon_apli_ban += $monto_par;
+                    }else{
+                        $mon_apli_ban += $monto_par;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $ter->cuenta,
@@ -426,30 +449,7 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    if($no_intera == 0) {
-                        $aux = Auxiliares::create([
-                            'cat_polizas_id' => $polno,
-                            'codigo' => $ban->codigo,
-                            'cuenta' => $ban->banco,
-                            'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => 0,
-                            'abono' => 0,
-                            'factura' => $fss->Serie . $fss->Folio,
-                            'nopartida' => $partida,
-                            'team_id' => Filament::getTenant()->id,
-                            'igeg_id' => $igeg->id
-                        ]);
-                        DB::table('auxiliares_cat_polizas')->insert([
-                            'auxiliares_id' => $aux['id'],
-                            'cat_polizas_id' => $polno
-                        ]);
-                        $partida++;
-                        $no_intera++;
-                        $id_cta_banco = $aux['id'];
-                        $mon_apli_ban += $monto_par;
-                    }else{
-                        $mon_apli_ban += $monto_par;
-                    }
+
                     $st_con = 'NO';
                     $n_pen = floatval($get('pendiente')) - floatval($monto_par);
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);

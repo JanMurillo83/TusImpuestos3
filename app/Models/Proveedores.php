@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Proveedores extends Model
 {
     protected $fillable = ['clave','nombre','rfc',
-    'direccion','telefono','correo','contacto','team_id','dias_credito'];
+    'direccion','telefono','correo','contacto','team_id','dias_credito','cuenta_contable'];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

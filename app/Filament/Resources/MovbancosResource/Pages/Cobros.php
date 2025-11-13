@@ -370,9 +370,9 @@ class Cobros extends Page implements HasForms
                         $partida++;
                         $no_intera++;
                         $id_cta_banco = $aux['id'];
-                        $imp_pesos+= $monto_par;
+                        $imp_dolares+= $monto_par;
                     }else{
-                        $imp_pesos+= $monto_par;
+                        $imp_dolares+= $monto_par;
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
@@ -897,11 +897,10 @@ class Cobros extends Page implements HasForms
                 }
             }
         }
-        Auxiliares::where('id',$id_cta_banco)->update(['cargo' => $record->importe]);
+        Auxiliares::where('id',$id_cta_banco)->update(['cargo' => $imp_dolares]);
         if($id_cta_comple != 0) {
-            $n_imp = ($record->importe * $record->tcambio) - $record->importe;
+            $n_imp = ($imp_dolares * $record->tcambio) - $imp_dolares;
             Auxiliares::where('id',$id_cta_comple)->update(['cargo' => $n_imp]);
-
         }
         $cargos = Auxiliares::where('cat_polizas_id',$polno)->where('team_id',Filament::getTenant()->id)->sum('cargo');
         $abonos = Auxiliares::where('cat_polizas_id',$polno)->where('team_id',Filament::getTenant()->id)->sum('abono');

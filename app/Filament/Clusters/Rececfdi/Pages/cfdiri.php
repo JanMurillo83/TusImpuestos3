@@ -793,7 +793,8 @@ class cfdiri extends Page implements HasForms, HasTable
                             'rfc'=>$rfc_emi,
                             'nombre' => $nom_emi,
                             'dias_credito' => $diasCredito,
-                            'team_id'=>Filament::getTenant()->id
+                            'team_id'=>Filament::getTenant()->id,
+                            'cuenta_contable'=>$ctaclie
                         ])->id;
                     }
                     if ($proveedorId) {

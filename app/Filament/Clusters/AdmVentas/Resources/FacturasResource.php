@@ -599,7 +599,10 @@ class FacturasResource extends Resource
         ->defaultPaginationPageOption(5)
         ->paginationPageOptions([5,'all'])
         ->striped()
-        ->defaultSort('fecha', 'desc')
+            ->modifyQueryUsing(function ($query) {
+                return $query->OrderBy('fecha','desc')
+                ->OrderBy('folio','desc');
+            })
         ->columns([
             Tables\Columns\TextColumn::make('docto')
                 ->label('Factura')
@@ -638,10 +641,10 @@ class FacturasResource extends Resource
                 Action::make('Imprimir')->icon('fas-print')
                 ->action(function($record){
                     //self::DescargaPdf($record);
-                    $emp = Team::where('id',Filament::getTenant()->id)->first();
+                    $emp = Team::where('id',$record->team_id)->first();
                     $cli = Clientes::where('id',$record->clie)->first();
-                    $archivo = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
-                    $ruta = public_path().'/TMPCFDI/'.$archivo;
+                    $archivo_pdf = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                     if(File::exists($ruta))File::delete($ruta);
                     $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
                     $html = View::make('RepFactura',$data)->render();
@@ -745,6 +748,7 @@ class FacturasResource extends Resource
                         $xml = Cleaner::staticClean($xml);
                         File::put($archivo,$xml);
                         $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+
                         return response()->download($ruta);
                     }),
                 Action::make('Timbrar')->icon('fas-bell-concierge')
@@ -925,14 +929,14 @@ class FacturasResource extends Resource
                     $mail = new PHPMailer();
                     $mail->isSMTP();
                     //$mail->SMTPDebug = 2;
-                    $mail->Host = $mailConf->host;
-                    $mail->Port = $mailConf->port;
+                    $mail->Host = 'smtp.ionos.mx';
+                    $mail->Port = 587;
                     $mail->AuthType = 'LOGIN';
                     $mail->SMTPAuth = true;
                     $mail->SMTPSecure='tls';
-                    $mail->Username = $mailConf->username;
-                    $mail->Password = $mailConf->password;
-                    $mail->setFrom($mailConf->from_address, $mailConf->from_name);
+                    $mail->Username = 'sistema@app-tusimpuestos.com';
+                    $mail->Password = '*TusImpuestos2025$*';
+                    $mail->setFrom('sistema@app-tusimpuestos.com', Filament::getTenant()->name);
                     $mail->addAddress($Cliente->correo, $Cliente->nombre);
                     $mail->addAttachment($filepdf,$filepdf);
                     $mail->addAttachment($filexml,$filexml);
@@ -1067,12 +1071,42 @@ class FacturasResource extends Resource
                                     'team_id'=>Filament::getTenant()->id,
                                     'refer'=>$record->id
                                 ]);
-                                Notification::make()
-                                    ->success()
-                                    ->title('Factura Timbrada Correctamente')
-                                    ->body($mensaje_graba)
-                                    ->duration(2000)
-                                    ->send();
+                                $emp = Team::where('id',Filament::getTenant()->id)->first();
+                                $cli = Clientes::where('id',$record->clie)->first();
+                                $archivo_pdf = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                                $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                                if(File::exists($ruta))File::delete($ruta);
+                                $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                                $html = View::make('RepFactura',$data)->render();
+                                Browsershot::html($html)->format('Letter')
+                                    ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                    ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                    ->noSandbox()
+                                    ->scale(0.8)->savePdf($ruta);
+                                $nombre = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.xml';
+                                $archivo_xml = public_path().'/TMPCFDI/'.$nombre;
+                                if(File::exists($archivo_xml)) unlink($archivo_xml);
+                                $xml = $resultado->cfdi;
+                                $xml = Cleaner::staticClean($xml);
+                                File::put($archivo_xml,$xml);
+                                //-----------------------------------------------------------
+                                $zip = new \ZipArchive();
+                                $zipPath = public_path().'/TMPCFDI/';
+                                $zipFileName = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.zip';
+                                $zipFile = $zipPath.$zipFileName;
+                                if ($zip->open(($zipFile), \ZipArchive::CREATE) === true) {
+                                    $zip->addFile($archivo_xml, $nombre);
+                                    $zip->addFile($ruta, $archivo_pdf);
+                                    $zip->close();
+                                }else{
+                                    return false;
+                                }
+                                $docto = $record->serie.$record->folio;
+                                self::EnvioCorreo($record->clie,$ruta,$archivo_xml,$docto,$archivo_pdf,$nombre);
+                                self::MsjTimbrado($mensaje_graba);
+                                return response()->download($zipFile);
+                                //-----------------------------------------------------------
+
                             } else {
                                 $mensaje_tipo = "2";
                                 $mensaje_graba = $resultado->mensaje;
@@ -1086,19 +1120,7 @@ class FacturasResource extends Resource
                                     ->send();
                             }
                             //self::DescargaPdf($record);
-                            $emp = Team::where('id',Filament::getTenant()->id)->first();
-                            $cli = Clientes::where('id',$record->clie)->first();
-                            $archivo = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
-                            $ruta = public_path().'/TMPCFDI/'.$archivo;
-                            if(File::exists($ruta))File::delete($ruta);
-                            $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
-                            $html = View::make('RepFactura',$data)->render();
-                            Browsershot::html($html)->format('Letter')
-                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-                                ->noSandbox()
-                                ->scale(0.8)->savePdf($ruta);
-                            return response()->download($ruta);
+
                         }
                     //------------------------------------------
 
@@ -1254,21 +1276,49 @@ class FacturasResource extends Resource
             ],HeaderActionsPosition::Bottom);
     }
 
-    public static function DescargaPdf($record)
+    public static function MsjTimbrado($mensaje_graba)
     {
-        $emp = Team::where('id',Filament::getTenant()->id)->first();
-        $cli = Clientes::where('id',$record->clie)->first();
-        $archivo = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
-        $ruta = public_path().'/TMPCFDI/'.$archivo;
-        if(File::exists($ruta))File::delete($ruta);
-        $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
-        $html = View::make('RepFactura',$data)->render();
-        Browsershot::html($html)->format('Letter')
-            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-            ->noSandbox()
-            ->scale(0.8)->savePdf($ruta);
-        return response()->download($ruta);
+        Notification::make()
+            ->success()
+            ->title('Factura Timbrada Correctamente')
+            ->body($mensaje_graba)
+            ->duration(2000)
+            ->send();
+    }
+    public static function EnvioCorreo($cliente,$filepdf,$filexml,$docto,$nombrepdf,$nombrexml)
+    {
+        $Cliente = Clientes::where('id',$cliente)->first();
+        if($Cliente->correo != null) {
+            $mail = new PHPMailer();
+            $mail->isSMTP();
+            //$mail->SMTPDebug = 2;
+            $mail->Host = 'smtp.ionos.mx';
+            $mail->Port = 587;
+            $mail->AuthType = 'LOGIN';
+            $mail->SMTPAuth = true;
+            $mail->SMTPSecure = 'tls';
+            $mail->Username = 'sistema@app-tusimpuestos.com';
+            $mail->Password = '*TusImpuestos2025$*';
+            $mail->setFrom('sistema@app-tusimpuestos.com', Filament::getTenant()->name);
+            $mail->addAddress($Cliente->correo, $Cliente->nombre);
+            $mail->addAttachment($filepdf, $nombrepdf);
+            $mail->addAttachment($filexml, $nombrexml);
+            $mail->Subject = 'Factura CFDI ' . $docto . ' ' . $Cliente->nombre;
+            $mail->msgHTML('<b>Factura CFDI</b>');
+            $mail->Body = 'Factura CFDI';
+            $mail->send();
+            Notification::make()
+                ->success()
+                ->title('Envio de Correo')
+                ->body('Factura Enviada ' . $mail->ErrorInfo)
+                ->send();
+        }else{
+            Notification::make()
+                ->warning()
+                ->title('Envio de Correo')
+                ->body('Cliente sin Correo configurado')
+                ->send();
+        }
     }
     public static function getRelations(): array
     {

@@ -1656,8 +1656,8 @@ class MovbancosResource extends Resource
                                         ->afterStateUpdated(function(Get $get,Set $set)use ($record){
                                             $cta = $get('Cuenta_Con');
                                             $cat = CatCuentas::where('id',$cta)->first();
-                                            $set('Cuenta',$cat->codigo);
-                                            $set('Nombre',$cat->nombre);
+                                            $set('Cuenta',$cat?->codigo ?? '');
+                                            $set('Nombre',$cat?->nombre ?? '');
                                         }),
                                     Hidden::make('Cuenta'),
                                     TextInput::make('Nombre'),

@@ -83,7 +83,7 @@ class ClientesResource extends Resource
                             ->tel()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('correo')
-                            ->maxLength(255),
+                            ->maxLength(255)->required(),
                         Forms\Components\TextInput::make('contacto')
                             ->maxLength(255),
                         Forms\Components\Textarea::make('direccion')

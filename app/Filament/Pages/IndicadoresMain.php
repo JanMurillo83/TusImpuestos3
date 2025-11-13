@@ -25,6 +25,15 @@ class IndicadoresMain extends Page implements HasForms
     protected static string $view = 'filament.pages.indicadores-main';
 
     protected ?string $maxContentWidth = 'full';
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    public function getTitle(): string
+    {
+        return '';
+    }
     public function mount(): void
     {
         $ejercicio = Filament::getTenant()->ejercicio;

@@ -50,6 +50,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use stdClass;
 
 class cfdiri extends Page implements HasForms, HasTable
@@ -75,10 +77,6 @@ class cfdiri extends Page implements HasForms, HasTable
                     ->where('used','NO');
             })
             ->columns([
-                TextColumn::make('id')
-                    ->label('#')
-                    ->rowIndex()
-                    ->sortable(),
                 TextColumn::make('Fecha')
                     ->searchable()
                     ->sortable()
@@ -88,7 +86,18 @@ class cfdiri extends Page implements HasForms, HasTable
                     ->sortable(),
                 TextColumn::make('Folio')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('Folio')->form([
+                        TextInput::make('Folio')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->Folio;
+                            })
+                    ])),
                 TextColumn::make('Moneda')
                     ->searchable()
                     ->sortable(),
@@ -99,22 +108,23 @@ class cfdiri extends Page implements HasForms, HasTable
                 TextColumn::make('Receptor_Rfc')
                     ->label('RFC Receptor')
                     ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
                 TextColumn::make('Receptor_Nombre')
                     ->label('Nombre Receptor')
                     ->searchable()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->limit(20),
                 TextColumn::make('Emisor_Rfc')
                     ->label('RFC Emisor')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('Emisor_Nombre')
                     ->label('Nombre Emisor')
                     ->searchable()
                     ->sortable()
-                    ->limit(20),
+                    ->limit(20)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('Moneda')
                     ->label('Moneda')
                     ->searchable()
@@ -126,7 +136,7 @@ class cfdiri extends Page implements HasForms, HasTable
                     ->formatStateUsing(function (string $state) {
                         if($state <= 0) $state = 1;
                         $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 4);
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
                 TextColumn::make('Total')
@@ -137,10 +147,6 @@ class cfdiri extends Page implements HasForms, HasTable
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
-                TextColumn::make('notas')
-                    ->label('Referencia')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('used')
                     ->label('Asociado')
                     ->searchable()
@@ -148,10 +154,23 @@ class cfdiri extends Page implements HasForms, HasTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('UUID')
                     ->label('UUID')
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('UUID')->form([
+                        TextInput::make('UUID')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->UUID;
+                            })
+                    ])),
+                TextColumn::make('MetodoPago')
+                    ->label('M. Pago')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('MetodoPago')
-                    ->label('Forma de Pago')
+                TextColumn::make('FormaPago')
+                    ->label('F. Pago')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('xml_type')
@@ -165,38 +184,16 @@ class cfdiri extends Page implements HasForms, HasTable
                 TextColumn::make('periodo')
                     ->numeric()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('notas')
+                    ->label('Refer.')
+                    ->searchable()
+                    ->sortable(),
                 ])
                 ->recordAction('Notas')
             ->actions([
-                ActionGroup::make([
-                EditAction::make('Notas')
-                ->label('')
-                ->icon(null)
-                ->modalHeading('Referecnia')
-                ->form([
-                    Textarea::make('notas')
-                    ->label('Referencia')
-                ])
-                ->action(function(Model $record,$data){
-                    $record['notas'] = $data['notas'];
-                    $record->save();
-                })->visible(function(){
-                        $team = Filament::getTenant()->id;
-                        $periodo = Filament::getTenant()->periodo;
-                        $ejercicio = Filament::getTenant()->ejercicio;
-                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
-                        {
-                            return true;
-                        }
-                        else{
-                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
-                            if($estado == 1) return true;
-                            else return false;
-                        }
-                    }),
                 Action::make('ContabilizarR')
-                    ->label('')
+                    ->iconButton()
                     ->visible(function(){
                         $team = Filament::getTenant()->id;
                         $periodo = Filament::getTenant()->periodo;
@@ -216,25 +213,25 @@ class cfdiri extends Page implements HasForms, HasTable
                     ->modalWidth(MaxWidth::ExtraSmall)
                     ->form([
                         TextInput::make('dias_cred')
-                        ->label('Dias de Crédito')
-                        ->numeric()->default(60),
+                            ->label('Dias de Crédito')
+                            ->numeric()->default(60),
                         Select::make('rubrogas')
                             ->label('Rubro del Gasto')
                             ->required()
                             ->live()
                             ->options([
-                               '50100000' => 'Costo de Ventas',
-                               '60200000' => 'Gastos de Venta',
-                               '60300000' => 'Gastos de Administracion',
-                               '70100000' => 'Gastos Financieros',
-                               '70200000' => 'Productos Financieros'
+                                '50100000' => 'Costo de Ventas',
+                                '60200000' => 'Gastos de Venta',
+                                '60300000' => 'Gastos de Administracion',
+                                '70100000' => 'Gastos Financieros',
+                                '70200000' => 'Productos Financieros'
                             ]),
                         Select::make('detallegas')
                             ->label('Rubro del Gasto')
                             ->required()
                             ->options(function(Get $get) {
                                 return
-                                CatCuentas::where('team_id',Filament::getTenant()->id)->where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
+                                    CatCuentas::where('team_id',Filament::getTenant()->id)->where('acumula',$get('rubrogas'))->pluck('nombre','codigo');
                             }),
                         Select::make('forma')
                             ->label('Forma de Pago')
@@ -323,7 +320,33 @@ class cfdiri extends Page implements HasForms, HasTable
                     ->action(function(Model $record,$data,$livewire){
                         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
                         self::contabiliza_r($record,$data,$livewire,$nopoliza);
-                    })->label('Contabilizar'),
+                    }),
+                ActionGroup::make([
+                EditAction::make('Notas')
+                ->label('')
+                ->icon(null)
+                ->modalHeading('Referecnia')
+                ->form([
+                    Textarea::make('notas')
+                    ->label('Referencia')
+                ])
+                ->action(function(Model $record,$data){
+                    $record['notas'] = $data['notas'];
+                    $record->save();
+                })->visible(function(){
+                        $team = Filament::getTenant()->id;
+                        $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                        {
+                            return true;
+                        }
+                        else{
+                            $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                            if($estado == 1) return true;
+                            else return false;
+                        }
+                    }),
                 Action::make('ver_xml')->icon('fas-eye')
                     ->label('Consultar XML')
                     ->modalWidth('6xl')
@@ -439,7 +462,7 @@ class cfdiri extends Page implements HasForms, HasTable
                             return response()->download($ruta);
                         })
                 ])
-            ])->actionsPosition(ActionsPosition::BeforeCells)
+            ])->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
                 BulkAction::make('multi_Contabilizar')
                 ->label('Contabilizar')

@@ -63,6 +63,7 @@ class Almacencfdis extends Model
 		'Moneda',
 		'TipoDeComprobante',
 		'MetodoPago',
+        'FormaPago',
 		'Emisor_Rfc',
 		'Emisor_Nombre',
 		'Emisor_RegimenFiscal',

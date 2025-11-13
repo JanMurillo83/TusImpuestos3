@@ -24,4 +24,13 @@ class DashBoard extends DefaultDashboard
     protected static ?string $navigationIcon = 'fas-home';
     protected static ?string $title = 'Inicio';
     protected static string $view = 'filament.pages.dash-board';
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    public function getTitle(): string
+    {
+        return '';
+    }
 }

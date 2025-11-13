@@ -48,6 +48,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use stdClass;
 
 class cfdieo extends Page implements HasForms, HasTable
@@ -73,10 +75,6 @@ class cfdieo extends Page implements HasForms, HasTable
                     ->where('used','NO');
             })
             ->columns([
-                TextColumn::make('id')
-                    ->label('#')
-                    ->rowIndex()
-                    ->sortable(),
                 TextColumn::make('Fecha')
                     ->searchable()
                     ->sortable()
@@ -86,7 +84,18 @@ class cfdieo extends Page implements HasForms, HasTable
                     ->sortable(),
                 TextColumn::make('Folio')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('Folio')->form([
+                        TextInput::make('Folio')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->Folio;
+                            })
+                    ])),
                 TextColumn::make('Moneda')
                     ->searchable()
                     ->sortable(),
@@ -136,10 +145,6 @@ class cfdieo extends Page implements HasForms, HasTable
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
-                TextColumn::make('notas')
-                    ->label('Referencia')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('used')
                     ->label('Asociado')
                     ->searchable()
@@ -147,10 +152,23 @@ class cfdieo extends Page implements HasForms, HasTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('UUID')
                     ->label('UUID')
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('UUID')->form([
+                        TextInput::make('UUID')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->UUID;
+                            })
+                    ])),
+                TextColumn::make('MetodoPago')
+                    ->label('M. Pago')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('MetodoPago')
-                    ->label('Forma de Pago')
+                TextColumn::make('FormaPago')
+                    ->label('F. Pago')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('xml_type')
@@ -164,7 +182,11 @@ class cfdieo extends Page implements HasForms, HasTable
                 TextColumn::make('periodo')
                     ->numeric()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('notas')
+                    ->label('Refer.')
+                    ->searchable()
+                    ->sortable(),
                 ])
                 ->recordAction('Notas')
             ->actions([

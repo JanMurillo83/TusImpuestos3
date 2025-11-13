@@ -14,6 +14,7 @@ use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -35,6 +36,8 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use stdClass;
 
 class cfdie_all extends Page implements HasForms, HasTable
@@ -59,10 +62,6 @@ class cfdie_all extends Page implements HasForms, HasTable
                     ->where('xml_type','Emitidos');
             })
             ->columns([
-                TextColumn::make('id')
-                    ->label('#')
-                    ->rowIndex()
-                    ->sortable(),
                 TextColumn::make('Fecha')
                     ->searchable()
                     ->sortable()
@@ -72,7 +71,18 @@ class cfdie_all extends Page implements HasForms, HasTable
                     ->sortable(),
                 TextColumn::make('Folio')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('Folio')->form([
+                        TextInput::make('Folio')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->Folio;
+                            })
+                    ])),
                 TextColumn::make('Moneda')
                     ->searchable()
                     ->sortable(),
@@ -122,8 +132,8 @@ class cfdie_all extends Page implements HasForms, HasTable
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
-                TextColumn::make('notas')
-                    ->label('Referencia')
+                TextColumn::make('TipoDeComprobante')
+                    ->label('Tipo')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('used')
@@ -133,10 +143,23 @@ class cfdie_all extends Page implements HasForms, HasTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('UUID')
                     ->label('UUID')
-                    ->searchable()
-                    ->sortable()->wrap(),
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('UUID')->form([
+                        TextInput::make('UUID')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->UUID;
+                            })
+                    ])),
                 TextColumn::make('MetodoPago')
-                    ->label('Forma de Pago')
+                    ->label('M. Pago')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('FormaPago')
+                    ->label('F. Pago')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('xml_type')

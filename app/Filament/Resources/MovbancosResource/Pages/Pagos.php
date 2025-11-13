@@ -359,7 +359,7 @@ class Pagos extends Page implements HasForms
                 $fss = DB::table('almacencfdis')->where('id', $igeg->xml_id)->first();
                 $ban = DB::table('banco_cuentas')->where('id', $this->datos_mov->cuenta)->first();
                 $ban_com = CatCuentas::where('id', $ban->complementaria)->first();
-                $ter = DB::table('terceros')->where('rfc', $fss->Emisor_Rfc)->first();
+                $ter = DB::table('proveedores')->where('rfc', $fss->Emisor_Rfc)->first();
                 $monto_par = 0;
                 try {
                     $aplicar = floatval($factura['Monto a Pagar']);
@@ -403,7 +403,7 @@ class Pagos extends Page implements HasForms
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
+                        'codigo' => $ter->cuenta_contable,
                         'cuenta' => $ter->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $monto_par,
@@ -494,7 +494,7 @@ class Pagos extends Page implements HasForms
 
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
+                        'codigo' => $ter->cuenta_contable,
                         'cuenta' => $ter->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $dolares,
@@ -510,7 +510,7 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
+                        'codigo' => $ter->cuenta_contable,
                         'cuenta' => $ter->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $complemento,
@@ -731,7 +731,7 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
+                        'codigo' => $ter->cuenta_contable,
                         'cuenta' => $ter->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $dolares,
@@ -747,7 +747,7 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
+                        'codigo' => $ter->cuenta_contable,
                         'cuenta' => $ter->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $complemento,
@@ -821,7 +821,7 @@ class Pagos extends Page implements HasForms
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
+                        'codigo' => $ter->cuenta_contable,
                         'cuenta' => $ter->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $dolares,
@@ -837,7 +837,7 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
+                        'codigo' => $ter->cuenta_contable,
                         'cuenta' => $ter->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $complemento,
@@ -994,10 +994,10 @@ class Pagos extends Page implements HasForms
         $partida = 1;
         foreach ($data_tmp as $data) {
             $fss = DB::table('almacencfdis')->where('id',$data['id_xml'])->first();
-            $ter = DB::table('terceros')->where('rfc',$fss->Emisor_Rfc)->first();
+            $ter = DB::table('proveedores')->where('rfc',$fss->Emisor_Rfc)->first();
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>$ter->cuenta,
+                'codigo'=>$ter->cuenta_contable,
                 'cuenta'=>$ter->nombre,
                 'concepto'=>$fss->Emisor_Nombre,
                 'cargo'=>$data['Monto a Pagar'],

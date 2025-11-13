@@ -15,6 +15,7 @@ use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -36,6 +37,8 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class cfdirp extends Page implements HasForms, HasTable
 {
@@ -60,10 +63,6 @@ class cfdirp extends Page implements HasForms, HasTable
                     ->where('used','NO');
             })
             ->columns([
-                TextColumn::make('id')
-                    ->label('#')
-                    ->rowIndex()
-                    ->sortable(),
                 TextColumn::make('Fecha')
                     ->searchable()
                     ->sortable()
@@ -73,7 +72,18 @@ class cfdirp extends Page implements HasForms, HasTable
                     ->sortable(),
                 TextColumn::make('Folio')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('Folio')->form([
+                        TextInput::make('Folio')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->Folio;
+                            })
+                    ])),
                 TextColumn::make('Moneda')
                     ->searchable()
                     ->sortable(),
@@ -84,22 +94,23 @@ class cfdirp extends Page implements HasForms, HasTable
                 TextColumn::make('Receptor_Rfc')
                     ->label('RFC Receptor')
                     ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
                 TextColumn::make('Receptor_Nombre')
                     ->label('Nombre Receptor')
                     ->searchable()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->limit(20),
                 TextColumn::make('Emisor_Rfc')
                     ->label('RFC Emisor')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('Emisor_Nombre')
                     ->label('Nombre Emisor')
                     ->searchable()
                     ->sortable()
-                    ->limit(20),
+                    ->limit(20)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('Moneda')
                     ->label('Moneda')
                     ->searchable()
@@ -122,10 +133,6 @@ class cfdirp extends Page implements HasForms, HasTable
                         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
-                TextColumn::make('notas')
-                    ->label('Referencia')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('used')
                     ->label('Asociado')
                     ->searchable()
@@ -133,10 +140,23 @@ class cfdirp extends Page implements HasForms, HasTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('UUID')
                     ->label('UUID')
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 10);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('UUID')->form([
+                        TextInput::make('UUID')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->UUID;
+                            })
+                    ])),
+                TextColumn::make('MetodoPago')
+                    ->label('M. Pago')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('MetodoPago')
-                    ->label('Forma de Pago')
+                TextColumn::make('FormaPago')
+                    ->label('F. Pago')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('xml_type')
@@ -150,7 +170,11 @@ class cfdirp extends Page implements HasForms, HasTable
                 TextColumn::make('periodo')
                     ->numeric()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('notas')
+                    ->label('Refer.')
+                    ->searchable()
+                    ->sortable(),
                 ])
                 ->recordAction('Notas')
             ->actions([

@@ -1586,9 +1586,14 @@ class MovbancosResource extends Resource
                                             $set('used_ban','SI');
                                         }
                                         foreach($percepciones() as $percepcion){
+                                            $cta = '50102000';
+                                            if($percepcion['Clave'] == '052') $cta = '21611000';
+                                            if($percepcion['Clave'] == '045') $cta = '21601000';
+                                            if($percepcion['Clave'] == '016') $cta = '21612000';
+                                            $nom = CatCuentas::where('codigo',$cta)->where('team_id',Filament::getTenant()->id)->first();
                                             $detalle[] = [
-                                                'Cuenta_Con'=>'',
-                                                'Cuenta'=>'',
+                                                'Cuenta_Con'=>$cta,
+                                                'Cuenta'=>$nom?->nombre ?? 'NO REGISTRADA',
                                                 'Nombre'=>$percepcion['Clave'].' '.$percepcion['Concepto'],
                                                 'Concepto'=>$conce,
                                                 'Cargo'=>floatval($percepcion['ImporteGravado'])+floatval($percepcion['ImporteExento']),

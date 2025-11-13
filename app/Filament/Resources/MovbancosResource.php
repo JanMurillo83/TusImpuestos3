@@ -1532,6 +1532,7 @@ class MovbancosResource extends Resource
                             $form->schema([
                                 TextInput::make('importe_p')->label('Importe')
                                 ->default($record->importe)->readOnly()->prefix('$')->currencyMask(),
+                                Hidden::make('used_ban')->default('NO'),
                                 Select::make('recibo_nomina')
                                     ->searchable()
                                     ->label('Recibo de Nomina')
@@ -1570,17 +1571,20 @@ class MovbancosResource extends Resource
                                             ->first();
                                         $cargos_t = 0;
                                         $abonos_t = 0;
-                                        $detalle[] = [
-                                            'Cuenta_Con'=>$cta_con_ban->id,
-                                            'Cuenta'=>$cta_con_ban->codigo,
-                                            'Nombre'=>$cta_con_ban->nombre,
-                                            'Concepto'=>$conce,
-                                            'Cargo'=>0,
-                                            'Abono'=>$record->importe,
-                                            'Referencia'=>$comp['serie'].$comp['folio'],
-                                            'UUID'=>$fisc['UUID'],
-                                        ];
-                                        $abonos_t+=floatval($record->importe);
+                                        if($get('USED_BAN') == 'NO') {
+                                            $detalle[] = [
+                                                'Cuenta_Con' => $cta_con_ban->id,
+                                                'Cuenta' => $cta_con_ban->codigo,
+                                                'Nombre' => $cta_con_ban->nombre,
+                                                'Concepto' => $conce,
+                                                'Cargo' => 0,
+                                                'Abono' => $record->importe,
+                                                'Referencia' => $comp['serie'] . $comp['folio'],
+                                                'UUID' => $fisc['UUID'],
+                                            ];
+                                            $abonos_t += floatval($record->importe);
+                                            $set('USED_BAN','SI');
+                                        }
                                         foreach($percepciones() as $percepcion){
                                             $detalle[] = [
                                                 'Cuenta_Con'=>'',

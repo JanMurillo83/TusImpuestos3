@@ -1582,9 +1582,10 @@ class MovbancosResource extends Resource
                                                 'Referencia' => $comp['serie'] . $comp['folio'],
                                                 'UUID' => $fisc['UUID'],
                                             ];
-                                            $abonos_t += floatval($record->importe);
+
                                             $set('used_ban','SI');
                                         }
+                                        $abonos_t += floatval($record->importe);
                                         foreach($percepciones() as $percepcion){
                                             $cta = '50102000';
                                             if($percepcion['Clave'] == '052') $cta = '21611000';

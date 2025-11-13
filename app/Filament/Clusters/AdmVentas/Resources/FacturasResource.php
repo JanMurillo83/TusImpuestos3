@@ -1239,6 +1239,8 @@ class FacturasResource extends Resource
         $html = View::make('RepFactura',$data)->render();
         Browsershot::html($html)->format('Letter')
             ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+            ->noSandbox()
             ->scale(0.8)->savePdf($ruta);
         return response()->download($ruta);
     }

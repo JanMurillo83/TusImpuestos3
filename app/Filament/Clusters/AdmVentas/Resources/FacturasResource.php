@@ -1238,6 +1238,7 @@ class FacturasResource extends Resource
         $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
         $html = View::make('RepFactura',$data)->render();
         Browsershot::html($html)->format('Letter')
+            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
             ->scale(0.8)->savePdf($ruta);
         return response()->download($ruta);
     }

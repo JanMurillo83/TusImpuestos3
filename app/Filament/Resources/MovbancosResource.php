@@ -1592,7 +1592,7 @@ class MovbancosResource extends Resource
                                             if($percepcion['Clave'] == '016') $cta = '21612000';
                                             $nom = CatCuentas::where('codigo',$cta)->where('team_id',Filament::getTenant()->id)->first();
                                             $detalle[] = [
-                                                'Cuenta_Con'=>$cta,
+                                                'Cuenta_Con'=>$nom?->id ?? '',
                                                 'Cuenta'=>$nom?->nombre ?? 'NO REGISTRADA',
                                                 'Nombre'=>$percepcion['Clave'].' '.$percepcion['Concepto'],
                                                 'Concepto'=>$conce,
@@ -1611,7 +1611,7 @@ class MovbancosResource extends Resource
                                                 if($otropago['Clave'] == '016') $cta = '21612000';
                                                 $nom = CatCuentas::where('codigo',$cta)->where('team_id',Filament::getTenant()->id)->first();
                                                 $detalle[] = [
-                                                    'Cuenta_Con' => $cta,
+                                                    'Cuenta_Con' => $nom?->id ?? '',
                                                     'Cuenta' => $nom?->nombre ?? 'NO REGISTRADA',
                                                     'Nombre' => $otropago['Clave'].' '.$otropago['Concepto'],
                                                     'Concepto' => $conce,
@@ -1630,7 +1630,7 @@ class MovbancosResource extends Resource
                                             if($deduccion['Clave'] == '016') $cta = '21612000';
                                             $nom = CatCuentas::where('codigo',$cta)->where('team_id',Filament::getTenant()->id)->first();
                                             $detalle[] = [
-                                                'Cuenta_Con'=>$cta,
+                                                'Cuenta_Con'=>$nom?->id ?? '',
                                                 'Cuenta'=>$nom?->nombre ?? 'NO REGISTRADA',
                                                 'Nombre'=>$deduccion['Clave'].' '.$deduccion['Concepto'],
                                                 'Concepto'=>$conce,

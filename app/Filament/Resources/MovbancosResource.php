@@ -1571,7 +1571,7 @@ class MovbancosResource extends Resource
                                             ->first();
                                         $cargos_t = 0;
                                         $abonos_t = 0;
-                                        if($get('USED_BAN') == 'NO') {
+                                        if($get('used_ban') == 'NO') {
                                             $detalle[] = [
                                                 'Cuenta_Con' => $cta_con_ban->id,
                                                 'Cuenta' => $cta_con_ban->codigo,
@@ -1583,7 +1583,7 @@ class MovbancosResource extends Resource
                                                 'UUID' => $fisc['UUID'],
                                             ];
                                             $abonos_t += floatval($record->importe);
-                                            $set('USED_BAN','SI');
+                                            $set('used_ban','SI');
                                         }
                                         foreach($percepciones() as $percepcion){
                                             $detalle[] = [

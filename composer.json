@@ -46,6 +46,7 @@
         "phpoffice/phpspreadsheet": "^1.29",
         "shuchkin/simplexlsx": "^1.1",
         "solution-forest/filament-simplelightbox": "^0.0.10",
+        "spatie/browsershot": "^5.0",
         "torgodly/html2media": "^1.1"
     },
     "require-dev": {

@@ -67,11 +67,13 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\HeaderActionsPosition;
 use Filament\Tables\Table;
+use http\Client\Response;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use PhpCfdi\CfdiExpresiones\DiscoverExtractor;
 use PhpCfdi\CfdiToPdf\CfdiDataBuilder;
@@ -80,6 +82,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
 use PhpOffice\PhpSpreadsheet\Writer\Pdf\Dompdf;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Spatie\Browsershot\Browsershot;
 use function Laravel\Prompts\text;
 
 
@@ -633,17 +636,8 @@ class FacturasResource extends Resource
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full'),
                 Action::make('Imprimir')->icon('fas-print')
-                ->action(function($record,$livewire){
-                    $livewire->idorden = $record->id;
-                    $livewire->id_empresa = Filament::getTenant()->id;
-                    $livewire->getAction('Imprimir_Doc_P')->visible(true);
-                    $livewire->replaceMountedAction('Imprimir_Doc_P');
-                    $livewire->getAction('Imprimir_Doc_P')->visible(false);
-                    /*$data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
-                    $pdf = Pdf::loadView('RepFactura', $data);
-                    return response()->streamDownload(function () use ($pdf) {
-                        echo $pdf->stream();
-                    }, 'name.pdf');*/
+                ->action(function($record){
+                    self::DescargaPdf($record);
                 }),
                 Action::make('Cancelar')
                     ->icon('fas-ban')
@@ -1078,11 +1072,7 @@ class FacturasResource extends Resource
                                     ->persistent()
                                     ->send();
                             }
-                            $livewire->idorden = $record->id;
-                            $livewire->id_empresa = Filament::getTenant()->id;
-                            $livewire->getAction('Imprimir_Doc_P')->visible(true);
-                            $livewire->replaceMountedAction('Imprimir_Doc_P');
-                            $livewire->getAction('Imprimir_Doc_P')->visible(false);
+                            self::DescargaPdf($record);
                         }
                     //------------------------------------------
 
@@ -1238,6 +1228,19 @@ class FacturasResource extends Resource
             ],HeaderActionsPosition::Bottom);
     }
 
+    public static function DescargaPdf($record)
+    {
+        $emp = Team::where('id',Filament::getTenant()->id)->first();
+        $cli = Clientes::where('id',$record->clie)->first();
+        $archivo = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+        $ruta = public_path().'/TMPCFDI/'.$archivo;
+        if(File::exists($ruta))File::delete($ruta);
+        $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+        $html = View::make('RepFactura',$data)->render();
+        Browsershot::html($html)->format('Letter')
+            ->scale(0.8)->savePdf($ruta);
+        return response()->download($ruta);
+    }
     public static function getRelations(): array
     {
         return [

@@ -1041,4 +1041,9 @@ class Cobros extends Page implements HasForms
         }
         return $data;
     }
+
+    public function fac_dolares_pag_pesos($record)
+    {
+
+    }
 }

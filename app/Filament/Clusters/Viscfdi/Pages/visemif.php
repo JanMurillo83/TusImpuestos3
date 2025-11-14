@@ -106,7 +106,7 @@ class visemif extends Page implements HasForms, HasTable
             TextColumn::make('TipoCambio')
                 ->label('T.C.')
                 ->sortable()
-                ->numeric()
+                ->numeric(decimalPlaces: 4)
                 ->formatStateUsing(function (string $state) {
                     if($state <= 0) $state = 1;
                     $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));

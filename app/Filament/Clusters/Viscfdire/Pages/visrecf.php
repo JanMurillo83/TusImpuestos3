@@ -195,21 +195,20 @@ class visrecf extends Page implements HasForms, HasTable
                 )
                 ->deferFilters()
                 ->defaultSort('Fecha', 'asc')
-                ->recordAction('Notas')
             ->actions([
-                EditAction::make('Notas')
-                    ->label('')
-                    ->icon(null)
-                    ->modalHeading('Referecnia')
-                    ->form([
-                        Textarea::make('notas')
-                        ->label('Referencia')
-                ])
-                    ->action(function(Model $record,$data){
-                        $record['notas'] = $data['notas'];
-                        $record->save();
-                }),
                 ActionGroup::make([
+                    Action::make('Notas')
+                        ->label('')
+                        ->icon(null)
+                        ->modalHeading('Referecnia')
+                        ->form([
+                            Textarea::make('notas')
+                                ->label('Referencia')
+                        ])
+                        ->action(function(Model $record,$data){
+                            $record['notas'] = $data['notas'];
+                            $record->save();
+                        }),
                 ViewAction::make()
                 ->label('Expediente')
                 ->infolist(function($infolist,$record){

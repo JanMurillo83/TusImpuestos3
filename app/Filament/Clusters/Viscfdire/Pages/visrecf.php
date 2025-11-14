@@ -129,12 +129,12 @@ class visrecf extends Page implements HasForms, HasTable
                 ->label('Asociado')
                 ->searchable()
                 ->sortable(),
-            TextColumn::make('MetodoPago')
-                ->label('M.P.')
-                ->searchable()
-                ->sortable(),
             TextColumn::make('FormaPago')
                 ->label('F.P.')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('MetodoPago')
+                ->label('M.P.')
                 ->searchable()
                 ->sortable(),
             TextColumn::make('UUID')

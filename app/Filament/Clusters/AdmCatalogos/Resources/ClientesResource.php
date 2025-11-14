@@ -86,6 +86,13 @@ class ClientesResource extends Resource
                             ->maxLength(255)->required(),
                         Forms\Components\TextInput::make('contacto')
                             ->maxLength(255),
+                        Forms\Components\Select::make('cuenta_contable')
+                            ->label('Cuenta Contable')
+                            ->searchable()
+                            ->options(
+                                DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                    ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                            ),
                         Forms\Components\Textarea::make('direccion')
                             ->maxLength(255)->columnSpanFull(),
                     ])->columns(3),

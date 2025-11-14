@@ -6,6 +6,7 @@ use App\Filament\Clusters\AdmCatalogos;
 use App\Filament\Clusters\AdmCatalogos\Resources\ProveedoresResource\Pages;
 use App\Filament\Clusters\AdmCatalogos\Resources\ProveedoresResource\RelationManagers;
 use App\Livewire\CuentasPagarWidget;
+use App\Models\CatCuentas;
 use App\Models\Proveedores;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
@@ -65,6 +66,13 @@ class ProveedoresResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('correo')
                     ->maxLength(255),
+                Forms\Components\Select::make('cuenta_contable')
+                ->label('Cuenta Contable')
+                ->searchable()
+                ->options(
+                    DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                )
 
             ])->columns(3);
     }

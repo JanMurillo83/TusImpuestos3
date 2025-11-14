@@ -195,6 +195,7 @@ class visrecf extends Page implements HasForms, HasTable
                 )
                 ->deferFilters()
                 ->defaultSort('Fecha', 'asc')
+            ->selectable()
             ->actions([
                 ActionGroup::make([
                     Action::make('Notas')
@@ -209,6 +210,7 @@ class visrecf extends Page implements HasForms, HasTable
                             $record['notas'] = $data['notas'];
                             $record->save();
                         }),
+
                 ViewAction::make()
                 ->label('Expediente')
                 ->infolist(function($infolist,$record){

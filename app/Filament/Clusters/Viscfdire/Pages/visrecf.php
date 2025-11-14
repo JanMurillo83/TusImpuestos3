@@ -10,7 +10,9 @@ use App\Models\CatPolizas;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -40,6 +42,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class visrecf extends Page implements HasForms, HasTable
 {
@@ -123,30 +128,29 @@ class visrecf extends Page implements HasForms, HasTable
             TextColumn::make('used')
                 ->label('Asociado')
                 ->searchable()
-                ->sortable()
-                ->toggleable(isToggledHiddenByDefault: false),
-            TextColumn::make('Poliza')
-                ->getStateUsing(function ($record) {
-                    $pols = DB::table('cat_polizas')->where('uuid',$record->UUID)->get();
-                    $poli='';
-                    foreach ($pols as $pol) {
-                        $poli.=$pol->tipo.$pol->folio;
-                    }
-                    return $poli;
-                }),
+                ->sortable(),
+            TextColumn::make('MetodoPago')
+                ->label('M.P.')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('FormaPago')
+                ->label('F.P.')
+                ->searchable()
+                ->sortable(),
             TextColumn::make('UUID')
                 ->label('UUID')
                 ->searchable()
-                ->sortable(),
-            TextColumn::make('MetodoPago')
-                ->label('Forma de Pago')
-                ->searchable()
-                ->sortable(),
-            TextColumn::make('xml_type')
-                ->label('Tipo')
-                ->searchable()
-                ->sortable()
-                ->toggleable(isToggledHiddenByDefault: true),
+                ->sortable()->formatStateUsing(function ($state) {
+                    $truncatedValue = Str::limit($state, 10);
+                    return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                })
+                ->action(Action::make('UUID')->form([
+                    TextInput::make('UUID')
+                        ->hiddenLabel()->readOnly()
+                        ->default(function($record){
+                            return $record->UUID;
+                        })
+                ])),
             TextColumn::make('ejercicio')
                 ->sortable()
                 ->toggleable(isToggledHiddenByDefault: true),
@@ -204,6 +208,19 @@ class visrecf extends Page implements HasForms, HasTable
                         ->action(function(Model $record,$data){
                             $record['notas'] = $data['notas'];
                             $record->save();
+                        }),
+                    Action::make('Descarga XML')
+                        ->label('Descarga XML')
+                        ->icon('fas-download')
+                        ->action(function($record){
+                            $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            if(File::exists($archivo)) unlink($archivo);
+                            $xml = $record->content;
+                            $xml = Cleaner::staticClean($xml);
+                            File::put($archivo,$xml);
+                            $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            return response()->download($ruta);
                         }),
                 ViewAction::make()
                 ->label('Expediente')

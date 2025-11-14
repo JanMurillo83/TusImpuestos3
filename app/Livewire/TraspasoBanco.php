@@ -330,8 +330,8 @@ class TraspasoBanco extends Widget implements HasForms
                                 $par_num++;
                                 $aux = Auxiliares::create([
                                     'cat_polizas_id'=>$polno,
-                                    'codigo'=>$cta_comple->codigo,
-                                    'cuenta'=>$cta_comple->nombre,
+                                    'codigo'=>$cta_comple?->codigo ?? $dat_cta_de->codigo,
+                                    'cuenta'=>$cta_comple?->nombre ?? $dat_cta_de->banco,
                                     'concepto'=>'Traspaso entre Cuentas',
                                     'cargo'=>round(floatval($imp_com),2),
                                     'abono'=>0,

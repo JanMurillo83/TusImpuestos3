@@ -58,10 +58,6 @@ class visrecf extends Page implements HasForms, HasTable
             ->where('TipoDeComprobante','I')
              )
         ->columns([
-            TextColumn::make('id')
-                ->label('#')
-                ->rowIndex()
-                ->sortable(),
             TextColumn::make('Fecha')
                 ->searchable()
                 ->sortable()
@@ -195,12 +191,11 @@ class visrecf extends Page implements HasForms, HasTable
                 )
                 ->deferFilters()
                 ->defaultSort('Fecha', 'asc')
-            ->selectable()
             ->actions([
                 ActionGroup::make([
                     Action::make('Notas')
-                        ->label('')
-                        ->icon(null)
+                        ->label('Referencia')
+                        ->icon('fas-edit')
                         ->modalHeading('Referecnia')
                         ->form([
                             Textarea::make('notas')
@@ -210,7 +205,6 @@ class visrecf extends Page implements HasForms, HasTable
                             $record['notas'] = $data['notas'];
                             $record->save();
                         }),
-
                 ViewAction::make()
                 ->label('Expediente')
                 ->infolist(function($infolist,$record){

@@ -594,8 +594,8 @@ class Cobros extends Page implements HasForms
                     $iva_fac = floatval($cfdi->TotalImpuestosTrasladados);
                     //dd($factura,$cfdi->TotalImpuestosTrasladados);
                     $complemento = (($dolares * $tipoc_f) - $dolares);
-                    $iva_1 = ($dolares * 0.16) * $tipoc;
-                    $iva_2 = ($dolares * 0.16) * $tipoc_f;
+                    $iva_1 = (($dolares / 1.16) * 0.16) * $tipoc;
+                    $iva_2 = (($dolares / 1.16) * 0.16) * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
                     ///------Calcula Utilidad---------------------------------------

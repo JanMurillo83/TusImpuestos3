@@ -225,7 +225,7 @@ class Pagos extends Page implements HasForms
                                 $data_new = [
                                     'Referencia' => $fact->Serie . $fact->Folio,
                                     'Fecha' => $fecha,
-                                    'Tercero' => $fact->Receptor_Nombre,
+                                    'Tercero' => $fact->Emisor_Nombre,
                                     'Moneda'=> $fact->Moneda,
                                     'Tipo Cambio' => $fact->TipoCambio,
                                     'Pendiente' => $tpen_or,
@@ -385,7 +385,7 @@ class Pagos extends Page implements HasForms
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
                             'abono' => 0,
-                            'factura' => $fss->Serie . $fss->Folio,
+                            'factura' => $this->fact_nombres,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
@@ -532,7 +532,7 @@ class Pagos extends Page implements HasForms
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
                             'abono' => $pesos,
-                            'factura' => $fss->Serie . $fss->Folio,
+                            'factura' => $this->fact_nombres,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
@@ -891,7 +891,7 @@ class Pagos extends Page implements HasForms
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
                             'abono' => $pesos,
-                            'factura' => $fss->Serie . $fss->Folio,
+                            'factura' => $this->fact_nombres,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
@@ -1059,7 +1059,7 @@ class Pagos extends Page implements HasForms
             'concepto'=>'Pagos a Facturas',
             'cargo'=>0,
             'abono'=>$get('monto_total'),
-            'factura'=>'Pagos a Facturas',
+            'factura'=>$this->fact_nombres,
             'nopartida'=>$partida,
             'team_id'=>Filament::getTenant()->id
         ]);

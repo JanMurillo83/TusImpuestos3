@@ -47,7 +47,7 @@ class cfdiep extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Emitcfdi::class;
-    protected static ?string $title = 'Comprobantes de Pago';
+    protected static ?string $title = 'C .de Pago Emitidos';
     protected static string $view = 'filament.clusters.emitcfdi.pages.cfdiep';
     protected static ?string $headerActionsposition = 'bottom';
     public ?Date $Fecha_Inicial = null;

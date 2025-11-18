@@ -46,7 +46,7 @@ class cfdirp extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Rececfdi::class;
-    protected static ?string $title = 'Comprobantes de Pago';
+    protected static ?string $title = 'C. de Pago Recibidos';
     protected static string $view = 'filament.clusters.rececfdi.pages.cfdirp';
     protected static ?string $headerActionsposition = 'bottom';
     public ?Date $Fecha_Inicial = null;
@@ -91,26 +91,15 @@ class cfdirp extends Page implements HasForms, HasTable
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('Receptor_Rfc')
-                    ->label('RFC Receptor')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('Receptor_Nombre')
-                    ->label('Nombre Receptor')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(20),
                 TextColumn::make('Emisor_Rfc')
                     ->label('RFC Emisor')
                     ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
                 TextColumn::make('Emisor_Nombre')
                     ->label('Nombre Emisor')
                     ->searchable()
                     ->sortable()
-                    ->limit(20)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->limit(20),
                 TextColumn::make('Moneda')
                     ->label('Moneda')
                     ->searchable()

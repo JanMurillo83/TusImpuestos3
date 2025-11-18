@@ -58,7 +58,7 @@ class cfdieo extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Emitcfdi::class;
-    protected static ?string $title = 'Recibos de Nomina';
+    protected static ?string $title = 'Nomina Emitidos';
     protected static string $view = 'filament.clusters.emitcfdi.pages.cfdieo';
     protected static ?string $headerActionsposition = 'bottom';
     public ?Date $Fecha_Inicial = null;

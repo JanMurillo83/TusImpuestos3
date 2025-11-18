@@ -46,7 +46,7 @@ class cfdie_all extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Emitcfdi::class;
-    protected static ?string $title = 'Todos los CFDI';
+    protected static ?string $title = 'Todos los Emitidos';
     protected static string $view = 'filament.clusters.emitcfdi.pages.cfdiep';
     protected static ?int $navigationSort = 5;
     protected static ?string $headerActionsposition = 'bottom';

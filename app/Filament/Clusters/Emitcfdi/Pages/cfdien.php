@@ -47,7 +47,7 @@ class cfdien extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Emitcfdi::class;
-    protected static ?string $title = 'Notas de Credito';
+    protected static ?string $title = 'Notas de Credito Emitidas';
     protected static string $view = 'filament.clusters.emitcfdi.pages.cfdien';
     protected static ?string $headerActionsposition = 'bottom';
     public ?Date $Fecha_Inicial = null;

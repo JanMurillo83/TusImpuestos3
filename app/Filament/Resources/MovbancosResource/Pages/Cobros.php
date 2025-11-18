@@ -263,7 +263,7 @@ class Cobros extends Page implements HasForms
                     Header::make('Moneda'),
                     Header::make('T. de Cambio'),
                     Header::make('Monto a Pagar'),
-                    Header::make('USD a Pagar')
+                    //Header::make('USD a Pagar')
                 ])
                 ->schema([
                     TextInput::make('Referencia')->readOnly(),
@@ -594,13 +594,13 @@ class Cobros extends Page implements HasForms
                     $iva_fac = floatval($cfdi->TotalImpuestosTrasladados);
                     //dd($factura,$cfdi->TotalImpuestosTrasladados);
                     $complemento = (($dolares * $tipoc_f) - $dolares);
-                    $iva_1 = $iva_fac * $tipoc;
-                    $iva_2 = $iva_fac * $tipoc_f;
+                    $iva_1 = ($dolares * 0.16) * $tipoc;
+                    $iva_2 = ($dolares * 0.16) * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
                     ///------Calcula Utilidad---------------------------------------
-                    $uti_1 = floatval($cfdi->Total) * floatval($record->tcambio);
-                    $uti_2 = floatval($cfdi->Total) * floatval($cfdi->TipoCambio);
+                    $uti_1 = $dolares * floatval($record->tcambio);
+                    $uti_2 = $dolares * floatval($cfdi->TipoCambio);
                     $uti_per = $uti_1 - $uti_2 + $iva_2 - $iva_1;
                     //--------------------------------------------------------------
                     //$uti_per = $iva_1 - $iva_2;

@@ -280,7 +280,8 @@ class Cobros extends Page implements HasForms
                             $cnt = count($data_tmp);
                             $set('../../monto_total',$sum);
                         }),
-                    TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$'),
+                    TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$')
+                    ->visible(false),
                     Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');
@@ -348,7 +349,7 @@ class Cobros extends Page implements HasForms
                 $ter = DB::table('terceros')->where('rfc', $fss->Receptor_Rfc)->first();
                 $monto_par = 0;
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
-                if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['USD a Pagar']);
+                if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'MXN') {
                     if($no_intera == 0) {
                         $aux = Auxiliares::create([

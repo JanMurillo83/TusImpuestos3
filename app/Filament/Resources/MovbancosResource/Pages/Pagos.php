@@ -375,7 +375,7 @@ class Pagos extends Page implements HasForms
                     error_log($e->getMessage());
                 }
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
-                if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['USD a Pagar']);
+                if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
 
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'MXN') {
                     if($no_intera == 0) {

@@ -47,7 +47,7 @@ class visrecp extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Viscfdire::class;
-    protected static ?string $title = 'Comprobantes de Pago';
+    protected static ?string $title = 'C. de Pago Recibidos';
     protected static string $view = 'filament.clusters.viscfdire.pages.visrecp';
     public function table(Table $table): Table
     {

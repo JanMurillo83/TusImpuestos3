@@ -47,7 +47,7 @@ class visemif extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Viscfdi::class;
-    protected static ?string $title = 'Facturas';
+    protected static ?string $title = 'Facturas Emitidos';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemif';
     public function table(Table $table): Table
     {

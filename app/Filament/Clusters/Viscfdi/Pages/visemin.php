@@ -47,7 +47,7 @@ class visemin extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Viscfdi::class;
-    protected static ?string $title = 'Notas de Credito';
+    protected static ?string $title = 'Notas de Credito Emitidos';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemin';
     public function table(Table $table): Table
     {

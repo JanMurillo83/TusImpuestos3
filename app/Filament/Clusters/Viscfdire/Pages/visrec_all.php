@@ -47,7 +47,7 @@ class visrec_all extends Page implements HasForms, HasTable
     use InteractsWithForms;
 
     protected static ?string $cluster = Viscfdire::class;
-    protected static ?string $title = 'Todos';
+    protected static ?string $title = 'Todos Recibidos';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemif';
     protected static ?int $navigationSort = 5;
     public function table(Table $table): Table

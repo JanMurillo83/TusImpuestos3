@@ -130,11 +130,11 @@ class cfdieo extends Page implements HasForms, HasTable
                 TextColumn::make('TipoCambio')
                     ->label('T.C.')
                     ->sortable()
-                    ->numeric()
+                    ->numeric(decimalPlaces: 4)
                     ->formatStateUsing(function (string $state) {
                         if($state <= 0) $state = 1;
                         $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
+                        $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 4);
                         return $formatter->formatCurrency($state, 'MXN');
                     }),
                 TextColumn::make('Total')

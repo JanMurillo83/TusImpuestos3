@@ -5,17 +5,55 @@ use \Carbon\Carbon;
 $empresaRow = DB::table('teams')->where('id',$empresa)->first();
 $fecha = Carbon::now();
 
+// Normalizar rango de cuentas recibido (opcional)
+$cuentaIni = $cuenta_ini ?? null;
+$cuentaFin = $cuenta_fin ?? null;
+if ($cuentaIni && $cuentaFin && $cuentaIni > $cuentaFin) { [$cuentaIni, $cuentaFin] = [$cuentaFin, $cuentaIni]; }
+
+// Calcular saldos iniciales por cuenta: todo lo anterior al periodo/ejercicio actual
+$prevSaldosQuery = DB::table('auxiliares as a')
+    ->join('cat_polizas as p','p.id','=','a.cat_polizas_id')
+    ->join('cat_cuentas as c', function($j){
+        $j->on('c.codigo','=','a.codigo')->on('c.team_id','=','a.team_id');
+    })
+    ->select('a.codigo','a.cuenta', DB::raw("SUM(CASE WHEN c.naturaleza = 'A' THEN (a.abono - a.cargo) ELSE (a.cargo - a.abono) END) as saldo"))
+    ->where('a.team_id',$empresa)
+    ->where('p.team_id',$empresa)
+    ->where('c.team_id',$empresa)
+    ->when($cuentaIni, function($q) use ($cuentaIni){ $q->where('a.codigo','>=',$cuentaIni); })
+    ->when($cuentaFin, function($q) use ($cuentaFin){ $q->where('a.codigo','<=',$cuentaFin); })
+    ->where(function($q) use ($periodo,$ejercicio){
+        $q->where('p.ejercicio','<',$ejercicio)
+          ->orWhere(function($q2) use ($periodo,$ejercicio){
+              $q2->where('p.ejercicio',$ejercicio)
+                 ->where('p.periodo','<',$periodo);
+          });
+    })
+    ->groupBy('a.codigo','a.cuenta')
+    ->get();
+$saldoInicial = [];
+foreach ($prevSaldosQuery as $s) {
+    $saldoInicial[$s->codigo.'|'.$s->cuenta] = (float)$s->saldo;
+}
+
 // Obtener los auxiliares del periodo y ejercicio para la empresa, unidos con pólizas
 $movimientos = DB::table('auxiliares as a')
     ->join('cat_polizas as p','p.id','=','a.cat_polizas_id')
+    ->join('cat_cuentas as c', function($j){
+        $j->on('c.codigo','=','a.codigo')->on('c.team_id','=','a.team_id');
+    })
     ->select(
         'a.codigo','a.cuenta','a.concepto','a.cargo','a.abono','a.factura','a.uuid','a.nopartida',
-        'p.fecha','p.tipo','p.folio','p.concepto as poliza_concepto','p.referencia'
+        'p.fecha','p.tipo','p.folio','p.concepto as poliza_concepto','p.referencia',
+        'c.naturaleza'
     )
     ->where('a.team_id',$empresa)
     ->where('p.team_id',$empresa)
+    ->where('c.team_id',$empresa)
     ->where('p.periodo',$periodo)
     ->where('p.ejercicio',$ejercicio)
+    ->when($cuentaIni, function($q) use ($cuentaIni){ $q->where('a.codigo','>=',$cuentaIni); })
+    ->when($cuentaFin, function($q) use ($cuentaFin){ $q->where('a.codigo','<=',$cuentaFin); })
     ->orderBy('a.codigo')
     ->orderBy('p.fecha')
     ->orderBy('p.tipo')
@@ -31,9 +69,11 @@ foreach ($movimientos as $m) {
         $agrupado[$key] = [
             'codigo' => $m->codigo,
             'cuenta' => $m->cuenta,
+            'naturaleza' => ($m->naturaleza ?? 'D'), // D=Deudora suma cargo-resta abono; A=Acreedora al revés
             'items' => [],
             'total_cargos' => 0.0,
             'total_abonos' => 0.0,
+            'saldo_inicial' => $saldoInicial[$key] ?? 0.0,
         ];
     }
     $agrupado[$key]['items'][] = $m;
@@ -54,6 +94,15 @@ foreach ($movimientos as $m) {
         th, td { font-size: 10px; }
         .cuenta-header { background: #f5f5f5; font-weight: bold; }
         .totales { font-weight: bold; }
+        /* Expand table to full width and control column spacing */
+        table { width: 100%; }
+        .aux-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+        .aux-table th, .aux-table td { padding: 4px 6px; vertical-align: top; }
+        /* Allow long text to wrap nicely */
+        .wrap { white-space: normal; word-break: break-word; }
+        /* Keep compact columns from wrapping */
+        .nowrap { white-space: nowrap; }
+        .num { text-align: end; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -68,6 +117,11 @@ foreach ($movimientos as $m) {
                 <div>
                     Auxiliares del Periodo {{ $periodo }} / {{ $ejercicio }}
                 </div>
+                <?php if($cuentaIni || $cuentaFin): ?>
+                    <div>
+                        Rango de cuentas: {{ $cuentaIni ?? 'Todas' }} — {{ $cuentaFin ?? 'Todas' }}
+                    </div>
+                <?php endif; ?>
             </center>
         </div>
         <div class="col-3">
@@ -87,21 +141,39 @@ foreach ($movimientos as $m) {
                     <?php echo e($group['codigo']); ?> - <?php echo e($group['cuenta']); ?>
 
                 </div>
-                <table class="table table-sm border">
+                <table class="table table-sm border aux-table">
+                    <colgroup>
+                        <col style="width:8%" />
+                        <col style="width:6%" />
+                        <col style="width:8%" />
+                        <col style="width:24%" />
+                        <col style="width:18%" />
+                        <col style="width:14%" />
+                        <col style="width:8%" />
+                        <col style="width:8%" />
+                        <col style="width:6%" />
+                    </colgroup>
                     <thead>
                     <tr>
-                        <th>Fecha</th>
-                        <th>Tipo</th>
-                        <th>Folio</th>
-                        <th>Concepto</th>
-                        <th>Factura/Ref</th>
-                        <th>UUID</th>
-                        <th style="text-align: end;">Cargo</th>
-                        <th style="text-align: end;">Abono</th>
+                        <th class="nowrap">Fecha</th>
+                        <th class="nowrap">Tipo</th>
+                        <th class="nowrap">Folio</th>
+                        <th class="wrap">Concepto</th>
+                        <th class="wrap">Factura/Ref</th>
+                        <th class="wrap">UUID</th>
+                        <th class="num">Cargo</th>
+                        <th class="num">Abono</th>
+                        <th class="num">Saldo</th>
                     </tr>
                     </thead>
                     <tbody>
+                    <?php $saldo = (float)($group['saldo_inicial'] ?? 0); ?>
+                    <tr>
+                        <td colspan="8" class="text-end"><em>Saldo inicial</em></td>
+                        <td style="text-align: end;">{{ '$'.number_format($saldo,2) }}</td>
+                    </tr>
                     <?php foreach ($group['items'] as $it): ?>
+                        <?php $delta = ((float)$it->cargo - (float)$it->abono); if (($group['naturaleza'] ?? 'D') === 'A') { $delta = -$delta; } $saldo += $delta; ?>
                         <tr>
                             <td>{{ \Carbon\Carbon::parse($it->fecha)->format('d-m-Y') }}</td>
                             <td>{{ $it->tipo }}</td>
@@ -111,6 +183,7 @@ foreach ($movimientos as $m) {
                             <td>{{ $it->uuid }}</td>
                             <td style="text-align: end;">{{ '$'.number_format($it->cargo,2) }}</td>
                             <td style="text-align: end;">{{ '$'.number_format($it->abono,2) }}</td>
+                            <td style="text-align: end;">{{ '$'.number_format($saldo,2) }}</td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -119,6 +192,7 @@ foreach ($movimientos as $m) {
                         <td colspan="6" class="text-end">Totales de la cuenta:</td>
                         <td style="text-align: end;">{{ '$'.number_format($group['total_cargos'],2) }}</td>
                         <td style="text-align: end;">{{ '$'.number_format($group['total_abonos'],2) }}</td>
+                        <td style="text-align: end;">{{ '$'.number_format(($group['saldo_inicial'] ?? 0) + ((($group['naturaleza'] ?? 'D') === 'A') ? ($group['total_abonos'] - $group['total_cargos']) : ($group['total_cargos'] - $group['total_abonos'])),2) }}</td>
                     </tr>
                     </tfoot>
                 </table>

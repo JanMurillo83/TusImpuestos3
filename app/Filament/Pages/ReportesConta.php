@@ -13,11 +13,13 @@ use Barryvdh\Snappy\Facades\SnappyPdf;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
+use Illuminate\Support\Facades\DB;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class ReportesConta extends Page implements HasForms
@@ -31,6 +33,8 @@ class ReportesConta extends Page implements HasForms
     protected static ?string $pluralLabel = 'Reportes';
     protected static string $view = 'filament.pages.reportes-conta';
 
+    public ?string $cuenta_ini_g;
+    public ?string $cuenta_fin_g;
     public function form(Form $form): Form{
         return $form
             ->schema([
@@ -82,10 +86,28 @@ class ReportesConta extends Page implements HasForms
                         }),
                     Actions\Action::make('Auxiliares_Periodo')
                         ->label('Auxiliares del Periodo (VP)')
-                        ->action(function (){
+                        ->form([
+                            Select::make('cuenta_ini')
+                                ->label('Cuenta Inicial')
+                                ->options(
+                                    DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                )
+                                ->searchable(),
+                            Select::make('cuenta_fin')
+                                ->label('Cuenta Final')
+                                ->options(
+                                    DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                )
+                                ->searchable()
+                        ])
+                        ->action(function ($data){
                             $ejercicio = Filament::getTenant()->ejercicio;
                             $periodo = Filament::getTenant()->periodo;
                             $team_id = Filament::getTenant()->id;
+                            $this->cuenta_ini_g = $data['cuenta_ini'] ?? null;
+                            $this->cuenta_fin_g = $data['cuenta_fin'] ?? null;
                             (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             $this->getAction('Auxiliares del Periodo')->visible(true);
                             $this->replaceMountedAction('Auxiliares del Periodo');
@@ -93,16 +115,33 @@ class ReportesConta extends Page implements HasForms
                         }),
                     Actions\Action::make('Auxiliares_Periodo_des')
                         ->label('Auxiliares del Periodo (Descarga)')
-                        ->action(function (){
+                        ->form([
+                            Select::make('cuenta_ini')
+                                ->label('Cuenta Inicial')
+                                ->options(
+                                    DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                )
+                                ->searchable(),
+                            Select::make('cuenta_fin')
+                                ->label('Cuenta Final')
+                                ->options(
+                                    DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                )
+                                ->searchable()
+                        ])
+                        ->action(function ($data){
                             $ejercicio = Filament::getTenant()->ejercicio;
                             $periodo = Filament::getTenant()->periodo;
                             $team_id = Filament::getTenant()->id;
-                           // (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $state = $this->form->getState();
+                            $cuentaIni = $data['cuenta_ini'] ?? null;
+                            $cuentaFin = $data['cuenta_fin'] ?? null;
+                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             $archivo = 'Auxiliar-'.$periodo.'-'.$ejercicio.'.pdf';
-                            $data = ['empresa'=>$team_id,'periodo'=>$periodo,'ejercicio'=>$ejercicio];
-                            //dd(storage_path().'/app/public/WH/wkhtmltoimage-amd64');
-                            $pdf = Pdf::loadView('AuxiliaresPeriodo', $data);
-                            //return $pdf->stream();
+                            $datos = ['empresa'=>$team_id,'periodo'=>$periodo,'ejercicio'=>$ejercicio,'cuenta_ini'=>$cuentaIni,'cuenta_fin'=>$cuentaFin];
+                            $pdf = Pdf::loadView('AuxiliaresPeriodo', $datos);
                             return response()->streamDownload(function () use ($pdf) {
                                 echo $pdf->stream();
                             }, $archivo);
@@ -149,11 +188,30 @@ class ReportesConta extends Page implements HasForms
                             }),
                         Actions\Action::make('Auxiliares_xls')
                             ->label('Auxiliares del Periodo')
+                            ->form([
+                                Select::make('cuenta_ini')
+                                    ->label('Cuenta Inicial')
+                                    ->options(
+                                        DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                            ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->orderBy('codigo')->pluck('mostrar','codigo')
+                                    )
+                                    ->searchable(),
+                                Select::make('cuenta_fin')
+                                    ->label('Cuenta Final')
+                                    ->options(
+                                        DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                            ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->orderBy('codigo')->pluck('mostrar','codigo')
+                                    )
+                                    ->searchable()
+                            ])
                             ->action(function (){
                                 $empresa = Filament::getTenant()->id;
                                 $periodo = Filament::getTenant()->periodo;
                                 $ejercicio = Filament::getTenant()->ejercicio;
-                                return (new AuxiliaresExport($empresa,$periodo,$ejercicio))->download('Auxiliares.xlsx');
+                                $state = $this->form->getState();
+                                $cuentaIni = $state['cuenta_ini'] ?? null;
+                                $cuentaFin = $state['cuenta_fin'] ?? null;
+                                return (new AuxiliaresExport($empresa,$periodo,$ejercicio,$cuentaIni,$cuentaFin))->download('Auxiliares.xlsx');
                             })
                     ])
                 ])
@@ -209,7 +267,7 @@ class ReportesConta extends Page implements HasForms
                 ->filename('Auxiliares del Periodo')
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
-                view('AuxiliaresPeriodo',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
+                view('AuxiliaresPeriodo',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio,'cuenta_ini'=>$this->cuenta_ini_g,'cuenta_fin'=>$this->cuenta_fin_g])
                 )->visible(false)
                 ->modalWidth('7xl'),
             Html2MediaAction::make('Polizas Descuadradas')

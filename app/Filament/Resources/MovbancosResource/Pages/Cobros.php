@@ -215,7 +215,7 @@ class Cobros extends Page implements HasForms
                                     'Fecha' => $fecha,
                                     'Tercero' => $fact->Receptor_Nombre,
                                     'Moneda'=> $fact->Moneda,
-                                    'Tipo Cambio' => $fact->TipoCambio,
+                                    'Tipo Cambio' => number_format($fact->TipoCambio,4),
                                     'Pendiente' => $tpen_or,
                                     'Monto a Pagar' => $pend_f,
                                     'USD a Pagar' => $tpen_or,
@@ -250,6 +250,7 @@ class Cobros extends Page implements HasForms
                 Hidden::make('tipo_cambio')->default(1.00),
                 TextInput::make('numero_total')->label('Numero de Facturas')->numeric()->readOnly()->default(0),
                 TextInput::make('monto_total')->label('Pagos Totales')->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
+                Hidden::make('monto_total_usd'),
                 TableRepeater::make('facturas_a_pagar')
                 ->addable(false)
                 ->reorderable(false)
@@ -277,8 +278,10 @@ class Cobros extends Page implements HasForms
                         ->afterStateUpdated(function (Get $get, Set $set) {
                             $data_tmp = $get('../../facturas_a_pagar');
                             $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
+                            $sum2 = array_sum(array_column($data_tmp,'Pendiente'));
                             $cnt = count($data_tmp);
                             $set('../../monto_total',$sum);
+                            $set('../../monto_total_usd',$sum2);
                         }),
                     TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$')
                     ->visible(false),
@@ -313,6 +316,8 @@ class Cobros extends Page implements HasForms
         $record = Movbancos::where('id', $this->record_id)->first();
         $moneda_pago = $get('moneda');
         $facturas = $get('facturas_a_pagar');
+        $monto_mxn_pagar = floatval($get('monto_total'));
+        $monto_dolares_pagar = floatval($get('monto_total_usd'));
         $nopoliza = intval(DB::table('cat_polizas')->where('team_id', Filament::getTenant()->id)->where('tipo', 'Ig')->where('periodo', Filament::getTenant()->periodo)->where('ejercicio', Filament::getTenant()->ejercicio)->max('folio')) + 1;
         $terceros = '';
         foreach ($this->nom_terceros as $tercero) {
@@ -438,96 +443,35 @@ class Cobros extends Page implements HasForms
                     ]);
                 }
                 if ($factura['Moneda'] != 'MXN' && $moneda_pago == 'MXN') {
-                    $pesos = floatval($monto_par) * floatval($factura['Tipo Cambio']);
-                    $dolares = floatval($monto_par);
+                    $pesos = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
-                    $tipoc = floatval($get('tipo_cambio'));
+                    $dolares = floatval($monto_par) / $tipoc_f;
+                    $tipoc = $monto_mxn_pagar/$monto_dolares_pagar;
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
                     $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
-                    $uti_per = $importe_cargos - $importe_abonos;
+                    $uti1 = $dolares * $tipoc;
+                    $uti2 = $dolares * $tipoc_f;
+                    //dd($uti1,$uti2,$iva_1,$iva_2);
+                    $uti_per = ($uti1 - $uti2) + ($iva_2 - $iva_1);
                     $importe_abonos_f = $pesos + $iva_2 + $uti_per;
                     $imp_uti_c = 0;
                     $imp_uti_a = 0;
                     $cod_uti = '';
                     $cta_uti = '';
                     if ($uti_per > 0) {
-                        $imp_uti_c = 0;
-                        $imp_uti_a = $uti_per;
+                        $imp_uti_c = $uti_per;
+                        $imp_uti_a = 0;
                         $cod_uti = '70201000';
                         $cta_uti = 'Utilidad Cambiaria';
                     } else {
-                        $imp_uti_a = 0;
-                        $imp_uti_c = $uti_per * -1;
+                        $imp_uti_a = $uti_per * -1;
+                        $imp_uti_c = 0;
                         $cod_uti = '70101000';
                         $cta_uti = 'Perdida Cambiaria';
                     }
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => $dolares,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => $complemento,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11801000',
-                        'cuenta' => 'IVA acreditable pagado',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => $iva_1,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' =>$partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11901000',
-                        'cuenta' => 'IVA pendiente de pago',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $iva_2,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
                     if ($no_intera == 0) {
                         $aux = Auxiliares::create([
                             'cat_polizas_id' => $polno,
@@ -548,10 +492,74 @@ class Cobros extends Page implements HasForms
                         $partida++;
                         $no_intera++;
                         $id_cta_banco=$aux['id'];
-                        $imp_pesos+= $pesos;
+                        $imp_dolares+= $pesos;
                     }else{
-                        $imp_pesos+= $pesos;
+                        $imp_dolares+= $pesos;
                     }
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => $ter->cuenta,
+                        'cuenta' => $ter->nombre,
+                        'concepto' => $fss->Emisor_Nombre,
+                        'cargo' => 0,
+                        'abono' => $dolares,
+                        'factura' => $fss->Serie . $fss->Folio,
+                        'nopartida' => $partida,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $partida++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => $ter->cuenta,
+                        'cuenta' => $ter->nombre,
+                        'concepto' => $fss->Emisor_Nombre,
+                        'cargo' => 0,
+                        'abono' => $complemento,
+                        'factura' => $fss->Serie . $fss->Folio,
+                        'nopartida' => $partida,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $partida++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '20901000',
+                        'cuenta' => 'IVA pendiente de pago',
+                        'concepto' => $fss->Emisor_Nombre,
+                        'cargo' => $iva_2,
+                        'abono' => 0,
+                        'factura' => $fss->Serie . $fss->Folio,
+                        'nopartida' => $partida,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $partida++;
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '20801000',
+                        'cuenta' => 'IVA acreditable pagado',
+                        'concepto' => $fss->Emisor_Nombre,
+                        'cargo' => 0,
+                        'abono' => $iva_1,
+                        'factura' => $fss->Serie . $fss->Folio,
+                        'nopartida' =>$partida,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                    $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $cod_uti,
@@ -669,8 +677,8 @@ class Cobros extends Page implements HasForms
                         'codigo' => '20901000',
                         'cuenta' => 'IVA trasladado no cobrado',
                         'concepto' => $fss->Receptor_Nombre,
-                        'cargo' => $iva_2,
-                        'abono' => 0,
+                        'cargo' => 0,
+                        'abono' => $iva_2,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
                         'team_id' => Filament::getTenant()->id
@@ -685,8 +693,8 @@ class Cobros extends Page implements HasForms
                         'codigo' => '20801000',
                         'cuenta' => 'IVA trasladado cobrado',
                         'concepto' => $fss->Receptor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $iva_1,
+                        'cargo' => $iva_1,
+                        'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' =>$partida,
                         'team_id' => Filament::getTenant()->id

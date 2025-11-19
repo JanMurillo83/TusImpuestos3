@@ -670,8 +670,8 @@ class Pagos extends Page implements HasForms
                         $partida++;
                         $aux = Auxiliares::create([
                             'cat_polizas_id' => $polno,
-                            'codigo' => $cta_comple->codigo,
-                            'cuenta' => $cta_comple->nombre,
+                            'codigo' => $cta_comple?->codigo ?? $ban->codigo,
+                            'cuenta' => $cta_comple?->nombre ?? $ban->banco,
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
                             'abono' => 0,

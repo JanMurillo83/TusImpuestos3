@@ -98,7 +98,9 @@ class TraspasoBanco extends Widget implements HasForms
                         $set('moneda_d',$mov->moneda);
                         //dd($mov->importe,$this->importe);
                         $importe_d_d = floatval($mov->importe)  / floatval($this->importe ?? 1);
+                        if($mov->moneda == 'MXN')
                         $set('tcambio_d',$importe_d_d);
+                        else $set('tcambio_d',$mov->tcambio);
                         $set('tcambio_d_o',$mov->tcambio);
                         $set('importe_d',$mov->importe);
                         $set('concepto_d',$mov->concepto);
@@ -290,7 +292,7 @@ class TraspasoBanco extends Widget implements HasForms
                             if($mon_o != $mon_d&&$mon_o == 'MXN'){
                                 $imp_usd = $imp_d * $tc_d_o;
                                 $imp_mxn = $imp_d * $tc_d;
-                                $dif = $imp_mxn - $imp_usd;
+                                $dif = $imp_d * $tc_d - $imp_o;
                                 $gan_per_c = 0;
                                 $gan_per_a = 0;
                                 $cta_ganper = '';
@@ -300,13 +302,13 @@ class TraspasoBanco extends Widget implements HasForms
                                 if($dif > 0) {
                                     $cta_ganper = '70201000';
                                     $cta_ganper_con = 'Utilidad Cambiaria';
-                                    $gan_per_c = $dif;
-                                    $gan_per_a = 0;
+                                    $gan_per_c = 0;
+                                    $gan_per_a = $dif;
                                 }else{
                                     $cta_ganper = '70101000';
                                     $cta_ganper_con = 'Perdida Cambiaria';
-                                    $gan_per_c = 0;
-                                    $gan_per_a = $dif * -1;
+                                    $gan_per_c = $dif * -1;
+                                    $gan_per_a = 0;
                                 }
                                 $imp_com = $imp_mxn - $imp_d;
                                 $cta_comple = CatCuentas::where('codigo',$dat_cta_de->complementaria)->first();

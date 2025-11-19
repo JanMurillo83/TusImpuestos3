@@ -264,7 +264,7 @@ class Cobros extends Page implements HasForms
                     Header::make('Moneda'),
                     Header::make('T. de Cambio'),
                     Header::make('Monto a Pagar'),
-                    //Header::make('USD a Pagar')
+                    Header::make('USD a Pagar')
                 ])
                 ->schema([
                     TextInput::make('Referencia')->readOnly(),
@@ -283,8 +283,7 @@ class Cobros extends Page implements HasForms
                             $set('../../monto_total',$sum);
                             $set('../../monto_total_usd',$sum2);
                         }),
-                    TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$')
-                    ->visible(false),
+                    TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$'),
                     Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');

@@ -283,7 +283,7 @@ class Cobros extends Page implements HasForms
                             $set('../../monto_total',$sum);
                             $set('../../monto_total_usd',$sum2);
                         }),
-                    TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$'),
+                    TextInput::make('USD a Pagar')->numeric()->currencyMask()->prefix('$'),
                     Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');
@@ -442,9 +442,10 @@ class Cobros extends Page implements HasForms
                     ]);
                 }
                 if ($factura['Moneda'] != 'MXN' && $moneda_pago == 'MXN') {
-                    $pesos = floatval($monto_par);
+                    //$monto_par = floatval($factura['USD a Pagar']);
+                    $pesos = floatval($factura['Monto a Pagar']);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
-                    $dolares = floatval($monto_par) / $tipoc_f;
+                    $dolares =floatval($factura['USD a Pagar']);
                     $tipoc = $monto_mxn_pagar/$monto_dolares_pagar;
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);

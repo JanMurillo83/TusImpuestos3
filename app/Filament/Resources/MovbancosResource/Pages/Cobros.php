@@ -58,6 +58,7 @@ class Cobros extends Page implements HasForms
     public ?string $igeg_id = null;
     public ?string $numero_total = null;
     public ?string $monto_total = null;
+    public ?string $monto_total_usd = null;
     public ?string $monto_pago = null;
     public ?string $monto_pago_usd = null;
     public ?string $tipo_cambio = null;
@@ -87,6 +88,7 @@ class Cobros extends Page implements HasForms
             'moneda'=> $datos->moneda,
             'factura'=> null,
             'monto_total' => 0,
+            'monto_total_usd' => 0,
             'monto_pago' => 0,
             'monto_pago_usd' => 0,
             'tipo_cambio'=>0,
@@ -229,9 +231,11 @@ class Cobros extends Page implements HasForms
                                 array_push($data_tmp, $data_new);
                             }
                             $sum = array_sum(array_column($data_tmp, 'Monto a Pagar'));
+                            $sum2 = array_sum(array_column($data_tmp, 'Pendiente'));
                             $cnt = count($data_tmp);
                             $set('numero_total', $cnt);
                             $set('monto_total', $sum);
+                            $set('monto_total_usd', $sum2);
                             $set('facturas_a_pagar', $data_tmp);
                             $set('tercero', null);
                             $set('moneda_fac', null);
@@ -250,7 +254,7 @@ class Cobros extends Page implements HasForms
                 Hidden::make('tipo_cambio')->default(1.00),
                 TextInput::make('numero_total')->label('Numero de Facturas')->numeric()->readOnly()->default(0),
                 TextInput::make('monto_total')->label('Pagos Totales')->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
-                Hidden::make('monto_total_usd'),
+                TextInput::make('monto_total_usd')->default(0)->visible(false),
                 TableRepeater::make('facturas_a_pagar')
                 ->addable(false)
                 ->reorderable(false)
@@ -446,6 +450,7 @@ class Cobros extends Page implements HasForms
                     $pesos = floatval($factura['Monto a Pagar']);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
                     $dolares =floatval($factura['USD a Pagar']);
+                    //dd($monto_mxn_pagar,$monto_dolares_pagar);
                     $tipoc = $monto_mxn_pagar/$monto_dolares_pagar;
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);

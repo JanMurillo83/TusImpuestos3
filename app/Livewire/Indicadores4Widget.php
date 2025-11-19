@@ -33,7 +33,7 @@ class Indicadores4Widget extends BaseWidget
         $this->facturacion = floatval(Facturas::select(DB::raw("SUM(total*tcambio) Importe"))
             ->where(DB::raw("EXTRACT(MONTH FROM fecha)"),$periodo)
             ->where(DB::raw("EXTRACT(YEAR FROM fecha)"),$ejercicio)
-            ->where('estado','==','Timbrada')
+            ->where('estado','Timbrada')
             ->where('team_id',$team_id)->first()->Importe ?? 0);
 
 

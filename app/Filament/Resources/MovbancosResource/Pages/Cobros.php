@@ -462,13 +462,13 @@ class Cobros extends Page implements HasForms
                     $cod_uti = '';
                     $cta_uti = '';
                     if ($uti_per > 0) {
-                        $imp_uti_c = $uti_per;
-                        $imp_uti_a = 0;
+                        $imp_uti_c = 0;
+                        $imp_uti_a = $uti_per;
                         $cod_uti = '70201000';
                         $cta_uti = 'Utilidad Cambiaria';
                     } else {
-                        $imp_uti_a = $uti_per * -1;
-                        $imp_uti_c = 0;
+                        $imp_uti_a = 0;
+                        $imp_uti_c = $uti_per * -1;
                         $cod_uti = '70101000';
                         $cta_uti = 'Perdida Cambiaria';
                     }

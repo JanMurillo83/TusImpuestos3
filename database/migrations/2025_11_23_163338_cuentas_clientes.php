@@ -11,19 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $provees = \App\Models\Clientes::where('id','>',0)->get();
+        $provees = DB::table('clientes')->where('id','>',0)->get();
         foreach($provees as $provee)
         {
             try {
-                if (\App\Models\CatCuentas::where('nombre', $provee->nombre)->where('acumula', '10501000')->where('team_id', $provee->team_id)->exists()) {
+                if (DB::table('cat_cuentas')->where('nombre', $provee->nombre)->where('acumula', '10501000')->where('team_id', $provee->team_id)->exists()) {
                     $ctaprove = \App\Models\CatCuentas::where('nombre', $provee->nombre)->where('acumula', '10501000')->where('team_id', $provee->team_id)->first();
-                    $provee->cuenta_contable = $ctaprove->codigo;
-                    $provee->save();
-                    $ctaprove->rfc_asociado = $provee->rfc;
-                    $ctaprove->save();
+                    DB::table('proveedores')->where('id',$provee->id)->update(['cuenta_contable'=>$ctaprove->codigo]);
+                    DB::table('cat_cuentas')->where('id',$ctaprove->id)->update(['rfc_asociado'=>$provee->rfc]);
                 } else {
                     $nuecta = intval(DB::table('cat_cuentas')->where('team_id', $provee->team_id)->where('acumula', '10501000')->max('codigo')) + 1;
-                    \App\Models\CatCuentas::firstOrCreate([
+                    DB::table('cat_cuentas')->create([
                         'nombre' => $provee->nombre,
                         'team_id' => $provee->team_id,
                         'codigo' => $nuecta,
@@ -32,8 +30,8 @@ return new class extends Migration
                         'naturaleza' => 'A',
                         'rfc_asociado' => $provee->rfc
                     ]);
-                    $provee->cuenta_contable = $nuecta;
-                    $provee->save();
+                    DB::table('clientes')->where('id',$provee->id)->update(['cuenta_contable'=>$nuecta]);
+
                 }
             }catch(Exception $e)
             {

@@ -12,12 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        /*try {
-            $cfdis = \App\Models\Almacencfdis::where('xml_type', 'Recibidos')->where('TipoDeComprobante', 'I')->get();
+        try {
+            $cfdis = DB::table('almacencfdis')->where('xml_type', 'Recibidos')->where('TipoDeComprobante', 'I')->get();
             foreach ($cfdis as $cfdi) {
                 if (!DB::table('proveedores')->where('team_id', $cfdi->team_id)->where('rfc', $cfdi->Emisor_Rfc)->exists()) {
                     $clave = count(DB::table('proveedores')->where('team_id', $cfdi->team_id)->get()) + 1;
-                    \App\Models\Proveedores::create([
+                    DB::table('proveedores')->create([
                         'clave' => $clave,
                         'rfc' => $cfdi->Emisor_Rfc,
                         'nombre' => $cfdi->Emisor_Nombre,
@@ -26,10 +26,10 @@ return new class extends Migration
                     ]);
                 }
             }
-            \Illuminate\Support\Facades\DB::statement('UPDATE proveedores SET dias_credito = 30 WHERE id > 0');
-        }catch(Exception $e){
+            DB::statement('UPDATE proveedores SET dias_credito = 30 WHERE id > 0');
+        }catch(\Exception $e){
             error_log($e->getMessage());
-        }*/
+        }
     }
 
     /**

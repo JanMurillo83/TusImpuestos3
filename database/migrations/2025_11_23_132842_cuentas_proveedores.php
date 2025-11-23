@@ -15,22 +15,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $provees = \App\Models\Proveedores::where('id','>',0)->get();
+        $provees = DB::table('proveedores')->where('id','>',0)->get();
         foreach($provees as $provee)
         {
 
-            if (CatCuentas::where('nombre', $provee->nombre)->where('acumula', '20101000')->where('team_id',$provee->team_id)->exists())
+            if (DB::table('cat_cuentas')->where('nombre', $provee->nombre)->where('acumula', '20101000')->where('team_id',$provee->team_id)->exists())
             {
-                $ctaprove = CatCuentas::where('nombre', $provee->nombre)->where('acumula', '20101000')->where('team_id',$provee->team_id)->first();
-                $provee->cuenta_contable = $ctaprove->codigo;
-                $provee->save();
-                $ctaprove->rfc_asociado = $provee->rfc;
-                $ctaprove->save();
+                $ctaprove = DB::table('cat_cuentas')->where('nombre', $provee->nombre)->where('acumula', '20101000')->where('team_id',$provee->team_id)->first();
+                DB::table('proveedores')->where('id',$provee->id)->update(['cuenta_contable'=>$ctaprove->codigo]);
+                DB::table('cat_cuentas')->where('id',$ctaprove->id)->update(['rfc_asociado'=>$provee->rfc]);
             }
             else
             {
                 $nuecta = intval(DB::table('cat_cuentas')->where('team_id', $provee->team_id)->where('acumula', '20101000')->max('codigo')) + 1;
-                CatCuentas::firstOrCreate([
+                DB::table('cat_cuentas')->create([
                     'nombre' => $provee->nombre,
                     'team_id' => $provee->team_id,
                     'codigo' => $nuecta,
@@ -39,8 +37,7 @@ return new class extends Migration
                     'naturaleza' => 'A',
                     'rfc_asociado' => $provee->rfc
                 ]);
-                $provee->cuenta_contable = $nuecta;
-                $provee->save();
+                DB::table('proveedores')->where('id',$provee->id)->update(['cuenta_contable'=>$nuecta]);
             }
         }
     }

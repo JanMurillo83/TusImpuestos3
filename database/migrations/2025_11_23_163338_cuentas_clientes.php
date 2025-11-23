@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $provees = DB::table('clientes')->where('id','>',0)->get();
+        /*$provees = DB::table('clientes')->where('id','>',0)->get();
         foreach($provees as $provee)
         {
             try {
@@ -37,7 +37,7 @@ return new class extends Migration
             {
                 error_log($e->getMessage());
             }
-        }
+        }*/
     }
 
     /**

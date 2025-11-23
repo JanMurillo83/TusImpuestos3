@@ -126,7 +126,7 @@ class Tools extends Page implements HasForms, HasActions
                             foreach ($cfdis as $cfdi) {
                                 if (!DB::table('proveedores')->where('team_id', $cfdi->team_id)->where('rfc', $cfdi->Emisor_Rfc)->exists()) {
                                     $clave = count(DB::table('proveedores')->where('team_id', $cfdi->team_id)->get()) + 1;
-                                    DB::table('proveedores')->create([
+                                    DB::table('proveedores')->insert([
                                         'clave' => $clave,
                                         'rfc' => $cfdi->Emisor_Rfc,
                                         'nombre' => $cfdi->Emisor_Nombre,
@@ -141,6 +141,35 @@ class Tools extends Page implements HasForms, HasActions
                             Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
                         }
                     }),
+                    Actions\Action::make('Cuentas Proveedores')
+                    ->action(function (){
+                        try {
+                            $provees = DB::table('proveedores')->where('id', '>', 0)->get();
+                            foreach ($provees as $provee) {
+
+                                if (DB::table('cat_cuentas')->where('nombre', $provee->nombre)->where('acumula', '20101000')->where('team_id', $provee->team_id)->exists()) {
+                                    $ctaprove = DB::table('cat_cuentas')->where('nombre', $provee->nombre)->where('acumula', '20101000')->where('team_id', $provee->team_id)->first();
+                                    DB::table('proveedores')->where('id', $provee->id)->update(['cuenta_contable' => $ctaprove->codigo]);
+                                    DB::table('cat_cuentas')->where('id', $ctaprove->id)->update(['rfc_asociado' => $provee->rfc]);
+                                } else {
+                                    $nuecta = intval(DB::table('cat_cuentas')->where('team_id', $provee->team_id)->where('acumula', '20101000')->max('codigo')) + 1;
+                                    DB::table('cat_cuentas')->insert([
+                                        'nombre' => $provee->nombre,
+                                        'team_id' => $provee->team_id,
+                                        'codigo' => $nuecta,
+                                        'acumula' => '20101000',
+                                        'tipo' => 'D',
+                                        'naturaleza' => 'A',
+                                        'rfc_asociado' => $provee->rfc
+                                    ]);
+                                    DB::table('proveedores')->where('id', $provee->id)->update(['cuenta_contable' => $nuecta]);
+                                    Notification::make()->title('Proceso Completado')->success()->send();
+                                }
+                            }
+                        }catch (\Exception $e){
+                            Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
                     Actions\Action::make('Alta de Clientes')
                     ->action(function (){
                         try {
@@ -148,7 +177,7 @@ class Tools extends Page implements HasForms, HasActions
                             foreach ($cfdis as $cfdi) {
                                 if (!DB::table('clientes')->where('team_id', $cfdi->team_id)->where('rfc', $cfdi->Receptor_Rfc)->exists()) {
                                     $clave = count(DB::table('clientes')->where('team_id', $cfdi->team_id)->get()) + 1;
-                                    DB::table('clientes')->create([
+                                    DB::table('clientes')->insert([
                                         'clave' => $clave,
                                         'rfc' => $cfdi->Receptor_Rfc,
                                         'nombre' => $cfdi->Receptor_Nombre,
@@ -162,7 +191,36 @@ class Tools extends Page implements HasForms, HasActions
                         }catch(\Exception $e){
                             Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
                         }
-                    })
+                    }),
+                    Actions\Action::make('Cuentas Clientes')
+                        ->action(function (){
+                            try {
+                                $provees = DB::table('clientes')->where('id', '>', 0)->get();
+                                foreach ($provees as $provee) {
+
+                                    if (DB::table('cat_cuentas')->where('nombre', $provee->nombre)->where('acumula', '10501000')->where('team_id', $provee->team_id)->exists()) {
+                                        $ctaprove = DB::table('cat_cuentas')->where('nombre', $provee->nombre)->where('acumula', '10501000')->where('team_id', $provee->team_id)->first();
+                                        DB::table('clientes')->where('id', $provee->id)->update(['cuenta_contable' => $ctaprove->codigo]);
+                                        DB::table('cat_cuentas')->where('id', $ctaprove->id)->update(['rfc_asociado' => $provee->rfc]);
+                                    } else {
+                                        $nuecta = intval(DB::table('cat_cuentas')->where('team_id', $provee->team_id)->where('acumula', '10501000')->max('codigo')) + 1;
+                                        DB::table('cat_cuentas')->insert([
+                                            'nombre' => $provee->nombre,
+                                            'team_id' => $provee->team_id,
+                                            'codigo' => $nuecta,
+                                            'acumula' => '10501000',
+                                            'tipo' => 'D',
+                                            'naturaleza' => 'A',
+                                            'rfc_asociado' => $provee->rfc
+                                        ]);
+                                        DB::table('clientes')->where('id', $provee->id)->update(['cuenta_contable' => $nuecta]);
+                                        Notification::make()->title('Proceso Completado')->success()->send();
+                                    }
+                                }
+                            }catch (\Exception $e){
+                                Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                            }
+                        }),
                 ])
             ]);
     }

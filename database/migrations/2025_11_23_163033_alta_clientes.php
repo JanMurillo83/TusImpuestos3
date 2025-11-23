@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $cfdis = DB::table('almacencfdis')->where('xml_type','Emitidos')->get();
+       /* $cfdis = DB::table('almacencfdis')->where('xml_type','Emitidos')->get();
         foreach($cfdis as $cfdi){
             if(!DB::table('clientes')->where('team_id',$cfdi->team_id)->where('rfc',$cfdi->Receptor_Rfc)->exists())
             {
@@ -26,6 +26,7 @@ return new class extends Migration
             }
         }
         DB::statement('UPDATE clientes SET dias_credito = 30 WHERE id > 0');
+       */
     }
 
     /**

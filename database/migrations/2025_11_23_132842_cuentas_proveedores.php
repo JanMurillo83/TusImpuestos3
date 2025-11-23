@@ -15,7 +15,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $provees = DB::table('proveedores')->where('id','>',0)->get();
+        /*$provees = DB::table('proveedores')->where('id','>',0)->get();
         foreach($provees as $provee)
         {
 
@@ -39,7 +39,7 @@ return new class extends Migration
                 ]);
                 DB::table('proveedores')->where('id',$provee->id)->update(['cuenta_contable'=>$nuecta]);
             }
-        }
+        }*/
     }
 
     /**

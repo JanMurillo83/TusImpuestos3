@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CatCuentas extends Model
 {
     use HasFactory;
-    protected $fillable =['codigo','nombre','acumula','tipo','naturaleza','csat','team_id'];
+    protected $fillable =['codigo','nombre','acumula','tipo','naturaleza','csat','team_id','rfc_asociado'];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

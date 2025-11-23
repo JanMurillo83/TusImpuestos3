@@ -109,8 +109,8 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     return $form->schema([
                         TextInput::make('taxid')->label('RFC')->required()->maxLength(14)->default($record->taxid),
                         TextInput::make('name')->label('RFC')->required()->default($record->name)->columnSpan(3),
-                        FileUpload::make('archivocer')->label('FIEL CER')->required()->disk('public')->visibility('public')->columnSpan(2),
-                        FileUpload::make('archivokey')->label('FIEL KEY')->required()->disk('public')->visibility('public')->columnSpan(2),
+                        FileUpload::make('archivocer')->label('FIEL CER')->required()->disk('public')->visibility('public')->columnSpan(2)->downloadable(),
+                        FileUpload::make('archivokey')->label('FIEL KEY')->required()->disk('public')->visibility('public')->columnSpan(2)->downloadable(),
                         TextInput::make('fielpass')->label('Contraseña FIEL')->required()->password()->default($record->fielpass)->revealable(),
                         TextInput::make('claveciec')->label('Clave CIEC')->required()->password()->default($record->fielpass)->revealable(),
                     ])->columns(4);

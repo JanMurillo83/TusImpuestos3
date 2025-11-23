@@ -16,6 +16,7 @@
         "asmit/resized-column": "^1.1",
         "awcodes/filament-sticky-header": "^2.0",
         "awcodes/filament-table-repeater": "^3.0",
+        "aymanalhattami/filament-context-menu": "^1.0",
         "barryvdh/laravel-dompdf": "^3.1",
         "barryvdh/laravel-snappy": "^1.0",
         "codewithdennis/filament-theme-inspector": "^0.0.7",

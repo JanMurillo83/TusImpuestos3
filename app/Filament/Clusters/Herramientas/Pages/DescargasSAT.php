@@ -151,7 +151,6 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                     Actions\Action::make('Consulta')
                                     ->icon('fas-search')
                                     ->label('Consulta')
-
                                     ->action(function($record,Set $set,Get $get){
                                         $fecha_inicial = Carbon::create($get('fecha_inicial'))->format('Y-m-d');
                                         $fecha_final = Carbon::create($get('fecha_final'))->format('Y-m-d');
@@ -200,7 +199,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                             $emitidos[] = [
                                                 'rfc_receptor'=>$cfdi->get('rfcReceptor'),
                                                 'nombre'=>$cfdi->get('nombreReceptor'),
-                                                'fecha'=>Carbon::create(substr($cfdi->get('fechaEmision'),10))->format('d-m-Y'),
+                                                'fecha'=>$cfdi->get('fechaEmision'),
                                                 'tipo'=>$cfdi->get('efectoComprobante'),
                                                 'total'=>$cfdi->get('total'),
                                                 'estado'=>$cfdi->get('estadoComprobante'),
@@ -235,7 +234,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                             $recibidos[] = [
                                                 'rfc_receptor'=>$cfdi->get('rfcEmisor'),
                                                 'nombre'=>$cfdi->get('nombreEmisor'),
-                                                'fecha'=>Carbon::create(substr($cfdi->get('fechaEmision'),10))->format('d-m-Y'),
+                                                'fecha'=>$cfdi->get('fechaEmision'),
                                                 'tipo'=>$cfdi->get('efectoComprobante'),
                                                 'total'=>$cfdi->get('total'),
                                                 'estado'=>$cfdi->get('estadoComprobante'),

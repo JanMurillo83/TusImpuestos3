@@ -156,6 +156,28 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('Polizas Descuadradas')->visible(true);
                             $this->replaceMountedAction('Polizas Descuadradas');
                             $this->getAction('Polizas Descuadradas')->visible(false);
+                        }),
+                    Actions\Action::make('DIOT General')
+                    ->label('DIOT General')
+                    ->action(function (){
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        $periodo = Filament::getTenant()->periodo;
+                        $team_id = Filament::getTenant()->id;
+                        //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                        $this->getAction('DIOT G')->visible(true);
+                        $this->replaceMountedAction('DIOT G');
+                        $this->getAction('DIOT G')->visible(false);
+                    }),
+                    Actions\Action::make('DIOT Detalle')
+                        ->label('DIOT Detalle')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $this->getAction('DIOT D')->visible(true);
+                            $this->replaceMountedAction('DIOT D');
+                            $this->getAction('DIOT D')->visible(false);
                         })
                 ])
                 ]),
@@ -278,6 +300,26 @@ class ReportesConta extends Page implements HasForms
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
                 view('PolizasDescuadradas',[ 'empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
+                )->visible(false)
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('DIOT G')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Diot General')
+                ->margin([10, 10, 10, 10])
+                ->content(fn()=>
+                view('ReporteDiotGeneral',[ 'id_empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
+                )->visible(false)
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('DIOT D')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Diot Detalle')
+                ->margin([10, 10, 10, 10])
+                ->content(fn()=>
+                view('ReporteDiotDetalle',[ 'id_empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
                 )->visible(false)
                 ->modalWidth('7xl')
         ];

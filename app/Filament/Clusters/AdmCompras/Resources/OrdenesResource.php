@@ -42,6 +42,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
@@ -167,7 +168,9 @@ class OrdenesResource extends Resource
                                             Select::make('SelItem')
                                             ->label('Seleccionar')
                                             ->searchable()
-                                            ->options(Inventario::all()->pluck('descripcion','id'))
+                                            ->options(DB::table('inventarios')->where('team_id',Filament::getTenant()->id)
+                                                ->select(DB::raw('CONCAT(clave," - ",descripcion) as descripcion,id'))
+                                                ->pluck('descripcion','id'))
                                         ])
                                         ->action(function(Set $set,Get $get,$data){
                                             $cant = $get('cant');

@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Herramientas\Pages;
 
 use App\Filament\Clusters\Herramientas;
+use App\Models\Admincuentaspagar;
 use App\Models\CatCuentas;
 use App\Models\ContaPeriodos;
 use Carbon\Carbon;
@@ -221,6 +222,89 @@ class Tools extends Page implements HasForms, HasActions
                                 Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
                             }
                         }),
+                    Actions\Action::make('Genera CxP')
+                    ->action(function (){
+                        $Polizas = DB::table('cat_polizas')->where('tipo', 'PG')->get();
+                        $resultado = [];
+                        $errores = [];
+                            foreach ($Polizas as $Poliza) {
+                                try {
+                                    $poliza = DB::table('cat_polizas')->where('id', $Poliza->id)->first();
+                                    $cfdi = DB::table('almacencfdis')->where('id', $poliza->idcfdi)->first();
+                                    $prov_ee = DB::table('proveedores')->where('rfc', $cfdi->Emisor_Rfc)->first();
+                                    $cffecha = Carbon::parse($poliza->fecha)->format('Y-m-d');
+                                    $cfecha_ven = Carbon::parse($poliza->fecha)->addDays(30)->format('Y-m-d');
+                                    if (!DB::table('admincuentascobrars')->where('clave', $prov_ee->id)->where('referencia', $cfdi->id)->exists()) {
+                                        $reg = DB::table('admincuentaspagars')->insertGetId([
+                                            'clave' => $prov_ee->id,
+                                            'referencia' => $cfdi->id,
+                                            'uuid' => $cfdi->UUID,
+                                            'fecha' => $cffecha,
+                                            'vencimiento' => $cfecha_ven,
+                                            'moneda' => $cfdi->Moneda,
+                                            'tcambio' => $cfdi->TipoCambio,
+                                            'importe' => $cfdi->Total * $cfdi->TipoCambio,
+                                            'importeusd' => $cfdi->Total,
+                                            'saldo' => $cfdi->Total * $cfdi->TipoCambio,
+                                            'saldousd' => $cfdi->Total,
+                                            'periodo' => $poliza->periodo,
+                                            'ejercicio' => $poliza->ejercicio,
+                                            'periodo_ven' => Carbon::create($cfecha_ven)->format('m'),
+                                            'ejercicio_ven' => Carbon::create($cfecha_ven)->format('Y'),
+                                            'poliza' => $poliza->id,
+                                            'team_id' => $poliza->team_id,
+                                        ]);
+
+                                        $resultado[] = ['ID'=> $reg];
+                                    }
+                                }catch (\Exception $e){
+                                    $errores[]=['error'=>$e->getMessage()];
+                                }
+                            }
+                            Notification::make()->title('Proceso Completado')->success()->send();
+                            dd($resultado,$errores);
+                    }),
+                    Actions\Action::make('Genera CxC')
+                        ->action(function (){
+                                $Polizas = DB::table('cat_polizas')->where('tipo', 'PV')->get();
+                                $resultado = [];
+                                $errores = [];
+                                foreach ($Polizas as $Poliza) {
+                                    try {
+                                        $poliza = DB::table('cat_polizas')->where('id', $Poliza->id)->first();
+                                        $cfdi = DB::table('almacencfdis')->where('id', $poliza->idcfdi)->first();
+                                        $prov_ee = DB::table('clientes')->where('rfc', $cfdi->Receptor_Rfc)->first();
+                                        $cffecha = Carbon::parse($poliza->fecha)->format('Y-m-d');
+                                        $cfecha_ven = Carbon::parse($poliza->fecha)->addDays(30)->format('Y-m-d');
+                                        if (!DB::table('admincuentascobrars')->where('clave', $prov_ee->id)->where('referencia', $cfdi->id)->exists()) {
+                                            $reg = DB::table('admincuentascobrars')->insertGetId([
+                                                'clave' => $prov_ee->id,
+                                                'referencia' => $cfdi->id,
+                                                'uuid' => $cfdi->UUID,
+                                                'fecha' => $cffecha,
+                                                'vencimiento' => $cfecha_ven,
+                                                'moneda' => $cfdi->Moneda,
+                                                'tcambio' => $cfdi->TipoCambio,
+                                                'importe' => $cfdi->Total * $cfdi->TipoCambio,
+                                                'importeusd' => $cfdi->Total,
+                                                'saldo' => $cfdi->Total * $cfdi->TipoCambio,
+                                                'saldousd' => $cfdi->Total,
+                                                'periodo' => $poliza->periodo,
+                                                'ejercicio' => $poliza->ejercicio,
+                                                'periodo_ven' => Carbon::create($cfecha_ven)->format('m'),
+                                                'ejercicio_ven' => Carbon::create($cfecha_ven)->format('Y'),
+                                                'poliza' => $poliza->id,
+                                                'team_id' => $poliza->team_id,
+                                            ]);
+                                            $resultado[] = ['ID'=> $reg];
+                                        }
+                                    }catch (\Exception $e) {
+                                        $errores[]=['error'=>$e->getMessage()];
+                                    }
+                                }
+                                Notification::make()->title('Proceso Completado')->success()->send();
+                            dd($resultado,$errores);
+                        })
                 ])
             ]);
     }

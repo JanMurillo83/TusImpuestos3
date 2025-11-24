@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\AdmReportes\Pages;
 
 use App\Filament\Clusters\AdmReportes;
+use App\Models\CatCuentas;
 use App\Models\Clientes;
 use App\Models\Proveedores;
 use App\Models\Inventario;
@@ -40,20 +41,44 @@ class AdmRepoPage extends Page implements HasForms
             ->schema([
                Actions::make([
                    Action::make('Saldo en Cartera')->extraAttributes(['style'=>'width:15rem !important'])
-                   ->action(function(){
+                   ->form([
+                        DatePicker::make('fecha_inicio'),
+                        DatePicker::make('fecha_fin'),
+                        Select::make('cliente_id')->label('Cliente')
+                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)
+                            ->where('tipo','D')
+                            ->where('acumula','10501000')
+                            ->pluck('nombre','codigo'))->searchable()
+                   ])
+                   ->action(function($data){
                        $this->team_id = Filament::getTenant()->id;
+                       $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                       $this->fecha_fin = $data['fecha_fin'] ?? null;
+                       $this->cliente_id = $data['cliente_id'] ?? null;
                        $this->getAction('SaldoCarteraAction')->visible(true);
                        $this->replaceMountedAction('SaldoCarteraAction');
                        $this->getAction('SaldoCarteraAction')->visible(false);
                    }),
                    Action::make('Saldo Proveedores')->extraAttributes(['style'=>'width:15rem !important'])
+                       ->form([
+                           DatePicker::make('fecha_inicio'),
+                           DatePicker::make('fecha_fin'),
+                           Select::make('cliente_id')->label('Cliente')
+                               ->options(CatCuentas::where('team_id',Filament::getTenant()->id)
+                                   ->where('tipo','D')
+                                   ->where('acumula','10501000')
+                                   ->pluck('nombre','codigo'))->searchable()
+                       ])
                        ->action(function(){
                            $this->team_id = Filament::getTenant()->id;
+                           $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                           $this->fecha_fin = $data['fecha_fin'] ?? null;
+                           $this->cliente_id = $data['cliente_id'] ?? null;
                            $this->getAction('SaldoProveedoresAction')->visible(true);
                            $this->replaceMountedAction('SaldoProveedoresAction');
                            $this->getAction('SaldoProveedoresAction')->visible(false);
                        }),
-                   Action::make('Estado Cuenta Cliente')->form([
+                   /*Action::make('Estado Cuenta Cliente')->form([
                        Select::make('cliente_id')
                            ->label('Cliente')
                            ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
@@ -128,7 +153,7 @@ class AdmRepoPage extends Page implements HasForms
                            $this->getAction('EstadoCuentaProveedoresAction')->visible(true);
                            $this->replaceMountedAction('EstadoCuentaProveedoresAction');
                            $this->getAction('EstadoCuentaProveedoresAction')->visible(false);
-                       }),
+                       }),*/
                    Action::make('Movimientos Inventario')->form([
                       Select::make('producto_id')
                           ->label('Producto')
@@ -210,7 +235,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->print(false)
                 ->savePdf()
                 ->filename('Saldo de Clientes')
-                ->content(fn() => view('SaldosClientes',['team'=>$this->team_id]))
+                ->content(fn() => view('ReporteClientesCXC',['id_empresa'=>$this->team_id,'fecha_inicio'=>$this->fecha_inicio,'fecha_fin'=>$this->fecha_fin,'cliente_id'=>$this->cliente_id]))
                 ->modalWidth('7xl'),
             Html2MediaAction::make('SaldoProveedoresAction')
                 ->visible(false)
@@ -218,7 +243,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->print(false)
                 ->savePdf()
                 ->filename('Saldo de Proveedores')
-                ->content(fn() => view('SaldosProveedores',['team'=>$this->team_id]))
+                ->content(fn() => view('ReporteProveedoresCXP',['id_empresa'=>$this->team_id,'fecha_inicio'=>$this->fecha_inicio,'fecha_fin'=>$this->fecha_fin,'cliente_id'=>$this->cliente_id]))
                 ->modalWidth('7xl'),
             Html2MediaAction::make('EstadoCuentaClienteAction')
                 ->visible(false)

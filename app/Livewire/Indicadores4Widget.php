@@ -2,9 +2,12 @@
 
 namespace App\Livewire;
 
+use App\Models\Admincuentascobrar;
+use App\Models\Admincuentaspagar;
 use App\Models\CuentasCobrar;
 use App\Models\CuentasPagar;
 use App\Models\Facturas;
+use App\Models\SaldosReportes;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Support\Colors\Color;
@@ -18,36 +21,33 @@ class Indicadores4Widget extends BaseWidget
     {
         return 1;
     }
+    public ?float $anterior_cxc;
+    public ?float $cargos_cxc;
+    public ?float $abonos_cxc;
     public ?float $saldo_cxc;
-    public ?float $saldo_cxp;
-    public ?float $utilidad;
-    public $color;
-    public ?float $facturacion;
     public function mount(): void
     {
         $team_id = Filament::getTenant()->id;
-        $ejercicio = Filament::getTenant()->ejercicio;
-        $periodo = Filament::getTenant()->periodo;
-        $this->saldo_cxc = floatval(CuentasCobrar::where('team_id',$team_id)->where('vencimiento','<',Carbon::now())->sum('saldo') ?? 0);
-        $this->saldo_cxp = floatval(CuentasPagar::where('team_id',$team_id)->where('vencimiento','<',Carbon::now())->sum('saldo') ?? 0);
-        $this->facturacion = floatval(Facturas::select(DB::raw("SUM(total*tcambio) Importe"))
-            ->where(DB::raw("EXTRACT(MONTH FROM fecha)"),$periodo)
-            ->where(DB::raw("EXTRACT(YEAR FROM fecha)"),$ejercicio)
-            ->where('estado','Timbrada')
-            ->where('team_id',$team_id)->first()->Importe ?? 0);
-
-
+        $ctas_cxc = SaldosReportes::where('team_id',$team_id)->where('codigo','20100000')->first();
+        $inicia_cxc = floatval($ctas_cxc->anterior ?? 0);
+        $cargos_cxc = floatval($ctas_cxc->cargos ?? 0);
+        $abonos_cxc = floatval($ctas_cxc->abonos ?? 0);
+        $this->anterior_cxc = $inicia_cxc;
+        $this->cargos_cxc = $abonos_cxc;
+        $this->abonos_cxc = $cargos_cxc;
+        $this->saldo_cxc = $inicia_cxc - $cargos_cxc + $abonos_cxc;
     }
     protected function getStats(): array
     {
         return [
-            Stat::make('Cartera Vencida', '$'.number_format($this->saldo_cxc,2))
+            Stat::make('Saldo Anterior Proveedores', '$'.number_format($this->anterior_cxc,2))
                 ->chartColor(Color::Green)->chart([1,2,3,4,5]),
-            Stat::make('Cuentas por pagar Vencidas', '$'.number_format($this->saldo_cxp,2))
+            Stat::make('Cargos de Proveedores', '$'.number_format($this->cargos_cxc,2))
                 ->chartColor(Color::Green)->chart([1,2,3,4,5]),
-            Stat::make('Facturación del Periodo', '$'.number_format($this->facturacion,2))
+            Stat::make('Pagos de Proveedores', '$'.number_format($this->abonos_cxc,2))
                 ->chartColor(Color::Green)->chart([1,2,3,4,5]),
-
+            Stat::make('Cuentas por Pagar', '$'.number_format(($this->saldo_cxc),2))
+                ->chartColor(Color::Green)->chart([1,2,3,4,5]),
         ];
     }
 }

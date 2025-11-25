@@ -20,6 +20,7 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "barryvdh/laravel-snappy": "^1.0",
         "codewithdennis/filament-theme-inspector": "^0.0.7",
+        "defstudio/filament-searchable-input": "^1.0",
         "dompdf/dompdf": "^3.1",
         "dvarilek/filament-table-select": "^2.0",
         "eclipxe/cfdiutils": "^2.29",

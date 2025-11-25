@@ -7,6 +7,7 @@ export default {
         './resources/views/filament/clusters/emitcfdi/**/*.blade.php',
         './vendor/filament/**/*.blade.php',
         './vendor/awcodes/filament-table-repeater/resources/**/*.blade.php',
+        './vendor/defstudio/filament-searchable-input/resources/**/*.blade.php'
     ],
 }
 

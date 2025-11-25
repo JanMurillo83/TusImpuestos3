@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a7f9ff7a48acebcfe7dec07039cf342a",
+    "content-hash": "358f5408f6ff7b83d639405c98d9f9f9",
     "packages": [
         {
             "name": "akaunting/laravel-money",
@@ -1402,6 +1402,91 @@
                 "source": "https://github.com/DASPRiD/Enum/tree/1.0.7"
             },
             "time": "2025-09-16T12:23:56+00:00"
+        },
+        {
+            "name": "defstudio/filament-searchable-input",
+            "version": "v1.0.16",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/defstudio/filament-searchable-input.git",
+                "reference": "73bc37a2d8009d4e75b471692609b7db9bb09784"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/defstudio/filament-searchable-input/zipball/73bc37a2d8009d4e75b471692609b7db9bb09784",
+                "reference": "73bc37a2d8009d4e75b471692609b7db9bb09784",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^3.0",
+                "filament/forms": "^3.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^7.9",
+                "nunomaduro/larastan": "^2.0.1",
+                "orchestra/testbench": "^v8.34|^v9.12|^v10.1",
+                "pestphp/pest": "^2.1",
+                "pestphp/pest-plugin-arch": "^2.0",
+                "pestphp/pest-plugin-laravel": "^2.0",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-phpunit": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "DefStudio\\SearchableInput\\SearchableInputServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "DefStudio\\SearchableInput\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabio Ivona",
+                    "email": "fabio.ivona@defstudio.it",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A searchable autocomplete input for Filament forms",
+            "homepage": "https://github.com/defstudio/filament-searchable-input",
+            "keywords": [
+                "Forms",
+                "defstudio",
+                "filament",
+                "input",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/defstudio/filament-searchable-input/issues",
+                "source": "https://github.com/defstudio/filament-searchable-input"
+            },
+            "funding": [
+                {
+                    "url": "https://paypal.me/defstudiosrl",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/defstudio",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/fabio-ivona",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-08-13T21:35:46+00:00"
         },
         {
             "name": "dflydev/dot-access-data",

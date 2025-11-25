@@ -17,6 +17,7 @@ use App\Models\BancoCuentas;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\ContaPeriodos;
+use App\Models\CuentasDetalle;
 use App\Models\IngresosEgresos;
 use App\Models\Movbancos;
 use App\Models\Regimenes;
@@ -27,6 +28,8 @@ use Carbon\Carbon;
 use CfdiUtils\Cfdi;
 use CfdiUtils\Elements\Cfdi33\Comprobante;
 use CfdiUtils\SumasPagos20\Decimal;
+use DefStudio\SearchableInput\DTO\SearchResult;
+use DefStudio\SearchableInput\Forms\Components\SearchableInput;
 use Dvarilek\FilamentTableSelect\Components\Form\TableSelect;
 use Filament\Facades\Filament;
 use Filament\Forms;
@@ -1073,7 +1076,8 @@ class MovbancosResource extends Resource
                                                 ->defaultItems(5)
                                                 ->columnSpanFull()
                                                 ->headers([
-                                                    Header::make('codigo')->width('250px'),
+                                                    Header::make('codigo')->width('150px'),
+                                                    Header::make('cuenta')->width('200px'),
                                                     Header::make('cargo')->width('100px'),
                                                     Header::make('abono')->width('100px'),
                                                     Header::make('factura')->width('100px')
@@ -1081,20 +1085,27 @@ class MovbancosResource extends Resource
                                                     Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
-                                                    Select::make('codigo')
-                                                        ->options(
-                                                            DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                                                                ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
-                                                        )
-                                                        ->searchable()
-                                                        ->columnSpan(2)
-                                                        ->live(onBlur: true)
-                                                        ->afterStateUpdated(function(Get $get,Set $set){
-                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
-                                                            $nom = $cuenta[0]->nombre;
+                                                    SearchableInput::make('codigo')
+                                                        ->searchUsing(function(string $search){
+                                                            return CuentasDetalle::query()
+                                                                ->where('team_id',Filament::getTenant()->id)
+                                                                ->where('codigo', 'like', "$search%")
+                                                                ->orWhere('nombre', 'like', "%$search%")
+                                                                ->limit(5)
+                                                                ->get()
+                                                                ->map(fn(CuentasDetalle $product) => SearchResult::make($product->codigo, "[$product->codigo] $product->nombre")
+                                                                    ->withData('codigo', $product->codigo)
+                                                                )
+                                                                ->toArray();
+                                                        })
+                                                        ->onItemSelected(function(SearchResult $item,Set $set,Get $get){
+                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
+                                                                ->where('codigo',$item->get('codigo'))->first();
+                                                            $nom = $cuenta->nombre;
                                                             $set('cuenta',$nom);
                                                             $set('concepto',$get('../../concepto'));
                                                         }),
+                                                    TextInput::make('cuenta')->readOnly(),
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
                                                         ->default(0)
@@ -1116,7 +1127,7 @@ class MovbancosResource extends Resource
                                                         ->prefix('F-'),
                                                     TextInput::make('concepto'),
                                                     Hidden::make('team_id')->default(Filament::getTenant()->id),
-                                                    Hidden::make('cuenta'),
+                                                    //Hidden::make('cuenta'),
                                                     Hidden::make('cat_polizas_id')
                                                         ->default(0),
                                                     Hidden::make('nopartida')
@@ -1427,7 +1438,8 @@ class MovbancosResource extends Resource
                                                 ->columnSpanFull()
                                                 ->defaultItems(5)
                                                 ->headers([
-                                                    Header::make('codigo')->width('250px'),
+                                                    Header::make('codigo')->width('150px'),
+                                                    Header::make('cuenta')->width('200px'),
                                                     Header::make('cargo')->width('100px'),
                                                     Header::make('abono')->width('100px'),
                                                     Header::make('factura')->width('100px')
@@ -1435,20 +1447,27 @@ class MovbancosResource extends Resource
                                                     Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
-                                                    Select::make('codigo')
-                                                        ->options(
-                                                            DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                                                                ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
-                                                        )
-                                                        ->searchable()
-                                                        ->columnSpan(2)
-                                                        ->live()
-                                                        ->afterStateUpdated(function(Get $get,Set $set){
-                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
-                                                            $nom = $cuenta[0]->nombre;
+                                                    SearchableInput::make('codigo')
+                                                        ->searchUsing(function(string $search){
+                                                            return CuentasDetalle::query()
+                                                                ->where('team_id',Filament::getTenant()->id)
+                                                                ->where('codigo', 'like', "$search%")
+                                                                ->orWhere('nombre', 'like', "%$search%")
+                                                                ->limit(5)
+                                                                ->get()
+                                                                ->map(fn(CuentasDetalle $product) => SearchResult::make($product->codigo, "[$product->codigo] $product->nombre")
+                                                                    ->withData('codigo', $product->codigo)
+                                                                )
+                                                                ->toArray();
+                                                        })
+                                                        ->onItemSelected(function(SearchResult $item,Set $set,Get $get){
+                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
+                                                                ->where('codigo',$item->get('codigo'))->first();
+                                                            $nom = $cuenta->nombre;
                                                             $set('cuenta',$nom);
                                                             $set('concepto',$get('../../concepto'));
                                                         }),
+                                                    TextInput::make('cuenta')->readOnly(),
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
                                                         ->default(0)

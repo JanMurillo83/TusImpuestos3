@@ -1183,7 +1183,7 @@ class FacturasResource extends Resource
                                 'docto' => $comprobante['serie'] . $comprobante['folio'],
                                 'fecha' => $comprobante['fecha'],
                                 'clie' => $cliente->id,
-                                'nombre' => $emisor['Nombre'],
+                                'nombre' => $receptor['Nombre'],
                                 'esquema' => Esquemasimp::where('team_id', Filament::getTenant()->id)->first()->id,
                                 'subtotal' => $subtotal,
                                 'iva' => $iva,

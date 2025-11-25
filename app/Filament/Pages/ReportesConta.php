@@ -178,6 +178,17 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('DIOT D')->visible(true);
                             $this->replaceMountedAction('DIOT D');
                             $this->getAction('DIOT D')->visible(false);
+                        }),
+                    Actions\Action::make('Afectaciones')
+                        ->label('Afectaciones IVA IETU')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+                            //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $this->getAction('AfectaIVAIETU')->visible(true);
+                            $this->replaceMountedAction('AfectaIVAIETU');
+                            $this->getAction('AfectaIVAIETU')->visible(false);
                         })
                 ])
                 ]),
@@ -320,6 +331,16 @@ class ReportesConta extends Page implements HasForms
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
                 view('ReporteDiotDetalle',[ 'id_empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
+                )->visible(false)
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('AfectaIVAIETU')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Análisis de Afectaciones de IVA y de IETU')
+                ->margin([10, 10, 10, 10])
+                ->content(fn()=>
+                view('ReporteAfectaciones',[ 'id_empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])
                 )->visible(false)
                 ->modalWidth('7xl')
         ];

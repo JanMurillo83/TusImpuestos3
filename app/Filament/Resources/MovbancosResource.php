@@ -74,6 +74,7 @@ use Mockery\Matcher\Not;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\Fiel;
 use phpDocumentor\Reflection\Types\Parent_;
 use PhpOffice\PhpSpreadsheet\Calculation\MathTrig\Sum as MathTrigSum;
+use Svg\Tag\Text;
 
 class MovbancosResource extends Resource
 {
@@ -1077,40 +1078,67 @@ class MovbancosResource extends Resource
                                                 ->columnSpanFull()
                                                 ->headers([
                                                     Header::make('codigo')->width('150px'),
-                                                    Header::make('cuenta')->width('200px'),
-                                                    Header::make('cargo')->width('100px'),
-                                                    Header::make('abono')->width('100px'),
+                                                    Header::make('cuenta')->width('100px'),
+                                                    Header::make('cargo')->width('150px'),
+                                                    Header::make('abono')->width('150px'),
                                                     Header::make('factura')->width('100px')
                                                         ->label('Referencia'),
                                                     Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
-                                                    SearchableInput::make('codigo')
-                                                        ->searchUsing(function(string $search){
-                                                            return CuentasDetalle::query()
-                                                                ->where('team_id',Filament::getTenant()->id)
-                                                                ->where('codigo', 'like', "$search%")
-                                                                ->orWhere('nombre', 'like', "%$search%")
-                                                                ->limit(5)
-                                                                ->get()
-                                                                ->map(fn(CuentasDetalle $product) => SearchResult::make($product->codigo, "[$product->codigo] $product->nombre")
-                                                                    ->withData('codigo', $product->codigo)
-                                                                )
-                                                                ->toArray();
-                                                        })
-                                                        ->onItemSelected(function(SearchResult $item,Set $set,Get $get){
-                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
-                                                                ->where('codigo',$item->get('codigo'))->first();
-                                                            $nom = $cuenta->nombre;
-                                                            $set('cuenta',$nom);
-                                                            $set('concepto',$get('../../concepto'));
-                                                        }),
+                                                    TextInput::make('codigo')->required()
+                                                        ->live(onBlur: true)
+                                                    ->afterStateUpdated(function($state,Set $set, Get $get){
+                                                        $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
+                                                            ->where('codigo',$state)->first();
+                                                        $nom = $cuenta->nombre;
+                                                        $set('cuenta',$nom);
+                                                        $set('concepto',$get('../../concepto'));
+                                                    })->suffixAction(
+                                                            Actions\Action::make('BusquedaC')
+                                                            ->icon('fas-magnifying-glass')
+                                                                ->modalSubmitActionLabel('Seleccionar')
+                                                            ->form([
+                                                                Forms\Components\Select::make('codigo_b')
+                                                                ->label('Buscar Cuenta')
+                                                                ->required()
+                                                                ->searchable()
+                                                                ->options(
+                                                                    CatCuentas::where('team_id',Filament::getTenant()->id)
+                                                                        ->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
+                                                            ])->action(function(array $data,Set $set,Get $get){
+                                                                $cuenta = CatCuentas::where('codigo',$data['codigo_b'])->first();
+                                                                $set('codigo',$cuenta->codigo);
+                                                                $set('cuenta',$cuenta->nombre);
+                                                                $set('concepto',$get('../../concepto'));
+
+                                                            })
+                                                        ),
                                                     TextInput::make('cuenta')->readOnly(),
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
+                                                        ->suffixAction(
+                                                            Actions\Action::make('Calcula_1')
+                                                                ->label('Calcular')
+                                                            ->icon('fas-calculator')
+                                                            ->modalSubmitActionLabel('Usar')
+                                                            ->form([
+                                                                Forms\Components\TextInput::make('Operacion')
+                                                                ->default(0)->required()
+                                                                ->live(onBlur: true)
+                                                                ->afterStateUpdated(function($state,Set $set,Get $get){
+                                                                    $s = eval('return '.$state.';');
+                                                                    $set('resultado',$s);
+                                                                }),
+                                                                TextInput::make('resultado')->readOnly(),
+                                                            ])->action(function(array $data,Set $set,Get $get){
+                                                                $val = floatval($data['resultado']);
+                                                                $set('cargo',$val);
+                                                            })
+                                                          )
                                                         ->afterStateUpdated(function(Get $get,Set $set){
                                                             self::sumas_partidas_manual($get,$set);
                                                         }),
@@ -1119,6 +1147,25 @@ class MovbancosResource extends Resource
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
+                                                        ->suffixAction(
+                                                            Actions\Action::make('Calcula_1')
+                                                                ->label('Calcular')
+                                                                ->icon('fas-calculator')
+                                                                ->modalSubmitActionLabel('Usar')
+                                                                ->form([
+                                                                    Forms\Components\TextInput::make('Operacion')
+                                                                        ->default(0)->required()
+                                                                        ->live(onBlur: true)
+                                                                        ->afterStateUpdated(function($state,Set $set,Get $get){
+                                                                            $s = eval('return '.$state.';');
+                                                                            $set('resultado',$s);
+                                                                        }),
+                                                                    TextInput::make('resultado')->readOnly(),
+                                                                ])->action(function(array $data,Set $set,Get $get){
+                                                                    $val = floatval($data['resultado']);
+                                                                    $set('abono',$val);
+                                                                })
+                                                        )
                                                         ->afterStateUpdated(function(Get $get,Set $set){
                                                             self::sumas_partidas_manual($get,$set);
                                                         }),
@@ -1439,40 +1486,67 @@ class MovbancosResource extends Resource
                                                 ->defaultItems(5)
                                                 ->headers([
                                                     Header::make('codigo')->width('150px'),
-                                                    Header::make('cuenta')->width('200px'),
-                                                    Header::make('cargo')->width('100px'),
-                                                    Header::make('abono')->width('100px'),
+                                                    Header::make('cuenta')->width('100px'),
+                                                    Header::make('cargo')->width('150px'),
+                                                    Header::make('abono')->width('150px'),
                                                     Header::make('factura')->width('100px')
                                                         ->label('Referencia'),
                                                     Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
-                                                    SearchableInput::make('codigo')
-                                                        ->searchUsing(function(string $search){
-                                                            return CuentasDetalle::query()
-                                                                ->where('team_id',Filament::getTenant()->id)
-                                                                ->where('codigo', 'like', "$search%")
-                                                                ->orWhere('nombre', 'like', "%$search%")
-                                                                ->limit(5)
-                                                                ->get()
-                                                                ->map(fn(CuentasDetalle $product) => SearchResult::make($product->codigo, "[$product->codigo] $product->nombre")
-                                                                    ->withData('codigo', $product->codigo)
-                                                                )
-                                                                ->toArray();
-                                                        })
-                                                        ->onItemSelected(function(SearchResult $item,Set $set,Get $get){
+                                                    TextInput::make('codigo')->required()
+                                                        ->live(onBlur: true)
+                                                        ->afterStateUpdated(function($state,Set $set, Get $get){
                                                             $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
-                                                                ->where('codigo',$item->get('codigo'))->first();
+                                                                ->where('codigo',$state)->first();
                                                             $nom = $cuenta->nombre;
                                                             $set('cuenta',$nom);
                                                             $set('concepto',$get('../../concepto'));
-                                                        }),
+                                                        })->suffixAction(
+                                                            Actions\Action::make('BusquedaC')
+                                                                ->icon('fas-magnifying-glass')
+                                                                ->modalSubmitActionLabel('Seleccionar')
+                                                                ->form([
+                                                                    Forms\Components\Select::make('codigo_b')
+                                                                        ->label('Buscar Cuenta')
+                                                                        ->required()
+                                                                        ->searchable()
+                                                                        ->options(
+                                                                            CatCuentas::where('team_id',Filament::getTenant()->id)
+                                                                                ->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
+                                                                ])->action(function(array $data,Set $set,Get $get){
+                                                                    $cuenta = CatCuentas::where('codigo',$data['codigo_b'])->first();
+                                                                    $set('codigo',$cuenta->codigo);
+                                                                    $set('cuenta',$cuenta->nombre);
+                                                                    $set('concepto',$get('../../concepto'));
+
+                                                                })
+                                                        ),
                                                     TextInput::make('cuenta')->readOnly(),
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
+                                                        ->suffixAction(
+                                                            Actions\Action::make('Calcula_1')
+                                                                ->label('Calcular')
+                                                                ->icon('fas-calculator')
+                                                                ->modalSubmitActionLabel('Usar')
+                                                                ->form([
+                                                                    Forms\Components\TextInput::make('Operacion')
+                                                                        ->default(0)->required()
+                                                                        ->live(onBlur: true)
+                                                                        ->afterStateUpdated(function($state,Set $set,Get $get){
+                                                                            $s = eval('return '.$state.';');
+                                                                            $set('resultado',$s);
+                                                                        }),
+                                                                    TextInput::make('resultado')->readOnly(),
+                                                                ])->action(function(array $data,Set $set,Get $get){
+                                                                    $val = floatval($data['resultado']);
+                                                                    $set('cargo',$val);
+                                                                })
+                                                        )
                                                         ->afterStateUpdated(function(Get $get,Set $set){
                                                             self::sumas_partidas_manual($get,$set);
                                                         }),
@@ -1481,6 +1555,25 @@ class MovbancosResource extends Resource
                                                         ->default(0)
                                                         ->live(onBlur:true)
                                                         ->prefix('$')
+                                                        ->suffixAction(
+                                                            Actions\Action::make('Calcula_1')
+                                                                ->label('Calcular')
+                                                                ->icon('fas-calculator')
+                                                                ->modalSubmitActionLabel('Usar')
+                                                                ->form([
+                                                                    Forms\Components\TextInput::make('Operacion')
+                                                                        ->default(0)->required()
+                                                                        ->live(onBlur: true)
+                                                                        ->afterStateUpdated(function($state,Set $set,Get $get){
+                                                                            $s = eval('return '.$state.';');
+                                                                            $set('resultado',$s);
+                                                                        }),
+                                                                    TextInput::make('resultado')->readOnly(),
+                                                                ])->action(function(array $data,Set $set,Get $get){
+                                                                    $val = floatval($data['resultado']);
+                                                                    $set('abono',$val);
+                                                                })
+                                                        )
                                                         ->afterStateUpdated(function(Get $get,Set $set){
                                                             self::sumas_partidas_manual($get,$set);
                                                         }),

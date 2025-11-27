@@ -204,7 +204,7 @@ $logo = public_path('storage/'.$dafis->logo);
             <div>
                 <h7 style="font-weight: bold; margin-right: 10px !important; ">{{$cant_letras}}</h7>
             </div>
-            <h7>MONEDA: <b>{{$orden->moneda}}</b>   TIPO DE CAMBIO: <b>{{number_format($orden->tcambio,2)}}</b></h7>
+            <h7>MONEDA: <b>{{$orden->moneda}}</b>   TIPO DE CAMBIO: <b>{{number_format($orden->tcambio,4)}}</b></h7>
         </div>
 
     </div>

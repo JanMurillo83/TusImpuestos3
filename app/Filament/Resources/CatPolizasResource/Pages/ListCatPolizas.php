@@ -68,28 +68,47 @@ class ListCatPolizas extends ListRecords
     {
         //$tabs = ['all' => Tab::make('All')->badge($this->getModel()::count())];
         $tabs = [];
-        $tabs['TD'] = Tab::make('Todas');
+        $tabs['TD'] = Tab::make('Todas')->modifyQueryUsing(function ($query){
+            return $query->where('periodo',Filament::getTenant()->periodo)
+                ->where('ejercicio',Filament::getTenant()->ejercicio);
+        });
         $tabs['PG'] = Tab::make('Gastos')
         ->modifyQueryUsing(function ($query){
-            return $query->where('tipo', 'PG');
+            return $query->where('tipo', 'PG')->where('periodo',Filament::getTenant()->periodo)
+                ->where('ejercicio',Filament::getTenant()->ejercicio);
         });
         $tabs['PV'] = Tab::make('Ventas')
         ->modifyQueryUsing(function ($query){
-            return $query->where('tipo', 'PV');
+            return $query->where('tipo', 'PV')->where('periodo',Filament::getTenant()->periodo)
+                ->where('ejercicio',Filament::getTenant()->ejercicio);
         });
         $tabs['Dr'] = Tab::make('Diario')
         ->modifyQueryUsing(function ($query){
-            return $query->where('tipo', 'Dr');
+            return $query->where('tipo', 'Dr')->where('periodo',Filament::getTenant()->periodo)
+                ->where('ejercicio',Filament::getTenant()->ejercicio);
         });
         $tabs['Ig'] = Tab::make('Ingresos')
         ->modifyQueryUsing(function ($query){
-            return $query->where('tipo', 'Ig');
+            return $query->where('tipo', 'Ig')->where('periodo',Filament::getTenant()->periodo)
+                ->where('ejercicio',Filament::getTenant()->ejercicio);
         });
         $tabs['Eg'] = Tab::make('Egresos')
         ->modifyQueryUsing(function ($query){
-            return $query->where('tipo', 'Eg');
+            return $query->where('tipo', 'Eg')->where('periodo',Filament::getTenant()->periodo)
+                ->where('ejercicio',Filament::getTenant()->ejercicio);
         });
+        $tabs['OP'] = Tab::make('Otros Periodos')
+            ->modifyQueryUsing(function ($query){
+                return $query->where('ejercicio',Filament::getTenant()->ejercicio);
+            });
 
         return $tabs;
     }
+
+    public function getDefaultActiveTab(): string
+    {
+        return 'Todas';
+
+    }
+
 }

@@ -246,8 +246,6 @@ class CatPolizasResource extends Resource
         ->query(CatPolizas::query())
             ->modifyQueryUsing(function ($query) {
                 $query->where('team_id',Filament::getTenant()->id)
-                    ->where('periodo',Filament::getTenant()->periodo)
-                    ->where('ejercicio',Filament::getTenant()->ejercicio)
                     ->orderBy('tipo', 'ASC')
                     ->orderBy('folio', 'ASC');
             })
@@ -327,6 +325,10 @@ class CatPolizasResource extends Resource
                 Tables\Actions\EditAction::make()
                 ->label('')
                 ->icon(null)
+                ->disabled(function ($record){
+                    if($record->periodo == Filament::getTenant()->periodo && $record->ejercicio == Filament::getTenant()->ejercicio) return false;
+                    else return true;
+                })
                 ->modalSubmitActionLabel('Grabar')
                 ->modalWidth('7xl')
                 ->after(function ($record){
@@ -363,6 +365,10 @@ class CatPolizasResource extends Resource
                     }),
                 Tables\Actions\DeleteAction::make()
                 ->label('')->icon('fas-trash-can')
+                    ->disabled(function ($record){
+                        if($record->periodo == Filament::getTenant()->periodo && $record->ejercicio == Filament::getTenant()->ejercicio) return false;
+                        else return true;
+                    })
                 ->requiresConfirmation()
                 ->before(function ($record) {
                     DB::statement('SET FOREIGN_KEY_CHECKS=0;');

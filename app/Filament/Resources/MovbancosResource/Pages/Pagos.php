@@ -207,7 +207,7 @@ class Pagos extends Page implements HasForms
                                     $pend_f = $ineg->pendienteusd * $ineg->tcambio;
                                     $n_tc = floatval($pend_pag)/floatval($fact->Total);
                                     $set('tipo_cambio', $n_tc);
-                                    $pend_f = floatval($pend_pag);
+                                    //$pend_f = floatval($pend_pag);
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago != 'MXN'){
                                     $pend_f = $ineg->pendienteusd ?? $ineg->pendientemxn / $t_cambio;
@@ -466,13 +466,15 @@ class Pagos extends Page implements HasForms
                     ]);
                 }
                 if ($factura['Moneda'] != 'MXN' && $moneda_pago == 'MXN') {
-                    $pesos = floatval($monto_par) * floatval($get('tipo_cambio'));
-                    $dolares = floatval($monto_par);
+                    $pesos = floatval($monto_par);
+
                     $tipoc_f = floatval($factura['Tipo Cambio']);
+
+                    $dolares = $pesos / $tipoc_f;
                     $tipoc = floatval($get('tipo_cambio'));
                     $complemento = (($dolares * $tipoc_f) - $dolares);
-                    $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
-                    $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
+                    $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
+                    $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
                     $uti_per = $importe_cargos - $importe_abonos;

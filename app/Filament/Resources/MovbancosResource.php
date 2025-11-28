@@ -2203,10 +2203,11 @@ class MovbancosResource extends Resource
                 ]);
                 $parno++;
                 if($tc > 0){
+                    $comple_c = CatCuentas::where('id',$ban[0]->complementaria)->first();
                     $aux = Auxiliares::create([
                         'cat_polizas_id'=>$polno,
-                        'codigo'=>$ban[0]->complementaria,
-                        'cuenta'=>$ban[0]->cuenta.' complementaria',
+                        'codigo'=>$comple_c->codigo,
+                        'cuenta'=>$comple_c->nombre,
                         'concepto'=>$dater[0],
                         'cargo'=>$comple,
                         'abono'=>0,

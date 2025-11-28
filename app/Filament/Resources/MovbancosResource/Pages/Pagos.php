@@ -275,7 +275,7 @@ class Pagos extends Page implements HasForms
                     Header::make('Moneda'),
                     Header::make('T. de Cambio'),
                     Header::make('Monto a Pagar'),
-                    //Header::make('USD a Pagar')
+                    Header::make('USD a Pagar')
                 ])
                 ->schema([
                     TextInput::make('Referencia')->readOnly(),

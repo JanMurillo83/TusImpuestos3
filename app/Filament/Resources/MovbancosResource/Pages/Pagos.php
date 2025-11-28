@@ -469,7 +469,7 @@ class Pagos extends Page implements HasForms
 
                     $tipoc_f = floatval($factura['Tipo Cambio']);
 
-                    $dolares = $pesos / $tipoc_f;
+                    $dolares = $factura['USD a Pagar'];
                     $tipoc = floatval($get('tipo_cambio'));
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;

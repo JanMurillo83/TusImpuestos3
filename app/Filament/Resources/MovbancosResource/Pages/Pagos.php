@@ -503,7 +503,30 @@ class Pagos extends Page implements HasForms
                         $cod_uti = '70101000';
                         $cta_uti = 'Utilidad Cambiaria';
                     }
-
+                    if($no_intera == 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => $ban->codigo,
+                            'cuenta' => $ban->banco,
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => $pesos,
+                            'factura' => $this->fact_nombres,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id,
+                            'igeg_id' => $igeg->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $no_intera++;
+                        $id_cta_banco = $aux['id'];
+                        $mon_apli_ban += $monto_par;
+                    }else{
+                        $mon_apli_ban += $monto_par;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $ter->cuenta_contable,
@@ -536,30 +559,7 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    if($no_intera == 0) {
-                        $aux = Auxiliares::create([
-                            'cat_polizas_id' => $polno,
-                            'codigo' => $ban->codigo,
-                            'cuenta' => $ban->banco,
-                            'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => 0,
-                            'abono' => $pesos,
-                            'factura' => $this->fact_nombres,
-                            'nopartida' => $partida,
-                            'team_id' => Filament::getTenant()->id,
-                            'igeg_id' => $igeg->id
-                        ]);
-                        DB::table('auxiliares_cat_polizas')->insert([
-                            'auxiliares_id' => $aux['id'],
-                            'cat_polizas_id' => $polno
-                        ]);
-                        $partida++;
-                        $no_intera++;
-                        $id_cta_banco = $aux['id'];
-                        $mon_apli_ban += $monto_par;
-                    }else{
-                        $mon_apli_ban += $monto_par;
-                    }
+
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => '11801000',

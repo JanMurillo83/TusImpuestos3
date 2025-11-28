@@ -103,7 +103,6 @@ class PagosResource extends Resource
                                 ->required()
                                 ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
                                 //->default(0.00000000)
-                                ->readOnly()
                                 ->placeholder(function (Forms\Get $get, Forms\Set $set) {
                                     $valor = collect($get('Partidas'))->pluck('montoiva')->sum();
                                     $set('iva', $valor);
@@ -113,7 +112,6 @@ class PagosResource extends Resource
                                 ->required()
                                 ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
                                 //->default(0.00000000)
-                                ->readOnly()
                                 ->placeholder(function (Forms\Get $get, Forms\Set $set) {
                                     $valor = collect($get('Partidas'))->pluck('imppagado')->sum();
                                     $set('total', $valor);

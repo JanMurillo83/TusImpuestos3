@@ -261,6 +261,7 @@ class Pagos extends Page implements HasForms
                 Hidden::make('tipo_cambio')->default(1.00),
                 TextInput::make('numero_total')->label('Numero de Facturas')->numeric()->readOnly()->default(0),
                 TextInput::make('monto_total')->label('Pagos Totales')->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
+                TextInput::make('monto_total_usd')->label('Pagos Totales USD')->visible(false)->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
                 Hidden::make('igeg_id'),
                 TableRepeater::make('facturas_a_pagar')
                 ->addable(false)
@@ -297,9 +298,10 @@ class Pagos extends Page implements HasForms
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');
                         $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
+                        $sum2 = array_sum(array_column($data_tmp,'USD a Pagar'));
                         $cnt = count($data_tmp);
                         $set('numero_total',$cnt);
-                        $set('monto_total',$sum);
+                        $set('monto_total_usd',$sum2);
                 }),
                 Actions::make([
                     Actions\Action::make('Aceptar')->icon('fas-save')
@@ -465,18 +467,26 @@ class Pagos extends Page implements HasForms
                     ]);
                 }
                 if ($factura['Moneda'] != 'MXN' && $moneda_pago == 'MXN') {
+
                     $pesos = floatval($monto_par);
-
+                    $tipoc_mov_tusd = floatval($get('monto_total_usd'));
+                    $tipoc_mov_tmxn = floatval($get('monto_total'));
+                    $tipoc_mov = $tipoc_mov_tmxn / $tipoc_mov_tusd;
                     $tipoc_f = floatval($factura['Tipo Cambio']);
-
                     $dolares = $factura['USD a Pagar'];
-                    $tipoc = floatval($get('tipo_cambio'));
+                    $tipoc = $tipoc_mov;
+
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
                     $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
-                    $uti_per = $importe_cargos - $importe_abonos;
+                    $up_p1 = $dolares * $tipoc;
+                    $up_p2 = $dolares * $tipoc_f;
+                    $up_p3 = ($dolares /1.16*0.16)*$tipoc_f;
+                    $up_p4 = ($dolares /1.16*0.16)*$tipoc;
+                    $uti_per = $up_p1 - $up_p2 + $up_p3 - $up_p4;
+                    //dd($tipoc,$up_p1 , $up_p2 , $up_p3 , $up_p4, $uti_per);
                     $importe_abonos_f = $pesos + $iva_2 + $uti_per;
                     $imp_uti_c = 0;
                     $imp_uti_a = 0;

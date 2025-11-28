@@ -2158,13 +2158,24 @@ class MovbancosResource extends Resource
             if($data['Movimiento'] == 3)
             {
                 $dater = explode('|',$data['Tercero']);
+                $tc = floatval($record->tcambio);
+                if($tc == 0) $tc = 1;
+                if($tc > 1){
+                    $dolares = floatval($record->importe);
+                    $pesos = $dolares * $tc;
+                    $comple = $pesos - $dolares;
+                }else{
+                    $dolares = floatval($record->importe);
+                    $pesos = floatval($record->importe);
+                    $comple = 0;
+                }
                 $poliza = CatPolizas::create([
                     'tipo'=>'Ig',
                     'folio'=>$nopoliza,
                     'fecha'=>$record->fecha,
                     'concepto'=>$dater[0],
-                    'cargos'=>$record->importe,
-                    'abonos'=>$record->importe,
+                    'cargos'=>$pesos,
+                    'abonos'=>$pesos,
                     'periodo'=>Filament::getTenant()->periodo,
                     'ejercicio'=>Filament::getTenant()->ejercicio,
                     'referencia'=>'Prestamo',
@@ -2173,37 +2184,58 @@ class MovbancosResource extends Resource
                     'team_id'=>Filament::getTenant()->id,
                     'idmovb'=>$record->id
                 ]);
+                $parno = 1;
                 $polno = $poliza['id'];
                 $aux = Auxiliares::create([
                     'cat_polizas_id'=>$polno,
                     'codigo'=>$ban[0]->codigo,
                     'cuenta'=>$ban[0]->cuenta,
                     'concepto'=>$dater[0],
-                    'cargo'=>$record->importe,
+                    'cargo'=>$dolares,
                     'abono'=>0,
                     'factura'=>'Prestamo',
-                    'nopartida'=>1,
+                    'nopartida'=>$parno,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
                     'auxiliares_id'=>$aux['id'],
                     'cat_polizas_id'=>$polno
                 ]);
+                $parno++;
+                if($tc > 0){
                     $aux = Auxiliares::create([
                         'cat_polizas_id'=>$polno,
-                        'codigo'=>$dater[1],
-                        'cuenta'=>$dater[0],
+                        'codigo'=>$ban[0]->codigo,
+                        'cuenta'=>$ban[0]->complementaria,
                         'concepto'=>$dater[0],
-                        'cargo'=>0,
-                        'abono'=>$record->importe,
+                        'cargo'=>$comple,
+                        'abono'=>0,
                         'factura'=>'Prestamo',
-                        'nopartida'=>2,
+                        'nopartida'=>$parno,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
                         'auxiliares_id'=>$aux['id'],
                         'cat_polizas_id'=>$polno
                     ]);
+                    $parno++;
+                }
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id'=>$polno,
+                        'codigo'=>$dater[1],
+                        'cuenta'=>$dater[0],
+                        'concepto'=>$dater[0],
+                        'cargo'=>0,
+                        'abono'=>$pesos,
+                        'factura'=>'Prestamo',
+                        'nopartida'=>$parno,
+                        'team_id'=>Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id'=>$aux['id'],
+                        'cat_polizas_id'=>$polno
+                    ]);
+                $parno++;
 
                 }
                 if($data['Movimiento'] == 4)

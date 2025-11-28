@@ -292,8 +292,7 @@ class Pagos extends Page implements HasForms
                             $cnt = count($data_tmp);
                             $set('../../monto_total',$sum);
                         }),
-                    TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$')
-                    ->visible(false),
+                    TextInput::make('USD a Pagar')->readOnly()->numeric()->currencyMask()->prefix('$'),
                     Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');

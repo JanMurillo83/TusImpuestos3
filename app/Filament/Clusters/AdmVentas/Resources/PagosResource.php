@@ -93,8 +93,7 @@ class PagosResource extends Resource
                             Forms\Components\TextInput::make('subtotal')
                                 ->required()
                                 ->numeric()
-                                //->default(0.00000000)
-                                ->readOnly()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
+                                ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
                                 ->placeholder(function (Forms\Get $get, Forms\Set $set) {
                                     $valor = collect($get('Partidas'))->pluck('baseiva')->sum();
                                     $set('subtotal', $valor);
@@ -206,7 +205,7 @@ class PagosResource extends Resource
                                         ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
                                         ->default(0),
                                     Forms\Components\TextInput::make('equivalencia')
-                                        ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2),
+                                        ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4),
                                     Forms\Components\TextInput::make('parcialidad')
                                         ->default(1)->numeric(),
                                     Forms\Components\Hidden::make('objeto')

@@ -2205,8 +2205,8 @@ class MovbancosResource extends Resource
                 if($tc > 0){
                     $aux = Auxiliares::create([
                         'cat_polizas_id'=>$polno,
-                        'codigo'=>$ban[0]->codigo,
-                        'cuenta'=>$ban[0]->complementaria,
+                        'codigo'=>$ban[0]->complementaria,
+                        'cuenta'=>$ban[0]->cuenta.' complementaria',
                         'concepto'=>$dater[0],
                         'cargo'=>$comple,
                         'abono'=>0,

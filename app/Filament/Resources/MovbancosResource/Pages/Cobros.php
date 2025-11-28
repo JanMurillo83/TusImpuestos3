@@ -355,6 +355,7 @@ class Cobros extends Page implements HasForms
                 $fss = DB::table('almacencfdis')->where('id', $igeg->xml_id)->first();
                 $ban = DB::table('banco_cuentas')->where('id', $this->datos_mov->cuenta)->first();
                 $ter = DB::table('terceros')->where('rfc', $fss->Receptor_Rfc)->first();
+                $cta_ter_alt = CatCuentas::where('nombre',$fss->Receptor_Nombre)->where('team_id',Filament::getTenant()->id)->first()->codigo;
                 $monto_par = 0;
                 if ($factura['Moneda'] == 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
                 if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
@@ -388,7 +389,7 @@ class Cobros extends Page implements HasForms
                         'codigo' => '20901000',
                         'cuenta' => 'IVA trasladado no cobrado',
                         'concepto' => $fss->Receptor_Nombre,
-                        'cargo' => (floatval($monto_par) / 1.16) * 0.16,
+                        'cargo' => $monto_par / 1.16 * 0.16,
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
@@ -405,7 +406,7 @@ class Cobros extends Page implements HasForms
                         'cuenta' => 'IVA trasladado cobrado',
                         'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
-                        'abono' => (floatval($monto_par) / 1.16) * 0.16,
+                        'abono' => $monto_par / 1.16 * 0.16,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
                         'team_id' => Filament::getTenant()->id
@@ -417,8 +418,8 @@ class Cobros extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_ter_alt,
+                        'cuenta' => $fss->Receptor_Nombre,
                         'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $monto_par,
@@ -453,8 +454,8 @@ class Cobros extends Page implements HasForms
                     //dd($monto_mxn_pagar,$monto_dolares_pagar);
                     $tipoc = $monto_mxn_pagar/$monto_dolares_pagar;
                     $complemento = (($dolares * $tipoc_f) - $dolares);
-                    $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
-                    $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
+                    $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
+                    $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
                     $uti1 = $dolares * $tipoc;
@@ -482,7 +483,7 @@ class Cobros extends Page implements HasForms
                             'cat_polizas_id' => $polno,
                             'codigo' => $ban->codigo,
                             'cuenta' => $ban->banco,
-                            'concepto' => $fss->Emisor_Nombre,
+                            'concepto' => $fss->Receptor_Nombre,
                             'cargo' => 0,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
@@ -503,9 +504,9 @@ class Cobros extends Page implements HasForms
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
-                        'concepto' => $fss->Emisor_Nombre,
+                        'codigo' => $cta_ter_alt,
+                        'cuenta' => $fss->Receptor_Nombre,
+                        'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $dolares,
                         'factura' => $fss->Serie . $fss->Folio,
@@ -519,9 +520,9 @@ class Cobros extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
-                        'concepto' => $fss->Emisor_Nombre,
+                        'codigo' => $cta_ter_alt,
+                        'cuenta' => $fss->Receptor_Nombre,
+                        'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $complemento,
                         'factura' => $fss->Serie . $fss->Folio,
@@ -537,7 +538,7 @@ class Cobros extends Page implements HasForms
                         'cat_polizas_id' => $polno,
                         'codigo' => '20901000',
                         'cuenta' => 'IVA pendiente de pago',
-                        'concepto' => $fss->Emisor_Nombre,
+                        'concepto' => $fss->Receptor_Nombre,
                         'cargo' => $iva_2,
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
@@ -553,7 +554,7 @@ class Cobros extends Page implements HasForms
                         'cat_polizas_id' => $polno,
                         'codigo' => '20801000',
                         'cuenta' => 'IVA acreditable pagado',
-                        'concepto' => $fss->Emisor_Nombre,
+                        'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $iva_1,
                         'factura' => $fss->Serie . $fss->Folio,
@@ -569,7 +570,7 @@ class Cobros extends Page implements HasForms
                         'cat_polizas_id' => $polno,
                         'codigo' => $cod_uti,
                         'cuenta' => $cta_uti,
-                        'concepto' => $fss->Emisor_Nombre,
+                        'concepto' => $fss->Receptor_Nombre,
                         'cargo' => $imp_uti_c,
                         'abono' => $imp_uti_a,
                         'factura' => $fss->Serie . $fss->Folio,
@@ -607,8 +608,8 @@ class Cobros extends Page implements HasForms
                     $iva_fac = floatval($cfdi->TotalImpuestosTrasladados);
                     //dd($factura,$cfdi->TotalImpuestosTrasladados);
                     $complemento = (($dolares * $tipoc_f) - $dolares);
-                    $iva_1 = (($dolares / 1.16) * 0.16) * $tipoc;
-                    $iva_2 = (($dolares / 1.16) * 0.16) * $tipoc_f;
+                    $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
+                    $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
                     ///------Calcula Utilidad---------------------------------------
@@ -711,8 +712,8 @@ class Cobros extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_ter_alt,
+                        'cuenta' => $fss->Receptor_Nombre,
                         'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $dolares,
@@ -727,8 +728,8 @@ class Cobros extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_ter_alt,
+                        'cuenta' => $fss->Receptor_Nombre,
                         'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $complemento,
@@ -777,8 +778,8 @@ class Cobros extends Page implements HasForms
                     $tipoc_f = floatval($factura['Tipo Cambio']);
                     $tipoc = floatval($get('tipo_cambio'));
                     $complemento = (($dolares * $tipoc) - $dolares);
-                    $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
-                    $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
+                    $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
+                    $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
                     $importe_cargos = $dolares + $complemento + $iva_1;
                     $importe_abonos = $pesos + $iva_2;
                     $uti_per = $importe_cargos - $importe_abonos;
@@ -849,8 +850,8 @@ class Cobros extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_ter_alt,
+                        'cuenta' => $fss->Receptor_Nombre,
                         'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $dolares,
@@ -865,8 +866,8 @@ class Cobros extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_ter_alt,
+                        'cuenta' => $fss->Receptor_Nombre,
                         'concepto' => $fss->Receptor_Nombre,
                         'cargo' => 0,
                         'abono' => $complemento,
@@ -883,7 +884,7 @@ class Cobros extends Page implements HasForms
                         'cat_polizas_id' => $polno,
                         'codigo' => $cod_uti,
                         'cuenta' => $cta_uti,
-                        'concepto' => $fss->Emisor_Nombre,
+                        'concepto' => $fss->Receptor_Nombre,
                         'cargo' => $imp_uti_c,
                         'abono' => $imp_uti_a,
                         'factura' => $fss->Serie . $fss->Folio,
@@ -951,10 +952,11 @@ class Cobros extends Page implements HasForms
         foreach ($data_tmp as $data) {
             $fss = DB::table('almacencfdis')->where('id',$data['id_xml'])->first();
             $ter = DB::table('terceros')->where('rfc',$fss->Receptor_Rfc)->first();
+            $cta_ter_alt = CatCuentas::where('nombre',$fss->Receptor_Nombre)->where('team_id',Filament::getTenant()->id)->first()->codigo;
             $aux = Auxiliares::create([
                 'cat_polizas_id'=>$polno,
-                'codigo'=>$ter->cuenta,
-                'cuenta'=>$ter->nombre,
+                'codigo'=>$cta_ter_alt,
+                'cuenta'=>$fss->Receptor_Nombre,
                 'concepto'=>$fss->Receptor_Nombre,
                 'cargo'=>0,
                 'abono'=>$data['USD a Pagar'],

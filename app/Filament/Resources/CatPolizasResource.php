@@ -46,6 +46,7 @@ class CatPolizasResource extends Resource
     protected static ?string $label = 'Poliza';
     protected static ?string $pluralLabel = 'Polizas';
     protected static ?string $navigationIcon ='fas-scale-balanced';
+    public ?string $activeTab = 'Todas';
     public static function form(Form $form): Form
     {
         return $form
@@ -322,6 +323,13 @@ class CatPolizasResource extends Resource
                             else return true;
                         }
                     }),
+                Tables\Actions\ViewAction::make()
+                    ->icon('fas-eye')
+                    ->iconButton()
+                    ->visible(function ($record){
+                        if($record->periodo == Filament::getTenant()->periodo && $record->ejercicio == Filament::getTenant()->ejercicio) return false;
+                        else return true;
+                    })->modalWidth('7xl'),
                 Tables\Actions\EditAction::make()
                 ->label('')
                 ->icon(null)

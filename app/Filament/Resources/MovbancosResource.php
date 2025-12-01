@@ -1086,34 +1086,19 @@ class MovbancosResource extends Resource
                                                     Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
-                                                    TextInput::make('codigo')->required()
+                                                    Select::make('codigo')
+                                                        ->label('Buscar Cuenta')
+                                                        ->required()
+                                                        ->searchable()
+                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
                                                         ->live(onBlur: true)
-                                                    ->afterStateUpdated(function($state,Set $set, Get $get){
-                                                        $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
-                                                            ->where('codigo',$state)->first();
-                                                        $nom = $cuenta->nombre;
-                                                        $set('cuenta',$nom);
-                                                        $set('concepto',$get('../../concepto'));
-                                                    })->suffixAction(
-                                                            Actions\Action::make('BusquedaC')
-                                                            ->icon('fas-magnifying-glass')
-                                                                ->modalSubmitActionLabel('Seleccionar')
-                                                            ->form([
-                                                                Forms\Components\Select::make('codigo_b')
-                                                                ->label('Buscar Cuenta')
-                                                                ->required()
-                                                                ->searchable()
-                                                                ->options(
-                                                                    CatCuentas::where('team_id',Filament::getTenant()->id)
-                                                                        ->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
-                                                            ])->action(function(array $data,Set $set,Get $get){
-                                                                $cuenta = CatCuentas::where('codigo',$data['codigo_b'])->first();
-                                                                $set('codigo',$cuenta->codigo);
-                                                                $set('cuenta',$cuenta->nombre);
-                                                                $set('concepto',$get('../../concepto'));
-
-                                                            })
-                                                        ),
+                                                        ->afterStateUpdated(function($state,Set $set, Get $get){
+                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
+                                                                ->where('codigo',$state)->first();
+                                                            $nom = $cuenta->nombre;
+                                                            $set('cuenta',$nom);
+                                                            $set('concepto',$get('../../concepto'));
+                                                    }),
                                                     TextInput::make('cuenta')->readOnly(),
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
@@ -1494,7 +1479,11 @@ class MovbancosResource extends Resource
                                                     Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
-                                                    TextInput::make('codigo')->required()
+                                                    Select::make('codigo')
+                                                        ->label('Buscar Cuenta')
+                                                        ->required()
+                                                        ->searchable()
+                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
                                                         ->live(onBlur: true)
                                                         ->afterStateUpdated(function($state,Set $set, Get $get){
                                                             $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
@@ -1502,26 +1491,7 @@ class MovbancosResource extends Resource
                                                             $nom = $cuenta->nombre;
                                                             $set('cuenta',$nom);
                                                             $set('concepto',$get('../../concepto'));
-                                                        })->suffixAction(
-                                                            Actions\Action::make('BusquedaC')
-                                                                ->icon('fas-magnifying-glass')
-                                                                ->modalSubmitActionLabel('Seleccionar')
-                                                                ->form([
-                                                                    Forms\Components\Select::make('codigo_b')
-                                                                        ->label('Buscar Cuenta')
-                                                                        ->required()
-                                                                        ->searchable()
-                                                                        ->options(
-                                                                            CatCuentas::where('team_id',Filament::getTenant()->id)
-                                                                                ->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
-                                                                ])->action(function(array $data,Set $set,Get $get){
-                                                                    $cuenta = CatCuentas::where('codigo',$data['codigo_b'])->first();
-                                                                    $set('codigo',$cuenta->codigo);
-                                                                    $set('cuenta',$cuenta->nombre);
-                                                                    $set('concepto',$get('../../concepto'));
-
-                                                                })
-                                                        ),
+                                                        }),
                                                     TextInput::make('cuenta')->readOnly(),
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
@@ -1601,7 +1571,7 @@ class MovbancosResource extends Resource
                                 ])->columnSpanFull()
                         ])->columns(4);
                     })
-                    ->modalWidth('7xl')
+                    ->modalWidth('full')
                     ->label('Procesar')
                     ->accessSelectedRecords()
                     ->modalSubmitActionLabel('Grabar')

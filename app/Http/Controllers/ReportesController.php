@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 
+use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
 use App\Models\CatPolizas;
+use App\Models\CuentasCobrarTable;
+use App\Models\CuentasPagarTable;
 use App\Models\Movbancos;
 use App\Models\Saldosbanco;
 use App\Models\SaldosReportes;
@@ -288,7 +291,206 @@ class ReportesController extends Controller
             WHERE codigo = '$saldo->n6' AND team_id = $empresa");
         }
     }
+    public function ContabilizaReporte_ret(Request $request)
+    {
+        $team_id = $request->team_id;
+        $periodo = $request->periodo;
+        $ejercicio = $request->ejercicio;
+        $polizas = CatPolizas::where('team_id',$team_id)->get();
+        foreach($polizas as $poliza)
+        {
+            Auxiliares::where('cat_polizas_id',$poliza->id)->update([
+                'a_ejercicio'=>$poliza->ejercicio,
+                'a_periodo'=>$poliza->periodo,
+            ]);
+        }
+        SaldosReportes::where('team_id',$team_id)->delete();
+        $cuentas = DB::select("SELECT codigo, nombre as cuenta, acumula, naturaleza, team_id
+        FROM cat_cuentas WHERE team_id = $team_id
+        AND substr(codigo,1,5)
+        NOT IN('10000','20000','30000','40000','50000','60000','70000','80000','90000')");
+        foreach ($cuentas as $cuenta) {
+            $nivel = 1;
+            $n1 = substr($cuenta->codigo,0,3);
+            $n2 = substr($cuenta->codigo,3,2);
+            $n3 = substr($cuenta->codigo,5,3);
+            $n2 = intval($n2);
+            $n3 = intval($n3);
+            if($n2 > 0) $nivel++;
+            if($n3 > 0) $nivel++;
+            $montos = Auxiliares::where('codigo',$cuenta->codigo)->where('a_periodo',$periodo)
+                ->where('a_ejercicio',$ejercicio)
+                ->where('team_id',$team_id)
+                ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+            $montos_ant = Auxiliares::where('codigo',$cuenta->codigo)->where('a_periodo','<',$periodo)
+                ->where('team_id',$team_id)
+                ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+            $inicial = 0;
+            $final = 0;
+            if($cuenta->naturaleza == 'D')
+            {
+                $inicial = $montos_ant->cargos - $montos_ant->abonos;
+                $final = $montos->cargos - $montos->abonos;
+            }
+            else{
+                $inicial = $montos_ant->abonos - $montos_ant->cargos;
+                $final = $montos->abonos - $montos->cargos;
+            }
+            SaldosReportes::insert([
+                'codigo' => $cuenta->codigo,
+                'cuenta' => $cuenta->cuenta,
+                'acumula' => $cuenta->acumula ?? 0,
+                'naturaleza' => $cuenta->naturaleza,
+                'anterior' => $inicial,
+                'cargos' => $montos->cargos,
+                'abonos' => $montos->abonos,
+                'final' => $final,
+                'nivel'=> $nivel,
+                'team_id' => $team_id
+            ]);
+        }
+        $nivel_3 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
+        FROM saldos_reportes WHERE nivel = 3 AND team_id = $team_id GROUP BY acumula");
+        foreach ($nivel_3 as $n_3) {
+            SaldosReportes::where('codigo',$n_3->acumula)->update([
+                'cargos'=>$n_3->s_cargos,
+                'abonos'=>$n_3->s_abonos,
+                'anterior'=>$n_3->anterior
+            ]);
+        }
+        $nivel_2 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
+        FROM saldos_reportes WHERE nivel = 2 AND team_id = $team_id GROUP BY acumula");
+        foreach ($nivel_2 as $n_2) {
+            SaldosReportes::where('codigo',$n_2->acumula)->update([
+                'cargos'=>$n_2->s_cargos,
+                'abonos'=>$n_2->s_abonos,
+                'anterior'=>$n_2->anterior
+            ]);
+        }
+        DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id");
+        DB::statement("UPDATE saldos_reportes SET final = (anterior + abonos - cargos) WHERE naturaleza = 'A' AND team_id = $team_id");
+        self::genera_cuentas_cobrar($team_id);
+        self::genera_cuentas_pagar($team_id);
+        return 1;
+    }
 
+    public function genera_cuentas_cobrar($team_id){
+        DB::statement("DELETE FROM cuentas_cobrar_tables WHERE team_id = $team_id AND id > 0");
+        $cfdis = Almacencfdis::where('team_id',$team_id)
+            ->where('TipoDeComprobante','I')
+            ->where('xml_type','Emitidos')
+            ->get();
+        foreach ($cfdis as $cfdi) {
+            $auxi = Auxiliares::where('team_id',$team_id)
+                ->where('codigo','like','105%')
+                ->where('cargo','>',0)
+                ->where('uuid',$cfdi->UUID)
+                ->get();
+            foreach ($auxi as $aux) {
+                $fech = substr($cfdi->Fecha,0,10);
+                $fecha = Carbon::createFromFormat('Y-m-d',$fech);
+                CuentasCobrarTable::create([
+                    'cliente'=>$cfdi->Receptor_Nombre,
+                    'documento'=>$aux->factura,
+                    'uuid'=>$cfdi->UUID,
+                    'concepto'=>'Factura',
+                    'fecha'=>$fecha,
+                    'vencimiento'=>$fecha->addDays(30),
+                    'importe'=>$aux->cargo,
+                    'saldo'=>$aux->cargo,
+                    'tipo'=>'C',
+                    'periodo'=>$aux->a_periodo,
+                    'ejercicio'=>$aux->a_ejercicio,
+                    'team_id'=>$team_id
+                ]);
+            }
+            $auxi2 = Auxiliares::where('team_id',$team_id)
+                ->where('codigo','like','105%')
+                ->where('abono','>',0)
+                ->where('factura',$cfdi->Serie.$cfdi->Folio)
+                ->get();
+            foreach ($auxi2 as $aux) {
+                $fech = substr($cfdi->Fecha,0,10);
+                $fecha = Carbon::createFromFormat('Y-m-d',$fech);
+                CuentasCobrarTable::create([
+                    'cliente'=>$cfdi->Receptor_Nombre,
+                    'documento'=>$aux->factura,
+                    'uuid'=>$cfdi->UUID,
+                    'concepto'=>'Pago',
+                    'fecha'=>$fecha,
+                    'vencimiento'=>$fecha,
+                    'importe'=>$aux->abono,
+                    'saldo'=>$aux->abono,
+                    'tipo'=>'A',
+                    'periodo'=>$aux->a_periodo,
+                    'ejercicio'=>$aux->a_ejercicio,
+                    'team_id'=>$team_id
+                ]);
+                CuentasCobrarTable::where('documento',$aux->factura)
+                    ->where('tipo','C')
+                    ->decrement('saldo',$aux->abono);
+            }
+        }
+    }
+
+    public function genera_cuentas_pagar($team_id){
+        DB::statement("DELETE FROM cuentas_pagar_tables WHERE team_id = $team_id AND id > 0");
+        $cfdis = Almacencfdis::where('team_id',$team_id)
+            ->where('TipoDeComprobante','I')
+            ->where('xml_type','Recibidos')
+            ->get();
+        foreach ($cfdis as $cfdi) {
+            $auxi = Auxiliares::where('team_id',$team_id)
+                ->where('codigo','like','201%')
+                ->where('abono','>',0)
+                ->where('uuid',$cfdi->UUID)
+                ->get();
+            foreach ($auxi as $aux) {
+                $fech = substr($cfdi->Fecha,0,10);
+                $fecha = Carbon::createFromFormat('Y-m-d',$fech);
+                CuentasPagarTable::create([
+                    'cliente'=>$cfdi->Emisor_Nombre,
+                    'documento'=>$aux->factura,
+                    'uuid'=>$cfdi->UUID,
+                    'concepto'=>'Factura',
+                    'fecha'=>$fecha,
+                    'vencimiento'=>$fecha->addDays(30),
+                    'importe'=>$aux->abono,
+                    'saldo'=>$aux->abono,
+                    'tipo'=>'C',
+                    'periodo'=>$aux->a_periodo,
+                    'ejercicio'=>$aux->a_ejercicio,
+                    'team_id'=>$team_id
+                ]);
+            }
+            $auxi2 = Auxiliares::where('team_id',$team_id)
+                ->where('codigo','like','201%')
+                ->where('cargo','>',0)
+                ->where('factura',$cfdi->Serie.$cfdi->Folio)
+                ->get();
+            foreach ($auxi2 as $aux) {
+                $fech = substr($cfdi->Fecha,0,10);
+                $fecha = Carbon::createFromFormat('Y-m-d',$fech);
+                CuentasPagarTable::create([
+                    'cliente'=>$cfdi->Emisor_Nombre,
+                    'documento'=>$aux->factura,
+                    'uuid'=>$cfdi->UUID,
+                    'concepto'=>'Pago',
+                    'fecha'=>$fecha,
+                    'vencimiento'=>$fecha,
+                    'importe'=>$aux->cargo,
+                    'saldo'=>$aux->cargo,
+                    'tipo'=>'A',
+                    'periodo'=>$aux->a_periodo,
+                    'ejercicio'=>$aux->a_ejercicio,
+                    'team_id'=>$team_id
+                ]);
+                CuentasPagarTable::where('documento',$aux->factura)
+                    ->where('tipo','C')
+                    ->decrement('saldo',$aux->cargo);
+            }
+        }
+    }
     public function ContabilizaReporte($ejercicio,$periodo,$team_id)
     {
         $polizas = CatPolizas::where('team_id',$team_id)->get();

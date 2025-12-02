@@ -40,26 +40,13 @@ class IndicadoresMain extends Page implements HasForms
         $periodo = Filament::getTenant()->periodo;
         $team_id = Filament::getTenant()->id;
         $aux =Auxiliares::where('team_id',Filament::getTenant()->id)->where('a_ejercicio',$ejercicio)->where('a_periodo',$periodo)->get();
-        if(count($aux)>0) (new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
+        //if(count($aux)>0) (new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
     }
 
     public function form(\Filament\Forms\Form $form) :\Filament\Forms\Form
     {
         return $form
             ->schema([
-                Split::make([
-                    Fieldset::make('Indicadores Contables')
-                        ->schema([
-                            Livewire::make(IndicadoresWidget::class),
-                            Livewire::make(Indicadores2Widget::class),
-                        ])->columnSpanFull(),
-                    Fieldset::make('Indicadores Administrativos')
-                        ->schema([
-                            Livewire::make(Indicadores3Widget::class),
-                            Livewire::make(Indicadores4Widget::class),
-                        ])->columnSpanFull(),
-                ])->columnSpanFull(),
-
                 Actions::make([
                     Actions\Action::make('Actualizar')
                         ->action(function (){
@@ -68,8 +55,9 @@ class IndicadoresMain extends Page implements HasForms
                             $team_id = Filament::getTenant()->id;
                             $aux =Auxiliares::where('team_id',Filament::getTenant()->id)->where('a_ejercicio',$ejercicio)->where('a_periodo',$periodo)->get();
                             if(count($aux)>0) (new ReportesController())->ContabilizaReporte($ejercicio, $periodo, $team_id);
-                        })
-                ])
+                        })->extraAttributes(['style' => 'margin-left: 90rem;'])
+                ])->columnSpanFull(),
+                //Livewire::make(MainView::class)
             ]);
     }
 }

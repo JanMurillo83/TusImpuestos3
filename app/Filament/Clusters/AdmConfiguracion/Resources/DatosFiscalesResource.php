@@ -48,6 +48,14 @@ class DatosFiscalesResource extends Resource
                     ->directory(function (Get $get){
                         return 'CSDFiles/'.$get('rfc');
                     }),
+                Forms\Components\TextInput::make('coeficiente')
+                ->label('Coeficiente de Utilidad')
+                ->numeric()
+                ->default(0)->required()->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 6),
+                Forms\Components\TextInput::make('porcentaje')
+                    ->label('Tasa de ISR')
+                    ->numeric()->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
+                    ->default(30)->suffix('%')->required(),
                 Forms\Components\FileUpload::make('logo')
                     ->image()
                     ->columnSpanFull(),

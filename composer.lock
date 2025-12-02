@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "358f5408f6ff7b83d639405c98d9f9f9",
+    "content-hash": "2d8a5da3dad7b2c64579e25f9822a5f2",
     "packages": [
         {
             "name": "akaunting/laravel-money",
@@ -3854,6 +3854,55 @@
                 "source": "https://github.com/h4cc/wkhtmltopdf-amd64/tree/master"
             },
             "time": "2018-01-15T06:57:33+00:00"
+        },
+        {
+            "name": "ianw/quickchart",
+            "version": "v1.3.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/typpo/quickchart-php.git",
+                "reference": "428e8c406d7af9b31214b510d4bbb23d122d417b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/typpo/quickchart-php/zipball/428e8c406d7af9b31214b510d4bbb23d122d417b",
+                "reference": "428e8c406d7af9b31214b510d4bbb23d122d417b",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ian Webster",
+                    "homepage": "https://quickchart.io/"
+                }
+            ],
+            "description": "QuickChart chart API",
+            "homepage": "http://github.com/typpo/quickchart-php",
+            "keywords": [
+                "bar-chart",
+                "chart",
+                "chart-api",
+                "charts",
+                "image",
+                "line-chart"
+            ],
+            "support": {
+                "issues": "https://github.com/typpo/quickchart-php/issues",
+                "source": "https://github.com/typpo/quickchart-php/tree/v1.3.2"
+            },
+            "time": "2024-01-04T16:46:05+00:00"
         },
         {
             "name": "imagine/imagine",

@@ -603,33 +603,18 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                         <th>% del mes</th>
                                     </tr>
                                 </thead>
-                                <?php
-                                    $porc1 = floatval($data_clientes[0]['importe'])*100/floatval($monto_total_vm);
-                                    $porc2 = floatval($data_clientes[1]['importe'])*100/floatval($monto_total_vm);
-                                    $porc3 = floatval($data_clientes[2]['importe'])*100/floatval($monto_total_vm);
-                                    $porc4 = floatval($data_clientes[3]['importe'])*100/floatval($monto_total_vm);
-                                ?>
                                 <tbody>
+                                @foreach($data_clientes as $data_client)
+                                    <?php
+                                    $porc1 = floatval($data_client['importe'])*100/max(floatval($monto_total_vm),1);
+
+                                    ?>
                                     <tr>
-                                        <td>{{$data_clientes[0]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes[0]['importe'],2)}}</td>
+                                        <td>{{$data_client['cuenta']}}</td>
+                                        <td style="text-align: right">{{'$'.number_format($data_client['importe'],2)}}</td>
                                         <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
                                     </tr>
-                                    <tr>
-                                        <td>{{$data_clientes[1]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes[1]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc2,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_clientes[2]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes[2]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc3,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_clientes[3]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes[3]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc4,2).'%'}}</td>
-                                    </tr>
+                                @endforeach
                                 </tbody>
                             </table>
                         </div>
@@ -660,33 +645,18 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                         <th>% del mes</th>
                                     </tr>
                                     </thead>
-                                    <?php
-                                    $porc1 = floatval($data_clientes_a[0]['importe'])*100/floatval($monto_total_va);
-                                    $porc2 = floatval($data_clientes_a[1]['importe'])*100/floatval($monto_total_va);
-                                    $porc3 = floatval($data_clientes_a[2]['importe'])*100/floatval($monto_total_va);
-                                    $porc4 = floatval($data_clientes_a[3]['importe'])*100/floatval($monto_total_va);
-                                    ?>
+
                                     <tbody>
-                                    <tr>
-                                        <td>{{$data_clientes_a[0]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes_a[0]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_clientes_a[1]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes_a[1]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc2,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_clientes_a[2]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes_a[2]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc3,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_clientes_a[3]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_clientes_a[3]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc4,2).'%'}}</td>
-                                    </tr>
+                                    @foreach($data_clientes_a as $data_client_a)
+                                        <?php
+                                            $porc1 = floatval($data_client_a['importe'])*100/max(floatval($monto_total_va),1);
+                                        ?>
+                                        <tr>
+                                            <td>{{$data_client_a['cuenta']}}</td>
+                                            <td style="text-align: right">{{'$'.number_format($data_client_a['importe'],2)}}</td>
+                                            <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
+                                        </tr>
+                                    @endforeach
                                     </tbody>
                                 </table>
                             </div>
@@ -717,33 +687,17 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                         <th>% cartera</th>
                                     </tr>
                                     </thead>
-                                    <?php
-                                    $porc1 = floatval($data_ctascobrar[0]['importe'])*100/max(floatval($total_ctascobrar),1);
-                                    $porc2 = floatval($data_ctascobrar[1]['importe'])*100/max(floatval($total_ctascobrar),1);
-                                    $porc3 = floatval($data_ctascobrar[2]['importe'])*100/max(floatval($total_ctascobrar),1);
-                                    $porc4 = floatval($data_ctascobrar[3]['importe'])*100/max(floatval($total_ctascobrar),1);
-                                    ?>
                                     <tbody>
-                                    <tr>
-                                        <td>{{$data_ctascobrar[0]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar[0]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_ctascobrar[1]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar[1]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc2,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_ctascobrar[2]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar[2]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc3,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_ctascobrar[3]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar[3]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc4,2).'%'}}</td>
-                                    </tr>
+                                    @foreach($data_ctascobrar as $data_ctascobra)
+                                        <?php
+                                            $porc1 = floatval($data_ctascobra['importe'])*100/max(floatval($total_ctascobrar),1);
+                                        ?>
+                                        <tr>
+                                            <td>{{$data_ctascobra['cuenta']}}</td>
+                                            <td style="text-align: right">{{'$'.number_format($data_ctascobra['importe'],2)}}</td>
+                                            <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
+                                        </tr>
+                                    @endforeach
                                     </tbody>
                                 </table>
                             </div>
@@ -774,33 +728,18 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                         <th>% cartera</th>
                                     </tr>
                                     </thead>
-                                    <?php
-                                    $porc1 = floatval($data_ctascobrar_a[0]['importe'])*100/floatval($total_ctascobrar_a);
-                                    $porc2 = floatval($data_ctascobrar_a[1]['importe'])*100/floatval($total_ctascobrar_a);
-                                    $porc3 = floatval($data_ctascobrar_a[2]['importe'])*100/floatval($total_ctascobrar_a);
-                                    $porc4 = floatval($data_ctascobrar_a[3]['importe'])*100/floatval($total_ctascobrar_a);
-                                    ?>
+
                                     <tbody>
-                                    <tr>
-                                        <td>{{$data_ctascobrar_a[0]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar_a[0]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_ctascobrar_a[1]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar_a[1]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc2,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_ctascobrar_a[2]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar_a[2]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc3,2).'%'}}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{$data_ctascobrar_a[3]['cuenta']}}</td>
-                                        <td style="text-align: right">{{'$'.number_format($data_ctascobrar_a[3]['importe'],2)}}</td>
-                                        <td style="text-align: right">{{number_format($porc4,2).'%'}}</td>
-                                    </tr>
+                                    @foreach($data_ctascobrar_a as $data_ctascob_a)
+                                            <?php
+                                            $porc1 = floatval($data_ctascob_a['importe'])*100/max(floatval($total_ctascobrar_a),1);
+                                            ?>
+                                        <tr>
+                                            <td>{{$data_ctascob_a['cuenta']}}</td>
+                                            <td style="text-align: right">{{'$'.number_format($data_ctascob_a['importe'],2)}}</td>
+                                            <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
+                                        </tr>
+                                    @endforeach
                                     </tbody>
                                 </table>
                             </div>
@@ -914,12 +853,9 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                     </tr>
                                     </thead>
                                     <?php
-                                    //$porc1 = floatval($inventarios[0]['importe'])*100/floatval($inventario_total);
-                                    //$porc2 = floatval($inventarios[1]['importe'])*100/floatval($inventario_total);
-                                    //$porc3 = floatval($inventarios[2]['importe'])*100/floatval($inventario_total);
-                                    $porc1 = 0;
-                                    $porc2 = 0;
-                                    $porc3 = 0;
+                                        $porc1 = 0;
+                                        $porc2 = 0;
+                                        $porc3 = 0;
                                     ?>
                                     <tbody>
                                     <tr>
@@ -968,9 +904,9 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                     </tr>
                                     </thead>
                                     <?php
-                                    $porc1 = floatval($impuestos[0]['importe'])*100/floatval($impuestos_total);
-                                    $porc2 = floatval($impuestos[1]['importe'])*100/floatval($impuestos_total);
-                                    $porc3 = floatval($impuestos[2]['importe'])*100/floatval($impuestos_total);
+                                    $porc1 = floatval($impuestos[0]['importe'])*100/max(floatval($impuestos_total),1);
+                                    $porc2 = floatval($impuestos[1]['importe'])*100/max(floatval($impuestos_total),1);
+                                    $porc3 = floatval($impuestos[2]['importe'])*100/max(floatval($impuestos_total),1);
                                     ?>
                                     <tbody>
                                     <tr>

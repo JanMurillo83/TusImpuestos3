@@ -773,7 +773,7 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                     <tbody>
                                     @foreach($data_ctaspagar as $data_ctas)
                                     <?php
-                                        $porc1 = floatval($data_ctas['importe'])*100/floatval($total_ctaspagar);
+                                        $porc1 = floatval($data_ctas['importe'])*100/max(floatval($total_ctaspagar),1);
                                     ?>
                                     <tr>
                                         <td>{{$data_ctas['cuenta']}}</td>
@@ -814,7 +814,7 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                     <tbody>
                                     @foreach($data_ctaspagar_a as $data_ctas)
                                         <?php
-                                        $porc1 = floatval($data_ctas['importe'])*100/floatval($total_ctaspagar_a);
+                                        $porc1 = floatval($data_ctas['importe'])*100/max(floatval($total_ctaspagar_a),1);
                                         ?>
                                         <tr>
                                             <td>{{$data_ctas['cuenta']}}</td>

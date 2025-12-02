@@ -18,54 +18,42 @@ switch ($mes_act){
     case 12: $mes_let = 'Diciembre'; break;
 }
 $team_id = \Filament\Facades\Filament::getTenant()->id;
-$ventas_final = Cache::remember("ventas_final:{$team_id}:{$eje_act}:{$mes_act}", now()->addMinutes(5), function() use ($team_id){
-    return \App\Models\SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first();
-});
+$ventas_final = \App\Models\SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first();
 $anterior_vf = floatval($ventas_final?->anterior ?? 0);
 $abonos_vf = floatval($ventas_final?->abonos ?? 0);
 $cargos_vf = floatval($ventas_final?->cargos ?? 0);
 $ventas_saldo = $abonos_vf-$cargos_vf;
 $ventas_saldo_anual = $anterior_vf+$abonos_vf-$cargos_vf;
 //-------------------------------------------------------
-$clientes_final_c = Cache::remember("cc_sum_c:{$team_id}:{$eje_act}:{$mes_act}", now()->addMinutes(5), function() use ($team_id,$mes_act,$eje_act){
-    return \App\Models\CuentasCobrarTable::where('team_id',$team_id)
-        ->where('periodo',$mes_act)
-        ->where('ejercicio',$eje_act)
-        ->where('tipo','C')
-        ->sum('importe');
-});
-$clientes_final_a = Cache::remember("cc_sum_a:{$team_id}:{$eje_act}:{$mes_act}", now()->addMinutes(5), function() use ($team_id,$mes_act,$eje_act){
-    return \App\Models\CuentasCobrarTable::where('team_id',$team_id)
-        ->where('periodo',$mes_act)
-        ->where('ejercicio',$eje_act)
-        ->where('tipo','A')
-        ->sum('importe');
-});
+$clientes_final_c = \App\Models\CuentasCobrarTable::where('team_id',$team_id)
+    ->where('periodo',$mes_act)
+    ->where('ejercicio',$eje_act)
+    ->where('tipo','C')
+    ->sum('importe');
+$clientes_final_a = \App\Models\CuentasCobrarTable::where('team_id',$team_id)
+    ->where('periodo',$mes_act)
+    ->where('ejercicio',$eje_act)
+    ->where('tipo','A')
+    ->sum('importe');
 $cargos_cf = floatval($clientes_final_c ?? 0);
 $abonos_cf = floatval($clientes_final_a ?? 0);
 $clientes_saldo = $cargos_cf-$abonos_cf;
 //-------------------------------------------------------
-$proveedores_final_c = Cache::remember("cp_sum_c:{$team_id}:{$eje_act}:{$mes_act}", now()->addMinutes(5), function() use ($team_id,$mes_act,$eje_act){
-    return \App\Models\CuentasPagarTable::where('team_id',$team_id)
-        ->where('periodo',$mes_act)
-        ->where('ejercicio',$eje_act)
-        ->where('tipo','C')
-        ->sum('importe');
-});
-$proveedores_final_a = Cache::remember("cp_sum_a:{$team_id}:{$eje_act}:{$mes_act}", now()->addMinutes(5), function() use ($team_id,$mes_act,$eje_act){
-    return \App\Models\CuentasPagarTable::where('team_id',$team_id)
-        ->where('periodo',$mes_act)
-        ->where('ejercicio',$eje_act)
-        ->where('tipo','A')
-        ->sum('importe');
-});
+$proveedores_final_c = \App\Models\CuentasPagarTable::where('team_id',$team_id)
+    ->where('periodo',$mes_act)
+    ->where('ejercicio',$eje_act)
+    ->where('tipo','C')
+    ->sum('importe');
+$proveedores_final_a = \App\Models\CuentasPagarTable::where('team_id',$team_id)
+    ->where('periodo',$mes_act)
+    ->where('ejercicio',$eje_act)
+    ->where('tipo','A')
+    ->sum('importe');
 $cargos_pf = floatval($proveedores_final_c ?? 0);
 $abonos_pf = floatval($proveedores_final_a ?? 0);
 $proveedores_saldo = $cargos_pf-$abonos_pf;
 //-------------------------------------------------------
-$cuentas = Cache::remember("salrep_n1:{$team_id}", now()->addMinutes(5), function() use ($team_id){
-    return DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = ? AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ", [$team_id]);
-});
+$cuentas = DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = ? AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ", [$team_id]);
 $saldo_v = 0;
 $saldo_g = 0;
 $saldo_v_a = 0;

@@ -3,12 +3,23 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use QuickChart;
 class ChartsController extends Controller
 {
     public function showChart1(Request $request)
     {
         $datos = $request->datos;
+        // Cachear la URL generada por QuickChart para evitar trabajo repetido con los mismos datos
+        $cacheKey = 'chart1:' . Str::uuid();
+        // Construir una clave determinística basada en los datos
+        try {
+            $cacheKey = 'chart1:' . md5(json_encode($datos));
+        } catch (\Throwable $e) {
+            // En caso de error al serializar, mantenemos una clave aleatoria para no romper la petición
+        }
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($datos) {
         //dd($datos);
         $cuenta_l1 = $datos[0]['cuenta'];
         $cuenta_l2 = $datos[1]['cuenta'];
@@ -55,10 +66,16 @@ class ChartsController extends Controller
         $qc->setConfig($config);
         //dd($qc->getUrl());
         return $qc->getUrl();
+        });
     }
     public function showChart2(Request $request)
     {
         $datos = $request->datos;
+        $cacheKey = 'chart2:' . Str::uuid();
+        try {
+            $cacheKey = 'chart2:' . md5(json_encode($datos));
+        } catch (\Throwable $e) {}
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($datos) {
         //dd($datos);
         $cuenta_l1 = $datos[0]['cuenta'];
         $cuenta_l2 = $datos[1]['cuenta'];
@@ -105,6 +122,7 @@ class ChartsController extends Controller
         $qc->setConfig($config);
         //dd($qc->getUrl());
         return $qc->getUrl();
+        });
     }
 
     public function showChart3(Request $request){

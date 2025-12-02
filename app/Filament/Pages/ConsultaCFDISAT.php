@@ -312,7 +312,7 @@ class ConsultaCFDISAT extends Page implements HasForms,HasActions
 
     }
 
-    public function ProcesaRecibidos($archivo,$team): void
+    public static function ProcesaRecibidos($archivo,$team): void
     {
         $files = [$archivo];
         foreach($files as $desfile) {
@@ -420,7 +420,7 @@ class ConsultaCFDISAT extends Page implements HasForms,HasActions
         }
     }
 
-    public function ProcesaEmitidos($archivo,$team): void
+    public static function ProcesaEmitidos($archivo,$team): void
     {
         $files = [$archivo];
         foreach($files as $desfile) {
@@ -527,7 +527,7 @@ class ConsultaCFDISAT extends Page implements HasForms,HasActions
         }
     }
 
-    public function ProcesaPDF($archivo,$team): void
+    public static function ProcesaPDF($archivo,$team): void
     {
         $files = [$archivo];
         foreach($files as $desfile) {

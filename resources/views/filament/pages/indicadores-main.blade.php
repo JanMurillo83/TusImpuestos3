@@ -718,10 +718,10 @@ $impuestos_total = $isr_f+$iva_f+$retencion_f;
                                     </tr>
                                     </thead>
                                     <?php
-                                    $porc1 = floatval($data_ctascobrar[0]['importe'])*100/floatval($total_ctascobrar);
-                                    $porc2 = floatval($data_ctascobrar[1]['importe'])*100/floatval($total_ctascobrar);
-                                    $porc3 = floatval($data_ctascobrar[2]['importe'])*100/floatval($total_ctascobrar);
-                                    $porc4 = floatval($data_ctascobrar[3]['importe'])*100/floatval($total_ctascobrar);
+                                    $porc1 = floatval($data_ctascobrar[0]['importe'])*100/max(floatval($total_ctascobrar),1);
+                                    $porc2 = floatval($data_ctascobrar[1]['importe'])*100/max(floatval($total_ctascobrar),1);
+                                    $porc3 = floatval($data_ctascobrar[2]['importe'])*100/max(floatval($total_ctascobrar),1);
+                                    $porc4 = floatval($data_ctascobrar[3]['importe'])*100/max(floatval($total_ctascobrar),1);
                                     ?>
                                     <tbody>
                                     <tr>

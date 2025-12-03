@@ -91,14 +91,14 @@ class ReportesConta extends Page implements HasForms
                                 ->label('Cuenta Inicial')
                                 ->options(
                                     DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo','asc')->pluck('mostrar','codigo')
                                 )
                                 ->searchable(),
                             Select::make('cuenta_fin')
                                 ->label('Cuenta Final')
                                 ->options(
                                     DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo','asc')->pluck('mostrar','codigo')
                                 )
                                 ->searchable()
                         ])

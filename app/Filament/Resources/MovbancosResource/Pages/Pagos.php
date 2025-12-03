@@ -362,6 +362,9 @@ class Pagos extends Page implements HasForms
                 $ban = DB::table('banco_cuentas')->where('id', $this->datos_mov->cuenta)->first();
                 $ban_com = CatCuentas::where('id', $ban->complementaria)->first();
                 $ter = DB::table('proveedores')->where('rfc', $fss->Emisor_Rfc)->first();
+                $cta_pro = self::get_cta_provee($fss);
+                $cta_proveedor = CatCuentas::where('team_id', Filament::getTenant()->id)
+                    ->where('codigo', $cta_pro)->first();
                 $monto_par = 0;
                 try {
                     $aplicar = floatval($factura['Monto a Pagar']);
@@ -405,8 +408,8 @@ class Pagos extends Page implements HasForms
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta_contable,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_proveedor->codigo,
+                        'cuenta' => $cta_proveedor->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $monto_par,
                         'abono' => 0,
@@ -529,8 +532,8 @@ class Pagos extends Page implements HasForms
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta_contable,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_proveedor->codigo,
+                        'cuenta' => $cta_proveedor->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $dolares,
                         'abono' => 0,
@@ -545,8 +548,8 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta_contable,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_proveedor->codigo,
+                        'cuenta' => $cta_proveedor->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $complemento,
                         'abono' => 0,
@@ -743,8 +746,8 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta_contable,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_proveedor->codigo,
+                        'cuenta' => $cta_proveedor->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $dolares,
                         'abono' => 0,
@@ -759,8 +762,8 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta_contable,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_proveedor->codigo,
+                        'cuenta' => $cta_proveedor->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $complemento,
                         'abono' => 0,
@@ -833,8 +836,8 @@ class Pagos extends Page implements HasForms
                     }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta_contable,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_proveedor->codigo,
+                        'cuenta' => $cta_proveedor->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $dolares,
                         'abono' => 0,
@@ -849,8 +852,8 @@ class Pagos extends Page implements HasForms
                     $partida++;
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
-                        'codigo' => $ter->cuenta_contable,
-                        'cuenta' => $ter->nombre,
+                        'codigo' => $cta_proveedor->codigo,
+                        'cuenta' => $cta_proveedor->nombre,
                         'concepto' => $fss->Emisor_Nombre,
                         'cargo' => $complemento,
                         'abono' => 0,
@@ -980,6 +983,81 @@ class Pagos extends Page implements HasForms
 
 
         return $nopoliza;
+    }
+
+    public static function get_cta_provee($record):string
+    {
+        $cta_con = '20101001';
+        $cta_nombres = 'Proveedor Global';
+        if(!Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->exists())
+        {
+
+            if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists())
+            {
+                $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
+                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+            }
+            else
+            {
+                $nuecta = intval(DB::table('cat_cuentas')
+                        ->where('team_id',Filament::getTenant()->id)
+                        ->where('acumula','20101000')->max('codigo')) + 1;
+                $n_cta = CatCuentas::create([
+                    'nombre' =>  $record['Emisor_Nombre'],
+                    'team_id' => Filament::getTenant()->id,
+                    'codigo'=>$nuecta,
+                    'acumula'=>'20101000',
+                    'tipo'=>'D',
+                    'naturaleza'=>'A',
+                ]);
+                $cta_con = $n_cta->codigo;
+                $cta_nombres = $n_cta->nombre;
+            }
+            $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
+            Proveedores::create([
+                'clave' => $nuevocli,
+                'rfc'=>$record['Receptor_Rfc'],
+                'nombre'=>$record['Emisor_Nombre'],
+                'cuenta_contable'=>$cta_con,
+                'team_id' => Filament::getTenant()->id,
+            ]);
+        }
+        else
+        {
+            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->first()->cuenta_contable;
+            if($cuen != ''&&$cuen != null)
+            {
+                $cta_con = $cuen;
+                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+            }
+            else
+            {
+                if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists()){
+                    $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
+                    $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                }
+                else
+                {
+                    $nuecta = intval(DB::table('cat_cuentas')
+                            ->where('team_id',Filament::getTenant()->id)
+                            ->where('acumula','20101000')->max('codigo')) + 1;
+                    $n_cta = CatCuentas::create([
+                        'nombre' =>  $record['Emisor_Nombre'],
+                        'team_id' => Filament::getTenant()->id,
+                        'codigo'=>$nuecta,
+                        'acumula'=>'20101000',
+                        'tipo'=>'D',
+                        'naturaleza'=>'A',
+                    ]);
+                    $cta_con = $n_cta->codigo;
+                    $cta_nombres =$n_cta->nombre;
+                }
+            }
+            Proveedores::where('team_id',Filament::getTenant()->id)
+                ->where('rfc',$record['Receptor_Rfc'])
+                ->update(['cuenta_contable'=>$cta_con]);
+        }
+        return $cta_con;
     }
     public function graba_mov(Get $get)
     {

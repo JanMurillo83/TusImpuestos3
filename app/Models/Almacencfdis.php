@@ -87,7 +87,8 @@ class Almacencfdis extends Model
         'team_id',
         'comp_used',
         'archivoxml',
-        'archivopdf'
+        'archivopdf',
+        'metodo'
 	];
     public function team(): BelongsTo
     {

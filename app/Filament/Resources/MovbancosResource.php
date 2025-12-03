@@ -2172,7 +2172,7 @@ class MovbancosResource extends Resource
                     'cat_polizas_id'=>$polno
                 ]);
                 $parno++;
-                if($tc > 0){
+                if($tc > 1){
                     $comple_c = CatCuentas::where('id',$ban[0]->complementaria)->first();
                     $aux = Auxiliares::create([
                         'cat_polizas_id'=>$polno,

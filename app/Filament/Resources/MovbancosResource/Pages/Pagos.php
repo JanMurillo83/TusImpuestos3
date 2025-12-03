@@ -1016,7 +1016,7 @@ class Pagos extends Page implements HasForms
             $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
             Proveedores::create([
                 'clave' => $nuevocli,
-                'rfc'=>$record['Receptor_Rfc'],
+                'rfc'=>$record->Emisor_Rfc,
                 'nombre'=>$record->Emisor_Nombre,
                 'cuenta_contable'=>$cta_con,
                 'team_id' => Filament::getTenant()->id,
@@ -1024,7 +1024,7 @@ class Pagos extends Page implements HasForms
         }
         else
         {
-            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->first()->cuenta_contable;
+            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record->Emisor_Rfc)->first()->cuenta_contable;
             if($cuen != ''&&$cuen != null)
             {
                 $cta_con = $cuen;
@@ -1054,7 +1054,7 @@ class Pagos extends Page implements HasForms
                 }
             }
             Proveedores::where('team_id',Filament::getTenant()->id)
-                ->where('rfc',$record['Receptor_Rfc'])
+                ->where('rfc',$record->Emisor_Rfc)
                 ->update(['cuenta_contable'=>$cta_con]);
         }
         return $cta_con;

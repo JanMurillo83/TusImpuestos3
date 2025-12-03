@@ -351,7 +351,7 @@ class cfdiri extends Page implements HasForms, HasTable
                             $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
                             Proveedores::create([
                                 'clave' => $nuevocli,
-                                'rfc'=>$record['Receptor_Rfc'],
+                                'rfc'=>$record['Emisor_Rfc'],
                                 'nombre'=>$record['Emisor_Nombre'],
                                 'cuenta_contable'=>$cta_con,
                                 'team_id' => Filament::getTenant()->id,
@@ -359,7 +359,7 @@ class cfdiri extends Page implements HasForms, HasTable
                         }
                         else
                         {
-                            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->first()->cuenta_contable;
+                            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->first()->cuenta_contable;
                             if($cuen != ''&&$cuen != null)
                             {
                                 $cta_con = $cuen;
@@ -389,7 +389,7 @@ class cfdiri extends Page implements HasForms, HasTable
                                 }
                             }
                             Proveedores::where('team_id',Filament::getTenant()->id)
-                                ->where('rfc',$record['Receptor_Rfc'])
+                                ->where('rfc',$record['Emisor_Rfc'])
                                 ->update(['cuenta_contable'=>$cta_con]);
                         }
                         self::contabiliza_r($record,$data,$livewire,$nopoliza);
@@ -525,7 +525,7 @@ class cfdiri extends Page implements HasForms, HasTable
                         ->label('Descarga XML')
                         ->icon('fas-download')
                         ->action(function($record){
-                            $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                            $nombre = $record->Emisor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
                             $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
                             if(File::exists($archivo)) unlink($archivo);
                             $xml = $record->content;
@@ -680,7 +680,7 @@ class cfdiri extends Page implements HasForms, HasTable
                             $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
                             Proveedores::create([
                                 'clave' => $nuevocli,
-                                'rfc'=>$record['Receptor_Rfc'],
+                                'rfc'=>$record['Emisor_Rfc'],
                                 'nombre'=>$record['Emisor_Nombre'],
                                 'cuenta_contable'=>$cta_con,
                                 'team_id' => Filament::getTenant()->id,
@@ -688,7 +688,7 @@ class cfdiri extends Page implements HasForms, HasTable
                         }
                         else
                         {
-                            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->first()->cuenta_contable;
+                            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->first()->cuenta_contable;
                             if($cuen != ''&&$cuen != null)
                             {
                                 $cta_con = $cuen;
@@ -718,7 +718,7 @@ class cfdiri extends Page implements HasForms, HasTable
                                 }
                             }
                             Proveedores::where('team_id',Filament::getTenant()->id)
-                                ->where('rfc',$record['Receptor_Rfc'])
+                                ->where('rfc',$record['Emisor_Rfc'])
                                 ->update(['cuenta_contable'=>$cta_con]);
                         }
                         $uuid_v = $record->UUID;

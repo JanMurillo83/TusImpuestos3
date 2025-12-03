@@ -194,21 +194,21 @@ class Cobros extends Page implements HasForms
                                 $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
                                 $fec = explode('T', $fact->Fecha);
                                 $fecha = $fec[0];
-                                $pend_f = $ineg->pendienteusd;
-                                $tpen_or = $ineg->pendienteusd;
+                                $pend_f = $fact->Total;
+                                $tpen_or = $fact->Total;
                                 if($fact->Moneda != 'MXN'&&$mon_pago == 'MXN'){
-                                    $pend_f = $ineg->pendienteusd * $ineg->tcambio;
+                                    $pend_f = $fact->Total * $ineg->tcambio;
 
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago != 'MXN'){
-                                    $pend_f = $ineg->pendienteusd / $t_cambio;
-                                    $tpen_or = $ineg->pendienteusd / $t_cambio;
+                                    $pend_f = $fact->Total / $t_cambio;
+                                    $tpen_or = $fact->Total / $t_cambio;
                                 }
                                 if($fact->Moneda != 'MXN'&&$mon_pago != 'MXN'){
-                                    $pend_f = $ineg->pendienteusd;
+                                    $pend_f = $fact->Total;
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago == 'MXN'){
-                                    $pend_f = $ineg->pendienteusd;
+                                    $pend_f = $fact->Total;
                                     $tpen_or = 0;
                                 }
                                 if($pend_pag < $pend_f && $pend_pag > 0) $pend_f = $pend_pag;
@@ -935,13 +935,14 @@ class Cobros extends Page implements HasForms
     {
         $cta_con = '10501001';
         $cta_nombres = 'Clientes en General';
-        if(!Clientes::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->exists())
+        if(!Clientes::where('team_id',Filament::getTenant()->id)
+            ->where('rfc',$record->Receptor_Rfc)->exists())
         {
 
-            if(CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->exists())
+            if(CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->exists())
             {
-                $cta_con = CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                $cta_nombres =CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                $cta_con = CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
+                $cta_nombres =CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
             }
             else
             {
@@ -949,7 +950,7 @@ class Cobros extends Page implements HasForms
                         ->where('team_id',Filament::getTenant()->id)
                         ->where('acumula','10501000')->max('codigo')) + 1;
                 $n_cta = CatCuentas::create([
-                    'nombre' =>  $record['Receptor_Nombre'],
+                    'nombre' =>  $record->Receptor_Nombre,
                     'team_id' => Filament::getTenant()->id,
                     'codigo'=>$nuecta,
                     'acumula'=>'10501000',
@@ -962,25 +963,25 @@ class Cobros extends Page implements HasForms
             $nuevocli = Count(Clientes::where('team_id',Filament::getTenant()->id)->get()) + 1;
             Clientes::create([
                 'clave' => $nuevocli,
-                'rfc'=>$record['Receptor_Rfc'],
-                'nombre'=>$record['Receptor_Nombre'],
+                'rfc'=>$record->Receptor_Rfc,
+                'nombre'=>$record->Receptor_Nombre,
                 'cuenta_contable'=>$cta_con,
                 'team_id' => Filament::getTenant()->id,
             ]);
         }
         else
         {
-            $cuen = Clientes::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->first()->cuenta_contable;
+            $cuen = Clientes::where('team_id',Filament::getTenant()->id)->where('rfc',$record->Receptor_Rfc)->first()->cuenta_contable;
             if($cuen != ''&&$cuen != null)
             {
                 $cta_con = $cuen;
-                $cta_nombres =CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                $cta_nombres =CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
             }
             else
             {
-                if(CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->exists()){
-                    $cta_con = CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                    $cta_nombres =CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                if(CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->exists()){
+                    $cta_con = CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
+                    $cta_nombres =CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
                 }
                 else
                 {
@@ -988,7 +989,7 @@ class Cobros extends Page implements HasForms
                             ->where('team_id',Filament::getTenant()->id)
                             ->where('acumula','10501000')->max('codigo')) + 1;
                     $n_cta = CatCuentas::create([
-                        'nombre' =>  $record['Receptor_Nombre'],
+                        'nombre' =>  $record->Receptor_Nombre,
                         'team_id' => Filament::getTenant()->id,
                         'codigo'=>$nuecta,
                         'acumula'=>'10501000',
@@ -1000,7 +1001,7 @@ class Cobros extends Page implements HasForms
                 }
             }
             Clientes::where('team_id',Filament::getTenant()->id)
-                ->where('rfc',$record['Receptor_Rfc'])
+                ->where('rfc',$record->Receptor_Rfc)
                 ->update(['cuenta_contable'=>$cta_con]);
         }
         return $cta_con;

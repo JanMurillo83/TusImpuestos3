@@ -201,23 +201,23 @@ class Pagos extends Page implements HasForms
                                 $fact = Almacencfdis::where('id', $ineg->xml_id)->first();
                                 $fec = explode('T', $fact->Fecha);
                                 $fecha = $fec[0];
-                                $pend_f = $ineg->pendienteusd;
-                                $tpen_or = $ineg->pendienteusd;
+                                $pend_f = $fact->Total;
+                                $tpen_or = $fact->Total;
                                 if($fact->Moneda != 'MXN'&&$mon_pago == 'MXN'){
-                                    $pend_f = $ineg->pendienteusd * $ineg->tcambio;
+                                    $pend_f = $fact->Total * $ineg->tcambio;
                                     $n_tc = floatval($pend_pag)/floatval($fact->Total);
                                     $set('tipo_cambio', $n_tc);
                                     //$pend_f = floatval($pend_pag);
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago != 'MXN'){
-                                    $pend_f = $ineg->pendienteusd ?? $ineg->pendientemxn / $t_cambio;
-                                    $tpen_or = $ineg->pendienteusd ?? $ineg->pendientemxn / $t_cambio;
+                                    $pend_f = $fact->Total  / $t_cambio;
+                                    $tpen_or = $fact->Total / $t_cambio;
                                 }
                                 if($fact->Moneda != 'MXN'&&$mon_pago != 'MXN'){
-                                    $pend_f = $ineg->pendienteusd ?? $ineg->pendientemxn;
+                                    $pend_f = $fact->Total;
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago == 'MXN'){
-                                    $pend_f = $ineg->pendienteusd ?? $ineg->pendientemxn;
+                                    $pend_f = $fact->Total;
                                     $tpen_or = 0;
                                 }
                                 if($pend_pag < $pend_f && $pend_pag > 0) $pend_f = $pend_pag;
@@ -989,13 +989,13 @@ class Pagos extends Page implements HasForms
     {
         $cta_con = '20101001';
         $cta_nombres = 'Proveedor Global';
-        if(!Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->exists())
+        if(!Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record->Emisor_Rfc)->exists())
         {
 
-            if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists())
+            if(CatCuentas::where('nombre',$record->Emisor_Nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists())
             {
-                $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                $cta_con = CatCuentas::where('nombre',$record->Emisor_Nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
+                $cta_nombres =CatCuentas::where('nombre',$record->Emisor_Nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
             }
             else
             {
@@ -1003,7 +1003,7 @@ class Pagos extends Page implements HasForms
                         ->where('team_id',Filament::getTenant()->id)
                         ->where('acumula','20101000')->max('codigo')) + 1;
                 $n_cta = CatCuentas::create([
-                    'nombre' =>  $record['Emisor_Nombre'],
+                    'nombre' =>  $record->Emisor_Nombre,
                     'team_id' => Filament::getTenant()->id,
                     'codigo'=>$nuecta,
                     'acumula'=>'20101000',
@@ -1017,7 +1017,7 @@ class Pagos extends Page implements HasForms
             Proveedores::create([
                 'clave' => $nuevocli,
                 'rfc'=>$record['Receptor_Rfc'],
-                'nombre'=>$record['Emisor_Nombre'],
+                'nombre'=>$record->Emisor_Nombre,
                 'cuenta_contable'=>$cta_con,
                 'team_id' => Filament::getTenant()->id,
             ]);
@@ -1028,13 +1028,13 @@ class Pagos extends Page implements HasForms
             if($cuen != ''&&$cuen != null)
             {
                 $cta_con = $cuen;
-                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                $cta_nombres =CatCuentas::where('nombre',$record->Emisor_Nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
             }
             else
             {
-                if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists()){
-                    $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                    $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                if(CatCuentas::where('nombre',$record->Emisor_Nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists()){
+                    $cta_con = CatCuentas::where('nombre',$record->Emisor_Nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
+                    $cta_nombres =CatCuentas::where('nombre',$record->Emisor_Nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
                 }
                 else
                 {
@@ -1042,7 +1042,7 @@ class Pagos extends Page implements HasForms
                             ->where('team_id',Filament::getTenant()->id)
                             ->where('acumula','20101000')->max('codigo')) + 1;
                     $n_cta = CatCuentas::create([
-                        'nombre' =>  $record['Emisor_Nombre'],
+                        'nombre' =>  $record->Emisor_Nombre,
                         'team_id' => Filament::getTenant()->id,
                         'codigo'=>$nuecta,
                         'acumula'=>'20101000',

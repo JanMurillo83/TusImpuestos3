@@ -116,7 +116,7 @@ class cfdirn extends Page implements HasForms, HasTable
                 }),
             TextColumn::make('Total')
                 ->sortable()
-                ->numeric()
+                ->numeric()->searchable()
                 ->formatStateUsing(function (string $state) {
                     $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
                     $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);

@@ -94,7 +94,7 @@ class visemi_all extends Page implements HasForms, HasTable
                     return $formatter->formatCurrency($state, 'MXN');
                 }),
             TextColumn::make('Total')
-                ->sortable()
+                ->sortable()->searchable()
                 ->numeric()
                 ->formatStateUsing(function (string $state) {
                     $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));

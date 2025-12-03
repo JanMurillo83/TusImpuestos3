@@ -56,6 +56,7 @@ class Pagos extends Page implements HasForms
     public ?string $factura = null;
     public ?string $numero_total = null;
     public ?string $monto_total = null;
+    public ?string $monto_total_usd = null;
     public ?string $monto_pago = null;
     public ?string $monto_pago_usd = null;
     public ?string $tipo_cambio = null;
@@ -86,6 +87,7 @@ class Pagos extends Page implements HasForms
             'moneda'=> $datos->moneda,
             'factura'=> null,
             'monto_total' => 0,
+            'monto_total_usd' => 0,
             'monto_pago' => 0,
             'monto_pago_usd' => 0,
             'tipo_cambio'=>0,
@@ -241,9 +243,11 @@ class Pagos extends Page implements HasForms
                                 array_push($data_tmp, $data_new);
                             }
                             $sum = array_sum(array_column($data_tmp, 'Monto a Pagar'));
+                            $sum2 = array_sum(array_column($data_tmp, 'USD a Pagar'));
                             $cnt = count($data_tmp);
                             $set('numero_total', $cnt);
                             $set('monto_total', $sum);
+                            $set('monto_total_usd', $sum2);
                             $set('facturas_a_pagar', $data_tmp);
                             $set('tercero', null);
                             $set('moneda_fac', null);
@@ -261,7 +265,8 @@ class Pagos extends Page implements HasForms
                 Hidden::make('tipo_cambio')->default(1.00),
                 TextInput::make('numero_total')->label('Numero de Facturas')->numeric()->readOnly()->default(0),
                 TextInput::make('monto_total')->label('Pagos Totales')->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
-                TextInput::make('monto_total_usd')->label('Pagos Totales USD')->visible(false)->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
+                TextInput::make('monto_total_usd')
+                    ->label('Pagos Totales USD')->visible()->numeric()->currencyMask()->prefix('$')->readOnly()->default(0),
                 Hidden::make('igeg_id'),
                 TableRepeater::make('facturas_a_pagar')
                 ->addable(false)
@@ -292,6 +297,8 @@ class Pagos extends Page implements HasForms
                             $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
                             $cnt = count($data_tmp);
                             $set('../../monto_total',$sum);
+                            $sum2 = array_sum(array_column($data_tmp,'USD a Pagar'));
+                            $set('../../monto_total_usd',$sum2);
                         }),
                     TextInput::make('USD a Pagar')->numeric()->currencyMask()->prefix('$'),
                     Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')

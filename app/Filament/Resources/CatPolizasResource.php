@@ -448,12 +448,32 @@ class CatPolizasResource extends Resource
                         }
                     }),
                 Tables\Actions\Action::make('Copiar Poliza')
-                ->icon('fas-copy')->tooltip('Copiar Poliza')->iconButton()->requiresConfirmation()
-                ->action(function ($record){
+                ->icon('fas-copy')->tooltip('Copiar Poliza')->iconButton()
+                ->form([
+                    TextInput::make('mes')->label('Periodo')
+                    ->numeric()->required()->minValue(1)->maxValue(12)
+                    ->default(function($record){
+                        return Carbon::create($record->fecha)->month;
+                    }),
+                    TextInput::make('anio')->label('Ejercicio')
+                        ->numeric()->required()
+                        ->default(function($record){
+                            return Carbon::create($record->fecha)->year;
+                    }),
+                ])
+                ->action(function ($record,$data){
                     $enca = CatPolizas::where('id',$record->id)->first();
-                    $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo',$enca->tipo)->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                    $anio_pol = intval($data['anio']);
+                    $mes_pol = intval($data['mes']);
+                    $dia_pol = intval($data['dia']);
+                    $nopoliza = intval(DB::table('cat_polizas')
+                            ->where('team_id',Filament::getTenant()->id)
+                            ->where('tipo',$enca->tipo)
+                            ->where('periodo',$mes_pol)
+                            ->where('ejercicio',$anio_pol)->max('folio')) + 1;
                     $dats = Carbon::now();
-                    $fecha = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo.'-'.$dats->day;
+
+                    $fecha = $anio_pol.'-'.$mes_pol.'-'.$dia_pol;
                     $poliza = CatPolizas::create([
                         'tipo'=>$enca->tipo,
                         'folio'=>$nopoliza,
@@ -461,8 +481,8 @@ class CatPolizasResource extends Resource
                         'concepto'=>$enca->concepto,
                         'cargos'=>$enca->cargos,
                         'abonos'=>$enca->abonos,
-                        'periodo'=>Filament::getTenant()->periodo,
-                        'ejercicio'=>Filament::getTenant()->ejercicio,
+                        'periodo'=>$mes_pol,
+                        'ejercicio'=>$anio_pol,
                         'referencia'=>$enca->referencia,
                         'uuid'=>$enca->uuid,
                         'tiposat'=>$enca->tiposat,

@@ -23,6 +23,7 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -32,6 +33,8 @@ use Filament\Support\RawJs;
 use Filament\Tables\Enums\ActionsPosition;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Excel;
 use Pelmered\FilamentMoneyField\Tables\Columns\MoneyColumn;
 use Filament\Forms\Components\Grid;
@@ -113,7 +116,18 @@ class CatPolizasResource extends Resource
                 Forms\Components\TextInput::make('concepto')
                     ->required()
                     ->maxLength(255)
-                    ->columnSpan(4),
+                    ->columnSpan(4)
+                    ->formatStateUsing(function ($state) {
+                        $truncatedValue = Str::limit($state, 50);
+                        return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
+                    })
+                    ->action(Action::make('Concepto')->form([
+                        TextInput::make('Concepto')
+                            ->hiddenLabel()->readOnly()
+                            ->default(function($record){
+                                return $record->concepto;
+                            })
+                    ])),
                 Forms\Components\TextInput::make('referencia')
                     ->maxLength(255)
                     ->prefix('F-'),

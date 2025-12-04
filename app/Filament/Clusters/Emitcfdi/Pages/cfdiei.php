@@ -417,19 +417,19 @@ class cfdiei extends Page implements HasForms, HasTable
                             ])
                         ])->columns(4);
                 }),
-                Action::make('Descarga XML')
-                    ->label('Descarga XML')
-                    ->icon('fas-download')
-                    ->action(function($record){
-                        $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
-                        $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
-                        if(File::exists($archivo)) unlink($archivo);
-                        $xml = $record->content;
-                        $xml = Cleaner::staticClean($xml);
-                        File::put($archivo,$xml);
-                        $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
-                        return response()->download($ruta);
-                    })
+                    Action::make('Descarga XML')
+                        ->label('Descarga XML')
+                        ->icon('fas-download')
+                        ->action(function($record){
+                            $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            if(File::exists($archivo)) unlink($archivo);
+                            $xml = $record->content;
+                            $xml = Cleaner::staticClean($xml);
+                            File::put($archivo,$xml);
+                            $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            return response()->download($ruta);
+                        })
                 ])
             ])->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([

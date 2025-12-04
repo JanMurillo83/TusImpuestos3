@@ -9,6 +9,7 @@ use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
 use Carbon\Carbon;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
@@ -39,6 +40,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 class visemi_all extends Page implements HasForms, HasTable
 {
@@ -154,6 +156,19 @@ class visemi_all extends Page implements HasForms, HasTable
                         $record->save();
                 }),
                 ActionGroup::make([
+                    Action::make('Descarga XML')
+                        ->label('Descarga XML')
+                        ->icon('fas-download')
+                        ->action(function($record){
+                            $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            if(File::exists($archivo)) unlink($archivo);
+                            $xml = $record->content;
+                            $xml = Cleaner::staticClean($xml);
+                            File::put($archivo,$xml);
+                            $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            return response()->download($ruta);
+                        }),
                 ViewAction::make()
                 ->label('Expediente')
                 ->infolist(function($infolist,$record){

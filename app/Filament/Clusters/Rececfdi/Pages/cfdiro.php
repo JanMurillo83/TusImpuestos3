@@ -11,6 +11,7 @@ use App\Models\ContaPeriodos;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -37,6 +38,7 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
@@ -192,6 +194,19 @@ class cfdiro extends Page implements HasForms, HasTable
                         else return false;
                     }
                 }),
+            Action::make('Descarga XML')
+                ->label('Descarga XML')
+                ->icon('fas-download')
+                ->action(function($record){
+                    $nombre = $record->Emisor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Receptor_Rfc.'.xml';
+                    $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                    if(File::exists($archivo)) unlink($archivo);
+                    $xml = $record->content;
+                    $xml = Cleaner::staticClean($xml);
+                    File::put($archivo,$xml);
+                    $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                    return response()->download($ruta);
+                })
         ])->actionsPosition(ActionsPosition::BeforeCells)
             ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all'])

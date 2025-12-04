@@ -10,9 +10,14 @@ use App\Models\CatPolizas;
 use App\Models\ContaPeriodos;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
+use CfdiUtils\Cfdi;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -23,6 +28,7 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -37,6 +43,7 @@ use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use stdClass;
@@ -235,7 +242,113 @@ class cfdiep extends Page implements HasForms, HasTable
                         ->required()
                 ])->action(function(Model $record,$data){
                         Self::contabiliza_e($record,$data);
-                })
+                }),
+                ActionGroup::make([
+                    Action::make('ver_xml')->icon('fas-file-invoice')
+                        ->label('Consultar XML')
+                        ->modalWidth('6xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar')
+                        ->form(function ($record,$form){
+                            $xml_content = $record->content;
+                            $cfdi = Cfdi::newFromString($xml_content);
+                            $comp = $cfdi->getQuickReader();
+
+                            $emisor = $comp->Emisor;
+                            $receptor = $comp->Receptor;
+                            $tot_pagos = $comp->Complemento->Pagos->Totales;
+                            //dd($tot_pagos);
+                            $conceptos = $comp->Complemento->Pagos->Pago;
+                            $partidas = [];
+                            foreach($conceptos() as $concepto){
+                                if($concepto['IdDocumento'] != null) {
+                                    $partidas [] = [
+                                        'Clave' => $concepto['Serie'] . $concepto['Folio'],
+                                        'Descripcion' => $concepto['IdDocumento'],
+                                        'Cantidad' => $concepto['MonedaDR'],
+                                        'Unidad' => $concepto['EquivalenciaDR'],
+                                        'Precio' => $concepto['ImpSaldoAnt'],
+                                        'Subtotal' => $concepto['ImpPagado'],
+                                    ];
+                                }
+                            }
+                            return $form
+                                ->disabled(true)
+                                ->schema([
+                                    TextInput::make('Serie y Folio')
+                                        ->default(function () use ($comp){
+                                            return $comp['serie'].$comp['folio'];
+                                        }),
+                                    TextInput::make('Fecha')
+                                        ->default(function () use ($comp){
+                                            return $comp['fecha'];
+                                        }),
+                                    TextInput::make('Moneda')
+                                        ->default(function () use ($comp){
+                                            return $comp['moneda'];
+                                        }),
+                                    TextInput::make('TC')->label('T.C.')
+                                        ->default(function () use ($comp){
+                                            return $comp['TipoCambio'];
+                                        })->currencyMask(precision: 4)->prefix('$'),
+                                    TextInput::make('Emisor')
+                                        ->default(function () use ($emisor){
+                                            return $emisor['rfc'].'-'.$emisor['nombre'];
+                                        })->columnSpan(2),
+                                    TextInput::make('Receptor')
+                                        ->default(function () use ($receptor){
+                                            return $receptor['rfc'].'-'.$receptor['nombre'];
+                                        })->columnSpan(2),
+                                    TableRepeater::make('partidas')
+                                        ->streamlined()->addable(false)->deletable(false)->reorderable(false)
+                                        ->headers([
+                                            Header::make('Documento')->width('100px'),
+                                            Header::make('UUID')->width('350px'),
+                                            Header::make('Moneda'),
+                                            Header::make('Equivalencia'),
+                                            Header::make('Importe'),
+                                            Header::make('Monto Pagado'),
+                                        ])
+                                        ->schema([
+                                            TextInput::make('Clave'),
+                                            TextInput::make('Descripcion'),
+                                            TextInput::make('Cantidad'),
+                                            TextInput::make('Unidad'),
+                                            TextInput::make('Precio')->currencyMask()->prefix('$'),
+                                            TextInput::make('Subtotal')->currencyMask()->prefix('$'),
+                                        ])->default($partidas)
+                                        ->columnSpanFull(),
+                                    Group::make([
+                                        TextInput::make('Subtotal')
+                                            ->default(function () use ($tot_pagos){
+                                                return $tot_pagos['TotalTrasladosBaseIVA16'];
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                        TextInput::make('IVA')->label('I.V.A')
+                                            ->default(function () use ($tot_pagos){
+                                                return $tot_pagos['TotalTrasladosImpuestoIVA16'];
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                        TextInput::make('Total')
+                                            ->default(function () use ($tot_pagos){
+                                                return $tot_pagos['MontoTotalPagos'];
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                    ])
+                                ])->columns(4);
+                        }),
+                    Action::make('Descarga XML')
+                        ->label('Descarga XML')
+                        ->icon('fas-download')
+                        ->action(function($record){
+                            $nombre = $record->Receptor_Rfc.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$record->Emisor_Rfc.'.xml';
+                            $archivo = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            if(File::exists($archivo)) unlink($archivo);
+                            $xml = $record->content;
+                            $xml = Cleaner::staticClean($xml);
+                            File::put($archivo,$xml);
+                            $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
+                            return response()->download($ruta);
+                        })
+                ])
+
             ])->actionsPosition(ActionsPosition::BeforeCells)
             ->bulkActions([
                 BulkAction::make('multi_Contabilizar')

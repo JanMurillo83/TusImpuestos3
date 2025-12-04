@@ -1078,20 +1078,20 @@ class MovbancosResource extends Resource
                                                 ->columnSpanFull()
                                                 ->headers([
                                                     Header::make('codigo')->width('150px'),
-                                                    Header::make('cuenta')->width('100px'),
+                                                    //Header::make('cuenta')->width('100px'),
                                                     Header::make('cargo')->width('150px'),
                                                     Header::make('abono')->width('150px'),
                                                     Header::make('factura')->width('100px')
                                                         ->label('Referencia'),
-                                                    Header::make('concepto')->width('300px'),
+                                                    //Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
                                                     Select::make('codigo')
                                                         ->label('Buscar Cuenta')
                                                         ->required()
                                                         ->searchable()
-                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
-                                                        ->live(onBlur: true)
+                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->where('tipo','D')->pluck('nombre','codigo')),
+                                                       /* ->live(onBlur: true)
                                                         ->afterStateUpdated(function($state,Set $set, Get $get){
                                                             $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
                                                                 ->where('codigo',$state)->first();
@@ -1099,7 +1099,7 @@ class MovbancosResource extends Resource
                                                             $set('cuenta',$nom);
                                                             $set('concepto',$get('../../concepto'));
                                                     }),
-                                                    TextInput::make('cuenta')->readOnly(),
+                                                    TextInput::make('cuenta')->readOnly(),*/
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
                                                         ->default(0)
@@ -1157,7 +1157,7 @@ class MovbancosResource extends Resource
                                                     TextInput::make('factura')
                                                         ->label('Referencia')
                                                         ->prefix('F-'),
-                                                    TextInput::make('concepto'),
+                                                    //TextInput::make('concepto'),
                                                     Hidden::make('team_id')->default(Filament::getTenant()->id),
                                                     //Hidden::make('cuenta'),
                                                     Hidden::make('cat_polizas_id')
@@ -1471,20 +1471,20 @@ class MovbancosResource extends Resource
                                                 ->defaultItems(5)
                                                 ->headers([
                                                     Header::make('codigo')->width('150px'),
-                                                    Header::make('cuenta')->width('100px'),
+                                                    //Header::make('cuenta')->width('100px'),
                                                     Header::make('cargo')->width('150px'),
                                                     Header::make('abono')->width('150px'),
                                                     Header::make('factura')->width('100px')
                                                         ->label('Referencia'),
-                                                    Header::make('concepto')->width('300px'),
+                                                    //Header::make('concepto')->width('300px'),
                                                 ])
                                                 ->schema([
                                                     Select::make('codigo')
                                                         ->label('Buscar Cuenta')
                                                         ->required()
                                                         ->searchable()
-                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo'))
-                                                        ->live(onBlur: true)
+                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo')),
+                                                        /*->live(onBlur: true)
                                                         ->afterStateUpdated(function($state,Set $set, Get $get){
                                                             $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
                                                                 ->where('codigo',$state)->first();
@@ -1492,7 +1492,7 @@ class MovbancosResource extends Resource
                                                             $set('cuenta',$nom);
                                                             $set('concepto',$get('../../concepto'));
                                                         }),
-                                                    TextInput::make('cuenta')->readOnly(),
+                                                    TextInput::make('cuenta')->readOnly(),*/
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
                                                         ->default(0)
@@ -1550,7 +1550,7 @@ class MovbancosResource extends Resource
                                                     TextInput::make('factura')
                                                         ->label('Referencia')
                                                         ->prefix('F-'),
-                                                    TextInput::make('concepto'),
+                                                    //TextInput::make('concepto'),
                                                     Hidden::make('team_id')->default(Filament::getTenant()->id),
                                                     Hidden::make('cuenta'),
                                                     Hidden::make('cat_polizas_id')
@@ -2258,6 +2258,7 @@ class MovbancosResource extends Resource
                             'cat_polizas_id'=>$polno
                         ]);
                     }
+                    $msj_gr ='Proceso Concluido. Poliza Ig'.$nopoliza.' Grabada';
                     if($data['Movimiento'] == 5)
                     {
                         $day = Carbon::now()->day;
@@ -2283,11 +2284,12 @@ class MovbancosResource extends Resource
                         $nopar =0;
                         foreach ($detalles as $detalle) {
                             $nopar++;
+                            $cta = CatCuentas::where('id',$detalle['cuenta'])->first();
                             $aux = Auxiliares::create([
                                 'cat_polizas_id' => $polno,
-                                'codigo' => $detalle['codigo'],
-                                'cuenta' => $detalle['cuenta'],
-                                'concepto' => $detalle['concepto'],
+                                'codigo' => $cta->codigo,
+                                'cuenta' => $cta->nombre,
+                                'concepto' => $data['concepto'],
                                 'cargo' => $detalle['cargo'],
                                 'abono' => $detalle['abono'],
                                 'factura' => $detalle['factura'],
@@ -2299,10 +2301,10 @@ class MovbancosResource extends Resource
                                 'cat_polizas_id' => $polno
                             ]);
                         }
+                        $msj_gr = 'Proceso Concluido. Poliza '.$data['tipo'].' '.$data['folio'].' Grabada';
                     }
-
         Notification::make('Concluido')
-        ->title('Proceso Concluido. Poliza Ig'.$nopoliza.' Grabada')
+        ->title($msj_gr)
         ->success()
         ->send();
     }
@@ -3071,7 +3073,7 @@ class MovbancosResource extends Resource
                 'cat_polizas_id'=>$polno
             ]);
         }
-
+        $msj_gr = 'Proceso Concluido. Poliza Eg'.$nopoliza.' Grabada';
         if($tmov == 8)
         {
             $day = Carbon::now()->day;
@@ -3097,11 +3099,12 @@ class MovbancosResource extends Resource
             $nopar =0;
             foreach ($detalles as $detalle) {
                 $nopar++;
+                $cta = CatCuentas::where('codigo',$detalle['codigo'])->first();
                 $aux = Auxiliares::create([
                     'cat_polizas_id' => $polno,
-                    'codigo' => $detalle['codigo'],
-                    'cuenta' => $detalle['cuenta'],
-                    'concepto' => $detalle['concepto'],
+                    'codigo' => $cta->codigo,
+                    'cuenta' => $cta->nombre,
+                    'concepto' => $data['concepto'],
                     'cargo' => $detalle['cargo'],
                     'abono' => $detalle['abono'],
                     'factura' => $detalle['factura'],
@@ -3113,10 +3116,11 @@ class MovbancosResource extends Resource
                     'cat_polizas_id' => $polno
                 ]);
             }
+            $msj_gr = 'Proceso Concluido. Poliza '.$data['tipo'].' '.$data['folio'].' Grabada';
         }
 
         Notification::make('Concluido')
-        ->title('Proceso Concluido. Poliza Eg'.$nopoliza.' Grabada')
+        ->title($msj_gr)
         ->success()
         ->send();
     }

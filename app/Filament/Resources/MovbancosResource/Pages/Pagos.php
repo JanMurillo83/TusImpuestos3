@@ -73,6 +73,11 @@ class Pagos extends Page implements HasForms
         $this->record_id = $record;
         $datos = Movbancos::where('id',$record)->first();
         Almacencfdis::where('TipoCambio','<', 1)->update(['TipoCambio' => 1.00]);
+
+        if($datos->contabilizada == 'NO')
+        {
+            Movbancos::where('id',$record)->update(['pendiente_apli' => $datos->importe]);
+        }
         if($datos->pendiente_apli > $datos->importe) {
             $datos->pendiente_apli = $datos->importe;
             $datos->save();
@@ -81,7 +86,7 @@ class Pagos extends Page implements HasForms
         $this->form->fill([
             'fecha'=> $datos->fecha,
             'monto'=> $datos->importe,
-            'pendiente'=> $datos->pendiente_apli,
+            'pendiente'=> $datos->importe,
             'concepto'=> $datos->concepto,
             'cuenta'=> $datos->cuenta,
             'moneda'=> $datos->moneda,
@@ -230,7 +235,7 @@ class Pagos extends Page implements HasForms
                                     'Tercero' => $fact->Emisor_Nombre,
                                     'Moneda'=> $fact->Moneda,
                                     'Tipo Cambio' => $fact->TipoCambio,
-                                    'Pendiente' => $tpen_or,
+                                    'Pendiente' => $fact->Total,
                                     'Monto a Pagar' => $pend_f,
                                     'USD a Pagar' => $tpen_or,
                                     'id_xml' => $fact->id,
@@ -277,7 +282,7 @@ class Pagos extends Page implements HasForms
                     Header::make('Referencia'),
                     Header::make('Fecha'),
                     Header::make('Tercero'),
-                    Header::make('Pendiente'),
+                    Header::make('Imp.Factura'),
                     Header::make('Moneda'),
                     Header::make('T. de Cambio'),
                     Header::make('Monto a Pagar'),
@@ -489,19 +494,11 @@ class Pagos extends Page implements HasForms
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
                     $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
-                    $importe_cargos = $dolares + $complemento + $iva_1;
-                    $importe_abonos = $pesos + $iva_2;
                     $up_p1 = $dolares * $tipoc;
                     $up_p2 = $dolares * $tipoc_f;
                     $up_p3 = ($dolares /1.16*0.16)*$tipoc_f;
                     $up_p4 = ($dolares /1.16*0.16)*$tipoc;
                     $uti_per = $up_p1 - $up_p2 + $up_p3 - $up_p4;
-                    //dd($tipoc,$up_p1 , $up_p2 , $up_p3 , $up_p4, $uti_per);
-                    $importe_abonos_f = $pesos + $iva_2 + $uti_per;
-                    $imp_uti_c = 0;
-                    $imp_uti_a = 0;
-                    $cod_uti = '';
-                    $cta_uti = '';
                     if ($uti_per > 0) {
                         $imp_uti_c = $uti_per;
                         $imp_uti_a = 0;
@@ -644,30 +641,22 @@ class Pagos extends Page implements HasForms
                     $iva_fac = floatval($cfdi->TotalImpuestosTrasladados);
                     //dd($factura,$cfdi->TotalImpuestosTrasladados);
                     $complemento = (($dolares * $tipoc_f) - $dolares);
-                    $iva_1 = $iva_fac * $tipoc;
-                    $iva_2 = $iva_fac * $tipoc_f;
-                    $importe_cargos = $dolares + $complemento + $iva_1;
-                    $importe_abonos = $pesos + $iva_2;
-                    ///------Calcula Utilidad---------------------------------------
-                    $uti_1 = floatval($cfdi->Total) * floatval($record->tcambio);
-                    $uti_2 = floatval($cfdi->Total) * floatval($cfdi->TipoCambio);
-                    $uti_per = $uti_1 - $uti_2 + $iva_2 - $iva_1;
-                    //--------------------------------------------------------------
-                    //$uti_per = $iva_1 - $iva_2;
-                    $importe_abonos_f = $pesos + $iva_2 + $uti_per;
-                    $imp_uti_c = 0;
-                    $imp_uti_a = 0;
-                    $cod_uti = '';
-                    $cta_uti = '';
+                    $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
+                    $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
+                    $up_p1 = $dolares * $tipoc;
+                    $up_p2 = $dolares * $tipoc_f;
+                    $up_p3 = ($dolares /1.16*0.16)*$tipoc_f;
+                    $up_p4 = ($dolares /1.16*0.16)*$tipoc;
+                    $uti_per = $up_p1 - $up_p2 + $up_p3 - $up_p4;
                     if ($uti_per > 0) {
                         $imp_uti_c = $uti_per;
                         $imp_uti_a = 0;
-                        $cod_uti = '70201000';
+                        $cod_uti = '70101000';
                         $cta_uti = 'Utilidad Cambiaria';
                     } else {
                         $imp_uti_a = $uti_per * -1;
                         $imp_uti_c = 0;
-                        $cod_uti = '70101000';
+                        $cod_uti = '70201000';
                         $cta_uti = 'Perdida Cambiaria';
                     }
                     if($no_intera == 0) {

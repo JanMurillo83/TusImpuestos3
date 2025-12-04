@@ -9,9 +9,13 @@ use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
+use CfdiUtils\Cfdi;
 use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
@@ -197,6 +201,91 @@ class visrecf extends Page implements HasForms, HasTable
                 ->defaultSort('Fecha', 'asc')
             ->actions([
                 ActionGroup::make([
+                    Action::make('ver_xml')->icon('fas-eye')
+                        ->label('Consultar XML')
+                        ->modalWidth('6xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar')
+                        ->form(function ($record,$form){
+                            $xml_content = $record->content;
+                            $cfdi = Cfdi::newFromString($xml_content);
+                            $comp = $cfdi->getQuickReader();
+                            $emisor = $comp->Emisor;
+                            $receptor = $comp->Receptor;
+                            $conceptos = $comp->Conceptos;
+                            $partidas = [];
+                            foreach($conceptos() as $concepto){
+                                $partidas []= [
+                                    'Clave'=>$concepto['ClaveProdServ'],
+                                    'Descripcion'=>$concepto['Descripcion'],
+                                    'Cantidad'=>$concepto['Cantidad'],
+                                    'Unidad'=>$concepto['ClaveUnidad'],
+                                    'Precio'=>$concepto['ValorUnitario'],
+                                    'Subtotal'=>$concepto['Importe'],
+                                ];
+                            }
+                            return $form
+                                ->disabled(true)
+                                ->schema([
+                                    TextInput::make('Serie y Folio')
+                                        ->default(function () use ($comp){
+                                            return $comp['serie'].$comp['folio'];
+                                        }),
+                                    TextInput::make('Fecha')
+                                        ->default(function () use ($comp){
+                                            return $comp['fecha'];
+                                        }),
+                                    TextInput::make('Moneda')
+                                        ->default(function () use ($comp){
+                                            return $comp['moneda'];
+                                        }),
+                                    TextInput::make('TC')->label('T.C.')
+                                        ->default(function () use ($comp){
+                                            return $comp['TipoCambio'];
+                                        })->currencyMask(precision: 4)->prefix('$'),
+                                    TextInput::make('Emisor')
+                                        ->default(function () use ($emisor){
+                                            return $emisor['rfc'].'-'.$emisor['nombre'];
+                                        })->columnSpan(2),
+                                    TextInput::make('Receptor')
+                                        ->default(function () use ($receptor){
+                                            return $receptor['rfc'].'-'.$receptor['nombre'];
+                                        })->columnSpan(2),
+                                    TableRepeater::make('partidas')
+                                        ->streamlined()->addable(false)->deletable(false)->reorderable(false)
+                                        ->headers([
+                                            Header::make('Cantidad'),
+                                            Header::make('Clave'),
+                                            Header::make('Descripcion')->width('350px'),
+                                            Header::make('Unidad'),
+                                            Header::make('Precio'),
+                                            Header::make('Subtotal'),
+                                        ])
+                                        ->schema([
+                                            TextInput::make('Cantidad'),
+                                            TextInput::make('Clave'),
+                                            TextInput::make('Descripcion'),
+                                            TextInput::make('Unidad'),
+                                            TextInput::make('Precio')->currencyMask()->prefix('$'),
+                                            TextInput::make('Subtotal')->currencyMask()->prefix('$'),
+                                        ])->default($partidas)
+                                        ->columnSpanFull(),
+                                    Group::make([
+                                        TextInput::make('Subtotal')
+                                            ->default(function () use ($comp){
+                                                return $comp['subtotal'];
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                        TextInput::make('IVA')->label('I.V.A')
+                                            ->default(function () use ($comp){
+                                                return $comp->impuestos['totalImpuestosTrasladados'];
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                        TextInput::make('Total')
+                                            ->default(function () use ($comp){
+                                                return $comp['total'];
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                    ])
+                                ])->columns(4);
+                        }),
                     Action::make('Notas')
                         ->label('Referencia')
                         ->icon('fas-edit')

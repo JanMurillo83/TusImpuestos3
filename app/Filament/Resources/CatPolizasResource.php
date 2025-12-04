@@ -264,21 +264,20 @@ class CatPolizasResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('concepto')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('referencia')
                     ->searchable()
-                    ->formatStateUsing(function ($state) {
+                    ->prefix('F-')->formatStateUsing(function ($state) {
                         $truncatedValue = Str::limit($state, 50);
                         return new HtmlString("<span title='{$state}'>{$truncatedValue}</span>");
                     })
-                    ->action(Action::make('Concepto')->form([
-                        TextInput::make('Concepto')
+                    ->action(Action::make('referencia')->form([
+                        TextInput::make('Referencia')
                             ->hiddenLabel()->readOnly()
                             ->default(function($record){
-                                return $record->concepto;
+                                return $record->referencia;
                             })
                     ])),
-                Tables\Columns\TextColumn::make('referencia')
-                    ->searchable()
-                    ->prefix('F-'),
                 Tables\Columns\TextColumn::make('cargos')
                     ->formatStateUsing(function (?string $state) {
                         $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));

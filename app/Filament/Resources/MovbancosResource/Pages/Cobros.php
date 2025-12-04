@@ -446,7 +446,7 @@ class Cobros extends Page implements HasForms
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);
                     if ($n_pen < 0) $n_pen = 0;
                     if (floatval($get('pendiente')) <= floatval($monto_par)) $st_con = 'SI';
-                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'PA';
+                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'SI';
                     Movbancos::where('id', $this->record_id)->update([
                         'pendiente_apli' => $n_pen,
                         'contabilizada' => $st_con
@@ -587,7 +587,7 @@ class Cobros extends Page implements HasForms
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);
                     if ($n_pen < 0) $n_pen = 0;
                     if (floatval($get('pendiente')) <= floatval($monto_par)) $st_con = 'SI';
-                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'PA';
+                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'SI';
                     Movbancos::where('id', $this->record_id)->update([
                         'pendiente_apli' => $n_pen,
                         'contabilizada' => $st_con
@@ -751,7 +751,7 @@ class Cobros extends Page implements HasForms
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);
                     if ($n_pen < 0) $n_pen = 0;
                     if (floatval($get('pendiente')) <= floatval($monto_par)) $st_con = 'SI';
-                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'PA';
+                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'SI';
                     Movbancos::where('id', $this->record_id)->update([
                         'pendiente_apli' => $n_pen,
                         'contabilizada' => $st_con
@@ -889,7 +889,7 @@ class Cobros extends Page implements HasForms
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);
                     if ($n_pen < 0) $n_pen = 0;
                     if (floatval($get('pendiente')) <= floatval($monto_par)) $st_con = 'SI';
-                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'PA';
+                    if (floatval($get('pendiente')) > floatval($monto_par)) $st_con = 'SI';
                     Movbancos::where('id', $this->record_id)->update([
                         'pendiente_apli' => $n_pen,
                         'contabilizada' => $st_con

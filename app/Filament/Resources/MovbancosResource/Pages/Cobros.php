@@ -205,8 +205,8 @@ class Cobros extends Page implements HasForms
 
                                 }
                                 if($fact->Moneda == 'MXN'&&$mon_pago != 'MXN'){
-                                    $pend_f = $fact->Total / $t_cambio;
-                                    $tpen_or = $fact->Total / $t_cambio;
+                                    $pend_f = $fact->Total / max($t_cambio,1);
+                                    $tpen_or = $fact->Total / max($t_cambio,1);
                                 }
                                 if($fact->Moneda != 'MXN'&&$mon_pago != 'MXN'){
                                     $pend_f = $fact->Total;

@@ -1474,7 +1474,7 @@ class MovbancosResource extends Resource
                                                         ->label('Buscar Cuenta')
                                                         ->required()
                                                         ->searchable()
-                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('id',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','id')),
+                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('id',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->where('tipo','D')->pluck('nombre','id')),
                                                         /*->live(onBlur: true)
                                                         ->afterStateUpdated(function($state,Set $set, Get $get){
                                                             $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
@@ -2275,7 +2275,7 @@ class MovbancosResource extends Resource
                         $nopar =0;
                         foreach ($detalles as $detalle) {
                             $nopar++;
-                            $cta = CatCuentas::where('id',$detalle['cuenta'])->first();
+                            $cta = CatCuentas::where('id',$detalle['codigo'])->first();
                             $aux = Auxiliares::create([
                                 'cat_polizas_id' => $polno,
                                 'codigo' => $cta->codigo,
@@ -3090,7 +3090,7 @@ class MovbancosResource extends Resource
             $nopar =0;
             foreach ($detalles as $detalle) {
                 $nopar++;
-                $cta = CatCuentas::where('codigo',$detalle['codigo'])->first();
+                $cta = CatCuentas::where('id',$detalle['codigo'])->first();
                 $aux = Auxiliares::create([
                     'cat_polizas_id' => $polno,
                     'codigo' => $cta->codigo,
@@ -3109,8 +3109,7 @@ class MovbancosResource extends Resource
             }
             $msj_gr = 'Proceso Concluido. Poliza '.$data['tipo'].' '.$data['folio'].' Grabada';
         }
-
-        Notification::make('Concluido')
+        Notification::make()
         ->title($msj_gr)
         ->success()
         ->send();

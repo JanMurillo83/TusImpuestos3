@@ -1090,16 +1090,7 @@ class MovbancosResource extends Resource
                                                         ->label('Buscar Cuenta')
                                                         ->required()
                                                         ->searchable()
-                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->where('tipo','D')->pluck('nombre','codigo')),
-                                                       /* ->live(onBlur: true)
-                                                        ->afterStateUpdated(function($state,Set $set, Get $get){
-                                                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)
-                                                                ->where('codigo',$state)->first();
-                                                            $nom = $cuenta->nombre;
-                                                            $set('cuenta',$nom);
-                                                            $set('concepto',$get('../../concepto'));
-                                                    }),
-                                                    TextInput::make('cuenta')->readOnly(),*/
+                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('id',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->where('tipo','D')->pluck('nombre','id')),
                                                     TextInput::make('cargo')
                                                         ->currencyMask()
                                                         ->default(0)
@@ -1483,7 +1474,7 @@ class MovbancosResource extends Resource
                                                         ->label('Buscar Cuenta')
                                                         ->required()
                                                         ->searchable()
-                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('codigo',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','codigo')),
+                                                        ->options(CatCuentas::where('team_id',Filament::getTenant()->id)->select('id',DB::raw("CONCAT(codigo,' - ',nombre) as nombre"))->orderBy('codigo')->pluck('nombre','id')),
                                                         /*->live(onBlur: true)
                                                         ->afterStateUpdated(function($state,Set $set, Get $get){
                                                             $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)

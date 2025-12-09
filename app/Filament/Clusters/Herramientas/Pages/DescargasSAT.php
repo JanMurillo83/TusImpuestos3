@@ -453,7 +453,6 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     foreach ($teams as $record) {
                         if($record->descarga_cfdi == 'SI') {
                             $rfc = $record->taxid;
-                            $claveCiec = $record?->claveciec ?? 'NA';
                             $fielcer = storage_path().'/app/public/'.$record->archivocer;
                             $fielkey = storage_path().'/app/public/'.$record->archivokey;
                             $fielpass = $record->fielpass;
@@ -473,6 +472,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                     if (!is_dir($downloadsPath_EMI)) {
                                         mkdir($downloadsPath_EMI, 0777, true);
                                     }
+                                    if(file_exists($cookieJarFile)) unlink($cookieJarFile);
                                     if (!file_exists($cookieJarFile)) {
                                         fopen($cookieJarFile, 'w');
                                     }
@@ -480,9 +480,6 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                         'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
                                     ]);
                                     $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                                    /*$configsFile = storage_path() . '/app/public/Aimodel/configs.yaml';
-                                    $captchaResolver = BoxFacturaAIResolver::createFromConfigs($configsFile);
-                                    $ciecSessionManager = CiecSessionManager::create($rfc, $claveCiec, $captchaResolver);*/
                                     $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
                                     $fielSessionManager = FielSessionManager::create($credential);
                                     if($credential->isFiel()&&$credential->certificate()->validOn()) {

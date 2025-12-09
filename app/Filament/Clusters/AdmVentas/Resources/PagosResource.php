@@ -152,7 +152,7 @@ class PagosResource extends Resource
                                             ->where('forma','PPD')
                                             ->where('pendiente_pago','>',0)
                                             ->pluck('folio', 'id'))
-                                        ->live()
+                                        ->live()->required()
                                         ->afterStateUpdated(
                                             function (Forms\Get $get, Forms\Set $set) {
                                                 $facturas = Facturas::where('id', $get('uuidrel'))->get();
@@ -408,18 +408,75 @@ class PagosResource extends Resource
                             File::put($archivo,$xml);
                             return response()->download($archivo);
                         }),
-                    /*Tables\Actions\Action::make('Enviar por Correo')
-                        ->icon('fas-envelope-square')
-                        ->action(function (Pagos $record) {
-                            Self::envia_correo($record->clave_doc,
-                                $record->emisor, $record->cve_clie);
+                    Tables\Actions\EditAction::make('editar')
+                    ->icon('fas-pen-square')
+                    ->color('primary')
+                    ->visible(function ($record){
+                        if($record->estado == 'Activa') return true;
+                        else return false;
+                    })->after(function($record){
+                            $data = $record;
+                            $factura = $record->id;
+                            $receptor = $data->cve_clie;
+                            $emisor = $data->dat_fiscal;
+                            $serie = $data->serie;
+                            //DB::statement("UPDATE series_facs SET folio = folio + 1 WHERE id = $serie");
+                            if($data['tipo_compro'] == 'MUL')
+                                $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
+                            else
+                                $res = app(TimbradoController::class)->TimbrarPagos_Uni($factura,$emisor,$receptor);
+                            $resultado = json_decode($res);
+                            $codigores = $resultado->codigo;
+                            if($codigores == "200")
+                            {
+                                $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
+                                foreach($partidas_pagos as $partida){
+                                    $fact_pag = Facturas::where('id',$partida->uuidrel)->first();
+                                    Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
+                                    CuentasCobrar::where('team_id',Filament::getTenant()->id)->where('concepto',1)->where('documento',$fact_pag->docto)->decrement('saldo',$partida->imppagado);
+                                    CuentasCobrar::create([
+                                        'cliente'=>$record->cve_clie,
+                                        'concepto'=>9,
+                                        'descripcion'=>'Pago Factura',
+                                        'documento'=>$record->serie.$record->folio,
+                                        'fecha'=>Carbon::now(),
+                                        'vencimiento'=>Carbon::now(),
+                                        'importe'=>$partida->imppagado,
+                                        'saldo'=> 0,
+                                        'team_id'=>Filament::getTenant()->id,
+                                        'refer'=>$fact_pag->id
+                                    ]);
+                                }
+                                $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
+                                $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
+                                $facturamodel = Pagos::where('id',$factura)->first();
+                                $facturamodel->timbrado = 'SI';
+                                $facturamodel->xml = $resultado->cfdi;
+                                $facturamodel->fecha_tim = $date;
+                                $facturamodel->pdf_file = $pdf_file;
+                                $facturamodel->save();
+                                $res2 = app(TimbradoController::class)->actualiza_pag_tim($factura,$resultado->cfdi,"P");
+                                $mensaje_tipo = "1";
+                                $mensaje_graba = 'Comprobante Timbrado Se genero el CFDI UUID: '.$res2;
+                                Notification::make()
+                                    ->success()
+                                    ->title('Pago Timbrado Correctamente')
+                                    ->body($mensaje_graba)
+                                    ->duration(2000)
+                                    ->send();
+                            }
+                            else{
+                                $mensaje_tipo = "2";
+                                $mensaje_graba = $resultado->mensaje;
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Error al Timbrar el Documento')
+                                    ->body($mensaje_graba)
+                                    ->persistent()
+                                    ->send();
+                            }
+                        })
 
-                            Notification::make('Enviar por Correo')
-                                ->title('Envio de Correo')
-                                ->body('Correo Enviado Correctamente')
-                                ->success()
-                                ->send();
-                        })->close()*/
                 ])->dropdownPlacement('top-start')
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             //->recordUrl(fn(Pagos $record): string => Pages\ViewPagos::getUrl([$record->id]))

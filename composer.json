@@ -33,6 +33,7 @@
         "jimmyjs/laravel-report-generator": "^2.2",
         "joaopaulolndev/filament-pdf-viewer": "^1.0",
         "laravel/framework": "^11.9",
+        "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "luecano/numero-a-letras": "^4.0",
         "maatwebsite/excel": "^3.1",

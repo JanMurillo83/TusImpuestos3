@@ -627,7 +627,11 @@ class FacturasResource extends Resource
                 ->sortable()
                 ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('estado')
-                ->searchable(),
+                ->searchable()
+            ->formatStateUsing(function ($record){
+                if($record->estado == 'Activa') return '<span class="badge badge-error">No Timbrada</span>';
+                else return $record->estado;
+            }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -963,7 +967,166 @@ class FacturasResource extends Resource
                         })->modalWidth('7xl')
                         ->modalSubmitAction(false)
                 ]),
+                Tables\Actions\EditAction::make('editar')
+                    ->modalSubmitActionLabel('Grabar')
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
+                    ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
+                    ->modalFooterActionsAlignment(Alignment::Left)
+                    ->modalWidth('full')
+                    ->visible(function ($record){
+                        if($record->estado == 'Activa') return true;
+                        else return false;
+                    })
+                    ->after(function($record,$livewire){
+                        $partidas = $record->partidas;
+                        $nopar = 0;
+                        SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->increment('folio',1);
+                        $esq = Esquemasimp::where('id',$record->esquema)->first();
+                        $imp1 = $esq->iva * 0.01;
+                        $imp2 = $esq->retiva * 0.01;
+                        $imp3 = $esq->retisr * 0.01;
+                        $imp4 = $esq->ieps * 0.01;
+                        foreach($partidas as $partida)
+                        {
+                            $partida->iva = $partida->subtotal * $imp1;
+                            $partida->retiva = $partida->subtotal * $imp2;
+                            $partida->retisr = $partida->subtotal * $imp3;
+                            $partida->ieps = $partida->subtotal * $imp4;
+                            $partida->save();
+                            $arti = $partida->item;
+                            $inve = Inventario::where('id',$arti)->get();
+                            $inve = $inve[0];
+                            if($inve->servicio == 'NO')
+                            {
+                                Movinventario::insert([
+                                    'producto'=>$partida->item,
+                                    'tipo'=>'Salida',
+                                    'fecha'=>Carbon::now(),
+                                    'cant'=>$partida->cant,
+                                    'costo'=>$partida->costo,
+                                    'precio'=>$partida->precio,
+                                    'concepto'=>6,
+                                    'tipoter'=>'C',
+                                    'tercero'=>$record->clie
+                                ]);
 
+                                $cost = $partida->costo;
+                                $cant = $inve->exist - $partida->cant;
+                                $avg = $inve->p_costo * $inve->exist;
+                                $avgp = 0;
+                                if($avg == 0) $avgp = $cost;
+                                else $avgp = (($inve->p_costo + $cost) * ($inve->exist + $cant)) / ($inve->exist + $cant);
+                                Inventario::where('id',$arti)->update([
+                                    'exist' => $cant,
+                                    'u_costo'=>$cost,
+                                    'p_costo'=>$avgp
+                                ]);
+                            }
+                            $nopar++;
+                        }
+                        Clientes::where('id',$record->clie)->increment('saldo', $record->total);
+                        $cliente_d = Clientes::where('id',$record->clie)->first();
+
+                        $record->pendiente_pago = $record->total;
+                        $record->save();
+                        if($record->docto_rela != ''){
+                            DoctosRelacionados::create([
+                                'docto_type'=>'F',
+                                'docto_id'=>$record->id,
+                                'rel_id'=>$record->docto_rela,
+                                'rel_type'=>'F',
+                                'rel_cause'=>$record->tipo_rela,
+                                'team_id'=>Filament::getTenant()->id
+                            ]);
+                        }
+                        //-----------------------------
+                        $data = $record;
+                        $factura = $data->id;
+                        $receptor = $data->clie;
+                        $emp = Team::where('id',Filament::getTenant()->id)->first();
+
+                        if($emp->archivokey != null&&$emp->archivokey != '')
+                        {
+                            $res = app(TimbradoController::class)->TimbrarFactura($factura, $receptor);
+                            $resultado = json_decode($res);
+                            $codigores = $resultado->codigo;
+                            if ($codigores == "200") {
+                                $date = Carbon::now();
+                                $facturamodel = Facturas::find($factura);
+                                $facturamodel->timbrado = 'SI';
+                                $facturamodel->xml = $resultado->cfdi;
+                                $facturamodel->fecha_tim = $date;
+                                $facturamodel->save();
+                                $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
+                                $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
+                                $dias_cr = intval($cliente_d?->dias_credito ?? 0);
+                                CuentasCobrar::create([
+                                    'cliente'=>$record->clie,
+                                    'concepto'=>1,
+                                    'descripcion'=>'Factura',
+                                    'documento'=>$record->serie.$record->folio,
+                                    'fecha'=>Carbon::now(),
+                                    'vencimiento'=>Carbon::now()->addDays($dias_cr),
+                                    'importe'=>$record->total * $record->tcambio,
+                                    'saldo'=>$record->total * $record->tcambio,
+                                    'team_id'=>Filament::getTenant()->id,
+                                    'refer'=>$record->id
+                                ]);
+                                $emp = Team::where('id',Filament::getTenant()->id)->first();
+                                $cli = Clientes::where('id',$record->clie)->first();
+                                $archivo_pdf = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                                $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                                if(File::exists($ruta))File::delete($ruta);
+                                $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                                $html = View::make('RepFactura',$data)->render();
+                                Browsershot::html($html)->format('Letter')
+                                    ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                    ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                    ->noSandbox()
+                                    ->scale(0.8)->savePdf($ruta);
+                                $nombre = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.xml';
+                                $archivo_xml = public_path().'/TMPCFDI/'.$nombre;
+                                if(File::exists($archivo_xml)) unlink($archivo_xml);
+                                $xml = $resultado->cfdi;
+                                $xml = Cleaner::staticClean($xml);
+                                File::put($archivo_xml,$xml);
+                                //-----------------------------------------------------------
+                                $zip = new \ZipArchive();
+                                $zipPath = public_path().'/TMPCFDI/';
+                                $zipFileName = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.zip';
+                                $zipFile = $zipPath.$zipFileName;
+                                if ($zip->open(($zipFile), \ZipArchive::CREATE) === true) {
+                                    $zip->addFile($archivo_xml, $nombre);
+                                    $zip->addFile($ruta, $archivo_pdf);
+                                    $zip->close();
+                                }else{
+                                    return false;
+                                }
+                                $docto = $record->serie.$record->folio;
+                                self::EnvioCorreo($record->clie,$ruta,$archivo_xml,$docto,$archivo_pdf,$nombre);
+                                self::MsjTimbrado($mensaje_graba);
+                                return response()->download($zipFile);
+                                //-----------------------------------------------------------
+
+                            } else {
+                                $mensaje_tipo = "2";
+                                $mensaje_graba = $resultado->mensaje;
+                                $record->error_timbrado = $resultado->mensaje;
+                                $record->save();
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Error al Timbrar el Documento')
+                                    ->body($mensaje_graba)
+                                    ->persistent()
+                                    ->send();
+                            }
+                            //self::DescargaPdf($record);
+
+                        }
+                        //------------------------------------------
+
+                    })
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Filament\Support\Assets\Js;
 use Illuminate\Support\ServiceProvider;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationBuilder;
@@ -54,6 +55,5 @@ class AppServiceProvider extends ServiceProvider
             PanelsRenderHook::FOOTER,
             fn (): View => view('customFooter'),
         );
-
     }
 }

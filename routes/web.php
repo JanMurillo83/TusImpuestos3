@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/reportes/contabilidad/balanza', function () { return view('ContaRep/Balanza');});
 Route::get('/reportes/contabilidad/balance', function () { return view('ContaRep/Balance');});
 Route::get('/reportes/contabilidad/estado', function () { return view('ContaRep/Estado');});
+Route::get('/mainview',[\App\Http\Controllers\MainChartsController::class,'mainview'])->name('mainviewns');
 Route::prefix('{tenantSlug}')->group(function () {
     Route::get('/contabilizar', [\App\Http\Controllers\ReportesController::class, 'ContabilizaReporte_ret'])->name('contabilizar');
     Route::get('/grafica1', [\App\Http\Controllers\ChartsController::class, 'showChart1'])->name('showChart1');
@@ -19,4 +20,6 @@ Route::prefix('{tenantSlug}')->group(function () {
     Route::get('/grafica6', [\App\Http\Controllers\ChartsController::class, 'showChart6'])->name('showChart6');
     Route::get('/grafica7', [\App\Http\Controllers\ChartsController::class, 'showChart7'])->name('showChart7');
     Route::get('/grafica8', [\App\Http\Controllers\ChartsController::class, 'showChart8'])->name('showChart8');
+    Route::get('/mainview/{team_id}',[\App\Http\Controllers\MainChartsController::class,'mainview'])->name('mainview');
+
 });

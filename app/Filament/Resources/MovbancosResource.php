@@ -310,6 +310,7 @@ class MovbancosResource extends Resource
                         })
                         ->modalHeading('Detalles de la Póliza')
                         ->modalWidth('7xl')
+                        ->modalSubmitAction(false)
                         ->form(function($record){
                             // Buscar la póliza relacionada con este movimiento bancario
                             $poliza = CatPolizas::where('idmovb', $record->id)->first();
@@ -322,7 +323,8 @@ class MovbancosResource extends Resource
                             $partidas = DB::table('auxiliares')
                                 ->where('cat_polizas_id', $poliza->id)
                                 ->get();
-
+                            $cargos = $partidas->sum('cargo');
+                            $abonos = $partidas->sum('abono');
                             return [
                                 Section::make()
                                     ->columns([
@@ -390,6 +392,7 @@ class MovbancosResource extends Resource
                                             ->disableItemDeletion()
                                             ->disableItemMovement()
                                             ->columnSpanFull()
+                                            ->streamlined()
                                             ->headers([
                                                 Header::make('codigo')->width('250px'),
                                                 Header::make('cargo')->width('100px'),
@@ -401,11 +404,11 @@ class MovbancosResource extends Resource
                                                 TextInput::make('codigo')
                                                     ->readOnly(),
                                                 TextInput::make('cargo')
-                                                    ->numeric()
+                                                    ->currencyMask()
                                                     ->prefix('$')
                                                     ->readOnly(),
                                                 TextInput::make('abono')
-                                                    ->numeric()
+                                                    ->currencyMask()
                                                     ->prefix('$')
                                                     ->readOnly(),
                                                 TextInput::make('factura')
@@ -418,8 +421,12 @@ class MovbancosResource extends Resource
                                             ->default(function() use ($partidas) {
                                                 $items = [];
                                                 foreach ($partidas as $partida) {
+                                                    $ctas = CatCuentas::where('team_id',Filament::getTenant()->id)
+                                                        ->where('codigo',$partida->codigo)->first();
+                                                    $nom = $ctas?->codigo ?? $partida->codigo;
+                                                    $des = $ctas?->nombre ?? '';
                                                     $items[] = [
-                                                        'codigo' => $partida->codigo,
+                                                        'codigo' => $nom.' - '.$des,
                                                         'cargo' => $partida->cargo,
                                                         'abono' => $partida->abono,
                                                         'factura' => $partida->factura,
@@ -428,6 +435,19 @@ class MovbancosResource extends Resource
                                                 }
                                                 return $items;
                                             }),
+                                        Fieldset::make('Totales')
+                                        ->label('')
+                                        ->schema([
+                                            Forms\Components\Placeholder::make('Sumas Iguales:'),
+                                            TextInput::make('cargos')
+                                                ->currencyMask()
+                                                ->prefix('$')
+                                                ->readOnly()->default(number_format($cargos),2),
+                                            TextInput::make('abonos')
+                                                ->currencyMask()
+                                                ->prefix('$')
+                                                ->readOnly()->default(number_format($abonos),2),
+                                        ])->columnSpanFull()->columns(3)
                                     ]),
                             ];
                         }),

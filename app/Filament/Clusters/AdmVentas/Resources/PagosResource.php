@@ -203,7 +203,13 @@ class PagosResource extends Resource
                                         ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
                                         ->default(0),
                                     Forms\Components\TextInput::make('equivalencia')
-                                        ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4),
+                                        ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4)
+                                        ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                        $imp = $get('imppagado');
+                                        $equiv = $get('equivalencia');
+                                        $set('imppagado', round(($imp * $equiv),4));
+                                    }),
                                     Forms\Components\TextInput::make('parcialidad')
                                         ->default(1)->numeric(),
                                     Forms\Components\Hidden::make('objeto')

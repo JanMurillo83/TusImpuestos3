@@ -198,5 +198,168 @@ class MainChartsController extends Controller
         error_log("Ctas_X_Cob2:".count($auxiliares));
         return $auxiliares;
     }
+
+    public function CuentasCobrar_detalle(Request $request):\Illuminate\Support\Collection
+    {
+        $team_id = $request->team_id;
+        $cuenta = $request->cuenta;
+        $mes_act = $request->periodo;
+        $eje_act = $request->ejercicio;
+        $concepto = $request->concepto;
+        $codi = DB::table('cat_cuentas')
+            ->where('acumula',$cuenta)
+            ->where('team_id',$team_id)->pluck('codigo');
+        $codigos = DB::table('cat_cuentas')
+            ->whereIn('acumula',$codi)
+            ->where('team_id',$team_id)->pluck('codigo');
+        error_log("Ctas_X_Cob1:".count($codigos));
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo','<=', $mes_act)
+            ->where('a_ejercicio', $eje_act)
+            ->where('auxiliares.concepto', $concepto)
+            ->whereIn('codigo',$codigos)
+            ->join('cat_polizas','cat_polizas.id','=','auxiliares.cat_polizas_id')
+            ->orderBy('factura')
+            ->orderBy('cargo','desc')
+            ->get();
+        error_log("Ctas_X_Cob2:".count($auxiliares));
+        return $auxiliares;
+    }
+
+    public function CuentasPagar($team_id,$cuenta,$mes_act,$eje_act):\Illuminate\Support\Collection
+    {
+        $codi = DB::table('cat_cuentas')
+            ->where('acumula',$cuenta)
+            ->where('team_id',$team_id)->pluck('codigo');
+        $codigos = DB::table('cat_cuentas')
+            ->whereIn('acumula',$codi)
+            ->where('team_id',$team_id)->pluck('codigo');
+        error_log("Ctas_X_Pag1:".count($codigos));
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo','<=', $mes_act)
+            ->where('a_ejercicio', $eje_act)
+            ->whereIn('codigo',$codigos)
+            ->orderBy(DB::raw('sum(abono - cargo)'),'desc')
+            ->select(DB::raw('sum(abono - cargo)  as importe'),'concepto')
+            ->groupBy('concepto')
+            ->get();
+        error_log("Ctas_X_Pag2:".count($auxiliares));
+        return $auxiliares;
+    }
+    public function CuentasPagar_detalle(Request $request):\Illuminate\Support\Collection
+    {
+        $team_id = $request->team_id;
+        $cuenta = $request->cuenta;
+        $mes_act = $request->periodo;
+        $eje_act = $request->ejercicio;
+        $concepto = $request->concepto;
+        $codi = DB::table('cat_cuentas')
+            ->where('acumula',$cuenta)
+            ->where('team_id',$team_id)->pluck('codigo');
+        $codigos = DB::table('cat_cuentas')
+            ->whereIn('acumula',$codi)
+            ->where('team_id',$team_id)->pluck('codigo');
+        error_log("Ctas_X_Pag:".count($codigos));
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo','<=', $mes_act)
+            ->where('a_ejercicio', $eje_act)
+            ->where('auxiliares.concepto', $concepto)
+            ->whereIn('codigo',$codigos)
+            ->join('cat_polizas','cat_polizas.id','=','auxiliares.cat_polizas_id')
+            ->orderBy('factura')
+            ->orderBy('abono','desc')
+            ->get();
+        error_log("Ctas_X_Pag:".count($auxiliares));
+        return $auxiliares;
+    }
+    public function UtilidadPeriodo($team_id,$mes_act,$eje_act):\Illuminate\Support\Collection
+    {
+        $codi = DB::table('cat_cuentas')
+            ->where('acumula','40000000')
+            ->where('team_id',$team_id)->pluck('codigo');
+        $codigos = DB::table('cat_cuentas')
+            ->whereIn('acumula',$codi)
+            ->where('team_id',$team_id)->pluck('codigo');
+        error_log("Utilidad:".count($codigos));
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo', $mes_act)
+            ->where('a_ejercicio', $eje_act)
+            ->whereIn('auxiliares.codigo',$codigos)
+            ->get();
+        error_log("Utilidad1:".count($auxiliares));
+        return $auxiliares;
+    }
+    public function UtilidadPeriodoGastos($team_id,$mes_act,$eje_act):\Illuminate\Support\Collection
+    {
+        $codi = DB::table('cat_cuentas')
+            ->whereIn('acumula',['50000000','60000000','70000000'])
+            ->where('team_id',$team_id)->pluck('codigo');
+        $codigos = DB::table('cat_cuentas')
+            ->whereIn('acumula',$codi)
+            ->where('team_id',$team_id)->pluck('codigo');
+        error_log("Utilidad:".count($codigos));
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo', $mes_act)
+            ->where('a_ejercicio', $eje_act)
+            ->whereIn('auxiliares.codigo',$codigos)
+            ->get();
+        error_log("Utilidad1:".count($auxiliares));
+        return $auxiliares;
+    }
+
+    public function UtilidadEjercicio($team_id,$mes_act,$eje_act):\Illuminate\Support\Collection
+    {
+        $codi = DB::table('cat_cuentas')
+            ->where('acumula','40000000')
+            ->where('team_id',$team_id)->pluck('codigo');
+        $codigos = DB::table('cat_cuentas')
+            ->whereIn('acumula',$codi)
+            ->where('team_id',$team_id)->pluck('codigo');
+        error_log("Utilidad:".count($codigos));
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo','<=', $mes_act)
+            ->where('a_ejercicio', $eje_act)
+            ->whereIn('auxiliares.codigo',$codigos)
+            ->join('cat_cuentas','cat_cuentas.codigo','=','auxiliares.codigo')
+            ->select(DB::raw("IF (cat_cuentas.naturaleza = 'D',sum(cargo)-sum(abono),sum(abono)-sum(cargo)) as importe")
+                ,'auxiliares.codigo')
+            ->groupBy('auxiliares.codigo')
+            ->groupBy('cat_cuentas.naturaleza')
+            ->get();
+        error_log("Utilidad1:".count($auxiliares));
+        return $auxiliares;
+    }
+
+    public function UtilidadEjercicioGastos($team_id,$mes_act,$eje_act):\Illuminate\Support\Collection
+    {
+        $codi = DB::table('cat_cuentas')
+            ->whereIn('acumula',['50000000','60000000','70000000'])
+            ->where('team_id',$team_id)->pluck('codigo');
+        $codigos = DB::table('cat_cuentas')
+            ->whereIn('acumula',$codi)
+            ->where('team_id',$team_id)->pluck('codigo');
+        error_log("Utilidad:".count($codigos));
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo','<=', $mes_act)
+            ->where('a_ejercicio', $eje_act)
+            ->whereIn('auxiliares.codigo',$codigos)
+            ->join('cat_cuentas','cat_cuentas.codigo','=','auxiliares.codigo')
+            ->select(DB::raw("IF (cat_cuentas.naturaleza = 'D',sum(cargo)-sum(abono),sum(abono)-sum(cargo)) as importe")
+            ,'auxiliares.codigo')
+            ->groupBy('auxiliares.codigo')
+            ->groupBy('cat_cuentas.naturaleza')
+            ->get();
+        error_log("Utilidad1:".count($auxiliares));
+        return $auxiliares;
+    }
+
+
 }
 

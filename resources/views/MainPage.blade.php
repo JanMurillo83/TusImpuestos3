@@ -27,6 +27,18 @@
         $cuenta_c = '10500000';
         $ctas_cobrar = app(MainChartsController::class)->CuentasCobrar($team_id,$cuenta_c,$mes_act,$eje_act);
         $tot_ctas_cobrar = $ctas_cobrar->sum('importe');
+        //-----------------------------------------------------------------------------------------------------------
+        $cuenta_p = '20100000';
+        $ctas_pagar = app(MainChartsController::class)->CuentasPagar($team_id,$cuenta_p,$mes_act,$eje_act);
+        $tot_ctas_pagar = $ctas_pagar->sum('importe');
+        //-----------------------------------------------------------------------------------------------------------
+        $ingresos = app(MainChartsController::class)->UtilidadPeriodo($team_id,$mes_act,$eje_act);
+        $gastos = app(MainChartsController::class)->UtilidadPeriodoGastos($team_id,$mes_act,$eje_act);
+        $utilidad = $ingresos->sum('importe') - ($gastos->sum('abono')+$gastos->sum('cargo'));
+        //-----------------------------------------------------------------------------------------------------------
+        $ingresos_a = app(MainChartsController::class)->UtilidadEjercicio($team_id,$mes_act,$eje_act);
+        $gastos_a = app(MainChartsController::class)->UtilidadEjercicioGastos($team_id,$mes_act,$eje_act);
+        dd($gastos_a,$ingresos_a);
     ?>
     <style>
         .card-basic {
@@ -198,11 +210,137 @@
             const dialog1 = document.getElementById("dialog5");
             dialog1.show();
         }
+        async function muestra_detalle3(param) {
+            const dialog1 = document.getElementById("dialog5");
+            const dialog2 = document.getElementById("dialog6");
+            dialog2.addEventListener('sl-hide', () => {
+                dialog2.hide();
+                dialog1.show();
+            })
+            let data1;
+            console.log(host);
+            await $.ajax({
+                url:`${host}/api/ctascobrardet`,
+                data: {
+                    team_id:{{$team_id}},
+                    cuenta:"10500000",
+                    periodo:{{$mes_act}},
+                    ejercicio:{{$eje_act}},
+                    concepto:param
+                },
+                complete: function (response) {
+                    data1 = response.responseText;
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+            let datos = JSON.parse(data1);
+            $("#dialog6").attr('label',`Cuentas por Cobrar ${datos[0].concepto} {{$mes_let}} - {{$eje_act}}`);
+            let imp_tot = 0;
+            let imp_tot_p = 0;
+
+            $("#table_3 tbody tr").remove();
+            datos.forEach(element => {
+                console.log(element);
+                let importe = parseFloat(element.cargo);
+                let pago = parseFloat(element.abono);
+                let fec1 = element.fecha.substring(0,4);
+                let fec2 = element.fecha.substring(5,7);
+                let fec3 = element.fecha.substring(8,10);
+                let fecha = fec3+'-'+fec2+'-'+fec1;
+                imp_tot+=importe;
+                imp_tot_p+=pago;
+                let newRow =
+                    `<tr>
+                        <td>${element.concepto}</td>
+                        <td>${element.tipo}${element.folio}</td>
+                        <td>${element.factura}</td>
+                        <td>${fecha}</td>
+                        <td style='text-align: right'>{{'$'}}${importe.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td style='text-align: right'>{{'$'}}${pago.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    </tr>`;
+                document.getElementById('table_3').
+                getElementsByTagName('tbody')[0].
+                insertAdjacentHTML('beforeend', newRow);
+            });
+            $("#total_table3").text('$'+imp_tot.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $("#total_table3_p").text('$'+imp_tot_p.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            let saldo_t = imp_tot-imp_tot_p;
+            $("#total_table3_p_t").text('$'+saldo_t.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            dialog1.hide();
+            dialog2.show();
+        }
+        function showDialog4() {
+            const dialog1 = document.getElementById("dialog7");
+            dialog1.show();
+        }
+        async function muestra_detalle4(param) {
+            const dialog1 = document.getElementById("dialog7");
+            const dialog2 = document.getElementById("dialog8");
+            dialog2.addEventListener('sl-hide', () => {
+                dialog2.hide();
+                dialog1.show();
+            })
+            let data1;
+            console.log(host);
+            await $.ajax({
+                url:`${host}/api/ctaspagardet`,
+                data: {
+                    team_id:{{$team_id}},
+                    cuenta:"20100000",
+                    periodo:{{$mes_act}},
+                    ejercicio:{{$eje_act}},
+                    concepto:param
+                },
+                complete: function (response) {
+                    data1 = response.responseText;
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+            let datos = JSON.parse(data1);
+            $("#dialog8").attr('label',`Cuentas por Pagar ${datos[0].concepto} {{$mes_let}} - {{$eje_act}}`);
+            let imp_tot = 0;
+            let imp_tot_p = 0;
+
+            $("#table_4 tbody tr").remove();
+            datos.forEach(element => {
+                console.log(element);
+                let importe = parseFloat(element.abono);
+                let pago = parseFloat(element.cargo);
+                let fec1 = element.fecha.substring(0,4);
+                let fec2 = element.fecha.substring(5,7);
+                let fec3 = element.fecha.substring(8,10);
+                let fecha = fec3+'-'+fec2+'-'+fec1;
+                imp_tot+=importe;
+                imp_tot_p+=pago;
+                let newRow =
+                    `<tr>
+                        <td>${element.concepto}</td>
+                        <td>${element.tipo}${element.folio}</td>
+                        <td>${element.factura}</td>
+                        <td>${fecha}</td>
+                        <td style='text-align: right'>{{'$'}}${importe.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td style='text-align: right'>{{'$'}}${pago.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    </tr>`;
+                document.getElementById('table_4').
+                getElementsByTagName('tbody')[0].
+                insertAdjacentHTML('beforeend', newRow);
+            });
+            $("#total_table4").text('$'+imp_tot.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $("#total_table4_p").text('$'+imp_tot_p.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            let saldo_t = imp_tot-imp_tot_p;
+            $("#total_table4_p_t").text('$'+saldo_t.toLocaleString('us', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            dialog1.hide();
+            dialog2.show();
+        }
     </script>
 </head>
     <body style="background-color: var(--sl-color-primary-50) !important;">
         <div class="container">
-            <div class="row">
+            <div class="row mt-2">
                 <div class="col-12">
                     <table>
                         <tr>
@@ -218,7 +356,7 @@
                     </table>
                 </div>
             </div>
-            <div class="row mt-2">
+            <div class="row mt-4">
                 <div class="col-3">
                     <sl-card class="card-basic" onclick="showDialog1()">
                         <div><label class="label-title">Ventas del Mes</label></div>
@@ -243,8 +381,31 @@
                 <div class="col-3">
                     <sl-card class="card-basic" onclick="showDialog4()">
                         <div><label class="label-title">Cuentas por Pagar</label></div>
-                        <div><label class="label-number"><sl-format-number type="currency" currency="USD" value="{{$tot_ctas_cobrar}}" lang="en-US"></sl-format-number></label></div>
-                        <div><label class="label-footer3">Periodo {{$mes_let}} {{$eje_act}}</label></div>
+                        <div><label class="label-number"><sl-format-number type="currency" currency="USD" value="{{$tot_ctas_pagar}}" lang="en-US"></sl-format-number></label></div>
+                        <div><label class="label-footer">Periodo {{$mes_let}} {{$eje_act}}</label></div>
+                    </sl-card>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-4">
+                    <sl-card class="card-basic" onclick="showDialog4()">
+                        <div><label class="label-title">Utilidad / Perdida del Periodo</label></div>
+                        <div><label class="label-number"><sl-format-number type="currency" currency="USD" value="{{$utilidad}}" lang="en-US"></sl-format-number></label></div>
+                        <div><label class="label-footer2">Periodo {{$mes_let}} {{$eje_act}}</label></div>
+                    </sl-card>
+                </div>
+                <div class="col-4">
+                    <sl-card class="card-basic" onclick="showDialog4()">
+                        <div><label class="label-title">Utilidad / Perdida del Ejercicio</label></div>
+                        <div><label class="label-number"><sl-format-number type="currency" currency="USD" value="{{$utilidad_ejericio}}" lang="en-US"></sl-format-number></label></div>
+                        <div><label class="label-footer2">Periodo Enero - {{$mes_let}} {{$eje_act}}</label></div>
+                    </sl-card>
+                </div>
+                <div class="col-4">
+                    <sl-card class="card-basic" onclick="showDialog4()">
+                        <div><label class="label-title">Impuestos del Periodo</label></div>
+                        <div><label class="label-number"><sl-format-number type="currency" currency="USD" value="{{$tot_ctas_pagar}}" lang="en-US"></sl-format-number></label></div>
+                        <div><label class="label-footer2">Periodo {{$mes_let}} {{$eje_act}}</label></div>
                     </sl-card>
                 </div>
             </div>
@@ -393,7 +554,7 @@
             </div>
         </sl-dialog>
         <!----------------------------------Cuentas_x_Cobrar-------------------------------->
-        <sl-dialog label="Cuentas x Cobrar: Enero - {{$mes_let}} - {{$eje_act}}" id="dialog5" style="--width: 60rem !important;--height: 30rem !important;">
+        <sl-dialog label="Cuentas por Cobrar: Enero - {{$mes_let}} - {{$eje_act}}" id="dialog5" style="--width: 60rem !important;--height: 30rem !important;">
             <div class="row">
                 <sl-card>
                     <div class="card-body">
@@ -417,7 +578,7 @@
 
                                             ?>
                                         <tr>
-                                            <td><a href="#" onclick="muestra_detalle2('{{$data_client->concepto}}')">{{$data_client->concepto}}</a></td>
+                                            <td><a href="#" onclick="muestra_detalle3('{{$data_client->concepto}}')">{{$data_client->concepto}}</a></td>
                                             <td style="text-align: right">{{'$'.number_format($impo,2)}}</td>
                                             <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
                                         </tr>
@@ -450,13 +611,102 @@
                                         <th>Factura</th>
                                         <th>Fecha</th>
                                         <th>Importe</th>
+                                        <th>Pagos</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     </tbody>
                                     <tfoot>
-                                    <td  colspan="4" style="font-weight: bold">TOTAL :</td>
-                                    <td style="text-align: right;font-weight: bold"><label id="total_table3"></label></td>
+                                    <tr>
+                                        <td  colspan="4" style="font-weight: bold">TOTALES :</td>
+                                        <td style="text-align: right;font-weight: bold"><label id="total_table3"></label></td>
+                                        <td style="text-align: right;font-weight: bold"><label id="total_table3_p"></label></td>
+                                    </tr>
+                                    <tr>
+                                        <td  colspan="5" style="font-weight: bold">SALDO :</td>
+                                        <td style="text-align: right;font-weight: bold"><label id="total_table3_p_t"></label></td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </sl-card>
+            </div>
+        </sl-dialog>
+        <!----------------------------------Cuentas_x_Pagar-------------------------------->
+        <sl-dialog label="Cuentas por Pagar: Enero - {{$mes_let}} - {{$eje_act}}" id="dialog7" style="--width: 60rem !important;--height: 30rem !important;">
+            <div class="row">
+                <sl-card>
+                    <div class="card-body">
+                        <div class="container-card">
+                            <div>
+                                <table class="table table-striped" style="width: 100%">
+                                    <thead>
+                                    <tr style="background-color: black; color: white">
+                                        <th>Proveedor</th>
+                                        <th>Importe</th>
+                                        <th>% del mes</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php $acum_1 = 0;?>
+                                    @foreach($ctas_pagar as $data_client)
+                                            <?php
+                                            $impo = floatval($data_client->importe);
+                                            $porc1 = floatval($impo)*100/max(floatval($tot_ctas_cobrar),1);
+                                            $acum_1+=floatval($impo);
+
+                                            ?>
+                                        <tr>
+                                            <td><a href="#" onclick="muestra_detalle4('{{$data_client->concepto}}')">{{$data_client->concepto}}</a></td>
+                                            <td style="text-align: right">{{'$'.number_format($impo,2)}}</td>
+                                            <td style="text-align: right">{{number_format($porc1,2).'%'}}</td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                    <tfoot>
+                                    <td style="font-weight: bold">TOTAL :</td>
+                                    <td style="text-align: right;font-weight: bold">{{'$'.number_format($acum_1,2)}}</td>
+                                    <td></td>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </sl-card>
+            </div>
+        </sl-dialog>
+        <!-------------------------Detalle 3--------------------------------->
+        <sl-dialog label="" id="dialog8" style="--width: 60rem !important;--height: 30rem !important;">
+            <div class="row">
+                <sl-card>
+                    <div class="card-body">
+                        <div class="container-card">
+                            <div>
+                                <table class="table table-striped" id="table_4" style="width: 100%">
+                                    <thead>
+                                    <tr style="background-color: black; color: white">
+                                        <th>Proveedor</th>
+                                        <th>Póliza</th>
+                                        <th>Factura</th>
+                                        <th>Fecha</th>
+                                        <th>Importe</th>
+                                        <th>Pagos</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                    <tfoot>
+                                    <tr>
+                                        <td  colspan="4" style="font-weight: bold">TOTALES :</td>
+                                        <td style="text-align: right;font-weight: bold"><label id="total_table4"></label></td>
+                                        <td style="text-align: right;font-weight: bold"><label id="total_table4_p"></label></td>
+                                    </tr>
+                                    <tr>
+                                        <td  colspan="5" style="font-weight: bold">SALDO :</td>
+                                        <td style="text-align: right;font-weight: bold"><label id="total_table4_p_t"></label></td>
+                                    </tr>
                                     </tfoot>
                                 </table>
                             </div>

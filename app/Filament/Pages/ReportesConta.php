@@ -35,6 +35,8 @@ class ReportesConta extends Page implements HasForms
 
     public ?string $cuenta_ini_g;
     public ?string $cuenta_fin_g;
+    public ?int $mes_ini_g;
+    public ?int $mes_fin_g;
     public function form(Form $form): Form{
         return $form
             ->schema([
@@ -100,7 +102,13 @@ class ReportesConta extends Page implements HasForms
                                     DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
                                         ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo','asc')->pluck('mostrar','codigo')
                                 )
-                                ->searchable()
+                                ->searchable(),
+                            Select::make('periodo_ini')
+                            ->label('Periodo Inicial')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12'])
+                            ->default(Filament::getTenant()->periodo),
+                            Select::make('periodo_fin')
+                                ->label('Periodo Final')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12'])
+                            ->default(Filament::getTenant()->periodo),
                         ])
                         ->action(function ($data){
                             $ejercicio = Filament::getTenant()->ejercicio;
@@ -108,7 +116,9 @@ class ReportesConta extends Page implements HasForms
                             $team_id = Filament::getTenant()->id;
                             $this->cuenta_ini_g = $data['cuenta_ini'] ?? null;
                             $this->cuenta_fin_g = $data['cuenta_fin'] ?? null;
-                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            $this->mes_ini_g = intval($data['periodo_ini']) ?? Filament::getTenant()->periodo;
+                            $this->mes_fin_g = intval($data['periodo_fin']) ?? Filament::getTenant()->periodo;
+                            //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             $this->getAction('Auxiliares del Periodo')->visible(true);
                             $this->replaceMountedAction('Auxiliares del Periodo');
                             $this->getAction('Auxiliares del Periodo')->visible(false);
@@ -300,7 +310,7 @@ class ReportesConta extends Page implements HasForms
                 ->filename('Auxiliares del Periodo')
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
-                view('AuxiliaresPeriodo',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio,'cuenta_ini'=>$this->cuenta_ini_g,'cuenta_fin'=>$this->cuenta_fin_g])
+                view('AuxiliaresPeriodo',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio,'cuenta_ini'=>$this->cuenta_ini_g,'cuenta_fin'=>$this->cuenta_fin_g,'mes_ini'=>$this->mes_ini_g,'mes_fin'=>$this->mes_fin_g])
                 )->visible(false)
                 ->modalWidth('7xl'),
             Html2MediaAction::make('Polizas Descuadradas')

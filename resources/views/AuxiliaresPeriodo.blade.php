@@ -22,11 +22,11 @@ $prevSaldosQuery = DB::table('auxiliares as a')
     ->where('c.team_id',$empresa)
     ->when($cuentaIni, function($q) use ($cuentaIni){ $q->where('a.codigo','>=',$cuentaIni); })
     ->when($cuentaFin, function($q) use ($cuentaFin){ $q->where('a.codigo','<=',$cuentaFin); })
-    ->where(function($q) use ($periodo,$ejercicio){
+    ->where(function($q) use ($periodo,$ejercicio,$mes_ini,$mes_fin){
         $q->where('p.ejercicio','<',$ejercicio)
-          ->orWhere(function($q2) use ($periodo,$ejercicio){
+          ->orWhere(function($q2) use ($periodo,$ejercicio,$mes_ini,$mes_fin){
               $q2->where('p.ejercicio',$ejercicio)
-                 ->where('p.periodo','<',$periodo);
+                 ->where('p.periodo','<',$mes_ini);
           });
     })
     ->groupBy('a.codigo','a.cuenta')
@@ -50,7 +50,7 @@ $movimientos = DB::table('auxiliares as a')
     ->where('a.team_id',$empresa)
     ->where('p.team_id',$empresa)
     ->where('c.team_id',$empresa)
-    ->where('p.periodo',$periodo)
+    ->whereBetween('p.periodo',[$mes_ini,$mes_fin])
     ->where('p.ejercicio',$ejercicio)
     ->when($cuentaIni, function($q) use ($cuentaIni){ $q->where('a.codigo','>=',$cuentaIni); })
     ->when($cuentaFin, function($q) use ($cuentaFin){ $q->where('a.codigo','<=',$cuentaFin); })
@@ -115,7 +115,7 @@ foreach ($movimientos as $m) {
             <center>
                 <h5>{{ $empresaRow->name ?? 'Empresa' }}</h5>
                 <div>
-                    Auxiliares del Periodo {{ $periodo }} / {{ $ejercicio }}
+                    Auxiliares del Periodo {{ $mes_ini }} a {{$mes_fin}} / {{ $ejercicio }}
                 </div>
                 <?php if($cuentaIni || $cuentaFin): ?>
                     <div>
@@ -125,7 +125,7 @@ foreach ($movimientos as $m) {
             </center>
         </div>
         <div class="col-3">
-            Fecha de Emision: <?php echo $fecha->toDateString('d-m-Y'); ?>
+            Fecha de Emisión: <?php echo $fecha->toDateString('d-m-Y'); ?>
         </div>
     </div>
     <hr>

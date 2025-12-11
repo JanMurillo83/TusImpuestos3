@@ -2248,15 +2248,15 @@ class MovbancosResource extends Resource
 
     public static function sumas_partidas_manual(Get $get,Set $set) :void
     {
-        $detalle = $get('../../detalle');
+        $detalle = $get('detalle');
         $cargos = 0;
         $abonos = 0;
         foreach ($detalle as $det) {
             $cargos += floatval($det['cargo'] ?? 0);
             $abonos += floatval($det['abono'] ?? 0);
         }
-        $set('../../cargos_tot',number_format($cargos,2));
-        $set('../../abonos_tot',number_format($abonos,2));
+        $set('cargos_tot',number_format($cargos,2));
+        $set('abonos_tot',number_format($abonos,2));
     }
     public static function procesa_s_f($record,$data)
     {

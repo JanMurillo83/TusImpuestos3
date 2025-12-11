@@ -102,6 +102,15 @@ class Tools extends Page implements HasForms, HasActions
                     Actions\Action::make('Cierre de Periodo')
                     ->requiresConfirmation()
                     ->icon('fas-lock')
+                        ->visible(function (){
+                            $team = Filament::getTenant()->id;
+                            $periodo = Filament::getTenant()->periodo;
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $per_team = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first();
+                            $estado = $per_team?->estado ?? 1;
+                            if($estado == 1) return true;
+                            return false;
+                        })
                     ->action(function (){
                         $team = Filament::getTenant()->id;
                         $periodo = Filament::getTenant()->periodo;
@@ -120,7 +129,7 @@ class Tools extends Page implements HasForms, HasActions
                             ->update(['estado'=>2]);
                         }
                     }),
-                    Actions\Action::make('Abrir de Periodo')
+                    Actions\Action::make('Apertura de Periodo')
                         ->requiresConfirmation()
                         ->icon('fas-lock')
                         ->visible(function (){

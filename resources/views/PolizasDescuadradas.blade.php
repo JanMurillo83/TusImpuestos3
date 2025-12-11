@@ -8,7 +8,7 @@ $fecha = \Carbon\Carbon::now();
 $polizas = CatPolizas::where('team_id',$empresa)
     ->where('periodo',$periodo)
     ->where('ejercicio',$ejercicio)
-    ->whereColumn('cargos','!=','abonos')
+    ->whereColumn(DB::raw('TRUNCATE(cargos,2)'),'!=',DB::raw('TRUNCATE(abonos,2)'))
     ->orderBy('fecha')
     ->orderBy('folio')
     ->get();

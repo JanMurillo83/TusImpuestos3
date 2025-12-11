@@ -128,7 +128,8 @@ class Tools extends Page implements HasForms, HasActions
                             $periodo = Filament::getTenant()->periodo;
                             $ejercicio = Filament::getTenant()->ejercicio;
                             $per_team = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first();
-                            if($per_team->estado == 2) return true;
+                            $estado = $per_team?->estado ?? 1;
+                            if($estado == 2) return true;
                             return false;
                         })
                         ->action(function (){

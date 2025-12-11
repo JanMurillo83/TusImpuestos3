@@ -352,6 +352,14 @@ class CatPolizasResource extends Resource
                 })
                 ->modalSubmitActionLabel('Grabar')
                 ->modalWidth('7xl')
+                    ->before(function ($data,$action){
+                        $cargos = round($data['total_cargos'],3);
+                        $abonos = round($data['total_abonos'],3);
+                        if ($cargos != $abonos){
+                            Notification::make()->title('Poliza descuadrada')->warning()->send();
+                            $action->halt();
+                        }
+                    })
                 ->after(function ($record){
                     $id = $record->id;
                     //DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->delete();
@@ -537,7 +545,7 @@ class CatPolizasResource extends Resource
                     ->modalWidth('7xl')
                     ->before(function ($data){
                         $record = $data;
-                        //dd($record);
+                        dd($record);
                     })
                     ->after(function ($record){
                         $id = $record->id;

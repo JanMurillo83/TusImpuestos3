@@ -1136,7 +1136,7 @@ class MovbancosResource extends Resource
                                     Fieldset::make('Sumas Iguales')
                                         ->schema([
                                             Actions::make([
-                                                Action::make('totalizar')
+                                                Actions\Action::make('totalizar')
                                                 ->label('Totalizar')->badge()
                                                 ->action(function (Get $get, Set $set){
                                                     self::sumas_partidas_manual($get,$set);
@@ -1492,7 +1492,7 @@ class MovbancosResource extends Resource
                                     Fieldset::make('Sumas Iguales')
                                         ->schema([
                                             Actions::make([
-                                               Action::make('totalizar')
+                                               Actions\Action::make('totalizar')
                                                ->label('Totalizar')->badge()
                                                ->action(function (Get $get, Set $set){
                                                    self::sumas_partidas_manual($get,$set);

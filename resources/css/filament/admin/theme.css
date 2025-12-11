@@ -78,9 +78,9 @@ html {
     background-color: #fcfcfc;
 }
 .row_gral:hover{
-    background-color: oklch(60.6% 0.25 292.717);
+    background-color: oklch(55.2% 0.016 285.938);
 }
 
 .row_gral:active{
-    background-color: oklch(60.6% 0.25 292.717);
+    background-color: oklch(55.2% 0.016 285.938);
 }

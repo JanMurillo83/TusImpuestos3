@@ -166,6 +166,97 @@ class ReportesAdmin extends Page implements HasForms
                                 })
                         ])
                     ]),
+                Fieldset::make('filtrocuentascobrar')
+                    ->visible(function (Get $get){
+                        return $get('reporte') == 'cuentas';
+                    })
+                    ->label('Filtro de Fechas')
+                    ->schema([
+                        DatePicker::make('fecha_inicial')->label('Fecha Inicial')->default(Carbon::now()->format('Y-m-d')),
+                        DatePicker::make('fecha_final')->label('Fecha Final')->default(Carbon::now()->format('Y-m-d')),
+                        Select::make('cliente')
+                            ->searchable()
+                            ->options(function (){
+                                return Auxiliares::where('codigo','like','105%')
+                                    ->distinct('cuenta')
+                                    ->pluck('cuenta');
+                            }),
+                        Actions::make([
+                            Actions\Action::make('generar_2')
+                                ->label('Generar Reporte')
+                                ->action(function (Get $get,Set $set){
+                                    $reporte_url = 'storage/cuentas_'.Filament::getTenant()->id.'.pdf';
+                                    if(\File::exists($reporte_url)) unlink($reporte_url);
+                                    $data = [
+                                        'team_id'=>Filament::getTenant()->id,
+                                        'fecha_inicial'=>$get('fecha_inicial'),
+                                        'fecha_final'=>$get('fecha_final'),
+                                        'cliente'=>$get('cliente')
+                                    ];
+                                    $html = View::make('ReportesAdmin.CuentasCobrar',$data)->render();
+                                    Browsershot::html($html)
+                                        ->format('Letter')
+                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                        ->noSandbox()
+                                        ->scale(0.8)->savePdf($reporte_url);
+                                    $pdfContent = file_get_contents($reporte_url);
+                                    $this->ReportePDF = base64_encode($pdfContent);
+                                    //dd($this->ReportePDF);
+                                    $this->reporte_url = 'cuentas_'.Filament::getTenant()->id.'.pdf';
+                                    $set('reporte_generado','SI');
+                                    $set('reporte','');
+                                    $set('reporte_generado_2',$this->reporte_url);
+                                    //$set('ReportePDF',$this->reporte_url);
+                                })
+                        ])
+                    ]),
+                Fieldset::make('filtrocuentaspagar')
+                    ->visible(function (Get $get){
+                        return $get('reporte') == 'pagar';
+                    })
+                    ->label('Filtro de Fechas')
+                    ->schema([
+                        DatePicker::make('fecha_inicial')->label('Fecha Inicial')->default(Carbon::now()->format('Y-m-d')),
+                        DatePicker::make('fecha_final')->label('Fecha Final')->default(Carbon::now()->format('Y-m-d')),
+                        Select::make('cliente')
+                            ->label('Proveedor')
+                            ->searchable()
+                            ->options(function (){
+                                return Auxiliares::where('codigo','like','201%')
+                                    ->distinct('cuenta')
+                                    ->pluck('cuenta');
+                            }),
+                        Actions::make([
+                            Actions\Action::make('generar_2')
+                                ->label('Generar Reporte')
+                                ->action(function (Get $get,Set $set){
+                                    $reporte_url = 'storage/pagar_'.Filament::getTenant()->id.'.pdf';
+                                    if(\File::exists($reporte_url)) unlink($reporte_url);
+                                    $data = [
+                                        'team_id'=>Filament::getTenant()->id,
+                                        'fecha_inicial'=>$get('fecha_inicial'),
+                                        'fecha_final'=>$get('fecha_final'),
+                                        'cliente'=>$get('cliente')
+                                    ];
+                                    $html = View::make('ReportesAdmin.CuentasPagar',$data)->render();
+                                    Browsershot::html($html)
+                                        ->format('Letter')
+                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                        ->noSandbox()
+                                        ->scale(0.8)->savePdf($reporte_url);
+                                    $pdfContent = file_get_contents($reporte_url);
+                                    $this->ReportePDF = base64_encode($pdfContent);
+                                    //dd($this->ReportePDF);
+                                    $this->reporte_url = 'pagar_'.Filament::getTenant()->id.'.pdf';
+                                    $set('reporte_generado','SI');
+                                    $set('reporte','');
+                                    $set('reporte_generado_2',$this->reporte_url);
+                                    //$set('ReportePDF',$this->reporte_url);
+                                })
+                        ])
+                    ]),
                 Group::make([
                     Actions::make([
                         Actions\Action::make('Regresar')

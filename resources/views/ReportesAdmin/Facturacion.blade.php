@@ -112,7 +112,7 @@
                     <td colspan="3">Totales:</td>
                     <td>{{'$'.number_format($total_subtimb,2)}}</td>
                     <td>{{'$'.number_format($total_ivatimb,2)}}</td>
-                    <td>{{'$'.number_format($total_rettimb}}</td>
+                    <td>{{'$'.number_format($total_rettimb,2)}}</td>
                     <td>{{'$'.number_format($total_timb,2)}}</td>
                     <td></td>
                 </tr>

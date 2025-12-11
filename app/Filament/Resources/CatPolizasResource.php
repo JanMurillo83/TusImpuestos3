@@ -174,7 +174,7 @@ class CatPolizasResource extends Resource
                             ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
                                 $cargo = $get('cargo');
                                 if($cargo === ''||$cargo === null) $set('cargo',0);
-                                Self::TotalizarCA($get,$set);
+                                self::TotalizarCA($get,$set);
                             }),
                         TextInput::make('abono')
                             ->numeric()
@@ -184,7 +184,7 @@ class CatPolizasResource extends Resource
                             ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
                                 $abono = $get('abono');
                                 if($abono === ''||$abono === null) $set('abono',0);
-                                Self::TotalizarCA($get,$set);
+                                self::TotalizarCA($get,$set);
                             }),
                         TextInput::make('factura')
                         ->label('Referencia')
@@ -207,14 +207,14 @@ class CatPolizasResource extends Resource
                             $columna = array_column($partidas,'cargo');
                             $suma = array_sum($columna);
                             return floatval($suma);
-                        })->numeric()->currencyMask(decimalSeparator: '.',precision: 2),
+                        })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)->columnSpan(2),
                         TextInput::make('total_abonos')->hiddenLabel()->prefix('$')->readOnly()
                             ->formatStateUsing(function (Get $get){
                                 $partidas = $get('detalle');
                                 $columna = array_column($partidas,'abono');
                                 $suma = array_sum($columna);
                                 return floatval($suma);
-                            })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)
+                            })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)->columnSpan(2)
                     ])->columnSpan('full')->columns(7)
 
                     ]);
@@ -230,18 +230,22 @@ class CatPolizasResource extends Resource
         $partidas = $get('../../detalle');
         if(!$partidas) return;
         $columnaC = array_column($partidas,'cargo');
-        $sumaC = bcdiv(array_sum($columnaC),2);
+        $sumaC = floatval(array_sum($columnaC));
         $columnaA = array_column($partidas,'abono');
-        $sumaA = bcdiv(array_sum($columnaA),2);
+        $sumaA = floatval(array_sum($columnaA));
+        $sumaC = bcdiv($sumaC,1,2);
+        $sumaA = bcdiv($sumaA,1,2);
         $set('../../total_cargos',$sumaC);
         $set('../../total_abonos',$sumaA);
+
+        //dd($sumaC,$sumaA,$partidas);
     }
     public static function updateTotals(Get $get, Set $set)
     {
         $cargos = collect($get('partidas'))->pluck('cargo')->sum();
         $abonos = collect($get('partidas'))->pluck('abono')->sum();
-        $set('cargos',bcdiv($cargos,2));
-        $set('abonos',bcdiv($abonos,2));
+        $set('cargos',bcdiv($cargos,1,2));
+        $set('abonos',bcdiv($abonos,1,2));
     }
 
     public static function table(Table $table): Table
@@ -544,9 +548,13 @@ class CatPolizasResource extends Resource
                     ->icon('fas-plus')
                     ->modalSubmitActionLabel('Grabar')
                     ->modalWidth('7xl')
-                    ->before(function ($data){
-                        $record = $data;
-                        dd($record);
+                    ->before(function ($data,$action){
+                        $cargos = round($data['total_cargos'],3);
+                        $abonos = round($data['total_abonos'],3);
+                        if ($cargos != $abonos){
+                            Notification::make()->title('Poliza descuadrada')->warning()->send();
+                            $action->halt();
+                        }
                     })
                     ->after(function ($record){
                         $id = $record->id;
@@ -902,9 +910,9 @@ class CatPolizasResource extends Resource
             $cargos+= $dato['cargo'];
             $abonos+= $dato['abono'];
         }
-        $set('../../cargos_tot',bcdiv($cargos,2));
-        $set('../../abonos_tot',bcdiv($abonos,2));
-        $set('../../diferencia',bcdiv($cargos,2)-bcdiv($abonos,2));
+        $set('../../cargos_tot',bcdiv($cargos,1,2));
+        $set('../../abonos_tot',bcdiv($abonos,1,2));
+        $set('../../diferencia',bcdiv($cargos,1,2)-bcdiv($abonos,1,2));
     }
     public static function getRelations(): array
     {

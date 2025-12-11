@@ -460,7 +460,7 @@ class Cobros extends Page implements HasForms
                     $pesos = floatval($factura['Monto a Pagar']);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
                     $dolares =floatval($factura['USD a Pagar']);
-                    $tipoc = $monto_mxn_pagar/$monto_dolares_pagar;
+                    $tipoc = $record->importe/$monto_dolares_pagar;
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
                     $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
@@ -595,6 +595,7 @@ class Cobros extends Page implements HasForms
                     IngresosEgresos::where('id', $fac_id)->update([
                         'pendientemxn' => $n_pen2
                     ]);
+                    $imp_dolares = $record->importe;
                 }
                 if ($factura['Moneda'] != 'MXN' && $moneda_pago != 'MXN') {
                     $cfdi  = Almacencfdis::where('id', $fac_id)->first();

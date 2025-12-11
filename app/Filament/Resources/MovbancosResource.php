@@ -1115,56 +1115,12 @@ class MovbancosResource extends Resource
                                                         ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$')
-                                                        ->suffixAction(
-                                                            Actions\Action::make('Calcula_1')
-                                                                ->label('Calcular')
-                                                            ->icon('fas-calculator')
-                                                            ->modalSubmitActionLabel('Usar')
-                                                            ->form([
-                                                                Forms\Components\TextInput::make('Operacion')
-                                                                ->default(0)->required()
-                                                                ->live(onBlur: true)
-                                                                ->afterStateUpdated(function($state,Set $set,Get $get){
-                                                                    $s = eval('return '.$state.';');
-                                                                    $set('resultado',$s);
-                                                                }),
-                                                                TextInput::make('resultado')->readOnly(),
-                                                            ])->action(function(array $data,Set $set,Get $get){
-                                                                $val = floatval($data['resultado']);
-                                                                $set('cargo',$val);
-                                                            })
-                                                          )
-                                                        ->afterStateUpdated(function(Get $get,Set $set){
-                                                            self::sumas_partidas_manual($get,$set);
-                                                        }),
+                                                        ->prefix('$'),
                                                     TextInput::make('abono')
                                                         ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$')
-                                                        ->suffixAction(
-                                                            Actions\Action::make('Calcula_1')
-                                                                ->label('Calcular')
-                                                                ->icon('fas-calculator')
-                                                                ->modalSubmitActionLabel('Usar')
-                                                                ->form([
-                                                                    Forms\Components\TextInput::make('Operacion')
-                                                                        ->default(0)->required()
-                                                                        ->live(onBlur: true)
-                                                                        ->afterStateUpdated(function($state,Set $set,Get $get){
-                                                                            $s = eval('return '.$state.';');
-                                                                            $set('resultado',$s);
-                                                                        }),
-                                                                    TextInput::make('resultado')->readOnly(),
-                                                                ])->action(function(array $data,Set $set,Get $get){
-                                                                    $val = floatval($data['resultado']);
-                                                                    $set('abono',$val);
-                                                                })
-                                                        )
-                                                        ->afterStateUpdated(function(Get $get,Set $set){
-                                                            self::sumas_partidas_manual($get,$set);
-                                                        }),
+                                                        ->prefix('$'),
                                                     TextInput::make('factura')
                                                         ->label('Referencia')
                                                         ->prefix('F-'),
@@ -1179,6 +1135,13 @@ class MovbancosResource extends Resource
                                         ]),
                                     Fieldset::make('Sumas Iguales')
                                         ->schema([
+                                            Actions::make([
+                                                Action::make('totalizar')
+                                                ->label('Totalizar')->badge()
+                                                ->action(function (Get $get, Set $set){
+                                                    self::sumas_partidas_manual($get,$set);
+                                                })
+                                            ]),
                                             TextInput::make('cargos_tot')
                                                 ->label('Cargos')
                                                 ->prefix('$')->readOnly()->currencyMask()->default(0),
@@ -1508,56 +1471,12 @@ class MovbancosResource extends Resource
                                                         ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$')
-                                                        ->suffixAction(
-                                                            Actions\Action::make('Calcula_1')
-                                                                ->label('Calcular')
-                                                                ->icon('fas-calculator')
-                                                                ->modalSubmitActionLabel('Usar')
-                                                                ->form([
-                                                                    Forms\Components\TextInput::make('Operacion')
-                                                                        ->default(0)->required()
-                                                                        ->live(onBlur: true)
-                                                                        ->afterStateUpdated(function($state,Set $set,Get $get){
-                                                                            $s = eval('return '.$state.';');
-                                                                            $set('resultado',$s);
-                                                                        }),
-                                                                    TextInput::make('resultado')->readOnly(),
-                                                                ])->action(function(array $data,Set $set,Get $get){
-                                                                    $val = floatval($data['resultado']);
-                                                                    $set('cargo',$val);
-                                                                })
-                                                        )
-                                                        ->afterStateUpdated(function(Get $get,Set $set){
-                                                            self::sumas_partidas_manual($get,$set);
-                                                        }),
+                                                        ->prefix('$'),
                                                     TextInput::make('abono')
                                                         ->currencyMask()
                                                         ->default(0)
                                                         ->live(onBlur:true)
-                                                        ->prefix('$')
-                                                        ->suffixAction(
-                                                            Actions\Action::make('Calcula_1')
-                                                                ->label('Calcular')
-                                                                ->icon('fas-calculator')
-                                                                ->modalSubmitActionLabel('Usar')
-                                                                ->form([
-                                                                    Forms\Components\TextInput::make('Operacion')
-                                                                        ->default(0)->required()
-                                                                        ->live(onBlur: true)
-                                                                        ->afterStateUpdated(function($state,Set $set,Get $get){
-                                                                            $s = eval('return '.$state.';');
-                                                                            $set('resultado',$s);
-                                                                        }),
-                                                                    TextInput::make('resultado')->readOnly(),
-                                                                ])->action(function(array $data,Set $set,Get $get){
-                                                                    $val = floatval($data['resultado']);
-                                                                    $set('abono',$val);
-                                                                })
-                                                        )
-                                                        ->afterStateUpdated(function(Get $get,Set $set){
-                                                            self::sumas_partidas_manual($get,$set);
-                                                        }),
+                                                        ->prefix('$'),
                                                     TextInput::make('factura')
                                                         ->label('Referencia')
                                                         ->prefix('F-'),
@@ -1572,6 +1491,13 @@ class MovbancosResource extends Resource
                                         ]),
                                     Fieldset::make('Sumas Iguales')
                                         ->schema([
+                                            Actions::make([
+                                               Action::make('totalizar')
+                                               ->label('Totalizar')->badge()
+                                               ->action(function (Get $get, Set $set){
+                                                   self::sumas_partidas_manual($get,$set);
+                                               })
+                                            ]),
                                             TextInput::make('cargos_tot')
                                                 ->label('Cargos')
                                                 ->prefix('$')->readOnly()->currencyMask()->default(0),

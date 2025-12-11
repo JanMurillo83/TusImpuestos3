@@ -120,6 +120,35 @@ class Tools extends Page implements HasForms, HasActions
                             ->update(['estado'=>2]);
                         }
                     }),
+                    Actions\Action::make('Abrir de Periodo')
+                        ->requiresConfirmation()
+                        ->icon('fas-lock')
+                        ->visible(function (){
+                            $team = Filament::getTenant()->id;
+                            $periodo = Filament::getTenant()->periodo;
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $per_team = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first();
+                            if($per_team->estado == 2) return true;
+                            return false;
+                        })
+                        ->action(function (){
+                            $team = Filament::getTenant()->id;
+                            $periodo = Filament::getTenant()->periodo;
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                            {
+                                ContaPeriodos::create([
+                                    'periodo'=>$periodo,
+                                    'ejercicio'=>$ejercicio,
+                                    'estado'=>1,
+                                    'team_id'=>$team,
+                                ]);
+                            }
+                            else{
+                                ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)
+                                    ->update(['estado'=>1]);
+                            }
+                        }),
                     Actions\Action::make('Alta de Proveedores')
                     ->action(function (){
                         try {

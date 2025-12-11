@@ -58,6 +58,7 @@ class cfdie_all extends Page implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->recordClasses('row_gral')
             ->query(Almacencfdis::query())
             ->modifyQueryUsing(function (Builder $query) {
                 $query->where('team_id',Filament::getTenant()->id)

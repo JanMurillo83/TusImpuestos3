@@ -517,6 +517,7 @@ class NotasdeCreditoResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordClasses('row_gral')
             ->defaultPaginationPageOption(5)
             ->paginationPageOptions([5,'all'])
             ->striped()

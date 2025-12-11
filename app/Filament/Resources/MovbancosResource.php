@@ -210,7 +210,7 @@ class MovbancosResource extends Resource
                     return 'row_si';
                 if($record->contabilizada == 'PA')
                     return 'row_pa';
-                return '';
+                return 'row_gral';
             })
             ->paginated(false)
             ->columns([
@@ -305,7 +305,7 @@ class MovbancosResource extends Resource
                         ->icon('heroicon-o-document-text')
                         ->color('success')
                         ->visible(function($record){
-                            if($record->contabilizada == 'SI') return true;
+                            if($record->contabilizada != 'NO') return true;
                             return false;
                         })
                         ->modalHeading('Detalles de la Póliza')

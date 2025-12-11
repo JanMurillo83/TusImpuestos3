@@ -59,6 +59,7 @@ class visrecp extends Page implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->recordClasses('row_gral')
         ->query(
             Almacencfdis::where('team_id',Filament::getTenant()->id)
             ->where('xml_type','Recibidos')

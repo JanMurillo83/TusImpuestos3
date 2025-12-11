@@ -45,6 +45,7 @@ class ClientesResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
+
             ->extraAttributes(['style'=>'gap:0.3rem'])
             ->schema([
                 Hidden::make('team_id')->default(Filament::getTenant()->id),
@@ -122,6 +123,7 @@ class ClientesResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordClasses('row_gral')
             ->defaultPaginationPageOption(5)
             ->paginationPageOptions([5,'all'])
             ->striped()

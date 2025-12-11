@@ -458,6 +458,7 @@ class FacturaModelosResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordClasses('row_gral')
             ->query(fn (FacturaModelo $query) => $query->where('team_id', Filament::getTenant()->id))
             ->columns([
                 Tables\Columns\TextColumn::make('nombre_modelo')->searchable()->label('Modelo'),

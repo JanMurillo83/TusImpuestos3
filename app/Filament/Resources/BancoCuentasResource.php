@@ -173,6 +173,7 @@ class BancoCuentasResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordClasses('row_gral')
             ->columns([
                 Tables\Columns\TextColumn::make('clave')
                     ->searchable(),

@@ -52,7 +52,8 @@
         "simplesoftwareio/simple-qrcode": "^4.2",
         "solution-forest/filament-simplelightbox": "^0.0.10",
         "spatie/browsershot": "^5.0",
-        "torgodly/html2media": "^1.1"
+        "torgodly/html2media": "^1.1",
+        "ext-bcmath": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

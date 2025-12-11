@@ -73,3 +73,14 @@ html {
     background-color: #aa5500;
     color: #fcfcfc;
 }
+
+.row_gral{
+    background-color: #fcfcfc;
+}
+.row_gral:hover{
+    background-color: oklch(60.6% 0.25 292.717);
+}
+
+.row_gral:active{
+    background-color: oklch(60.6% 0.25 292.717);
+}

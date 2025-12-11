@@ -230,9 +230,9 @@ class CatPolizasResource extends Resource
         $partidas = $get('../../detalle');
         if(!$partidas) return;
         $columnaC = array_column($partidas,'cargo');
-        $sumaC = array_sum($columnaC);
+        $sumaC = bcdiv(array_sum($columnaC),2);
         $columnaA = array_column($partidas,'abono');
-        $sumaA = array_sum($columnaA);
+        $sumaA = bcdiv(array_sum($columnaA),2);
         $set('../../total_cargos',$sumaC);
         $set('../../total_abonos',$sumaA);
     }
@@ -240,13 +240,14 @@ class CatPolizasResource extends Resource
     {
         $cargos = collect($get('partidas'))->pluck('cargo')->sum();
         $abonos = collect($get('partidas'))->pluck('abono')->sum();
-        $set('cargos',$cargos);
-        $set('abonos',$abonos);
+        $set('cargos',bcdiv($cargos,2));
+        $set('abonos',bcdiv($abonos,2));
     }
 
     public static function table(Table $table): Table
     {
         return $table
+        ->recordClasses('row_gral')
         ->query(CatPolizas::query())
             ->modifyQueryUsing(function ($query) {
                 $query->where('team_id',Filament::getTenant()->id)
@@ -901,9 +902,9 @@ class CatPolizasResource extends Resource
             $cargos+= $dato['cargo'];
             $abonos+= $dato['abono'];
         }
-        $set('../../cargos_tot',$cargos);
-        $set('../../abonos_tot',$abonos);
-        $set('../../diferencia',$cargos-$abonos);
+        $set('../../cargos_tot',bcdiv($cargos,2));
+        $set('../../abonos_tot',bcdiv($abonos,2));
+        $set('../../diferencia',bcdiv($cargos,2)-bcdiv($abonos,2));
     }
     public static function getRelations(): array
     {

@@ -88,7 +88,8 @@
 
     </style>
     <script>
-        let host = "{{env('APP_URL','http://localhost:8000')}}";
+        //let host = "{{env('APP_URL','http://localhost:8000')}}";
+        let host = "https://app-tusimpuestos.com";
         function showDialog1() {
             const dialog1 = document.getElementById("dialog1");
             dialog1.show();

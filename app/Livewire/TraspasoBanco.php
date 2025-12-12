@@ -132,6 +132,7 @@ class TraspasoBanco extends Widget implements HasForms
                             //dd($dat_cta_or->codigo,$dat_cta_or->banco,$dat_cta_de->codigo,$dat_cta_de->banco);
                             $fecha= Carbon::create(substr($get('fecha'),0,10))->format('Y-m-d');
                             $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Dr')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                            //dd($mon_d,$mon_o);
                             $poliza = CatPolizas::create([
                                 'tipo'=>'Dr',
                                 'folio'=>$nopoliza,
@@ -149,7 +150,7 @@ class TraspasoBanco extends Widget implements HasForms
                             ]);
                             $polno = $poliza['id'];
                             $par_num = 1;
-                            if($mon_o == $mon_d){
+                            if($mon_o == $mon_d&&$mon_o != 'USD'){
                                 $aux = Auxiliares::create([
                                     'cat_polizas_id'=>$polno,
                                     'codigo'=>$dat_cta_de->codigo,
@@ -173,6 +174,77 @@ class TraspasoBanco extends Widget implements HasForms
                                     'concepto'=>'Traspaso entre Cuentas',
                                     'cargo'=>0,
                                     'abono'=>round(floatval($imp_o),2),
+                                    'factura'=>'F-',
+                                    'nopartida'=>$par_num,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                CatPolizas::where('id',$polno)->update([
+                                    'cargos'=>round(floatval($imp_o),2),
+                                    'abonos'=>round(floatval($imp_o),2),
+                                ]);
+                            }
+                            if($mon_o == $mon_d&&$mon_o == 'USD'){
+                                $cta_comple_o = CatCuentas::where('id',$dat_cta_or->complementaria)->first();
+                                $cta_comple_d = CatCuentas::where('id',$dat_cta_de->complementaria)->first();
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$dat_cta_de->codigo,
+                                    'cuenta'=>$dat_cta_de->banco,
+                                    'concepto'=>'Traspaso entre Cuentas',
+                                    'cargo'=>round(floatval($imp_o),2),
+                                    'abono'=>0,
+                                    'factura'=>'F-',
+                                    'nopartida'=>$par_num,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $par_num++;
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$cta_comple_d->codigo,
+                                    'cuenta'=>$cta_comple_d->nombre,
+                                    'concepto'=>'Traspaso entre Cuentas',
+                                    'cargo'=>round(floatval(($imp_o*$tc_o)-$imp_o),2),
+                                    'abono'=>0,
+                                    'factura'=>'F-',
+                                    'nopartida'=>$par_num,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $par_num++;
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$dat_cta_or->codigo,
+                                    'cuenta'=>$dat_cta_or->banco,
+                                    'concepto'=>'Traspaso entre Cuentas',
+                                    'cargo'=>0,
+                                    'abono'=>round(floatval($imp_o),2),
+                                    'factura'=>'F-',
+                                    'nopartida'=>$par_num,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                                DB::table('auxiliares_cat_polizas')->insert([
+                                    'auxiliares_id'=>$aux['id'],
+                                    'cat_polizas_id'=>$polno
+                                ]);
+                                $par_num++;
+                                $aux = Auxiliares::create([
+                                    'cat_polizas_id'=>$polno,
+                                    'codigo'=>$cta_comple_o->codigo,
+                                    'cuenta'=>$cta_comple_o->nombre,
+                                    'concepto'=>'Traspaso entre Cuentas',
+                                    'cargo'=>0,
+                                    'abono'=>round(floatval(($imp_o*$tc_o)-$imp_o),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
                                     'team_id'=>Filament::getTenant()->id

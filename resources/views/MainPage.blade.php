@@ -38,6 +38,7 @@
         //-----------------------------------------------------------------------------------------------------------
         $ingresos_a = app(MainChartsController::class)->UtilidadEjercicio($team_id,$mes_act,$eje_act);
         $gastos_a = app(MainChartsController::class)->UtilidadEjercicioGastos($team_id,$mes_act,$eje_act);
+        $utilidad_ejericio = 0;
         //dd($gastos_a,$ingresos_a);
     ?>
     <style>

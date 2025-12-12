@@ -1,14 +1,11 @@
 <?php
-$team_id = \Filament\Facades\Filament::getTenant()->id;
+    use Filament\Facades\Filament;
+    use App\Http\Controllers\ReportesController;
+    use App\Livewire\MainVentasWidget;
+    $ejercicio = Filament::getTenant()->ejercicio;
+    $periodo = Filament::getTenant()->periodo;
+    $team_id = Filament::getTenant()->id;
+    //(new ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 ?>
-<style>
-    #frame { zoom: 0.90; -moz-transform: scale(0.90); -moz-transform-origin: 0 0; }
-</style>
-
 <x-filament-panels::page>
-    <div>
-        <iframe id="frame" src="{{route('mainview',['team_id'=>$team_id,'tenantSlug' => $team_id])}}" width="100%" height="400px">
-            Navegador No compátible
-        </iframe>
-    </div>
 </x-filament-panels::page>

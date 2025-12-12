@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Filament\Support\Assets\Js;
+use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentColor;
 use Illuminate\Support\ServiceProvider;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationBuilder;
@@ -55,5 +57,10 @@ class AppServiceProvider extends ServiceProvider
             PanelsRenderHook::FOOTER,
             fn (): View => view('customFooter'),
         );
+        FilamentColor::register([
+            'indigo' => Color::Indigo,
+            'white' => Color::hex('#ffffff'),
+        ]);
+
     }
 }

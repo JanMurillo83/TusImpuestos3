@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Http\Controllers\ReportesController;
+use App\Livewire\AdvVentasANWidget;
+use App\Livewire\AdvVentasWidget;
 use App\Livewire\Indicadores2Widget;
 use App\Livewire\Indicadores3Widget;
 use App\Livewire\Indicadores4Widget;
@@ -28,5 +30,10 @@ class IndicadoresMain extends Page
     protected static ?string $title = 'Indicadores del Periodo';
     protected static string $view = 'filament.pages.indicadores-main';
     protected ?string $maxContentWidth = 'full';
-
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            AdvVentasWidget::class,
+        ];
+    }
 }

@@ -83,6 +83,22 @@ class MovbancosResource extends Resource
     protected static ?string $label = 'Movimiento Bancario';
     protected static ?string $pluralLabel = 'Movimientos Bancarios';
     protected static ?string $navigationIcon ='fas-money-bill-transfer';
+
+    public function mount():void
+    {
+        $ids = Movbancos::where('team_id',Filament::getTenant()->id)
+            ->where('ejercicio',Filament::getTenant()->ejercicio)
+            ->where('periodo',Filament::getTenant()->periodo)
+            ->get();
+        foreach($ids as $id)
+        {
+            if(!CatPolizas::where('idmovb',$ids)->exists())
+            {
+                $ids->contabilizada = 'NO';
+                $ids->save();
+            }
+        }
+    }
     public static function form(Form $form): Form
     {
         return $form

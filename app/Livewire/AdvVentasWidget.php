@@ -45,27 +45,28 @@ class AdvVentasWidget extends BaseWidget implements HasActions,HasForms
         $mes_letras = app(MainChartsController::class)->mes_letras($periodo);
         $leyenda = new HtmlString("<label style='color: whitesmoke !important;font-weight: bold !important;'>Ventas del Periodo</label>");
         $leyend =new HtmlString("<label style='color: whitesmoke !important;font-weight: bold !important; font-style: italic'>$label</label>");
+        //------------------------------------------------------------------------------------------------------------------------------------------
         $but1 = new HtmlString(\Blade::render(<<<BLADE
-            <x-filament::link :href="url('/$team_id/consulta-c-f-d-i-s-a-t')" color="info" icon="fas-circle-info">
+            <x-filament::link :href="url('/$team_id/ventasperiododetalle')" color="info" icon="fas-circle-info">
                 Ver Detalles $mes_letras - $ejercicio
             </x-filament::link>
         BLADE
          ));
-        //-------------------------------------------------------------------------------
+        //------------------------------------------------------------------------------------------------------------------------------------------
         $leyenda_a = new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important;'>Ventas del Ejercicio</label>");
         $leyend_a =new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important; font-style: italic'>$label_a</label>");
         $but2 = new HtmlString(\Blade::render(<<<BLADE
-            <x-filament::link :href="url('/$team_id/consulta-c-f-d-i-s-a-t')" color="info" icon="fas-circle-info">
+            <x-filament::link :href="url('/$team_id/ventasejerciciodetalle')" color="info" icon="fas-circle-info">
                 Ver Detalles Enero - $mes_letras $ejercicio
             </x-filament::link>
         BLADE
         ));
-        //-------------------------------------------------------------------------------
+        //------------------------------------------------------------------------------------------------------------------------------------------
         return [
             Stat::make($leyenda, $leyend)
                 ->icon('fas-dollar-sign')
                 ->backgroundColor('primary')
-                ->progress(69)
+                ->progress(50)
                 ->progressBarColor('success')
                 ->iconBackgroundColor('success')
                 ->chartColor('success')
@@ -75,7 +76,7 @@ class AdvVentasWidget extends BaseWidget implements HasActions,HasForms
             Stat::make($leyenda_a, $leyend_a)
                 ->icon('fas-dollar-sign')
                 ->backgroundColor('primary')
-                ->progress(69)
+                ->progress(100)
                 ->progressBarColor('warning')
                 ->iconBackgroundColor('success')
                 ->chartColor('success')

@@ -20,6 +20,8 @@ use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
+use Spatie\Browsershot\Browsershot;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class ReportesConta extends Page implements HasForms
@@ -37,6 +39,14 @@ class ReportesConta extends Page implements HasForms
     public ?string $cuenta_fin_g;
     public ?int $mes_ini_g;
     public ?int $mes_fin_g;
+
+    public function mount():void
+    {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
+        $team_id = Filament::getTenant()->id;
+        (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+    }
     public function form(Form $form): Form{
         return $form
             ->schema([
@@ -48,10 +58,17 @@ class ReportesConta extends Page implements HasForms
                             $ejercicio = Filament::getTenant()->ejercicio;
                             $periodo = Filament::getTenant()->periodo;
                             $team_id = Filament::getTenant()->id;
-                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
-                            $this->getAction('Balance General')->visible(true);
+                            /*$this->getAction('Balance General')->visible(true);
                             $this->replaceMountedAction('Balance General');
-                            $this->getAction('Balance General')->visible(false);
+                            $this->getAction('Balance General')->visible(false);*/
+                            $ruta = public_path().'/TMPCFDI/balance_gral'.$team_id.'_'.$ejercicio.'_'.$periodo.'.pdf';
+                            $html = View::make('BGralNew',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
                         }),
                     Actions\Action::make('Balanza_General')
                         ->label('Balanza de Comprobacion')
@@ -265,8 +282,7 @@ class ReportesConta extends Page implements HasForms
         return [
             Html2MediaAction::make('Balance General')
                 ->preview()
-                ->print(false)
-                ->savePdf()
+                ->print()
                 ->filename('Balance General')
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
@@ -275,8 +291,7 @@ class ReportesConta extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('Balanza General')
                 ->preview()
-                ->print(false)
-                ->savePdf()
+                ->print()
                 ->filename('Balanza de Comprobacion')
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>
@@ -285,8 +300,7 @@ class ReportesConta extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('Balanza Nueva')
                 ->preview()
-                ->print(false)
-                ->savePdf()
+                ->print()
                 ->filename('Balanza de Comprobacion (Nuevo)')
                 ->margin([10, 10, 10, 10])
                 ->content(fn()=>

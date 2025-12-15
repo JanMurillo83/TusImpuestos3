@@ -191,7 +191,8 @@ class PagosResource extends Resource
                                         ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
                                             $ante = $get('saldoant');
                                             $imp = $get('imppagado');
-                                            $subt = $ante - $imp;
+                                            $equiv = $get('equivalencia');
+                                            $subt = ($ante*$equiv) - $imp;
                                             $iva = (($imp / 1.16) * 0.16);
                                             $set('baseiva', round(($imp / 1.16),6));
                                             $set('montoiva', round($iva,6));

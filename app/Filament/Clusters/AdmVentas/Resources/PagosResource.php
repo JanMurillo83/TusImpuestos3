@@ -127,11 +127,7 @@ class PagosResource extends Resource
                                 ->label('Tipo de Cambio')
                                 ->required()
                                 ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4)
-                                ->default(1)
-                                ->readOnly(function (Forms\Get $get) {
-                                    if($get('moneda') == 'XXX') return true;
-                                    else return false;
-                                }),
+                                ->default(1),
                             Forms\Components\Hidden::make('usocfdi')
                                 ->default('CP01'),
 
@@ -157,12 +153,15 @@ class PagosResource extends Resource
                                             function (Forms\Get $get, Forms\Set $set) {
                                                 $facturas = Facturas::where('id', $get('uuidrel'))->get();
                                                 //dd($facturas);
-                                                $total = $facturas[0]->pendiente_pago;
+                                                $total = floatval($facturas[0]->pendiente_pago);
+                                                $tc = floatval($get('tcambio'));
+                                                if($tc == 0) $tc = 1;
+                                                $total_mxn = $total * $tc;
                                                 $set('tasaiva', 0.16);
                                                 $set('unitario', $total);
                                                 $set('importe', $total);
                                                 $set('saldoant', $total);
-                                                $set('imppagado', $total);
+                                                $set('imppagado', $total_mxn);
                                                 $subt = $total / (1 + $get('tasaiva'));
                                                 $iva = $subt * 0.16;
                                                 $set('baseiva', $subt);
@@ -170,6 +169,7 @@ class PagosResource extends Resource
                                                 $set('insoluto', 0);
                                                 $set('tasaiva', 0.16);
                                                 $set('moneda', $facturas[0]->moneda);
+                                                $set('equivalencia', $tc);
                                             }
                                         ),
                                     Forms\Components\Hidden::make('unitario')
@@ -190,10 +190,8 @@ class PagosResource extends Resource
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
                                             $ante = floatval($get('saldoant'));
-                                            $equiv = floatval($get('equivalencia'));
-                                            $ante_mx = $ante * $equiv;
                                             $imp = $get('imppagado');
-                                            $subt = $ante_mx - $imp;
+                                            $subt = $ante - $imp;
                                             $iva = (($imp / 1.16) * 0.16);
                                             $set('baseiva', round(($imp / 1.16),6));
                                             $set('montoiva', round($iva,6));
@@ -206,17 +204,16 @@ class PagosResource extends Resource
                                         ->default(0),
                                     Forms\Components\TextInput::make('equivalencia')
                                         ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4)
-                                        ->live(onBlur: true)
-                                    ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
-                                        $equiv = floatval($get('equivalencia'));
-                                        $imp = bcdiv($get('imppagado'),$equiv,2);
+                                        ->live(onBlur: true),
+                                    /*->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                        $imp = $get('imppagado');
                                         $equiv = $get('equivalencia');
                                         $set('imppagado', round(($imp * $equiv),4));
                                         $ante = floatval($get('saldoant'));
                                         $equiv = floatval($get('equivalencia'));
                                         $ante_mx = $ante * $equiv;
                                         $set('insoluto', $ante_mx-round(($imp * $equiv)));
-                                    }),
+                                    }),*/
                                     Forms\Components\TextInput::make('parcialidad')
                                         ->default(1)->numeric(),
                                     Forms\Components\Hidden::make('objeto')

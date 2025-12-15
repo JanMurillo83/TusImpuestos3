@@ -62,7 +62,8 @@ class ReportesConta extends Page implements HasForms
                             $this->replaceMountedAction('Balance General');
                             $this->getAction('Balance General')->visible(false);*/
                             $ruta = public_path().'/TMPCFDI/balance_gral'.$team_id.'_'.$ejercicio.'_'.$periodo.'.pdf';
-                            $html = View::make('BGralNew',['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio])->render();
+                            $data = ['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio];
+                            $html = View::make('BGralNew',$data)->render();
                             Browsershot::html($html)->format('Letter')
                                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                                 ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
@@ -76,10 +77,19 @@ class ReportesConta extends Page implements HasForms
                             $ejercicio = Filament::getTenant()->ejercicio;
                             $periodo = Filament::getTenant()->periodo;
                             $team_id = Filament::getTenant()->id;
-                            (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            /*(new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             $this->getAction('Balanza General')->visible(true);
                             $this->replaceMountedAction('Balanza General');
-                            $this->getAction('Balanza General')->visible(false);
+                            $this->getAction('Balanza General')->visible(false);*/
+                            $ruta = public_path().'/TMPCFDI/balanza'.$team_id.'_'.$ejercicio.'_'.$periodo.'.pdf';
+                            $data = ['empresa'=>Filament::getTenant()->id,'periodo'=>Filament::getTenant()->periodo,'ejercicio'=>Filament::getTenant()->ejercicio];
+                            $html = View::make('AGralNew',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
                         }),
                     Actions\Action::make('Balanza_Nueva')
                         ->label('Balanza de Comprobación (Nuevo)')

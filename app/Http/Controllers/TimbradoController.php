@@ -491,10 +491,10 @@ class TimbradoController extends Controller
             ])->addDoctoRelacionado([
                 'IdDocumento' => $facrel->uuid,
                 'MonedaDR' => $facrel->moneda,
-                'EquivalenciaDR' => $equivalencia,
+                'EquivalenciaDR' => bcdiv(floatval($pdata->equivalencia),1,4),
                 'NumParcialidad' => intval($pdata->parcialidad),
                 'ImpSaldoAnt' => bcdiv(round(floatval($pdata->saldoant),6),1,2),
-                'ImpPagado' => bcdiv(round(floatval($pdata->imppagado),6),1,2),
+                'ImpPagado' => bcdiv(floatval($pdata->imppagado),floatval($pdata->equivalencia),2),
                 'ImpSaldoInsoluto' => bcdiv(round(floatval($pdata->insoluto),6),1,2),
                 'ObjetoImpDR' => "02"
             ])->addImpuestosDR()

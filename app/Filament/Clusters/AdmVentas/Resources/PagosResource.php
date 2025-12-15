@@ -30,6 +30,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
+use Spatie\Browsershot\Browsershot;
 
 class PagosResource extends Resource
 {
@@ -346,11 +348,20 @@ class PagosResource extends Resource
                         ->icon('fas-print')
                         ->color('warning')
                         ->action(function ($record,$livewire) {
-                            $livewire->idorden = $record->id;
-                            $livewire->id_empresa = Filament::getTenant()->id;
-                            $livewire->getAction('Imprimir_Doc_P')->visible(true);
-                            $livewire->replaceMountedAction('Imprimir_Doc_P');
-                            $livewire->getAction('Imprimir_Doc_P')->visible(false);
+                            $record = Pagos::where('id',$record->id)->first();
+                            $emp = DatosFiscales::where('team_id',Filament::getTenant()->id)->first();
+                            $cli = Clientes::where('id',$record->cve_clie)->first();
+                            $archivo_pdf = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                            $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                            if(File::exists($ruta))File::delete($ruta);
+                            $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                            $html = View::make('RepFacturaCP',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
                         }),
                     Tables\Actions\Action::make('Timbrar')
                     ->icon('fas-bell-concierge')
@@ -391,6 +402,20 @@ class PagosResource extends Resource
                                 ->body($mensaje_graba)
                                 ->duration(2000)
                                 ->send();
+                            $record = Pagos::where('id',$record->id)->first();
+                            $emp = DatosFiscales::where('team_id',Filament::getTenant()->id)->first();
+                            $cli = Clientes::where('id',$record->cve_clie)->first();
+                            $archivo_pdf = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                            $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                            if(File::exists($ruta))File::delete($ruta);
+                            $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                            $html = View::make('RepFacturaCP',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
                         }
                         else{
                             $mensaje_tipo = "2";
@@ -551,6 +576,21 @@ class PagosResource extends Resource
                         ->body($mensaje_graba)
                         ->duration(2000)
                         ->send();
+                    $record = Pagos::where('id',$record->id)->first();
+                    $emp = DatosFiscales::where('team_id',Filament::getTenant()->id)->first();
+                    $cli = Clientes::where('id',$record->cve_clie)->first();
+                    $archivo_pdf = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                    if(File::exists($ruta))File::delete($ruta);
+                    $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                    $html = View::make('RepFacturaCP',$data)->render();
+                    Browsershot::html($html)->format('Letter')
+                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                        ->noSandbox()
+                        ->scale(0.8)->savePdf($ruta);
+                    return response()->download($ruta);
+
                 }
                 else{
                     $mensaje_tipo = "2";

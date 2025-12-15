@@ -493,9 +493,9 @@ class TimbradoController extends Controller
                 'MonedaDR' => $facrel->moneda,
                 'EquivalenciaDR' => $equivalencia,
                 'NumParcialidad' => intval($pdata->parcialidad),
-                'ImpSaldoAnt' => round(floatval($pdata->saldoant),6),
-                'ImpPagado' => round(floatval($pdata->imppagado),6),
-                'ImpSaldoInsoluto' => round(floatval($pdata->insoluto),6),
+                'ImpSaldoAnt' => bcdiv(round(floatval($pdata->saldoant),6),1,2),
+                'ImpPagado' => bcdiv(round(floatval($pdata->imppagado),6),1,2),
+                'ImpSaldoInsoluto' => bcdiv(round(floatval($pdata->insoluto),6),1,2),
                 'ObjetoImpDR' => "02"
             ])->addImpuestosDR()
                 ->addTrasladosDR()

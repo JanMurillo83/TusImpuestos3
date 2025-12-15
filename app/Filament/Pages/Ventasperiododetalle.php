@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use AlperenErsoy\FilamentExport\Actions\FilamentExportHeaderAction;
+use App\Livewire\AdvVentasPeriodoWidget;
 use App\Models\AuxVentas;
 use Fibtegis\FilamentInfiniteScroll\Concerns\InteractsWithInfiniteScroll;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -37,6 +38,18 @@ class Ventasperiododetalle extends Page implements  HasTable
     {
         return '';
 
+    }
+
+    public function mount(): void
+    {
+
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            AdvVentasPeriodoWidget::class,
+        ];
     }
 
     public function table(Table $table): Table

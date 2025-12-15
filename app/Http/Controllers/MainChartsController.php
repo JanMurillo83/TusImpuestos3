@@ -377,6 +377,22 @@ class MainChartsController extends Controller
         return $auxiliares;
     }
 
+    public function GetAuxiliaresEjercicio($team_id,$cuenta,$periodo,$ejercicio):\Illuminate\Support\Collection
+    {
+        $codigos = DB::table('cat_cuentas')
+            ->where('acumula',$cuenta)
+            ->where('team_id',$team_id)->pluck('codigo');
+        $auxiliares = DB::table('auxiliares')
+            ->where('auxiliares.team_id', $team_id)
+            ->where('a_periodo','<', $periodo)
+            ->where('a_ejercicio', $ejercicio)
+            ->where('abono', '>', 0)
+            ->orderBy('abono','desc')
+            ->join('cat_polizas','cat_polizas.id','=','auxiliares.cat_polizas_id')
+            ->whereIn('codigo',$codigos)->get();
+        return $auxiliares;
+    }
+
     public function GetUtilidadPeriodo($team_id): float
     {
         $cuentas = DB::select("SELECT * FROM saldos_reportes

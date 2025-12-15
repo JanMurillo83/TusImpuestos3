@@ -9,4 +9,5 @@ class CobrarGeneral extends Page
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static string $view = 'filament.pages.cobrar-general';
+    protected static bool $shouldRegisterNavigation = false;
 }

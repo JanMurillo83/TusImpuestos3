@@ -160,7 +160,7 @@ class PagosResource extends Resource
                                                 $set('unitario', $total);
                                                 $set('importe', $total);
                                                 $set('saldoant', $total);
-                                                $set('imppagado', $total_mxn);
+                                                $set('imppagado', bcdiv($total_mxn,1,2));
                                                 $subt = $total / (1 + $get('tasaiva'));
                                                 $iva = $subt * 0.16;
                                                 $set('baseiva', $subt);

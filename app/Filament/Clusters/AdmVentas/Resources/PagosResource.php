@@ -189,10 +189,11 @@ class PagosResource extends Resource
                                         ->default(0)
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
-                                            $ante = $get('saldoant');
+                                            $ante = floatval($get('saldoant'));
+                                            $equiv = floatval($get('equivalencia'));
+                                            $ante_mx = $ante * $equiv;
                                             $imp = $get('imppagado');
-                                            $equiv = $get('equivalencia');
-                                            $subt = ($ante*$equiv) - $imp;
+                                            $subt = $ante_mx - $imp;
                                             $iva = (($imp / 1.16) * 0.16);
                                             $set('baseiva', round(($imp / 1.16),6));
                                             $set('montoiva', round($iva,6));
@@ -207,9 +208,14 @@ class PagosResource extends Resource
                                         ->default(1)->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4)
                                         ->live(onBlur: true)
                                     ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
-                                        $imp = $get('imppagado');
+                                        $equiv = floatval($get('equivalencia'));
+                                        $imp = bcdiv($get('imppagado'),$equiv,2);
                                         $equiv = $get('equivalencia');
                                         $set('imppagado', round(($imp * $equiv),4));
+                                        $ante = floatval($get('saldoant'));
+                                        $equiv = floatval($get('equivalencia'));
+                                        $ante_mx = $ante * $equiv;
+                                        $set('insoluto', $ante_mx-round(($imp * $equiv)));
                                     }),
                                     Forms\Components\TextInput::make('parcialidad')
                                         ->default(1)->numeric(),
@@ -419,6 +425,7 @@ class PagosResource extends Resource
                     Tables\Actions\EditAction::make('editar')
                     ->icon('fas-pen-square')
                     ->color('primary')
+                        ->modalWidth('full')
                     ->visible(function ($record){
                         if($record->estado == 'Activa') return true;
                         else return false;

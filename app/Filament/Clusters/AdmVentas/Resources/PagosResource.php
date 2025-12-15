@@ -147,13 +147,13 @@ class PagosResource extends Resource
                                             ->where('forma','PPD')
                                             ->where('pendiente_pago','>',0)
                                             ->pluck('folio', 'id'))
-                                        ->live()->required()
+                                        ->live(onBlur: true)->required()
                                         ->afterStateUpdated(
                                             function (Forms\Get $get, Forms\Set $set) {
                                                 $facturas = Facturas::where('id', $get('uuidrel'))->get();
                                                 //dd($facturas);
                                                 $total = floatval($facturas[0]->pendiente_pago);
-                                                $tc = floatval($get('tcambio'));
+                                                $tc = floatval($get('../../tcambio'));
                                                 if($tc == 0) $tc = 1;
                                                 $total_mxn = $total * $tc;
                                                 $set('tasaiva', 0.16);
@@ -189,8 +189,9 @@ class PagosResource extends Resource
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
                                             $ante = floatval($get('saldoant'));
-                                            $imp = $get('imppagado');
-                                            $subt = $ante - $imp;
+                                            $tc = floatval($get('../../tcambio'));
+                                            $imp = floatval($get('imppagado'));
+                                            $subt = ($ante*$tc) - $imp;
                                             $iva = (($imp / 1.16) * 0.16);
                                             $set('baseiva', round(($imp / 1.16),6));
                                             $set('montoiva', round($iva,6));

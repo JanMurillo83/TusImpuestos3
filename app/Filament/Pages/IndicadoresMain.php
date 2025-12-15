@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Http\Controllers\ReportesController;
+use App\Livewire\AdvSegundaFilaWidget;
 use App\Livewire\AdvVentasANWidget;
 use App\Livewire\AdvVentasWidget;
 use App\Livewire\Indicadores2Widget;
@@ -34,6 +35,7 @@ class IndicadoresMain extends Page
     {
         return [
             AdvVentasWidget::class,
+            AdvSegundaFilaWidget::class,
         ];
     }
 }

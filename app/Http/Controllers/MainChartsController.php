@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SaldosReportes;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
@@ -374,6 +375,100 @@ class MainChartsController extends Controller
             ->join('cat_polizas','cat_polizas.id','=','auxiliares.cat_polizas_id')
             ->whereIn('codigo',$codigos)->get();
         return $auxiliares;
+    }
+
+    public function GetUtilidadPeriodo($team_id): float
+    {
+        $cuentas = DB::select("SELECT * FROM saldos_reportes
+        WHERE nivel = 1 AND team_id = $team_id
+        AND (cargos+abonos) != 0");
+        $importe = 0;
+        foreach ($cuentas as $cuenta) {
+            $cod = intval(substr($cuenta->codigo, 0, 3));
+            if ($cod > 399) {
+                if ($cuenta->naturaleza == 'A') {
+                    $importe += ($cuenta->cargos-$cuenta->abonos);
+                } else {
+                    $importe -= ($cuenta->abonos-$cuenta->cargos);
+                }
+            }
+        }
+        return $importe;
+    }
+
+    public function GetUtilidadEjercicio($team_id): float
+    {
+        $cuentas = DB::select("SELECT * FROM saldos_reportes
+        WHERE nivel = 1 AND team_id = $team_id
+        AND (anterior+cargos+abonos) != 0");
+        $importe = 0;
+        foreach ($cuentas as $cuenta) {
+            $cod = intval(substr($cuenta->codigo, 0, 3));
+            if ($cod > 399) {
+                if ($cuenta->naturaleza == 'A') {
+                    $importe += $cuenta->final;
+                } else {
+                    $importe -= $cuenta->final;
+                }
+            }
+        }
+        return $importe;
+    }
+
+    public function GetCobrar($team_id):float
+    {
+        $auxiliares = SaldosReportes::where('codigo','10500000')
+        ->where('team_id',$team_id)->first();
+        return ($auxiliares->anterior+$auxiliares->cargos-$auxiliares->abonos);
+    }
+
+    public function GetPagar($team_id):float
+    {
+        $auxiliares = SaldosReportes::where('codigo','20100000')
+            ->where('team_id',$team_id)->first();
+        return ($auxiliares->anterior+$auxiliares->abonos-$auxiliares->cargos);
+    }
+    public function GetUtiPer($team_id):float
+    {
+        $ventas = SaldosReportes::where('acumula','40000000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $venta = ($ventas->sum('abonos')-$ventas->sum('cargos'));
+        $costos = SaldosReportes::where('acumula','50000000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $costo = ($costos->sum('cargos')-$costos->sum('abonos'));
+        $gastos = SaldosReportes::where('acumula','60000000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $gasto = ($gastos->sum('cargos')-$gastos->sum('abonos'));
+        $gfinans = SaldosReportes::where('codigo','70100000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $gfinan = ($gfinans->sum('cargos')-$gfinans->sum('abonos'));
+        $pfinans = SaldosReportes::where('codigo','70200000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $pfinan = ($pfinans->sum('abonos')-$pfinans->sum('cargos'));
+        $importe = $venta-$costo-$gasto-$gfinan-$pfinan;
+        //dd($venta,$costo,$gasto,$gfinan,$pfinan);
+        return floatval($importe);
+    }
+    public function GetUtiPerEjer($team_id):float
+    {
+        $ventas = SaldosReportes::where('acumula','40000000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $venta = ($ventas->sum('anterior')+$ventas->sum('abonos')-$ventas->sum('cargos'));
+        $costos = SaldosReportes::where('acumula','50000000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $costo = ($costos->sum('anterior')+$costos->sum('cargos')-$costos->sum('abonos'));
+        $gastos = SaldosReportes::where('acumula','60000000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $gasto = ($gastos->sum('anterior')+$gastos->sum('cargos')-$gastos->sum('abonos'));
+        $gfinans = SaldosReportes::where('codigo','70100000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $gfinan = ($gfinans->sum('anterior')+$gfinans->sum('cargos')-$gfinans->sum('abonos'));
+        $pfinans = SaldosReportes::where('codigo','70200000')
+            ->where('team_id',$team_id)->where('nivel',1)->get();
+        $pfinan = ($pfinans->sum('anterior')+$pfinans->sum('abonos')-$pfinans->sum('cargos'));
+        $importe = $venta-$costo-$gasto-$gfinan-$pfinan;
+        //dd($venta,$costo,$gasto,$gfinan,$pfinan);
+        return floatval($importe);
     }
 
 }

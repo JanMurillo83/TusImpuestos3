@@ -62,6 +62,28 @@ class AdvVentasWidget extends BaseWidget implements HasActions,HasForms
         BLADE
         ));
         //------------------------------------------------------------------------------------------------------------------------------------------
+        $utilidad_importe = '$'.number_format(app(MainChartsController::class)->GetUtiPer($team_id),2);
+        $utilidad = new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important;'>Utilidad / Perdida del Periodo</label>");
+        $ley_utilidad =new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important; font-style: italic'>$utilidad_importe</label>");
+        $bot_utilidad = new HtmlString(\Blade::render(<<<BLADE
+            <x-filament::link :href="url('/$team_id/ventasejerciciodetalle')" color="info" icon="fas-circle-info">
+                Ver Detalle $mes_letras $ejercicio
+            </x-filament::link>
+        BLADE
+        ));
+        //------------------------------------------------------------------------------------------------------------------------------------------
+        $utilidad_importe_an = '$'.number_format(app(MainChartsController::class)->GetUtiPerEjer($team_id),2);
+        $utilidad_an = new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important;'>Utilidad / Perdida del Ejercicio</label>");
+        $ley_utilidad_an =new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important; font-style: italic'>$utilidad_importe_an</label>");
+        $bot_utilidad_an = new HtmlString(\Blade::render(<<<BLADE
+            <x-filament::link :href="url('/$team_id/ventasejerciciodetalle')" color="info" icon="fas-circle-info">
+                Ver Detalle Enero - $mes_letras $ejercicio
+            </x-filament::link>
+        BLADE
+        ));
+        //------------------------------------------------------------------------------------------------------------------------------------------
+
+
         return [
             Stat::make($leyenda, $leyend)
                 ->icon('fas-dollar-sign')
@@ -82,6 +104,26 @@ class AdvVentasWidget extends BaseWidget implements HasActions,HasForms
                 ->chartColor('success')
                 ->iconPosition('start')
                 ->description($but2)
+                ->iconColor('success'),
+            Stat::make($utilidad, $ley_utilidad)
+                ->icon('fas-dollar-sign')
+                ->backgroundColor('primary')
+                ->progress(50)
+                ->progressBarColor('success')
+                ->iconBackgroundColor('success')
+                ->chartColor('success')
+                ->iconPosition('start')
+                ->description($bot_utilidad)
+                ->iconColor('success'),
+            Stat::make($utilidad_an, $ley_utilidad_an)
+                ->icon('fas-dollar-sign')
+                ->backgroundColor('primary')
+                ->progress(100)
+                ->progressBarColor('warning')
+                ->iconBackgroundColor('success')
+                ->chartColor('success')
+                ->iconPosition('start')
+                ->description($bot_utilidad_an)
                 ->iconColor('success'),
         ];
     }

@@ -119,14 +119,13 @@ class PagosResource extends Resource
                                 }),
                             Forms\Components\Select::make('moneda')
                                 ->options(['XXX'=>'MXN','USD'=>'USD'])
-                                ->default('XXX')->live(onBlur: true)
-                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
-                                if($get('moneda') == 'XXX') $set('tcambio', 1);
-                            }),
+                                ->default('XXX'),
                             Forms\Components\TextInput::make('tcambio')
                                 ->label('Tipo de Cambio')
                                 ->required()
-                                ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:4)
+                                ->numeric()
+                                ->prefix('$')
+                                ->currencyMask(decimalSeparator:'.',precision:4)
                                 ->default(1),
                             Forms\Components\Hidden::make('usocfdi')
                                 ->default('CP01'),
@@ -500,7 +499,7 @@ class PagosResource extends Resource
             ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color('success')->icon('fas-save'))
             ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color('danger')->icon('fas-ban'))
             ->createAnother(false)
-            ->modalWidth('7xl')
+            ->modalWidth('full')
             ->after(function($record,$data){
                 $data = $record;
                 $factura = $record->getKey();

@@ -56,7 +56,9 @@ class AdminReporteConta extends Page implements HasTable
                     })
             ])->actions([
                 Action::make('Generar')
-                    ->icon('fas-print')
+                    ->icon(function ($record){
+                        return $record->formato == 'pdf' ? 'fas-print' : 'fas-download';
+                    })
                     ->color('danger')
                     ->iconButton()
                     ->form(function (Form $form,$record){

@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auxiliares;
+use App\Models\CatCuentas;
+use App\Models\SaldosAnuales;
 use App\Models\SaldosReportes;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use phpDocumentor\Reflection\Types\Collection;
+use function Sodium\increment;
 
 class MainChartsController extends Controller
 {
@@ -485,6 +489,64 @@ class MainChartsController extends Controller
         $importe = $venta-$costo-$gasto-$gfinan-$pfinan;
         //dd($venta,$costo,$gasto,$gfinan,$pfinan);
         return floatval($importe);
+    }
+
+    public function Contabiliza($team_id,$ejer):void
+    {
+        DB::table('saldos_anuales')->truncate();
+        SaldosAnuales::where('team_id',$team_id)->delete();
+        $cuentas = CatCuentas::where('team_id',$team_id)->get();
+        foreach ($cuentas as $cuenta) {
+            SaldosAnuales::insert([
+                'codigo'=>$cuenta->codigo,
+                'acumula'=>$cuenta->acumula,
+                'descripcion'=>$cuenta->nombre,
+                'tipo'=>$cuenta->tipo,
+                'naturaleza'=>$cuenta->naturaleza,
+                'inicial'=>0,
+                'c1'=>0,'a1'=>0,'f1'=>0,'c2'=>0,'a2'=>0,'f2'=>0,'c3'=>0,'a3'=>0,'f3'=>0,
+                'c4'=>0,'a4'=>0,'f4'=>0,'c5'=>0,'a5'=>0,'f5'=>0,'c6'=>0,'a6'=>0,'f6'=>0,
+                'c7'=>0,'a7'=>0,'f7'=>0,'c8'=>0,'a8'=>0,'f8'=>0,'c9'=>0,'a9'=>0,'f9'=>0,
+                'c10'=>0,'a10'=>0,'f10'=>0,'c11'=>0,'a11'=>0,'f11'=>0,'c12'=>0,'a12'=>0,'f12'=>0,
+                'team_id'=>$team_id
+            ]);
+        }
+        for($i=1;$i<13;$i++)
+        {
+            $auxiliares = Auxiliares::where('a_periodo',$i)
+            ->where('a_ejercicio',$ejer)->where('team_id',$team_id)->get();
+            $col_c = 'c'.$i;
+            $col_a = 'a'.$i;
+            $col_f = 'f'.$i;
+            foreach ($auxiliares as $auxiliar) {
+                $cuenta = CatCuentas::where('codigo',$auxiliar->codigo)
+                ->where('team_id',$team_id)->first();
+                $codigo = $cuenta?->codigo ?? null;
+                if($codigo) {
+                    SaldosAnuales::where('team_id', $team_id)
+                    ->where('codigo', $codigo)->increment($col_c, $auxiliar->cargo);
+                    SaldosAnuales::where('team_id', $team_id)
+                    ->where('codigo', $codigo)->increment($col_a, $auxiliar->abono);
+                }
+            }
+        }
+        /*for($i=1;$i<13;$i++)
+        {
+            $saldos = SaldosAnuales::where('team_id',$team_id)
+            ->orderBy('codigo','desc')->get();
+            foreach ($saldos as $saldo) {
+                $saldos_acum = SaldosAnuales::where('team_id',$team_id)
+                ->where('codigo',$saldo->codigo)->get();
+                $cargos = $saldos_acum->sum('c'.$i);
+                $abonos = $saldos_acum->sum('a'.$i);
+                SaldosAnuales::where('team_id',$team_id)
+                    ->where('codigo',$saldo->acumula)
+                    ->increment($col_c,$cargos);
+                SaldosAnuales::where('team_id',$team_id)
+                    ->where('codigo',$saldo->acumula)
+                    ->increment($col_a,$abonos);
+            }
+        }*/
     }
 
 }

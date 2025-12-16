@@ -10,7 +10,7 @@ $cuentaIni = $cuenta_ini ?? null;
 $cuentaFin = $cuenta_fin ?? null;
 if ($cuentaIni && $cuentaFin && $cuentaIni > $cuentaFin) { [$cuentaIni, $cuentaFin] = [$cuentaFin, $cuentaIni]; }
 
-// Calcular saldos iniciales por cuenta: movimientos anteriores al periodo/ejercicio actual
+// Calcular saldos iniciales por cuenta: todo lo anterior al periodo/ejercicio actual
 $prevSaldosQuery = DB::table('auxiliares as a')
     ->join('cat_polizas as p','p.id','=','a.cat_polizas_id')
     ->join('cat_cuentas as c', function($j){
@@ -22,12 +22,12 @@ $prevSaldosQuery = DB::table('auxiliares as a')
     ->where('c.team_id',$empresa)
     ->when($cuentaIni, function($q) use ($cuentaIni){ $q->where('a.codigo','>=',$cuentaIni); })
     ->when($cuentaFin, function($q) use ($cuentaFin){ $q->where('a.codigo','<=',$cuentaFin); })
-    ->where(function($q) use ($periodo,$ejercicio){
+    ->where(function($q) use ($periodo,$ejercicio,$mes_ini,$mes_fin){
         $q->where('p.ejercicio','<',$ejercicio)
-          ->orWhere(function($q2) use ($periodo,$ejercicio){
-              $q2->where('p.ejercicio',$ejercicio)
-                 ->where('p.periodo','<',$periodo);
-          });
+            ->orWhere(function($q2) use ($periodo,$ejercicio,$mes_ini,$mes_fin){
+                $q2->where('p.ejercicio',$ejercicio)
+                    ->where('p.periodo','<',$mes_ini);
+            });
     })
     ->groupBy('a.codigo','a.cuenta')
     ->get();
@@ -50,7 +50,7 @@ $movimientos = DB::table('auxiliares as a')
     ->where('a.team_id',$empresa)
     ->where('p.team_id',$empresa)
     ->where('c.team_id',$empresa)
-    ->where('p.periodo',$periodo)
+    ->whereBetween('p.periodo',[$mes_ini,$mes_fin])
     ->where('p.ejercicio',$ejercicio)
     ->when($cuentaIni, function($q) use ($cuentaIni){ $q->where('a.codigo','>=',$cuentaIni); })
     ->when($cuentaFin, function($q) use ($cuentaFin){ $q->where('a.codigo','<=',$cuentaFin); })
@@ -69,7 +69,7 @@ foreach ($movimientos as $m) {
         $agrupado[$key] = [
             'codigo' => $m->codigo,
             'cuenta' => $m->cuenta,
-            'naturaleza' => ($m->naturaleza ?? 'D'), // D=Deudora: suma cargo-resta abono; A=Acreedora: resta cargo-suma abono
+            'naturaleza' => ($m->naturaleza ?? 'D'), // D=Deudora suma cargo-resta abono; A=Acreedora al revés
             'items' => [],
             'total_cargos' => 0.0,
             'total_abonos' => 0.0,
@@ -81,7 +81,7 @@ foreach ($movimientos as $m) {
     $agrupado[$key]['total_abonos'] += (float)$m->abono;
 }
 ?>
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="utf-8">
@@ -91,7 +91,7 @@ foreach ($movimientos as $m) {
     <link href="{{public_path('WH/bootstrap-theme.min.css')}}" rel="stylesheet">
     <script src="{{public_path('WH/bootstrap.min.js')}}"></script>
     <style>
-        th, td { font-size: 12px; }
+        th, td { font-size: 10px; }
         .cuenta-header { background: #f5f5f5; font-weight: bold; }
         .totales { font-weight: bold; }
         /* Expand table to full width and control column spacing */
@@ -108,86 +108,91 @@ foreach ($movimientos as $m) {
 <body>
 <div class="container">
     <div class="row mt-5">
-        <div class="col-3">
-
-        </div>
-        <div class="col-6">
+        <div class="col-12">
             <center>
                 <h5>{{ $empresaRow->name ?? 'Empresa' }}</h5>
                 <div>
-                    Auxiliares del Periodo {{ $periodo }} / {{ $ejercicio }}
+                    Auxiliares del Periodo {{ $mes_ini }} a {{$mes_fin}} / {{ $ejercicio }}
                 </div>
                 <?php if($cuentaIni || $cuentaFin): ?>
-                    <div>
-                        Rango de cuentas: {{ $cuentaIni ?? 'Todas' }} — {{ $cuentaFin ?? 'Todas' }}
-                    </div>
+                <div>
+                    Rango de cuentas: {{ $cuentaIni ?? 'Todas' }} — {{ $cuentaFin ?? 'Todas' }}
+                </div>
                 <?php endif; ?>
+                <div>
+                    Fecha de Emisión: <?php echo $fecha->toDateString('d-m-Y'); ?>
+                </div>
             </center>
-        </div>
-        <div class="col-3">
-            Fecha de Emision: <?php echo $fecha->toDateString('d-m-Y'); ?>
         </div>
     </div>
     <hr>
-
     <?php if (empty($agrupado)) : ?>
-        <div class="alert alert-info">No hay movimientos de auxiliares para el periodo seleccionado.</div>
+    <div class="alert alert-info">No hay movimientos de auxiliares para el periodo seleccionado.</div>
     <?php endif; ?>
 
     <?php foreach ($agrupado as $group): ?>
-        <div class="row mt-3">
-            <div class="col-12">
-                <table class="table table-sm border">
-                    <tr>
-                        <td>{{$group['codigo'].' - '.$group['cuenta']}}</td>
-                    </tr>
-                </table>
-                <table class="table table-sm border">
-                    <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Tipo</th>
-                        <th>Folio</th>
-                        <th>Concepto</th>
-                        <th>Factura/Ref</th>
-                        <th>UUID</th>
-                        <th style="text-align: end;">Cargo</th>
-                        <th style="text-align: end;">Abono</th>
-                        <th style="text-align: end;">Saldo</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+    <div class="row mt-3">
+        <div class="col-12">
+            <table class="table table-sm border aux-table">
+                <colgroup>
+                    <col style="width:8%" />
+                    <col style="width:6%" />
+                    <col style="width:8%" />
+                    <col style="width:24%" />
+                    <col style="width:18%" />
+                    <col style="width:14%" />
+                    <col style="width:8%" />
+                    <col style="width:8%" />
+                    <col style="width:6%" />
+                </colgroup>
+                <thead>
+                <tr>
+                    <th colspan="9"><?php echo e($group['codigo']); ?> - <?php echo e($group['cuenta']); ?></th>
+                </tr>
+                <tr>
+                    <th class="nowrap">Fecha</th>
+                    <th class="nowrap">Tipo</th>
+                    <th class="nowrap">Folio</th>
+                    <th class="wrap">Concepto</th>
+                    <th class="wrap">Factura/Ref</th>
+                    <th class="wrap">UUID</th>
+                    <th class="num">Cargo</th>
+                    <th class="num">Abono</th>
+                    <th class="num">Saldo</th>
+                </tr>
+                </thead>
+                <tbody>
                     <?php $saldo = (float)($group['saldo_inicial'] ?? 0); ?>
-                    <tr>
-                        <td colspan="8" class="text-end"><em>Saldo inicial</em></td>
-                        <td style="text-align: end;">{{ '$'.number_format($saldo,2) }}</td>
-                    </tr>
+                <tr>
+                    <td colspan="8" class="text-end"><em>Saldo inicial</em></td>
+                    <td style="text-align: end;">{{ '$'.number_format($saldo,2) }}</td>
+                </tr>
                     <?php foreach ($group['items'] as $it): ?>
-                        <?php $delta = ((float)$it->cargo - (float)$it->abono); if (($group['naturaleza'] ?? 'D') === 'A') { $delta = -$delta; } $saldo += $delta; ?>
-                        <tr>
-                            <td>{{ \Carbon\Carbon::parse($it->fecha)->format('d-m-Y') }}</td>
-                            <td>{{ $it->tipo }}</td>
-                            <td>{{ $it->folio }}</td>
-                            <td>{{ $it->concepto ?: $it->poliza_concepto }}</td>
-                            <td>{{ $it->factura ?: $it->referencia }}</td>
-                            <td>{{ $it->uuid }}</td>
-                            <td style="text-align: end;">{{ '$'.number_format($it->cargo,2) }}</td>
-                            <td style="text-align: end;">{{ '$'.number_format($it->abono,2) }}</td>
-                            <td style="text-align: end;">{{ '$'.number_format($saldo,2) }}</td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                    <tfoot>
-                    <tr class="totales">
-                        <td colspan="6" class="text-end">Totales de la cuenta:</td>
-                        <td style="text-align: end;">{{ '$'.number_format($group['total_cargos'],2) }}</td>
-                        <td style="text-align: end;">{{ '$'.number_format($group['total_abonos'],2) }}</td>
-                        <td style="text-align: end;">{{ '$'.number_format(($group['saldo_inicial'] ?? 0) + ((($group['naturaleza'] ?? 'D') === 'A') ? ($group['total_abonos'] - $group['total_cargos']) : ($group['total_cargos'] - $group['total_abonos'])),2) }}</td>
-                    </tr>
-                    </tfoot>
-                </table>
-            </div>
+                    <?php $delta = ((float)$it->cargo - (float)$it->abono); if (($group['naturaleza'] ?? 'D') === 'A') { $delta = -$delta; } $saldo += $delta; ?>
+                <tr>
+                    <td>{{ \Carbon\Carbon::parse($it->fecha)->format('d-m-Y') }}</td>
+                    <td>{{ $it->tipo }}</td>
+                    <td>{{ $it->folio }}</td>
+                    <td>{{ $it->concepto ?: $it->poliza_concepto }}</td>
+                    <td>{{ $it->factura ?: $it->referencia }}</td>
+                    <td>{{ $it->uuid }}</td>
+                    <td style="text-align: end;">{{ '$'.number_format($it->cargo,2) }}</td>
+                    <td style="text-align: end;">{{ '$'.number_format($it->abono,2) }}</td>
+                    <td style="text-align: end;">{{ '$'.number_format($saldo,2) }}</td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                <tr class="totales">
+                    <td colspan="6" class="text-end">Totales de la cuenta:</td>
+                    <td style="text-align: end;">{{ '$'.number_format($group['total_cargos'],2) }}</td>
+                    <td style="text-align: end;">{{ '$'.number_format($group['total_abonos'],2) }}</td>
+                    <td style="text-align: end;">{{ '$'.number_format(($group['saldo_inicial'] ?? 0) + ((($group['naturaleza'] ?? 'D') === 'A') ? ($group['total_abonos'] - $group['total_cargos']) : ($group['total_cargos'] - $group['total_abonos'])),2) }}</td>
+                </tr>
+                </tfoot>
+            </table>
         </div>
+    </div>
     <?php endforeach; ?>
 </div>
 </body>

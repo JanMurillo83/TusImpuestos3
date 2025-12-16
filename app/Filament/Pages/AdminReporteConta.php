@@ -2,6 +2,11 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\AuxiliaresExport;
+use App\Exports\BalanceExport;
+use App\Exports\BalanzaExport;
+use App\Exports\EdoreExport;
+use App\Http\Controllers\MainChartsController;
 use App\Models\MainReportes;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Fieldset;
@@ -138,8 +143,22 @@ class AdminReporteConta extends Page implements HasTable
                             $this->getAction('Generar Reporte')->visible(true);
                             $this->replaceMountedAction('Generar Reporte');
                             $this->getAction('Generar Reporte')->visible(false);
+                        }else{
+                            switch ($reporte) {
+                                case 'Balance General': return (new BalanceExport($team_id, $periodo, $ejercicio))->download('BalanceGeneral.xlsx');
+                                case 'Balanza de Comprobación': return (new BalanzaExport($team_id,$periodo,$ejercicio))->download('BalanzaComprobacion.xlsx');
+                                case 'Estado de Resultados': return (new EdoreExport($team_id,$periodo,$ejercicio))->download('EstadoResultados.xlsx');
+                                case 'Reporte de Auxiliares': return (new AuxiliaresExport($team_id,Filament::getTenant()->periodo,$fechaIni,$fechaFin,$ejercicio,$cuentaIni,$cuentaFin))->download('Auxiliares.xlsx');
+                            }
                         }
                     })
+            ])->headerActions([
+                Action::make('Nuevo Reporte')
+                ->action(function (){
+                    $team_id = Filament::getTenant()->id;
+                    $ejercicio = Filament::getTenant()->ejercicio;
+                    app(MainChartsController::class)->Contabiliza($team_id,$ejercicio);
+                })->visible(false)
             ]);
     }
 

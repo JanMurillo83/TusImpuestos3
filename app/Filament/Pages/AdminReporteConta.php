@@ -29,6 +29,13 @@ class AdminReporteConta extends Page implements HasTable
     protected static string $view = 'filament.pages.admin-reporte-conta';
 
     public ?string $ReportePDF;
+    public function mount():void
+    {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
+        $team_id = Filament::getTenant()->id;
+        (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+    }
     public function table(Table $table):Table
     {
         return $table

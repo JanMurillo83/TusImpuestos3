@@ -31,9 +31,10 @@ class ReportesConta extends Page implements HasForms
     //protected static ?string $cluster = ContReportes::class;
     //protected static bool $isScopedToTenant = false;
     protected static ?string $navigationGroup = 'Reportes';
-    protected static ?string $title = 'Reportes';
-    protected static ?string $pluralLabel = 'Reportes';
+    protected static ?string $title = 'Reportes Contables';
+    protected static ?string $pluralLabel = 'Reportes Contables';
     protected static string $view = 'filament.pages.reportes-conta';
+    protected static bool $shouldRegisterNavigation = false;
 
     public ?string $cuenta_ini_g;
     public ?string $cuenta_fin_g;
@@ -157,14 +158,17 @@ class ReportesConta extends Page implements HasForms
                                 ->label('Cuenta Inicial')
                                 ->options(
                                     DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')
+                                        ->where('tipo','D')->orderBy('codigo','asc')->pluck('mostrar','codigo')
                                 )
                                 ->searchable(),
                             Select::make('cuenta_fin')
                                 ->label('Cuenta Final')
                                 ->options(
                                     DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                        ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')
+                                        ->where('tipo','D')
+                                        ->orderBy('codigo','asc')->pluck('mostrar','codigo')
                                 )
                                 ->searchable()
                         ])

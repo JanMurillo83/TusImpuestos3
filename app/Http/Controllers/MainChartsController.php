@@ -387,7 +387,7 @@ class MainChartsController extends Controller
             ->where('a_periodo','<=', $periodo)
             ->where('a_ejercicio', $ejercicio)
             ->where('abono', '>', 0)
-            ->orderBy('a_periodo','desc')
+            ->orderBy('fecha','desc')
             ->join('cat_polizas','cat_polizas.id','=','auxiliares.cat_polizas_id')
             ->whereIn('codigo',$codigos)->get();
         return $auxiliares;

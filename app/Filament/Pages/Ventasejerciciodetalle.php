@@ -14,6 +14,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
 
@@ -35,12 +36,22 @@ class Ventasejerciciodetalle extends Page implements HasTable
     {
         return $table
             ->query( AuxVentasEjercicio::query())
+            ->groups([Group::make('a_periodo')
+                ->collapsible()
+                ->label('')
+                ->titlePrefixedWithLabel(false)
+                ->getTitleFromRecordUsing(function ($record) {
+                    return 'Periodo: '.app(MainChartsController::class)->mes_letras($record->a_periodo);
+                })]
+            )
+            ->defaultGroup('a_periodo')
+            ->groupingSettingsHidden()
             ->heading(function (){
                 $mes = Filament::getTenant()->periodo;
                 $anio = Filament::getTenant()->ejercicio;
                 $empresa = Filament::getTenant()->name;
                 $letras = app(MainChartsController::class)->mes_letras($mes);
-                $titulo = new HtmlString("<h2 class='text-2xl font-bold'>Ventas del Ejericicio $anio</h2>");
+                $titulo = new HtmlString("<h2 class='text-2xl font-bold'>Ventas del Ejercicio $anio</h2>");
                 $this->file_title = 'Ventas del Ejercicio '.$anio.' '.$empresa;
                 return $titulo;
             })

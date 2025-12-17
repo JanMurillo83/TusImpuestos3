@@ -184,10 +184,10 @@ class BancoCuentasResource extends Resource
                 Tables\Columns\TextColumn::make('codigo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('inicial')
-                ->currency(),
+                ->numeric(decimalPlaces: 2,decimalSeparator: '.',thousandsSeparator: ',')->prefix('$'),
                 Tables\Columns\TextColumn::make('moneda'),
                 Tables\Columns\TextColumn::make('Ingresos')
-                ->currency()
+                    ->numeric(decimalPlaces: 2,decimalSeparator: '.',thousandsSeparator: ',')
                 ->getStateUsing(function($record){
                     $movs = Movbancos::where('cuenta',$record->id)
                         ->where('periodo',Filament::getTenant()->periodo)
@@ -197,7 +197,7 @@ class BancoCuentasResource extends Resource
                     return $movs?->sum('monto') ?? 0;
                 }),
                 Tables\Columns\TextColumn::make('Egresos')
-                    ->currency()
+                    ->numeric(decimalPlaces: 2,decimalSeparator: '.',thousandsSeparator: ',')->prefix('$')
                     ->getStateUsing(function($record){
                         $movs = Movbancos::where('cuenta',$record->id)
                             ->where('periodo',Filament::getTenant()->periodo)
@@ -207,22 +207,21 @@ class BancoCuentasResource extends Resource
                         return $movs?->sum('monto') ?? 0;
                     }),
                 Tables\Columns\TextColumn::make('Actual')
+                ->numeric(decimalPlaces: 2,decimalSeparator: '.',thousandsSeparator: ',')->prefix('$')
                 ->getStateUsing(function(Model $record){
-                    $sdos =DB::table('saldosbancos')
-                    ->where('cuenta',$record->id)
-                    ->where('periodo',Filament::getTenant()->periodo)
-                    ->where('ejercicio',Filament::getTenant()->ejercicio)
-                    ->get();
-                    if(isset($sdos[0])){
-                        return $sdos[0]->actual;
-                    }
-                    else{
-                        return 0;
-                    }
-                })->formatStateUsing(function (?string $state) {
-                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
-                    return $formatter->formatCurrency($state, 'MXN');
+                    $inicial = $record->inicial;
+                    $movs_i = Movbancos::where('cuenta',$record->id)
+                        ->where('periodo','<=',Filament::getTenant()->periodo)
+                        ->where('ejercicio',Filament::getTenant()->ejercicio)
+                        ->where('tipo','I')
+                        ->get();
+                    $movs_e = Movbancos::where('cuenta',$record->id)
+                        ->where('periodo','<=',Filament::getTenant()->periodo)
+                        ->where('ejercicio',Filament::getTenant()->ejercicio)
+                        ->where('tipo','I')
+                        ->get();
+                    $saldo = $inicial + $movs_i->sum('monto') - $movs_e->sum('monto');
+                    return $saldo ?? 0;
                 }),
                 Tables\Columns\TextColumn::make('tax_id')
                     ->searchable()

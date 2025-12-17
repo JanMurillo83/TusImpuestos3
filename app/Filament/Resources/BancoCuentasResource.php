@@ -150,7 +150,8 @@ class BancoCuentasResource extends Resource
                     ->readOnly(),
                 Forms\Components\TextInput::make('inicial')
                     ->label('Saldo Inicial')
-                    ->default(0),
+                    ->numeric()->currencyMask()
+                    ->default(0)->prefix('$'),
                 Select::make('moneda')
                     ->label('Moneda')
                     ->options(['MXN'=>'MXN','USD'=>'USD']),

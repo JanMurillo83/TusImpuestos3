@@ -493,7 +493,7 @@ class MainChartsController extends Controller
 
     public function Contabiliza($team_id,$ejer):void
     {
-        DB::table('saldos_anuales')->truncate();
+        //DB::table('saldos_anuales')->truncate();
         SaldosAnuales::where('team_id',$team_id)->delete();
         $cuentas = CatCuentas::where('team_id',$team_id)->get();
         foreach ($cuentas as $cuenta) {
@@ -530,23 +530,65 @@ class MainChartsController extends Controller
                 }
             }
         }
-        /*for($i=1;$i<13;$i++)
+        for($i=1;$i<13;$i++)
         {
+            $col_c = 'c'.$i;
+            $col_a = 'a'.$i;
+            $col_f = 'f'.$i;
             $saldos = SaldosAnuales::where('team_id',$team_id)
-            ->orderBy('codigo','desc')->get();
+            ->where('tipo','A')->where('acumula','!=','0')->get();
             foreach ($saldos as $saldo) {
-                $saldos_acum = SaldosAnuales::where('team_id',$team_id)
-                ->where('codigo',$saldo->codigo)->get();
-                $cargos = $saldos_acum->sum('c'.$i);
-                $abonos = $saldos_acum->sum('a'.$i);
+                $saldoA = SaldosAnuales::where('team_id',$team_id)
+                ->where('acumula',$saldo->codigo)->get();
                 SaldosAnuales::where('team_id',$team_id)
-                    ->where('codigo',$saldo->acumula)
-                    ->increment($col_c,$cargos);
-                SaldosAnuales::where('team_id',$team_id)
-                    ->where('codigo',$saldo->acumula)
-                    ->increment($col_a,$abonos);
+                    ->where('codigo',$saldo->codigo)->update([
+                        $col_a => $saldoA->sum($col_a),
+                        $col_c => $saldoA->sum($col_c)
+                    ]);
             }
-        }*/
+        }
+        for($i=1;$i<13;$i++)
+        {
+            $col_c = 'c'.$i;
+            $col_a = 'a'.$i;
+            $col_f = 'f'.$i;
+            $saldos = SaldosAnuales::where('team_id',$team_id)
+                ->where('tipo','A')->where('acumula','0')->get();
+            foreach ($saldos as $saldo) {
+                $saldoA = SaldosAnuales::where('team_id',$team_id)
+                    ->where('acumula',$saldo->codigo)->get();
+                SaldosAnuales::where('team_id',$team_id)
+                    ->where('codigo',$saldo->codigo)->update([
+                        $col_a => $saldoA->sum($col_a),
+                        $col_c => $saldoA->sum($col_c)
+                    ]);
+            }
+        }
+        for($k=1;$k<13;$k++)
+        {
+            $i = $k;
+            $col_c = 'c'.$i;
+            $col_a = 'a'.$i;
+            $col_f = 'f'.$i;
+            $j = $i-1;
+            $col_i = 'f'.$j;
+            if($i==1)$col_i = 'inicial';
+            $saldos = SaldosAnuales::where('team_id',$team_id)->get();
+            foreach ($saldos as $saldo){
+                $saldo_imp = 0;
+                if($saldo->naturaleza=='D'){
+                    $saldo_imp = $saldo->$col_i +$saldo->$col_c-$saldo->$col_a;
+                }else{
+                    $saldo_imp = $saldo->$col_i +$saldo->$col_a-$saldo->$col_c;
+                }
+                if($saldo->codigo == '40101000'&&$i>1){
+                    dd($i,$col_i,$col_a,$col_c,$saldo->naturaleza,$col_f,
+                        $saldo_imp,$saldo->$col_i,$saldo->$col_a,$saldo->$col_c);
+                }
+                SaldosAnuales::where('team_id',$team_id)->where('codigo',$saldo->codigo)
+                    ->update([$col_f => $saldo_imp]);
+            }
+        }
     }
 
 }

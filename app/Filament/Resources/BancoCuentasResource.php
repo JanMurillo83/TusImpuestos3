@@ -8,6 +8,7 @@ use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
+use App\Models\Movbancos;
 use App\Models\Saldosbanco;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
@@ -182,61 +183,28 @@ class BancoCuentasResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('codigo')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('Inicial')
-                ->getStateUsing(function(Model $record){
-                    $sdos =DB::table('saldosbancos')
-                    ->where('cuenta',$record->id)
-                    ->where('periodo',Filament::getTenant()->periodo)
-                    ->where('ejercicio',Filament::getTenant()->ejercicio)
-                    ->get();
-                    if(isset($sdos[0])){
-                        return $sdos[0]->inicial;
-                    }
-                    else{
-                        return 0;
-                    }
-                })->formatStateUsing(function (?string $state) {
-                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
-                    return $formatter->formatCurrency($state, 'MXN');
-                }),
+                Tables\Columns\TextColumn::make('inicial')
+                ->currency()->prefix('$'),
                 Tables\Columns\TextColumn::make('moneda'),
                 Tables\Columns\TextColumn::make('Ingresos')
-                ->getStateUsing(function(Model $record){
-                    $sdos =DB::table('saldosbancos')
-                    ->where('cuenta',$record->id)
-                    ->where('periodo',Filament::getTenant()->periodo)
-                    ->where('ejercicio',Filament::getTenant()->ejercicio)
-                    ->get();
-                    if(isset($sdos[0])){
-                        return $sdos[0]->ingresos;
-                    }
-                    else{
-                        return 0;
-                    }
-                })->formatStateUsing(function (?string $state) {
-                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
-                    return $formatter->formatCurrency($state, 'MXN');
+                ->currency()->prefix('$')
+                ->getStateUsing(function($record){
+                    $movs = Movbancos::where('cuenta',$record->id)
+                        ->where('periodo',Filament::getTenant()->periodo)
+                        ->where('ejercicio',Filament::getTenant()->ejercicio)
+                        ->where('tipo','I')
+                        ->get();
+                    return $movs?->sum('monto') ?? 0;
                 }),
                 Tables\Columns\TextColumn::make('Egresos')
-                ->getStateUsing(function(Model $record){
-                    $sdos =DB::table('saldosbancos')
-                    ->where('cuenta',$record->id)
-                    ->where('periodo',Filament::getTenant()->periodo)
-                    ->where('ejercicio',Filament::getTenant()->ejercicio)
-                    ->get();
-                    if(isset($sdos[0])){
-                        return $sdos[0]->egresos;
-                    }
-                    else{
-                        return 0;
-                    }
-                })->formatStateUsing(function (?string $state) {
-                    $formatter = (new \NumberFormatter('es_MX', \NumberFormatter::CURRENCY));
-                    $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 2);
-                    return $formatter->formatCurrency($state, 'MXN');
-                }),
+                    ->getStateUsing(function($record){
+                        $movs = Movbancos::where('cuenta',$record->id)
+                            ->where('periodo',Filament::getTenant()->periodo)
+                            ->where('ejercicio',Filament::getTenant()->ejercicio)
+                            ->where('tipo','E')
+                            ->get();
+                        return $movs?->sum('monto') ?? 0;
+                    }),
                 Tables\Columns\TextColumn::make('Actual')
                 ->getStateUsing(function(Model $record){
                     $sdos =DB::table('saldosbancos')

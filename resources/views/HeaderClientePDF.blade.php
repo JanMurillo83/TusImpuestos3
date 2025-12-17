@@ -49,6 +49,25 @@
                 -webkit-print-color-adjust: exact;
             }
         }
+        table {
+            border-collapse: collapse; /* Collapses borders into a single border */
+            width: 100%; /* Ensures the table takes up the full width available */
+        }
+
+        th, td {
+            text-align: left; /* Aligns text to the left */
+            padding: 8px; /* Adds space around content */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2; /* Gray background for even rows */
+        }
+
+        /* Optional: Add a different background color for the table header */
+        th {
+            background-color: #04AA6D;
+            color: white;
+        }
     </style>
 
     <div class="container mx-auto mt-2 ml-2">
@@ -129,7 +148,7 @@
         </div>
     </div>
     <div class="row" style="margin-top: 2rem">
-        <table class="table-auto">
+        <table>
             <thead>
                 <tr>
                     <th>Factura</th>

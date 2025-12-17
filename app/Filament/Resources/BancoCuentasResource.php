@@ -359,7 +359,8 @@ class BancoCuentasResource extends Resource
                                 ->readOnly()->default($record->codigo),
                             Forms\Components\TextInput::make('inicial')
                                 ->label('Saldo Inicial')
-                                ->default(0)->default($record->inicial),
+                                ->numeric()->currencyMask()
+                                ->default(0)->prefix('$')->default($record->inicial),
                             Select::make('moneda')
                                 ->label('Moneda')
                                 ->options(['MXN'=>'MXN','USD'=>'USD'])->default($record->moneda),

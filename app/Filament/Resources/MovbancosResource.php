@@ -208,6 +208,7 @@ class MovbancosResource extends Resource
         return $table
             ->heading(function ($livewire) {
                 $cuenta_id = $livewire->selected_tier;
+               // dd($cuenta_id);
                 $cuenta = BancoCuentas::where('id',$cuenta_id)->first();
                 $inicial_origen = floatval($cuenta->inicial);
                 $periodo = Filament::getTenant()->periodo ?? 1;
@@ -216,7 +217,7 @@ class MovbancosResource extends Resource
                 $salidas_act = Movbancos::where('cuenta',$cuenta_id)->where('tipo','S')->where('ejercicio',$ejercicio)->where('periodo',$periodo)->sum('importe') ?? 0;
                 $entradas_ant = Movbancos::where('cuenta',$cuenta_id)->where('tipo','E')->where('ejercicio',$ejercicio)->where('periodo','<',$periodo)->sum('importe') ?? 0;
                 $salidas_ant = Movbancos::where('cuenta',$cuenta_id)->where('tipo','S')->where('ejercicio',$ejercicio)->where('periodo','<',$periodo)->sum('importe') ?? 0;
-                $inicial = $inicial_origen + $entradas_ant - $salidas_ant;
+                $inicial = $inicial_origen + floatval($entradas_ant) - floatval($salidas_ant);
                 $actual = $inicial + $entradas_act - $salidas_act;
                 $livewire->saldo_cuenta_ant = $inicial;
                 return 'Saldo Inicial: $'.number_format($inicial,2,'.',',').'       Saldo Actual: $'.number_format($actual,2,'.',',');

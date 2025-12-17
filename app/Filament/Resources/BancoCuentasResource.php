@@ -192,9 +192,9 @@ class BancoCuentasResource extends Resource
                     $movs = Movbancos::where('cuenta',$record->id)
                         ->where('periodo',Filament::getTenant()->periodo)
                         ->where('ejercicio',Filament::getTenant()->ejercicio)
-                        ->where('tipo','I')
+                        ->where('tipo','E')
                         ->get();
-                    return $movs?->sum('monto') ?? 0;
+                    return $movs?->sum('importe') ?? 0;
                 }),
                 Tables\Columns\TextColumn::make('Egresos')
                     ->numeric(decimalPlaces: 2,decimalSeparator: '.',thousandsSeparator: ',')->prefix('$')
@@ -202,9 +202,9 @@ class BancoCuentasResource extends Resource
                         $movs = Movbancos::where('cuenta',$record->id)
                             ->where('periodo',Filament::getTenant()->periodo)
                             ->where('ejercicio',Filament::getTenant()->ejercicio)
-                            ->where('tipo','E')
+                            ->where('tipo','S')
                             ->get();
-                        return $movs?->sum('monto') ?? 0;
+                        return $movs?->sum('importe') ?? 0;
                     }),
                 Tables\Columns\TextColumn::make('Actual')
                 ->numeric(decimalPlaces: 2,decimalSeparator: '.',thousandsSeparator: ',')->prefix('$')
@@ -213,14 +213,14 @@ class BancoCuentasResource extends Resource
                     $movs_i = Movbancos::where('cuenta',$record->id)
                         ->where('periodo','<=',Filament::getTenant()->periodo)
                         ->where('ejercicio',Filament::getTenant()->ejercicio)
-                        ->where('tipo','I')
+                        ->where('tipo','E')
                         ->get();
                     $movs_e = Movbancos::where('cuenta',$record->id)
                         ->where('periodo','<=',Filament::getTenant()->periodo)
                         ->where('ejercicio',Filament::getTenant()->ejercicio)
-                        ->where('tipo','I')
+                        ->where('tipo','S')
                         ->get();
-                    $saldo = $inicial + $movs_i->sum('monto') - $movs_e->sum('monto');
+                    $saldo = $inicial + $movs_i->sum('importe') - $movs_e->sum('importe');
                     return $saldo ?? 0;
                 }),
                 Tables\Columns\TextColumn::make('tax_id')

@@ -581,10 +581,10 @@ class MainChartsController extends Controller
                 }else{
                     $saldo_imp = $saldo->$col_i +$saldo->$col_a-$saldo->$col_c;
                 }
-                if($saldo->codigo == '40101000'&&$i>1){
+                /*if($saldo->codigo == '40101000'&&$i>1){
                     dd($i,$col_i,$col_a,$col_c,$saldo->naturaleza,$col_f,
                         $saldo_imp,$saldo->$col_i,$saldo->$col_a,$saldo->$col_c);
-                }
+                }*/
                 SaldosAnuales::where('team_id',$team_id)->where('codigo',$saldo->codigo)
                     ->update([$col_f => $saldo_imp]);
             }

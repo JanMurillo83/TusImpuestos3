@@ -160,7 +160,7 @@ class AdminReporteConta extends Page implements HasTable
                     $team_id = Filament::getTenant()->id;
                     $ejercicio = Filament::getTenant()->ejercicio;
                     app(MainChartsController::class)->Contabiliza($team_id,$ejercicio);
-                })->visible(false)
+                })->visible()
             ]);
     }
 

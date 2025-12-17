@@ -104,7 +104,7 @@
             </div>
             <hr>
             <div class="row-span-1 mt-2 mb-2" style="display: grid; grid-template-columns: repeat(4, 1fr);">
-                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 2rem">
+                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 1rem">
                     <label class="iconlabel" style="margin-left: 1rem">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon">
                             <path d="M10.75 10.818v2.614A3.13 3.13 0 0 0 11.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 0 0-1.138-.432ZM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 0 0-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.202.592.037.051.08.102.128.152Z" />
@@ -114,7 +114,7 @@
                     </label>
                     <label style="margin-left: 2rem; font-size: 30px; font-weight: bold; text-align: center">{{'$'.number_format($ventas,2)}}</label>
                 </div>
-                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 2rem">
+                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 1rem">
                     <label class="iconlabel" style="margin-left: 1rem">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon">
                             <path d="M10.75 10.818v2.614A3.13 3.13 0 0 0 11.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 0 0-1.138-.432ZM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 0 0-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.202.592.037.051.08.102.128.152Z" />
@@ -124,7 +124,7 @@
                     </label>
                     <label style="margin-left: 2rem; font-size: 30px; font-weight: bold; text-align: center">{{'$'.number_format($pagos,2)}}</label>
                 </div>
-                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 2rem;">
+                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 1rem;">
                     <label class="iconlabel" style="margin-left: 1rem">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon">
                             <path d="M10.75 10.818v2.614A3.13 3.13 0 0 0 11.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 0 0-1.138-.432ZM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 0 0-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.202.592.037.051.08.102.128.152Z" />
@@ -134,7 +134,7 @@
                     </label>
                     <label style="margin-left: 2rem; font-size: 30px; font-weight: bold; text-align: center">{{'$'.number_format($saldo,2)}}</label>
                 </div>
-                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 2rem;background-color: #fc7b35; color: white">
+                <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 1rem;background-color: #fc7b35; color: white">
                     <label class="iconlabel" style="margin-left: 1rem">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon">
                             <path d="M10.75 10.818v2.614A3.13 3.13 0 0 0 11.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 0 0-1.138-.432ZM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 0 0-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.202.592.037.051.08.102.128.152Z" />
@@ -142,7 +142,7 @@
                         </svg>
                         Importe Vencido
                     </label>
-                    <label style="margin-left: 2rem; font-size: 30px; font-weight: bold; text-align: center">{{'$'.number_format($vencido,2)}} <label style="font-size: 20px">({{number_format($porcentaje,2).' %'}})</label></label>
+                    <label style="margin-left: 1rem; font-size: 30px; font-weight: bold; text-align: center">{{'$'.number_format($vencido,2)}} <label style="font-size: 20px">({{number_format($porcentaje,2).' %'}})</label></label>
                 </div>
             </div>
         </div>
@@ -167,9 +167,9 @@
             ?>
             @foreach($facturas as $factura)
                 <?php
-                    $tot_importe = floatval($factura['importe']);
-                    $tot_pagos = floatval($factura['pagos']);
-                    $tot_saldo = floatval($factura['saldo']);
+                    $tot_importe+= floatval($factura['importe']);
+                    $tot_pagos+= floatval($factura['pagos']);
+                    $tot_saldo+= floatval($factura['saldo']);
                 ?>
                 <tr>
                     <td>{{$factura['factura']}}</td>
@@ -184,9 +184,9 @@
             <tfoot>
                 <tr>
                     <td colspan="3">Totales: </td>
-                    <td style="text-align: right">{{'$'.number_format($tot_importe,2)}}</td>
-                    <td style="text-align: right">{{'$'.number_format($tot_pagos,2)}}</td>
-                    <td style="text-align: right">{{'$'.number_format($tot_saldo,2)}}</td>
+                    <td style="text-align: right;font-weight: bold">{{'$'.number_format($tot_importe,2)}}</td>
+                    <td style="text-align: right;font-weight: bold">{{'$'.number_format($tot_pagos,2)}}</td>
+                    <td style="text-align: right;font-weight: bold">{{'$'.number_format($tot_saldo,2)}}</td>
                 </tr>
             </tfoot>
         </table>

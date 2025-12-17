@@ -62,7 +62,7 @@
                 </div>
             </div>
             <hr>
-            <div class="row-span-1 mt-2" style="border: #7f8c8d solid 1px;border-radius: 20px; padding: 1rem; background-color: #f0f3f7">
+            <div class="row-span-1 mt-2 mb-2" style="border: #7f8c8d solid 1px;border-radius: 20px; padding: 1rem; background-color: #f0f3f7">
                 <div class="col-6">
                     <label class="iconlabel">
                         <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="blue">
@@ -83,6 +83,7 @@
                     <label style="color: #aab2b3; margin-top: 1rem">{{$clie_cat->correo}} - {{$clie_cat->telefono}}</label><br>
                 </div>
             </div>
+            <hr>
             <div class="row-span-1 mt-2 mb-2" style="display: grid; grid-template-columns: repeat(4, 1fr);">
                 <div style="border: #4b5563 solid 1px; border-radius: 15px; margin-left: 2rem">
                     <label class="iconlabel" style="margin-left: 1rem">
@@ -128,7 +129,7 @@
         </div>
     </div>
     <div class="row" style="margin-top: 2rem">
-        <table class="table table-striped">
+        <table class="table-auto">
             <thead>
                 <tr>
                     <th>Factura</th>

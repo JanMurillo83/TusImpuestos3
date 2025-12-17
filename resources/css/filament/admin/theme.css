@@ -74,8 +74,11 @@ html {
     color: #fcfcfc;
 }
 
-.row_gral{
-    background-color: #fcfcfc;
+.row_gral tr:nth-child(odd){
+    background-color: #c5e0fc;
+}
+.row_gral tr:nth-child(even){
+    background-color: #ebf2fa;
 }
 .row_gral:hover{
     background-color: oklch(87.1% 0.006 286.286);

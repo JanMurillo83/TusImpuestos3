@@ -559,38 +559,24 @@ class PagosResource extends Resource
                             'refer'=>$fact_pag->id
                         ]);
                     }
-                    $pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
+                    //$pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
                     $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
                     $facturamodel = Pagos::where('id',$factura)->first();
                     $facturamodel->timbrado = 'SI';
                     $facturamodel->xml = $resultado->cfdi;
                     $facturamodel->fecha_tim = $date;
-                    $facturamodel->pdf_file = $pdf_file;
+                    //$facturamodel->pdf_file = $pdf_file;
                     $facturamodel->save();
                     $res2 = app(TimbradoController::class)->actualiza_pag_tim($factura,$resultado->cfdi,"P");
                     $mensaje_tipo = "1";
                     $mensaje_graba = 'Comprobante Timbrado Se genero el CFDI UUID: '.$res2;
+                    self::makePrint($record);
                     Notification::make()
                         ->success()
                         ->title('Pago Timbrado Correctamente')
                         ->body($mensaje_graba)
                         ->duration(2000)
                         ->send();
-                    $record = Pagos::where('id',$record->id)->first();
-                    $emp = DatosFiscales::where('team_id',Filament::getTenant()->id)->first();
-                    $cli = Clientes::where('id',$record->cve_clie)->first();
-                    $archivo_pdf = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
-                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
-                    if(File::exists($ruta))File::delete($ruta);
-                    $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
-                    $html = View::make('RepFacturaCP',$data)->render();
-                    Browsershot::html($html)->format('Letter')
-                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-                        ->noSandbox()
-                        ->scale(0.8)->savePdf($ruta);
-                    return response()->download($ruta);
-
                 }
                 else{
                     $mensaje_tipo = "2";
@@ -613,6 +599,23 @@ class PagosResource extends Resource
         ];
     }
 
+    public static function makePrint($record): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $record = Pagos::where('id',$record->id)->first();
+        $emp = DatosFiscales::where('team_id',Filament::getTenant()->id)->first();
+        $cli = Clientes::where('id',$record->cve_clie)->first();
+        $archivo_pdf = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+        if(\File::exists($ruta)) unlink($ruta);
+        $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+        $html = View::make('RepFacturaCP',$data)->render();
+        Browsershot::html($html)->format('Letter')
+            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+            ->noSandbox()
+            ->scale(0.8)->savePdf($ruta);
+        return response()->download($ruta);
+    }
     public static function getPages(): array
     {
         return [

@@ -25,7 +25,7 @@ class AdvSegundaFilaWidget extends BaseWidget
         $cobrar = new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important;'>Cuentas por Cobrar</label>");
         $ley_cobrar =new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important; font-style: italic'>$cobrar_importe</label>");
         $bot_cobrar = new HtmlString(\Blade::render(<<<BLADE
-            <x-filament::link :href="url('/$team_id/ventasejerciciodetalle')" color="info" icon="fas-circle-info">
+            <x-filament::link :href="url('/$team_id/estadisticacxc')" color="info" icon="fas-circle-info">
                 Ver Detalle Enero - $mes_letras $ejercicio
             </x-filament::link>
         BLADE
@@ -35,7 +35,7 @@ class AdvSegundaFilaWidget extends BaseWidget
         $pagar = new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important;'>Cuentas por Pagar</label>");
         $ley_pagar =new HtmlString("<label style='color: whitesmoke !important; font-weight: bold !important; font-style: italic'>$pagar_importe</label>");
         $bot_pagar = new HtmlString(\Blade::render(<<<BLADE
-            <x-filament::link :href="url('/$team_id/ventasejerciciodetalle')" color="info" icon="fas-circle-info">
+            <x-filament::link :href="url('/$team_id/estadisticacxp')" color="info" icon="fas-circle-info">
                 Ver Detalle Enero - $mes_letras $ejercicio
             </x-filament::link>
         BLADE

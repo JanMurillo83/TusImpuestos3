@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
+use App\Models\EstadCXC;
 use App\Models\SaldosAnuales;
 use App\Models\SaldosReportes;
 use Filament\Facades\Filament;
@@ -589,9 +590,31 @@ class MainChartsController extends Controller
 
     public function CuentasPor_Cobrar_General($team_id):void
     {
-        $auxiliares = Auxiliares::where('team_id',$team_id)
-        ->where('codigo', 'like', '105%'    )
-        ->get();
+        $datos = EstadCXC::select('clave')->distinct()->get();
+        $claves = [];
+        foreach ($datos as $data)
+        {
+            $cliente = CatCuentas::where('codigo',$data->clave)->first();
+            $facturas = [];
+            $fac_data = EstadCXC::where('clave',$data->clave)->select('factura')->distinct()->get();
+            $saldo_cliente = 0;
+            foreach ($fac_data as $fac)
+            {
+                $fecha = EstadCXC::where('clave',$data->clave)->where('factura',$fac->factura)->first()->fecha;
+                $factura_i = EstadCXC::where('clave',$data->clave)->where('factura',$fac->factura)->get();
+                $facturas[] = [
+                    'factura'=>$fac->factura,
+                    'fecha'=>$fecha,
+                    'importe'=>$factura_i->sum('cargos'),
+                    'pagos'=>$factura_i->sum('abonos'),
+                    'saldo'=>$factura_i->sum('cargos')-$factura_i->sum('abonos')
+                ];
+                $saldo_cliente += $factura_i->sum('cargos')-$factura_i->sum('abonos');
+            }
+            $claves[] = ['clave'=>$data->clave,'cliente'=>$cliente->nombre,'saldo'=>$saldo_cliente,'facturas'=>$facturas];
+        }
+        dd($claves);
+
 
     }
 

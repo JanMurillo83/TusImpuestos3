@@ -184,10 +184,10 @@ class BancoCuentasResource extends Resource
                 Tables\Columns\TextColumn::make('codigo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('inicial')
-                ->currency()->prefix('$'),
+                ->currency(),
                 Tables\Columns\TextColumn::make('moneda'),
                 Tables\Columns\TextColumn::make('Ingresos')
-                ->currency()->prefix('$')
+                ->currency()
                 ->getStateUsing(function($record){
                     $movs = Movbancos::where('cuenta',$record->id)
                         ->where('periodo',Filament::getTenant()->periodo)
@@ -197,6 +197,7 @@ class BancoCuentasResource extends Resource
                     return $movs?->sum('monto') ?? 0;
                 }),
                 Tables\Columns\TextColumn::make('Egresos')
+                    ->currency()
                     ->getStateUsing(function($record){
                         $movs = Movbancos::where('cuenta',$record->id)
                             ->where('periodo',Filament::getTenant()->periodo)

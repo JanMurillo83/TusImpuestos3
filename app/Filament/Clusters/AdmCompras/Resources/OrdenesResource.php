@@ -45,9 +45,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
+use Spatie\Browsershot\Browsershot;
 
 class OrdenesResource extends Resource
 {
@@ -322,12 +324,20 @@ class OrdenesResource extends Resource
                                 ->icon('fas-print')
                                 ->modalCancelActionLabel('Cerrar')
                                 ->modalSubmitAction('')
-                                ->action(function($record,$livewire){
-                                    $livewire->idorden = $record->id;
-                                    $livewire->id_empresa = Filament::getTenant()->id;
-                                    $livewire->getAction('Imprimir_Doc_E')->visible(true);
-                                    $livewire->replaceMountedAction('Imprimir_Doc_E');
-                                    $livewire->getAction('Imprimir_Doc_E')->visible(false);
+                                ->action(function($record){
+                                    $idorden = $record->id;
+                                    $id_empresa = Filament::getTenant()->id;
+                                    $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
+                                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                                    if(File::exists($ruta))File::delete($ruta);
+                                    $data = ['idorden'=>$idorden,'id_empresa'=>$id_empresa];
+                                    $html = View::make('RepOrden',$data)->render();
+                                    Browsershot::html($html)->format('Letter')
+                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                        ->noSandbox()
+                                        ->scale(0.8)->savePdf($ruta);
+                                    return response()->download($ruta);
                                 })
                         ])->visibleOn('edit'),
                         ])->grow(false),
@@ -427,12 +437,20 @@ class OrdenesResource extends Resource
                     else return false;
                 }),
                 Tables\Actions\Action::make('Imprimir')->icon('fas-print')
-                    ->action(function($record,$livewire){
-                        $livewire->idorden = $record->id;
-                        $livewire->id_empresa = Filament::getTenant()->id;
-                        $livewire->getAction('Imprimir_Doc_E')->visible(true);
-                        $livewire->replaceMountedAction('Imprimir_Doc_E');
-                        $livewire->getAction('Imprimir_Doc_E')->visible(false);
+                    ->action(function($record){
+                        $idorden = $record->id;
+                        $id_empresa = Filament::getTenant()->id;
+                        $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                        if(File::exists($ruta))File::delete($ruta);
+                        $data = ['idorden'=>$idorden,'id_empresa'=>$id_empresa];
+                        $html = View::make('RepOrden',$data)->render();
+                        Browsershot::html($html)->format('Letter')
+                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                            ->noSandbox()
+                            ->scale(0.5)->savePdf($ruta);
+                        return response()->download($ruta);
                     }),
                 Tables\Actions\ViewAction::make()
                     ->modalWidth('full')

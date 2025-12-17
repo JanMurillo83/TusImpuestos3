@@ -202,14 +202,14 @@ class MovbancosResource extends Resource
                     ->default(0),
             ])->columns(4);
     }
-
     public static function table(Table $table): Table
     {
         return $table
-            ->heading(function ($livewire) {
-                $cuenta_id = $livewire->selected_tier;
-               // dd($cuenta_id);
-                $cuenta = BancoCuentas::where('id',$cuenta_id)->first();
+            ->heading(function ($livewire){
+
+                $cuenta = BancoCuentas::where('id',$livewire->activeTab)->first();
+                $cuenta_id = $cuenta->id;
+                // dd($cuenta_id);
                 $inicial_origen = floatval($cuenta->inicial);
                 $periodo = Filament::getTenant()->periodo ?? 1;
                 $ejercicio = Filament::getTenant()->ejercicio ?? 2020;

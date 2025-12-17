@@ -38,7 +38,7 @@ class ListMovbancos extends ListRecords
 
     public ?int $selected_tier;
 
-    protected function getTableHeading(): string
+    /*protected function getTableHeading(): string
     {
         // Get the current tab from the request
         $currentUrl = request()->url();
@@ -81,7 +81,7 @@ class ListMovbancos extends ListRecords
         }
 
         return "Movimientos Bancarios";
-    }
+    }*/
 
     protected function getHeaderActions(): array
     {
@@ -381,7 +381,7 @@ class ListMovbancos extends ListRecords
             $name = $tier->banco;
             $slug = str($name)->slug()->toString();
 
-            $tabs[$slug] = Tab::make($name)
+            $tabs[$tier->id] = Tab::make($name)
                 ->modifyQueryUsing(function ($query) use ($tier) {
                     return $query->where('cuenta', $tier->id);
                 });

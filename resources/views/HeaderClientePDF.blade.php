@@ -154,8 +154,8 @@
                 ?>
                 <tr>
                     <td>{{$factura['factura']}}</td>
-                    <td>{{$factura['fecha']}}</td>
-                    <td>{{$factura['vencimiento']}}</td>
+                    <td>{{\Carbon\Carbon::create($factura['fecha'])->format('d-m-Y')}}</td>
+                    <td>{{\Carbon\Carbon::create($factura['vencimiento'])->format('d-m-Y')}}</td>
                     <td style="text-align: right">{{'$'.number_format($factura['importe'],2)}}</td>
                     <td style="text-align: right">{{'$'.number_format($factura['pagos'],2)}}</td>
                     <td style="text-align: right">{{'$'.number_format($factura['saldo'],2)}}</td>

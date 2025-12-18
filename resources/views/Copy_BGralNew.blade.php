@@ -1,43 +1,27 @@
-<div>
-    <?php
-        use \Illuminate\Support\Facades\DB;
-            $empresas = DB::table('teams')->where('id',$empresa)->get()[0];
-            $cuentas = DB::select("SELECT * FROM saldos_reportes
-            WHERE nivel = 1 AND team_id = $empresa
-            AND (anterior+cargos+abonos) != 0");
-            $fecha = \Carbon\Carbon::now();
-            $saldo1 = 0;
-            $saldo2 = 0;
-            $saldo3 = 0;
-            $saldo4 = 0;
-            $saldo5 = 0;
-    ?>
-    <style>
-        @media print{
-            html, body {
-            -webkit-print-color-adjust: exact;
-            }
-        }
-        table {
-            border-collapse: collapse; /* Collapses borders into a single border */
-            width: 100%; /* Ensures the table takes up the full width available */
-        }
-
-        th, td {
-            text-align: left; /* Aligns text to the left */
-            padding: 8px; /* Adds space around content */
-        }
-
-        tr:nth-child(even) {
-            background-color: #f2f2f2; /* Gray background for even rows */
-        }
-
-        /* Optional: Add a different background color for the table header */
-        th {
-            background-color: #7f8c8d;
-            color: white;
-        }
-    </style>
+<?php
+use \Illuminate\Support\Facades\DB;
+    $empresas = DB::table('teams')->where('id',$empresa)->get()[0];
+    $cuentas = DB::select("SELECT * FROM saldos_reportes
+    WHERE nivel = 1 AND team_id = $empresa
+    AND (anterior+cargos+abonos) != 0");
+    $fecha = \Carbon\Carbon::now();
+    $saldo1 = 0;
+    $saldo2 = 0;
+    $saldo3 = 0;
+    $saldo4 = 0;
+    $saldo5 = 0;
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Balance General</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+</head>
+<body>
     <div class="container">
         <div class="row mt-5">
             <div class="col-3">
@@ -215,4 +199,5 @@
             </div>
         </div>
     </div>
-</div>
+</body>
+</html>

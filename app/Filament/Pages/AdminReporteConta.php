@@ -124,7 +124,7 @@ class AdminReporteConta extends Page implements HasTable
                         $path = $record->ruta;
                         $tipo = $record->formato;
                         $reporte = $record->reporte;
-                        $ruta = public_path().'/TMPCFDI/reporte'.$team_id.'_'.$ejercicio.'_'.$periodo.'_'.$reporte.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/reporte'.$team_id.'.pdf';
                         if(\File::exists($ruta)) unlink($ruta);
                         $data = [
                             'empresa'=>$team_id,
@@ -160,7 +160,7 @@ class AdminReporteConta extends Page implements HasTable
                     $team_id = Filament::getTenant()->id;
                     $ejercicio = Filament::getTenant()->ejercicio;
                     app(MainChartsController::class)->Contabiliza($team_id,$ejercicio);
-                })->visible()
+                })->visible(false)
             ]);
     }
 

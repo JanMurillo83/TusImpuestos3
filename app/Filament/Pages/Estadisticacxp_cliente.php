@@ -2,17 +2,14 @@
 
 namespace App\Filament\Pages;
 
-use App\Exports\AuxiliaresExport;
 use App\Exports\CXCExport;
-use App\Models\EstadCXC_F;
+use App\Exports\CXPExport;
 use App\Models\EstadCXC_F_F;
+use App\Models\EstadCXP_F_F;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Columns\Layout\Split;
-use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -21,18 +18,17 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
-use Illuminate\Support\HtmlString;
 use Livewire\Attributes\Url;
 use Spatie\Browsershot\Browsershot;
 
-class Estadisticacxc_cliente extends Page implements HasTable, HasActions
+class Estadisticacxp_cliente extends Page implements HasTable, HasActions
 {
     use InteractsWithTable, InteractsWithActions;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static string $view = 'filament.pages.estadisticacxc_cliente';
+    protected static string $view = 'filament.pages.estadisticacxp_cliente';
     protected static bool $shouldRegisterNavigation = false;
-    protected static ?string $title = 'Cuentas por Cobrar';
+    protected static ?string $title = 'Cuentas por Pagar';
     public function getTitle(): string
     {
         return '';
@@ -43,10 +39,10 @@ class Estadisticacxc_cliente extends Page implements HasTable, HasActions
     {
         return $table
             ->query(function () {
-                return EstadCXC_F_F::getCliente($this->cliente)->query();
+                return EstadCXP_F_F::getCliente($this->cliente)->query();
             })
             ->modifyQueryUsing(fn (Builder $query) => $query->orderBy('fecha','asc'))
-            ->header(view('HeaderCliente',['cliente'=>$this->cliente ?? '']))
+            ->header(view('HeaderProveedor',['cliente'=>$this->cliente ?? '']))
             ->paginated(false)
             ->striped()
             ->recordClasses('row_gral')
@@ -57,7 +53,7 @@ class Estadisticacxc_cliente extends Page implements HasTable, HasActions
                 TextColumn::make('importe')->numeric(decimalSeparator: '.',thousandsSeparator: ',',decimalPlaces: 2)->prefix('$')->alignRight(),
                 TextColumn::make('pagos')->numeric(decimalSeparator: '.',thousandsSeparator: ',',decimalPlaces: 2)->prefix('$')->alignRight(),
                 TextColumn::make('saldo')->numeric(decimalSeparator: '.',thousandsSeparator: ',',decimalPlaces: 2)->prefix('$')->alignRight()
-                ->summarize(Sum::make()->numeric(decimalSeparator: '.',thousandsSeparator: ',',decimalPlaces: 2)->prefix('$')),
+                    ->summarize(Sum::make()->numeric(decimalSeparator: '.',thousandsSeparator: ',',decimalPlaces: 2)->prefix('$')),
             ]);
     }
     public function pdfAction(): \Filament\Actions\Action
@@ -68,7 +64,7 @@ class Estadisticacxc_cliente extends Page implements HasTable, HasActions
                 $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                 if(File::exists($ruta))File::delete($ruta);
                 $data = ['cliente'=>$this->cliente];
-                $html = View::make('HeaderClientePDF',$data)->render();
+                $html = View::make('HeaderProveedorPDF',$data)->render();
                 Browsershot::html($html)->format('Letter')
                     ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                     ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
@@ -81,7 +77,7 @@ class Estadisticacxc_cliente extends Page implements HasTable, HasActions
     {
         return \Filament\Actions\Action::make('xls')
             ->action(function () {
-                return (new CXCExport($this->cliente))->download('Estado_de_Cuenta.xlsx');
+                return (new CXPExport($this->cliente))->download('Estado_de_Cuenta.xlsx');
             });
     }
 

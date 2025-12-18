@@ -1,9 +1,9 @@
 <div>
     <?php
-    $data_cliente = \App\Models\EstadCXC_F::where('clave',$cliente)->first();
+    $data_cliente = \App\Models\EstadCXP_F::where('clave',$cliente)->first();
     $clave = $data_cliente->clave;
     $nombre = $data_cliente->cliente;
-    $clie_cat = \App\Models\Clientes::where('team_id',\Filament\Facades\Filament::getTenant()->id)
+    $clie_cat = \App\Models\Proveedores::where('team_id',\Filament\Facades\Filament::getTenant()->id)
         ->where('cuenta_contable',$cliente)->first();
     $facturas = $data_cliente->facturas;
     $venta = array_column($facturas,'importe');
@@ -75,10 +75,10 @@
             <table>
                 <thead>
                 <tr>
-                    <th colspan="6">Estado de Cuenta del cliente</th>
+                    <th colspan="6">Estado de Cuenta del proveedor</th>
                 </tr>
                 <tr>
-                    <th>Cliente:</th>
+                    <th>Proveedor:</th>
                     <th colspan="2">{{$clie_cat->nombre}}</th>
                     <th>RFC:</th>
                     <th colspan="2">{{$clie_cat->rfc}}</th>

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Http\Controllers\MainChartsController;
+use App\Http\Controllers\ReportesController;
 use App\Models\Auxiliares;
 use App\Models\DatosFiscales;
 use App\Models\EstadCXC;
@@ -30,6 +31,7 @@ class DashBoardIndicadores extends Page
 
     public function getViewData(): array
     {
+        app(ReportesController::class)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
         $user = User::where('id',Filament::auth()->id())->first();
         $importes = self::getCalcs();
         return [

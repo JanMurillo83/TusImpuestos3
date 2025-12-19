@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class MainReportes extends Model
 {
-    protected $fillable = ['reporte','ruta','tipo','formato'];
+    protected $fillable = ['reporte','ruta','tipo','pdf','xls'];
 }

@@ -20,12 +20,36 @@ $saldo5 = 0;
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <style>
+        @media print{
+            html, body {
+            -webkit-print-color-adjust: exact;
+            }
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            border-bottom: 1px solid #000000;
+            margin-bottom: 2rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        th {
+            background-color: #edf4ff;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <div class="row mt-5">
         <div class="col-3">
-            <img src="{{asset('images/MainLogo.png')}}" alt="Tus-Impuestos" width="120px">
+            <img src="{{$logo}}" alt="Tus-Impuestos" width="120px">
         </div>
         <div class="col-6">
             <center>
@@ -43,7 +67,7 @@ $saldo5 = 0;
     <div class="row mt-2">
         <div class="col-6">
             <label style="font-weight: bold">Activo a corto plazo</label>
-            <table class="table border">
+            <table>
                 <tr>
                     <th style="font-weight: bold">Codigo</th>
                     <th style="font-weight: bold">Cuenta</th>
@@ -75,7 +99,7 @@ $saldo5 = 0;
                 </tr>
             </table>
             <label style="font-weight: bold">Activo a largo plazo</label>
-            <table class="table border">
+            <table>
                 <tr>
                     <th style="font-weight: bold">Codigo</th>
                     <th style="font-weight: bold">Cuenta</th>
@@ -112,7 +136,7 @@ $saldo5 = 0;
         </div>
         <div class="col-6">
             <label style="font-weight: bold">Pasivo a corto plazo</label>
-            <table class="table border">
+            <table>
                 <tr>
                     <th style="font-weight: bold">Codigo</th>
                     <th style="font-weight: bold">Cuenta</th>
@@ -143,7 +167,7 @@ $saldo5 = 0;
                 </tr>
             </table>
             <label style="font-weight: bold">Capital</label>
-            <table class="table border">
+            <table>
                 <tr>
                     <th style="font-weight: bold">Codigo</th>
                     <th style="font-weight: bold">Cuenta</th>
@@ -173,7 +197,7 @@ $saldo5 = 0;
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo4,2)}}</td>
                 </tr>
             </table>
-            <table class="table border">
+            <table>
                 @foreach($cuentas as $cuenta)
                         <?php $cod = intval(substr($cuenta->codigo,0,3));
 

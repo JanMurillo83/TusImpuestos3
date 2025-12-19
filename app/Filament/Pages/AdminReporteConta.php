@@ -31,6 +31,7 @@ class AdminReporteConta extends Page implements HasTable
     protected static ?string $navigationGroup = 'Reportes';
     protected static ?string $title = 'Reportes Contables';
     protected static ?string $pluralLabel = 'Reportes Contables';
+    protected static bool $shouldRegisterNavigation = false;
     protected static string $view = 'filament.pages.admin-reporte-conta';
 
     public ?string $ReportePDF;
@@ -115,7 +116,7 @@ class AdminReporteConta extends Page implements HasTable
                     ->modalSubmitActionLabel('Generar')
                     ->action(function ($record,$data){
                         $team_id = Filament::getTenant()->id;
-                        $periodo = $data['periodo'] ?? null;
+                        $periodo = $data['periodo_ini'] ?? null;
                         $ejercicio = Filament::getTenant()->ejercicio;
                         $cuentaIni = $data['cuenta_ini'] ?? null;
                         $cuentaFin = $data['cuenta_fin'] ?? null;
@@ -126,6 +127,8 @@ class AdminReporteConta extends Page implements HasTable
                         $reporte = $record->reporte;
                         $ruta = public_path().'/TMPCFDI/reporte'.$team_id.'.pdf';
                         if(\File::exists($ruta)) unlink($ruta);
+                        $logo = asset('images/MainLogo.png');
+                        $logo_64 = 'data:image/png;base64,'.base64_encode(file_get_contents($logo));
                         $data = [
                             'empresa'=>$team_id,
                             'periodo'=>$periodo,
@@ -133,7 +136,8 @@ class AdminReporteConta extends Page implements HasTable
                             'cuenta_ini'=>$cuentaIni,
                             'cuenta_fin'=>$cuentaFin,
                             'mes_ini'=>$fechaIni,
-                            'mes_fin'=>$fechaFin];
+                            'mes_fin'=>$fechaFin,
+                            'logo'=>$logo_64];
                         if($tipo == 'pdf') {
                             $html = \Illuminate\Support\Facades\View::make($path, $data)->render();
                             Browsershot::html($html)->format('Letter')

@@ -26,7 +26,7 @@ $prevSaldosQuery = DB::table('auxiliares as a')
         $q->where('p.ejercicio','<',$ejercicio)
           ->orWhere(function($q2) use ($periodo,$ejercicio,$mes_ini,$mes_fin){
               $q2->where('p.ejercicio',$ejercicio)
-                 ->where('p.periodo','<',$mes_ini);
+                 ->where('p.periodo','<',intval($mes_ini));
           });
     })
     ->groupBy('a.codigo','a.cuenta')

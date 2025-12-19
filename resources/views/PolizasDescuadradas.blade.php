@@ -73,7 +73,7 @@ foreach ($auxiliar_es as $auxili_ar)
 <div class="container">
     <div class="row mt-5">
         <div class="col-3">
-            <img src="{{asset('images/MainLogo.png')}}" alt="Tus-Impuestos" width="120px">
+            <img src="{{$logo}}" alt="Tus-Impuestos" width="120px">
         </div>
         <div class="col-6">
             <center>

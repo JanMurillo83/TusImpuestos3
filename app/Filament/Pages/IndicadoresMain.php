@@ -30,6 +30,7 @@ class IndicadoresMain extends Page
     protected static ?string $navigationIcon = 'fas-chart-simple';
     protected static ?string $title = 'Indicadores del Periodo';
     protected static string $view = 'filament.pages.indicadores-main';
+    protected static bool $shouldRegisterNavigation = false;
     protected ?string $maxContentWidth = 'full';
     protected function getHeaderWidgets(): array
     {

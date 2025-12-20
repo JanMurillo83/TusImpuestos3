@@ -160,7 +160,7 @@ class AdminReportesC extends Page implements HasForms
                             ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                             ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                             ->noSandbox()
-                            ->scale(0.6)->savePdf($ruta);
+                            ->scale(0.8)->savePdf($ruta);
                         $this->ReportePDF = base64_encode(file_get_contents($ruta));
                         (new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
                     }),

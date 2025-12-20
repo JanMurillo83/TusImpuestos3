@@ -66,7 +66,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('5rem')
             ->colors([
                 'primary' => Color::Blue,
-                'gray' => Color::hex('#1e293b'),
+                'gray' => Color::Sky,
                 'info' => Color::hex('#F5F5F5'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

@@ -47,7 +47,7 @@
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-xs text-amber-500">Cuentas por Cobrar</p><br>
                         <p class="text-2xl font-bold text-green-600 mt-1">{{'$'.number_format($cobrar_importe,2)}}</p><br>
-                        <a href="#" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
+                        <a href="{{'/'.$team_id.'/estado-clientes-general'}}" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
                     </div>
                     <!-- Cartera Vencida-->
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

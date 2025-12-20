@@ -24,6 +24,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -898,7 +899,25 @@ class CatPolizasResource extends Resource
                     })*/
             ])
             ->striped()->defaultPaginationPageOption(8)
-            ->paginated([8, 'all']);
+            ->paginated([8, 'all'])
+            ->filters([
+                Tables\Filters\Filter::make('Periodo')
+                    ->form([
+                        Select::make('Periodo Inicial')
+                        ->options([1=>1,2=>2,3=>3,4=>4,5=>5,6=>6,7=>7,8=>8,9=>9,10=>10,11=>11,12=>12])
+                        ->default(Filament::getTenant()->periodo),
+                        Select::make('Periodo Final')
+                        ->options([1=>1,2=>2,3=>3,4=>4,5=>5,6=>6,7=>7,8=>8,9=>9,10=>10,11=>11,12=>12])
+                        ->default(Filament::getTenant()->periodo),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->whereBetween('periodo',[$data['Periodo Inicial'],$data['Periodo Final']]);
+
+                    })->visible(function($livewire){
+                       if($livewire->activeTab == 'OP') return true;
+                       else return false;
+                    })
+            ], layout: Tables\Enums\FiltersLayout::Modal);
     }
 
     public static function suma_apertura(Get $get,Set $set): void

@@ -464,6 +464,11 @@ class CatPolizasResource extends Resource
                 Tables\Actions\Action::make('Copiar Poliza')
                 ->icon('fas-copy')->tooltip('Copiar Poliza')->iconButton()
                 ->form([
+                    TextInput::make('dia')->label('Dia')
+                        ->numeric()->required()->minValue(1)->maxValue(12)
+                        ->default(function($record){
+                            return Carbon::create($record->fecha)->day;
+                        })->minValue(1)->maxValue(31),
                     TextInput::make('mes')->label('Periodo')
                     ->numeric()->required()->minValue(1)->maxValue(12)
                     ->default(function($record){

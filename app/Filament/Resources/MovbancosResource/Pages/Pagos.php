@@ -483,9 +483,9 @@ class Pagos extends Page implements HasForms
                 }
                 if ($factura['Moneda'] != 'MXN' && $moneda_pago == 'MXN') {
 
-                    $pesos = floatval($monto_par);
+                    $pesos = floatval($record->importe);
                     $tipoc_mov_tusd = floatval($get('monto_total_usd'));
-                    $tipoc_mov_tmxn = floatval($get('monto_total'));
+                    $tipoc_mov_tmxn = floatval($record->importe);
                     $tipoc_mov = $tipoc_mov_tmxn / $tipoc_mov_tusd;
                     $tipoc_f = floatval($factura['Tipo Cambio']);
                     $dolares = $factura['USD a Pagar'];
@@ -615,6 +615,7 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
+
                     $st_con = 'NO';
                     $n_pen = floatval($get('pendiente')) - floatval($monto_par);
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);
@@ -971,7 +972,8 @@ class Pagos extends Page implements HasForms
                 }
             }
         }
-        Auxiliares::where('id', $id_cta_banco)->update(['abono' => $mon_apli_ban]);
+        //Auxiliares::where('id', $id_cta_banco)->update(['abono' => $mon_apli_ban]);
+        Auxiliares::where('id', $id_cta_banco)->update(['abono' => $record->importe]);
         if($id_cta_banco_com > 0) {
             $n_imp = ($record->importe * $record->tcambio) - $record->importe;
             Auxiliares::where('id', $id_cta_banco_com)->update(['abono' => $n_imp]);

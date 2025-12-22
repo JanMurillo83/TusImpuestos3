@@ -482,6 +482,14 @@ class cfdiri extends Page implements HasForms, HasTable
                                     ->default(function () use ($receptor){
                                         return $receptor['rfc'].'-'.$receptor['nombre'];
                                     })->columnSpan(2),
+                                TextInput::make('Método de Pago')
+                                    ->default(function () use ($comp){
+                                        return $comp['MetodoPago'];
+                                    }),
+                                TextInput::make('Forma de Pago')
+                                    ->default(function () use ($comp){
+                                        return $comp['FormaPago'];
+                                    }),
                                 TableRepeater::make('partidas')
                                     ->streamlined()->addable(false)->deletable(false)->reorderable(false)
                                     ->headers([

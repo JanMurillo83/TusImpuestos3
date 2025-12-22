@@ -179,7 +179,7 @@ foreach ($movimientos as $m) {
                             <td>{{ $it->tipo }}</td>
                             <td>{{ $it->folio }}</td>
                             <td>{{ $it->concepto ?: $it->poliza_concepto }}</td>
-                            <td>{{ $it->factura ?: $it->referencia }}</td>
+                            <td>{{ $it->factura ?: '' }}</td>
                             <td>{{ $it->uuid }}</td>
                             <td style="text-align: end;">{{ '$'.number_format($it->cargo,2) }}</td>
                             <td style="text-align: end;">{{ '$'.number_format($it->abono,2) }}</td>

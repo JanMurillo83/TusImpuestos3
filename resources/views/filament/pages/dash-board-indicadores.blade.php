@@ -41,7 +41,7 @@
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-xs text-emerald-500">Ventas del año</p><br>
                         <p class="text-2xl font-bold text-slate-800 mt-1">{{'$'.number_format($ventas_anuales,2)}}</p><br>
-                        <a href="#" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
+                        <a href="/{{$team_id}}/ventasejerciciodetalle" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
                     </div>
                     <!-- Cuentas por cobrar -->
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
@@ -53,12 +53,17 @@
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-xs text-red-500">Cartera Vencida</p><br>
                         <p class="text-2xl font-bold text-red-400 mt-1">{{'$'.number_format($importe_vencido,2)}}</p><br>
-                        <a href="#" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
+                        <?php
+                            $var1 = floatval($cobrar_importe);
+                            $var2 = floatval($importe_vencido);
+                            $porc = $var2 * 100 / max($var1,1);
+                        ?>
+                        <p class="text-xs text-red-500">{{number_format($porc,2).'% de la Cobranza'}}</p><br>
                     </div>
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-xs text-blue-500">Cuentas por Pagar</p><br>
                         <p class="text-2xl font-bold text-amber-600 mt-1">{{'$'.number_format($pagar_importe,2)}}</p><br>
-                        <a href="#" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
+                        <a href="{{'/'.$team_id.'/estado-proveedores-general'}}" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
                     </div>
                 </div>
             </section>

@@ -31,9 +31,11 @@ class DashBoardIndicadores extends Page
 
     public function getViewData(): array
     {
+        $team_id = Filament::getTenant()->id;
         app(ReportesController::class)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
         $user = User::where('id',Filament::auth()->id())->first();
         $importes = self::getCalcs();
+        $fiscales = DatosFiscales::where('team_id',$team_id)->first();
         return [
             'team_id'=>Filament::getTenant()->id,
             'periodo'=>Filament::getTenant()->periodo,
@@ -59,6 +61,8 @@ class DashBoardIndicadores extends Page
             'importe_ret'=>$importes['importe_ret'],
             'mes_ventas_data'=>$importes['mes_ventas_data'],
             'anio_ventas_data'=>$importes['anio_ventas_data'],
+            'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com',
+            'emp_telefono'=>$fiscales?->telefono ?? '0000000000'
         ];
     }
 

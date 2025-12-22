@@ -7,22 +7,18 @@
         <!-- Header -->
         <header class="flex justify-between items-start border-b pb-4">
             <div class="flex items-center gap-3">
-                <!-- Logo -->
-                <div class="h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold">
-                    TI
-                </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-800">
                         Estado de Cuenta - Saldos de Clientes
                     </h1>
                     <p class="text-xs text-slate-500">
-                        Sistema Tus-Impuestos · Módulo de Cuentas por Cobrar
+                        {{$empresa}} · Módulo de Cuentas por Cobrar
                     </p>
                 </div>
             </div>
             <div class="text-right text-xs text-slate-600 space-y-1">
-                <p><span class="font-semibold">Fecha de emisión:</span> 28/11/2025</p>
-                <p><span class="font-semibold">Usuario:</span> admin@tus-impuestos.com</p>
+                <p><span class="font-semibold">Fecha de emisión:</span> {{\Carbon\Carbon::now()->format('d-m-Y')}}</p>
+                <p><span class="font-semibold">Usuario:</span> {{\Illuminate\Support\Facades\Auth::user()->name}}</p>
             </div>
         </header>
 
@@ -48,57 +44,29 @@
             </a>
         </section>
 
-        <!-- Filtros -->
-        <section class="mt-4 flex flex-wrap justify-between items-center gap-3 text-xs">
-            <div class="text-slate-600">
-                <p><span class="font-semibold">Periodo:</span> 01/11/2025 – 30/11/2025</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <div class="flex items-center gap-1">
-                    <label class="text-slate-500">Segmento:</label>
-                    <select class="border rounded px-2 py-1 text-xs text-slate-700">
-                        <option>Todos</option>
-                        <option>Corporativo</option>
-                        <option>Mayorista</option>
-                        <option>Detallista</option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-1">
-                    <label class="text-slate-500">Estatus:</label>
-                    <select class="border rounded px-2 py-1 text-xs text-slate-700">
-                        <option>Todos</option>
-                        <option>Activo</option>
-                        <option>Inactivo</option>
-                        <option>Moroso</option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-1">
-                    <input type="text" placeholder="Buscar cliente / RFC…" class="border rounded px-2 py-1 text-xs w-40">
-                </div>
-            </div>
-        </section>
-
-        <!-- KPIs -->
         <section class="mt-5 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                 <p class="text-xs text-slate-500">👥 Total clientes</p>
-                <p class="text-lg font-semibold text-slate-800 mt-1">125</p>
+                <p class="text-lg font-semibold text-slate-800 mt-1">{{intval(count($maindata))}}</p>
             </div>
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                 <p class="text-xs text-slate-500">💰 Saldo total cartera</p>
-                <p class="text-lg font-semibold text-slate-800 mt-1">$ 6,533,301.29</p>
+                <p class="text-lg font-semibold text-slate-800 mt-1">{{'$'.number_format($saldo_total,2)}}</p>
             </div>
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                 <p class="text-xs text-slate-500">⚠️ Saldo vencido</p>
-                <p class="text-lg font-semibold text-red-600 mt-1">$ 980,000.00</p>
+                <p class="text-lg font-semibold text-red-600 mt-1">{{'$'.number_format($saldo_vencido,2)}}</p>
             </div>
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                 <p class="text-xs text-slate-500">⏳ Saldo por vencer</p>
-                <p class="text-lg font-semibold text-slate-800 mt-1">$ 5,553,301.29</p>
+                <p class="text-lg font-semibold text-slate-800 mt-1">{{'$'.number_format($saldo_corriente,2)}}</p>
             </div>
             <div class="bg-orange-500 text-white rounded-lg p-3">
                 <p class="text-xs">📊 % Cartera vencida</p>
-                <p class="text-lg font-bold mt-1">15.00%</p>
+                <?php
+                    $por_in = $saldo_vencido * 100 / max($saldo_total,1);
+                ?>
+                <p class="text-lg font-bold mt-1">{{number_format($por_in,2).'%'}}</p>
             </div>
         </section>
 
@@ -126,119 +94,93 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <!-- Ejemplo 1 -->
-                    <tr class="border-b border-slate-100">
-                        <td class="py-1.5 px-2 font-semibold text-slate-800">
-                            SHAPE CORP. MEXICO
-                        </td>
-                        <td class="py-1.5 px-2 text-slate-600">
-                            RFC_SHAPE
-                        </td>
-                        <td class="py-1.5 px-2 text-right">
-                            $ 0.00
-                        </td>
-                        <td class="py-1.5 px-2 text-right font-semibold">
-                            $ 1,775,977.93
-                        </td>
-                        <td class="py-1.5 px-2 text-right">
-                            27.18%
-                        </td>
-                        <td class="py-1.5 px-2 text-right text-red-600">
-                            <!-- saldo vencido calculado -->
-                            $ 0.00
-                        </td>
-                        <td class="py-1.5 px-2 text-right">
-                            <!-- saldo por vencer calculado -->
-                            $ 1,775,977.93
-                        </td>
-                        <td class="py-1.5 px-2 text-center">
-                            <a
-                                href="#"
-                                class="text-sky-700 hover:underline font-semibold"
-                            >
-                                Ver detalle
-                            </a>
-                        </td>
-                        <td class="py-1.5 px-2 text-center">
-                            <a
-                                href="#"
-                                class="inline-flex items-center px-2 py-1 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-semibold"
-                            >
-                                ✉️
-                            </a>
-                        </td>
-                        <td class="py-1.5 px-2 text-center">
-                            <a
-                                href="#"
-                                class="inline-flex items-center px-2 py-1 rounded-md bg-green-500 hover:bg-green-600 text-white font-semibold"
-                            >
-                                📲
-                            </a>
-                        </td>
-                    </tr>
-
-                    <!-- Ejemplo 2 -->
-                    <tr class="bg-slate-50 border-b border-slate-100">
-                        <td class="py-1.5 px-2 font-semibold text-slate-800">
-                            TERNIUM MEXICO
-                        </td>
-                        <td class="py-1.5 px-2 text-slate-600">
-                            RFC_TERNIUM
-                        </td>
-                        <td class="py-1.5 px-2 text-right">
-                            $ 0.00
-                        </td>
-                        <td class="py-1.5 px-2 text-right font-semibold">
-                            $ 1,469,908.47
-                        </td>
-                        <td class="py-1.5 px-2 text-right">
-                            22.50%
-                        </td>
-                        <td class="py-1.5 px-2 text-right text-red-600">
-                            $ 0.00
-                        </td>
-                        <td class="py-1.5 px-2 text-right">
-                            $ 1,469,908.47
-                        </td>
-                        <td class="py-1.5 px-2 text-center">
-                            <a href="#" class="text-sky-700 hover:underline font-semibold">
-                                Ver detalle
-                            </a>
-                        </td>
-                        <td class="py-1.5 px-2 text-center">
-                            <a href="#" class="inline-flex items-center px-2 py-1 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-semibold">
-                                ✉️
-                            </a>
-                        </td>
-                        <td class="py-1.5 px-2 text-center">
-                            <a href="#" class="inline-flex items-center px-2 py-1 rounded-md bg-green-500 hover:bg-green-600 text-white font-semibold">
-                                📲
-                            </a>
-                        </td>
-                    </tr>
-
-                    <!-- Aquí tu sistema iteraría el resto de clientes -->
+                    <?php
+                        $total_sdo_det = 0;
+                        $total_por_det = 0;
+                        $total_ven_det = 0;
+                        $total_cor_det = 0;
+                    ?>
+                    @foreach($maindata as $data)
+                        <?php
+                            $cl_data = \App\Models\Clientes::where('cuenta_contable',$data->clave)
+                            ->first();
+                            $rfc_cl = $cl_data?->rfc ?? 'XAXX010101000';
+                            $lim_cl = floatval($cl_data?->limite_credito ?? 0);
+                            $por_det = $data->saldo * 100 / max($saldo_total,1);
+                            $total_sdo_det+= floatval($data->saldo);
+                            $total_por_det+= $por_det;
+                            $total_ven_det+= floatval($data->vencido);
+                            $total_cor_det+= floatval($data->corriente);
+                        ?>
+                        <tr class="border-b border-slate-100">
+                            <td class="py-1.5 px-2 font-semibold text-slate-800">
+                                {{$data->cliente}}
+                            </td>
+                            <td class="py-1.5 px-2 text-slate-600">
+                                {{$rfc_cl}}
+                            </td>
+                            <td class="py-1.5 px-2 text-right text-slate-600">
+                                {{'$'.number_format($lim_cl,2)}}
+                            </td>
+                            <td class="py-1.5 px-2 text-right font-semibold text-slate-600">
+                                {{'$'.number_format($data->saldo,2)}}
+                            </td>
+                            <td class="py-1.5 px-2 text-right text-slate-600">
+                                {{number_format($por_det,2).'%'}}
+                            </td>
+                            <td class="py-1.5 px-2 text-right text-red-600">
+                                <!-- saldo vencido calculado -->
+                                {{'$'.number_format($data->vencido,2)}}
+                            </td>
+                            <td class="py-1.5 px-2 text-right text-slate-600">
+                                <!-- saldo por vencer calculado -->
+                                {{'$'.number_format($data->corriente,2)}}
+                            </td>
+                            <td class="py-1.5 px-2 text-center ">
+                                <a
+                                    href="{{\App\Filament\Pages\EstadoClientesDetalle::getUrl(['cliente'=>$data->clave])}}"
+                                    class="text-sky-700 hover:underline font-semibold"
+                                >
+                                    Ver detalle
+                                </a>
+                            </td>
+                            <td class="py-1.5 px-2 text-center">
+                                <a
+                                    href="#"
+                                    class="inline-flex items-center px-2 py-1 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-semibold"
+                                >
+                                    ✉️
+                                </a>
+                            </td>
+                            <td class="py-1.5 px-2 text-center">
+                                <a
+                                    href="#"
+                                    class="inline-flex items-center px-2 py-1 rounded-md bg-green-500 hover:bg-green-600 text-white font-semibold"
+                                >
+                                    📲
+                                </a>
+                            </td>
+                        </tr>
+                    @endforeach
                     </tbody>
-
-                    <!-- Totales -->
                     <tfoot>
                     <tr class="bg-slate-100 font-semibold text-slate-800">
                         <td class="py-2 px-2 text-left" colspan="3">
                             TOTAL CARTERA
                         </td>
                         <td class="py-2 px-2 text-right">
-                            $ 6,533,301.29
+                            {{'$'.number_format($total_sdo_det,2)}}
                         </td>
                         <td class="py-2 px-2 text-right">
-                            100.00%
+                            {{number_format($total_por_det,2).'%'}}
                         </td>
                         <td class="py-2 px-2 text-right text-red-600">
                             <!-- total vencido -->
-                            $ 980,000.00
+                            {{'$'.number_format($total_ven_det,2)}}
                         </td>
                         <td class="py-2 px-2 text-right">
                             <!-- total por vencer -->
-                            $ 5,553,301.29
+                            {{'$'.number_format($total_cor_det,2)}}
                         </td>
                         <td class="py-2 px-2 text-center" colspan="3">
                             <!-- espacio para nota u otras acciones -->
@@ -256,8 +198,8 @@
                 La información está sujeta a la captura y conciliación al día de hoy.
             </p>
             <p class="text-right">
-                Departamento de Crédito y Cobranza<br>
-                cobranza@tus-impuestos.com · (442) 000 00 00
+                Departamento de Compras<br>
+                {{$emp_correo}} · {{$emp_telefono}}
             </p>
         </footer>
     </div>

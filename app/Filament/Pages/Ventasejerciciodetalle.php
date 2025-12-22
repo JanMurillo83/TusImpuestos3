@@ -6,6 +6,7 @@ use AlperenErsoy\FilamentExport\Actions\FilamentExportHeaderAction;
 use App\Http\Controllers\MainChartsController;
 use App\Models\AuxVentas;
 use App\Models\AuxVentasEjercicio;
+use App\Models\DatosFiscales;
 use Fibtegis\FilamentInfiniteScroll\Concerns\InteractsWithInfiniteScroll;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
@@ -16,77 +17,41 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
-class Ventasejerciciodetalle extends Page implements HasTable
+class Ventasejerciciodetalle extends Page
 {
-    use InteractsWithTable;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static string $view = 'filament.pages.ventasejerciciodetalle';
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $title = 'Ventas  del Ejercicio';
     public ?string $file_title = '';
-
     public function getTitle(): string
     {
         return '';
+
     }
-    public function table(Table $table): Table
+    protected function getViewData(): array
     {
-        return $table
-            ->query( AuxVentasEjercicio::query())
-            ->groups([Group::make('a_periodo')
-                ->collapsible()
-                ->label('')
-                ->titlePrefixedWithLabel(false)
-                ->getTitleFromRecordUsing(function ($record) {
-                    return 'Periodo: '.app(MainChartsController::class)->mes_letras($record->a_periodo);
-                })]
-            )
-            ->defaultGroup('a_periodo')
-            ->groupingSettingsHidden()
-            ->heading(function (){
-                $mes = Filament::getTenant()->periodo;
-                $anio = Filament::getTenant()->ejercicio;
-                $empresa = Filament::getTenant()->name;
-                $letras = app(MainChartsController::class)->mes_letras($mes);
-                $titulo = new HtmlString("<h2 class='text-2xl font-bold'>Ventas del Ejercicio $anio</h2>");
-                $this->file_title = 'Ventas del Ejercicio '.$anio.' '.$empresa;
-                return $titulo;
-            })
-            ->paginated(false)
-            ->striped()
-            ->columns([
-                TextColumn::make('Poliza')
-                    ->getStateUsing(fn ($record) => $record->tipo.$record->folio),
-                TextColumn::make('fecha')->date('d-m-Y'),
-                TextColumn::make('concepto'),
-                TextColumn::make('factura'),
-                TextColumn::make('uuid')->label('UUID'),
-                TextColumn::make('abono')->label('Importe')
-                    ->numeric(2,'.',',')
-                    ->prefix('$')
-                    ->summarize(
-                        Sum::make()->numeric(2,'.',',')
-                            ->label('Total')
-                            ->prefix('$')
-                    )
-                    ->alignment(Alignment::Right),
-            ])->headerActions([
-                FilamentExportHeaderAction::make('Excel')
-                    ->label('')
-                    ->fileName($this->file_title)
-                    ->icon('fas-file-excel')->iconButton()
-                    ->defaultFormat('xlsx')
-                    ->directDownload(true)->color('success'),
-                FilamentExportHeaderAction::make('PDF')
-                    ->label('')
-                    ->fileName($this->file_title)
-                    ->icon('fas-file-pdf')->iconButton()
-                    ->defaultFormat('pdf')
-                    ->directDownload(true)->color('danger')
-                    ->defaultPageOrientation('landscape'),
-            ]);
+        $team_id = Filament::getTenant()->id;
+        $periodo = Filament::getTenant()->periodo;
+        $periodo_ant = Filament::getTenant()->periodo - 1;
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $ejercicio_ant = Filament::getTenant()->ejercicio - 1;
+        $mes_letras = app(MainChartsController::class)->mes_letras($periodo);
+        $mes_letras_ant = app(MainChartsController::class)->mes_letras($periodo_ant);
+        $empresa = Filament::getTenant()->name;
+        $maindata = AuxVentasEjercicio::select(DB::raw("concepto as cliente, sum(abono) as importe"))
+            ->groupBy('cliente')->orderBy('importe','desc')->get();
+        $importe_mes = floatval(app(MainChartsController::class)->GetAuxiliaresEjercicio($team_id,'40100000',$periodo,$ejercicio)->sum('abono'));
+        $importe_ant = floatval(app(MainChartsController::class)->GetAuxiliaresEjercicio($team_id,'40100000',12,$ejercicio_ant)->sum('abono'));
+        $fiscales = DatosFiscales::where('team_id',$team_id)->first();
+        return [
+            'empresa'=>$empresa,'team_id'=>$team_id,'ejercicio' => $ejercicio,'maindata'=>$maindata,
+            'mes_letras'=>$mes_letras,'mes_letras_ant'=>$mes_letras_ant,'importe_mes'=>$importe_mes,'importe_ant'=>$importe_ant,
+            'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com','emp_telefono'=>$fiscales?->telefono ?? '0000000000'
+        ];
     }
 }

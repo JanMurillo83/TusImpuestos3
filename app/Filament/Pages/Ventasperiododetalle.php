@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use AlperenErsoy\FilamentExport\Actions\FilamentExportHeaderAction;
 use App\Livewire\AdvVentasPeriodoWidget;
 use App\Models\AuxVentas;
+use App\Models\DatosFiscales;
 use Fibtegis\FilamentInfiniteScroll\Concerns\InteractsWithInfiniteScroll;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Pages\Page;
@@ -16,18 +17,11 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
-class Ventasperiododetalle extends Page implements  HasTable
+class Ventasperiododetalle extends Page
 {
-    use InteractsWithInfiniteScroll,InteractsWithTable {
-        InteractsWithInfiniteScroll::updatedTableSortColumn insteadof InteractsWithTable;
-        InteractsWithInfiniteScroll::updatedTableSearch insteadof InteractsWithTable;
-        InteractsWithInfiniteScroll::updatedTableFilters insteadof InteractsWithTable;
-        InteractsWithInfiniteScroll::updatedTableSortDirection insteadof InteractsWithTable;
-
-    }
-
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static string $view = 'filament.pages.ventasperiododetalle';
@@ -39,64 +33,26 @@ class Ventasperiododetalle extends Page implements  HasTable
         return '';
 
     }
-
-    public function mount(): void
+    protected function getViewData(): array
     {
-
-    }
-
-    protected function getHeaderWidgets(): array
-    {
+        $team_id = Filament::getTenant()->id;
+        $periodo = Filament::getTenant()->periodo;
+        $periodo_ant = Filament::getTenant()->periodo - 1;
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $mes_letras = app(MainChartsController::class)->mes_letras($periodo);
+        $mes_letras_ant = app(MainChartsController::class)->mes_letras($periodo_ant);
+        $empresa = Filament::getTenant()->name;
+        $maindata = AuxVentas::select(DB::raw("concepto as cliente, sum(abono) as importe"))
+        ->groupBy('cliente')->orderBy('importe','desc')->get();
+        $importe_mes = floatval(app(MainChartsController::class)->GeneraAbonos($team_id,'40100000',$periodo,$ejercicio));
+        $importe_ant = floatval(app(MainChartsController::class)->GeneraAbonos($team_id,'40100000',$periodo_ant,$ejercicio));
+        $fiscales = DatosFiscales::where('team_id',$team_id)->first();
         return [
-            AdvVentasPeriodoWidget::class,
+            'empresa'=>$empresa,'team_id'=>$team_id,'ejercicio' => $ejercicio,'maindata'=>$maindata,
+            'mes_letras'=>$mes_letras,'mes_letras_ant'=>$mes_letras_ant,'importe_mes'=>$importe_mes,'importe_ant'=>$importe_ant,
+            'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com','emp_telefono'=>$fiscales?->telefono ?? '0000000000'
         ];
     }
 
-    public function table(Table $table): Table
-    {
-        return $table
-            ->query( AuxVentas::query())
-            ->heading(function (){
-                $mes = Filament::getTenant()->periodo;
-                $anio = Filament::getTenant()->ejercicio;
-                $empresa = Filament::getTenant()->name;
-                $letras = app(MainChartsController::class)->mes_letras($mes);
-                $titulo = new HtmlString("<h2 class='text-2xl font-bold'>Ventas del Periodo $letras - $anio</h2>");
-                $this->file_title = 'Ventas del Periodo '.$letras.' - '.$anio.' '.$empresa;
-                return $titulo;
-            })
-            ->infinite()
-            ->striped()
-            ->columns([
-                TextColumn::make('Poliza')
-                ->getStateUsing(fn ($record) => $record->tipo.$record->folio),
-                TextColumn::make('fecha')->date('d-m-Y'),
-                TextColumn::make('concepto'),
-                TextColumn::make('factura'),
-                TextColumn::make('uuid')->label('UUID'),
-                TextColumn::make('abono')->label('Importe')
-                    ->numeric(2,'.',',')
-                    ->prefix('$')
-                    ->summarize(
-                        Sum::make()->numeric(2,'.',',')
-                            ->label('Total')
-                            ->prefix('$')
-                    )
-                    ->alignment(Alignment::Right),
-            ])->headerActions([
-                FilamentExportHeaderAction::make('Excel')
-                    ->label('')
-                    ->fileName($this->file_title)
-                    ->icon('fas-file-excel')->iconButton()
-                    ->defaultFormat('xlsx')
-                    ->directDownload(true)->color('success'),
-                FilamentExportHeaderAction::make('PDF')
-                    ->label('')
-                    ->fileName($this->file_title)
-                    ->icon('fas-file-pdf')->iconButton()
-                    ->defaultFormat('pdf')
-                    ->directDownload(true)->color('danger')
-                    ->defaultPageOrientation('landscape'),
-            ]);
-    }
+
 }

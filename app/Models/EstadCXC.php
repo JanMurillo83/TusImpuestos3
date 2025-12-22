@@ -18,6 +18,7 @@ class EstadCXC extends Model
             ->where('auxiliares.team_id',$team_id)->where('a_ejercicio',$ejercicio)
             ->where('codigo','like','105%')
             ->get();
+
         $resultado = [];
         foreach ($auxiliares as $item) {
             $resultado[] = [
@@ -27,6 +28,7 @@ class EstadCXC extends Model
                 'fecha'=> Carbon::create(substr($item->fecha,0,10)),
                 'cargos'=>$item->cargo,
                 'abonos'=>$item->abono,
+                'uuid'=>$item->uuid
             ];
         }
         return $resultado;

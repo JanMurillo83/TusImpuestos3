@@ -32,6 +32,8 @@ class ListCatPolizas extends ListRecords
     }
     public function mount(): void
     {
+        Auxiliares::where('team_id',Filament::getTenant()->id)->where('codigo','like','Sueldos%')
+            ->update(['codigo'=>'50102000','cuenta'=>'Sueldos y salarios']);
         $this->SetTotales();
         if (blank($this->activeTab)) {
             $this->activeTab = 'Todas';

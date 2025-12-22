@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Rececfdi\Pages;
 
 use App\Filament\Clusters\Rececfdi;
+use App\Models\Activosfijos;
 use App\Models\Admincuentaspagar;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
@@ -28,6 +29,8 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Forms\Set;
 use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -534,7 +537,236 @@ class cfdiri extends Page implements HasForms, HasTable
                             File::put($archivo,$xml);
                             $ruta = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombre;
                             return response()->download($ruta);
+                        }),
+                    Action::make('Activo Fijo')
+                        ->icon('fas-truck-plane')
+                        ->modalSubmitActionLabel('Grabar')
+                        ->form(function(Form $form,$record){
+                            $xmlContents = $record->content;
+                            $cfdiData = \CfdiUtils\Cfdi::newFromString($xmlContents);
+                            $comprobante = $cfdiData->getQuickReader();
+                            $emisor = $comprobante->emisor;
+                            $receptor = $comprobante->receptor;
+                            $concepto = $comprobante->Conceptos->Concepto;
+                            $impuestos = $comprobante->impuestos;
+                            $tfd = $comprobante->complemento->TimbreFiscalDigital;
+                            $subtotal = floatval($comprobante['subtotal']);
+                            $iva = floatval($impuestos->Traslados->Traslado['Importe']);
+                            $retiva = floatval($impuestos->Retenciones->Retencion['Importe'] ?? 0);
+                            $total = floatval($comprobante['total']);
+                            $prov_id = self::ValProveedor($record);
+                            $proveedor = Proveedores::where('id',$prov_id)->first();
+                            return $form
+                                ->schema([
+                                    TextInput::make('clave')
+                                        ->maxLength(255)->default($concepto['NoIdentificacion'] ?? '00000'),
+                                    Select::make('tipoact')
+                                        ->label('Tipo de Activo')
+                                        ->live()
+                                        ->options([
+                                            '15100000|17101000'=>'Terrenos',
+                                            '15200000|17102000'=>'Edificios',
+                                            '15300000|17103000'=>'Maquinaria y equipo',
+                                            '15400000|17104000'=>'Automoviles, autobuses, camiones de carga',
+                                            '15500000|17105000'=>'Mobiliario y equipo de oficina',
+                                            '15600000|17106000'=>'Equipo de computo',
+                                            '15700000|17107000'=>'Equipo de comunicacion',
+                                            '15800000|17108000'=>'Activos biologicos, vegetales y semovientes',
+                                            '15900000|17109000'=>'Obras en proceso de activos fijos',
+                                            '16000000|17110000'=>'Otros activos fijos',
+                                            '16100000|17111000'=>'Ferrocariles',
+                                            '16200000|17112000'=>'Embarcaciones',
+                                            '16300000|17113000'=>'Aviones',
+                                            '16400000|17114000'=>'Troqueles, moldes, matrices y herramental',
+                                            '16500000|17115000'=>'Equipo de comunicaciones telefonicas',
+                                            '16600000|17116000'=>'Equipo de comunicacion satelital',
+                                            '16700000|17117000'=>'Eq de adaptaciones para personas con capac dif',
+                                            '16800000|17118000'=>'Maq y eq de generacion de energia de ftes renov',
+                                            '16900000|17119000'=>'Otra maquinaria y equipo',
+                                            '17000000|17120000'=>'Adaptaciones y mejoras'
+                                        ])
+                                        ->afterStateUpdated(function(Get $get,Set $set){
+                                            $nucta = $get('tipoact');
+                                            $nucta = explode('|',$nucta);
+                                            $set('cuentadep',$nucta[1]);
+                                            $nuecta = $nucta[0];
+                                            $rg = count(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula',$nuecta)->get() ?? 0);
+                                            if($rg > 0)
+                                                $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula',$nuecta)->max('codigo')) + 1000;
+                                            $set('cuentaact',$nuecta);
+                                        }),
+                                    TextInput::make('descripcion')
+                                        ->maxLength(255)
+                                        ->columnSpanFull()->default($concepto['Descripcion']),
+                                    TextInput::make('marca')
+                                        ->maxLength(255),
+                                    TextInput::make('modelo')
+                                        ->maxLength(255),
+                                    TextInput::make('serie')
+                                        ->maxLength(255),
+                                    TextInput::make('importe')
+                                        ->label('Importe Original')
+                                        ->required()
+                                        ->numeric()
+                                        ->prefix('$')
+                                        ->default($subtotal),
+                                    TextInput::make('depre')
+                                        ->label('Tasa de Depreciacion')
+                                        ->required()
+                                        ->numeric()
+                                        ->postfix('%')
+                                        ->default(0),
+                                    TextInput::make('acumulado')
+                                        ->label('Depreciacion acumulada')
+                                        ->required()
+                                        ->prefix('$')
+                                        ->numeric()
+                                        ->default(0)->readOnly(),
+                                    Select::make('proveedor')
+                                        ->searchable()
+                                        ->options(Proveedores::where('team_id',Filament::getTenant()->id)->get()->pluck('nombre','id'))
+                                        ->default($proveedor->id),
+                                    TextInput::make('cuentadep')
+                                        ->label('Cuenta Depreciacion')
+                                        ->maxLength(255)
+                                        ->readOnly(),
+                                    TextInput::make('cuentaact')
+                                        ->label('Cuenta Activo Fijo')
+                                        ->maxLength(255)
+                                        ->readOnly(),
+                                    Hidden::make('tax_id')
+                                        ->default(Filament::getTenant()->tax_id),
+                                    Hidden::make('team_id')
+                                        ->default(Filament::getTenant()->id),
+                                    Hidden::make('impuesto')->default($iva),
+                                ])->columns(3);
                         })
+                    ->action(function($record,$data){
+                        $prov = Proveedores::where('id',$data['proveedor'])->first();
+                        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Dr')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
+                        $dats = Carbon::now();
+                        $fecha = Filament::getTenant()->ejercicio.'-'.Filament::getTenant()->periodo.'-'.$dats->day;
+                        $factura = $record->Serie.$record->Folio;
+                        $uuid = $record->UUID;
+                        $importe = floatval($record->Total);
+                        $impuesto = floatval($data['impuesto']);
+                        $tipoc = floatval($record->TipoCambio);
+                        $subtotal = floatval($record->SubTotal);
+                        DB::table('cat_cuentas')->insert([
+                            'nombre' =>  $data['descripcion'],
+                            'team_id' => Filament::getTenant()->id,
+                            'codigo'=>$data['cuentaact'],
+                            'acumula'=>'15400000',
+                            'tipo'=>'D',
+                            'naturaleza'=>'D',
+                        ]);
+                        Activosfijos::create([
+                            'clave'=>$data['clave'],
+                            'descripcion'=>$data['descripcion'],
+                            'marca'=>$data['marca'],
+                            'modelo'=>$data['modelo'],
+                            'serie'=>$data['serie'],
+                            'proveedor'=>$prov->id,
+                            'importe'=>$subtotal,
+                            'depre'=>$data['depre'],
+                            'acumulado'=>$data['acumulado'],
+                            'cuentadep'=>$data['cuentadep'],
+                            'cuentaact'=>$data['cuentaact'],
+                            'team_id'=>Filament::getTenant()->id,
+                        ]);
+
+                        $poliza = CatPolizas::create([
+                            'tipo'=>'Dr',
+                            'folio'=>$nopoliza,
+                            'fecha'=>$fecha,
+                            'concepto'=>'Registro de Activo Fijo',
+                            'cargos'=>$importe,
+                            'abonos'=>$importe,
+                            'periodo'=>Filament::getTenant()->periodo,
+                            'ejercicio'=>Filament::getTenant()->ejercicio,
+                            'referencia'=>$factura,
+                            'uuid'=>$uuid,
+                            'tiposat'=>'Dr',
+                            'team_id'=>Filament::getTenant()->id,
+                            'idcfdi'=>$record->id,
+                        ]);
+                        $polno = $poliza['id'];
+                        $ing_id = DB::table('ingresos_egresos')->insertGetId([
+                            'xml_id'=>$record->id,
+                            'poliza'=>$polno,
+                            'subtotalusd'=>$subtotal,
+                            'ivausd'=>$impuesto,
+                            'totalusd'=>$importe,
+                            'subtotalmxn'=>$subtotal * $tipoc,
+                            'ivamxn'=>$impuesto * $tipoc,
+                            'totalmxn'=>$importe * $tipoc,
+                            'tcambio'=>$tipoc,
+                            'uuid'=>$uuid,
+                            'referencia'=>$factura,
+                            'pendientemxn'=>$importe * $tipoc,
+                            'pendienteusd'=>$importe,
+                            'pagadousd'=>0,
+                            'pagadomxn'=>0,
+                            'tipo'=>0,
+                            'periodo'=>Filament::getTenant()->periodo,
+                            'ejercicio'=>Filament::getTenant()->ejercicio,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id'=>$polno,
+                            'codigo'=>$data['cuentaact'],
+                            'cuenta'=>$data['descripcion'],
+                            'concepto'=>'Registro de Activo Fijo',
+                            'cargo'=>$subtotal,
+                            'abono'=>0,
+                            'factura'=>$factura,
+                            'nopartida'=>1,
+                            'uuid'=>$uuid,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id'=>$aux['id'],
+                            'cat_polizas_id'=>$polno
+                        ]);
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id'=>$polno,
+                            'codigo'=>'11901000',
+                            'cuenta'=>'IVA pendiente de pago',
+                            'concepto'=>'Registro de Activo Fijo',
+                            'cargo'=>$impuesto,
+                            'abono'=> 0,
+                            'factura'=>$factura,
+                            'uuid'=>$uuid,
+                            'nopartida'=>2,
+                            'team_id'=>Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id'=>$aux['id'],
+                            'cat_polizas_id'=>$polno
+                        ]);
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id'=>$polno,
+                            'codigo'=>$prov->cuenta_contable,
+                            'cuenta'=>$prov->nombre,
+                            'concepto'=>'Registro de Activo Fijo',
+                            'cargo'=>0,
+                            'abono'=>$importe,
+                            'factura'=>$factura,
+                            'uuid'=>$uuid,
+                            'nopartida'=>3,
+                            'team_id'=>Filament::getTenant()->id,
+                            'igeg_id'=>$ing_id,
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id'=>$aux['id'],
+                            'cat_polizas_id'=>$polno
+                        ]);
+
+                        DB::table('almacencfdis')->where('id',$record->id)->update([
+                            'used'=> 'SI',
+                        ]);
+                        Notification::make()->title('Registro Grabado, Poliza Dr'.$nopoliza.' Grabada')->success()->send();
+                    })
                 ])
             ])->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
@@ -1177,5 +1409,70 @@ class cfdiri extends Page implements HasForms, HasTable
                 ->send();
                 $livewire->resetTable();
         }
+    }
+
+    public static function ValProveedor($record) : int
+    {
+        $prov_id = 0;
+        if(Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->exists())
+        {
+            $prov = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->first();
+            $prov_id = $prov->id;
+            if($prov->cuenta_contable == ''||$prov->cuenta_contable == null)
+            {
+                if(CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$prov->nombre)->exists())
+                {
+                    $cta = CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$prov->nombre)->first();
+                    Proveedores::where('id',$prov_id)->update([
+                       'cuenta_contable'=> $cta->codigo
+                    ]);
+                }else{
+                    $nuecta = intval(DB::table('cat_cuentas')
+                            ->where('team_id',Filament::getTenant()->id)
+                            ->where('acumula','20101000')->max('codigo')) + 1;
+                    $n_cta = CatCuentas::create([
+                        'nombre' =>  $record['Emisor_Nombre'],
+                        'team_id' => Filament::getTenant()->id,
+                        'codigo'=>$nuecta,
+                        'acumula'=>'20101000',
+                        'tipo'=>'D',
+                        'naturaleza'=>'A',
+                    ]);
+                    $cta_con = $n_cta->codigo;
+                    Proveedores::where('id',$prov_id)->update([
+                        'cuenta_contable'=> $cta_con
+                    ]);
+                }
+            }
+        }else{
+            $new_cta = '';
+            if(CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$record['Emisor_Nombre'])->exists())
+            {
+                $cta = CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$record['Emisor_Nombre'])->first();
+                $new_cta = $cta->codigo;
+            }else{
+                $nuecta = intval(DB::table('cat_cuentas')
+                        ->where('team_id',Filament::getTenant()->id)
+                        ->where('acumula','20101000')->max('codigo')) + 1;
+                $n_cta = CatCuentas::create([
+                    'nombre' =>  $record['Emisor_Nombre'],
+                    'team_id' => Filament::getTenant()->id,
+                    'codigo'=>$nuecta,
+                    'acumula'=>'20101000',
+                    'tipo'=>'D',
+                    'naturaleza'=>'A',
+                ]);
+                $new_cta = $n_cta->codigo;
+            }
+            $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
+            $prov_id = Proveedores::insertGetId([
+                'clave' => $nuevocli,
+                'rfc'=>$record['Emisor_Rfc'],
+                'nombre'=>$record['Emisor_Nombre'],
+                'cuenta_contable'=>$new_cta,
+                'team_id' => Filament::getTenant()->id,
+            ]);
+        }
+        return $prov_id;
     }
 }

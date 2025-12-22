@@ -2,7 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Http\Controllers\MainChartsController;
 use App\Models\Auxiliares;
+use App\Models\Clientes;
+use App\Models\DatosFiscales;
+use App\Models\EstadCXC_F;
+use App\Models\EstadCXP_F;
+use App\Models\Proveedores;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
@@ -18,6 +24,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
@@ -118,13 +125,14 @@ class ReportesAdmin extends Page implements HasForms
                                 ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                                 ->noSandbox()
                                 ->scale(0.8)->savePdf($reporte_url);
-                            $pdfContent = file_get_contents($reporte_url);
+                            return response()->download($reporte_url);
+                            /*$pdfContent = file_get_contents($reporte_url);
                             $this->ReportePDF = base64_encode($pdfContent);
                             //dd($this->ReportePDF);
                             $this->reporte_url = 'ventas_'.Filament::getTenant()->id.'.pdf';
                             $set('reporte_generado','SI');
                             $set('reporte','');
-                            $set('reporte_generado_2',$this->reporte_url);
+                            $set('reporte_generado_2',$this->reporte_url);*/
                             //$set('ReportePDF',$this->reporte_url);
                         })
                     ])
@@ -155,13 +163,14 @@ class ReportesAdmin extends Page implements HasForms
                                         ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                                         ->noSandbox()
                                         ->scale(0.8)->savePdf($reporte_url);
-                                    $pdfContent = file_get_contents($reporte_url);
+                                    return response()->download($reporte_url);
+                                    /*$pdfContent = file_get_contents($reporte_url);
                                     $this->ReportePDF = base64_encode($pdfContent);
                                     //dd($this->ReportePDF);
                                     $this->reporte_url = 'facturas_'.Filament::getTenant()->id.'.pdf';
                                     $set('reporte_generado','SI');
                                     $set('reporte','');
-                                    $set('reporte_generado_2',$this->reporte_url);
+                                    $set('reporte_generado_2',$this->reporte_url);*/
                                     //$set('ReportePDF',$this->reporte_url);
                                 })
                         ])
@@ -170,44 +179,75 @@ class ReportesAdmin extends Page implements HasForms
                     ->visible(function (Get $get){
                         return $get('reporte') == 'cuentas';
                     })
-                    ->label('Filtro de Fechas')
+                    ->label('Filtro de Cliente')
                     ->schema([
-                        DatePicker::make('fecha_inicial')->label('Fecha Inicial')->default(Carbon::now()->format('Y-m-d')),
-                        DatePicker::make('fecha_final')->label('Fecha Final')->default(Carbon::now()->format('Y-m-d')),
+                        //DatePicker::make('fecha_inicial')->label('Fecha Inicial')->default(Carbon::now()->format('Y-m-d')),
+                        //DatePicker::make('fecha_final')->label('Fecha Final')->default(Carbon::now()->format('Y-m-d')),
                         Select::make('cliente')
                             ->searchable()
                             ->options(function (){
-                                return Auxiliares::where('codigo','like','105%')
-                                    ->distinct('cuenta')
-                                    ->pluck('cuenta');
+                                return Clientes::where('team_id',Filament::getTenant()->id)
+                                    ->pluck('nombre','id');
                             }),
                         Actions::make([
                             Actions\Action::make('generar_2')
                                 ->label('Generar Reporte')
                                 ->action(function (Get $get,Set $set){
-                                    $reporte_url = 'storage/cuentas_'.Filament::getTenant()->id.'.pdf';
-                                    if(\File::exists($reporte_url)) unlink($reporte_url);
-                                    $data = [
-                                        'team_id'=>Filament::getTenant()->id,
-                                        'fecha_inicial'=>$get('fecha_inicial'),
-                                        'fecha_final'=>$get('fecha_final'),
-                                        'cliente'=>$get('cliente')
-                                    ];
-                                    $html = View::make('ReportesAdmin.CuentasCobrar',$data)->render();
-                                    Browsershot::html($html)
-                                        ->format('Letter')
-                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-                                        ->noSandbox()
-                                        ->scale(0.8)->savePdf($reporte_url);
-                                    $pdfContent = file_get_contents($reporte_url);
-                                    $this->ReportePDF = base64_encode($pdfContent);
-                                    //dd($this->ReportePDF);
-                                    $this->reporte_url = 'cuentas_'.Filament::getTenant()->id.'.pdf';
-                                    $set('reporte_generado','SI');
-                                    $set('reporte','');
-                                    $set('reporte_generado_2',$this->reporte_url);
-                                    //$set('ReportePDF',$this->reporte_url);
+                                    if($get('cliente') == null){
+                                        $ejercicio = Filament::getTenant()->ejercicio;
+                                        $periodo = Filament::getTenant()->periodo;
+                                        $team_id = Filament::getTenant()->id;
+                                        $empresa = Filament::getTenant()->name;
+                                        $fiscales = DatosFiscales::where('team_id',$team_id)->first();
+                                        $clientes = EstadCXC_F::select(DB::raw("clave,cliente,sum(corriente) as corriente,sum(vencido) as vencido,sum(saldo) as saldo"))
+                                            ->groupBy('clave')->groupBy('cliente')->where('saldo','!=',0)->get();
+                                        $data = [
+                                            'empresa'=>$empresa,'team_id'=>$team_id,'ejercicio' => $ejercicio,
+                                            'periodo' => $periodo,'maindata'=>$clientes,
+                                            'saldo_corriente'=>$clientes->sum('corriente'),
+                                            'saldo_vencido'=>$clientes->sum('vencido'),
+                                            'saldo_total'=>$clientes->sum('saldo'),
+                                            'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com','emp_telefono'=>$fiscales?->telefono ?? '0000000000'
+                                        ];
+                                        //dd($data);
+                                        $ruta = public_path().'/TMPCFDI/CXCGeneral_'.$team_id.'.pdf';
+                                        $html = View::make('EstadoCXCGeneral', $data)->render();
+                                        Browsershot::html($html)->format('Letter')
+                                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                            ->noSandbox()
+                                            ->scale(0.8)->savePdf($ruta);
+                                        //$this->ReportePDF = base64_encode(file_get_contents($ruta));
+                                        return response()->download($ruta);
+                                    }else{
+                                        $cve = intval($get('cliente'));
+                                        //dd($cve);
+                                        $clie = Clientes::where('id',$cve)->first()->cuenta_contable;
+                                        $ejercicio = Filament::getTenant()->ejercicio;
+                                        $periodo = Filament::getTenant()->periodo;
+                                        $team_id = Filament::getTenant()->id;
+                                        $empresa = Filament::getTenant()->name;
+                                        $fiscales = DatosFiscales::where('team_id',$team_id)->first();
+                                        $maindata = EstadCXC_F::where('clave',$clie)->first();
+                                        $facturas = $maindata->facturas;
+                                        $datacliente = Clientes::where('cuenta_contable',$clie)->first();
+                                        //dd($this->cliente,$maindata,$facturas);
+                                        $mes_actual = app(MainChartsController::class)->mes_letras(Filament::getTenant()->periodo);
+                                        $data = [
+                                            'empresa'=>$empresa,'team_id'=>$team_id,'ejercicio' => $ejercicio,
+                                            'periodo' => $periodo,'clave'=>$clie,'maindata'=>$maindata,
+                                            'facturas'=>$facturas,'datacliente'=>$datacliente,'mes_actual'=>$mes_actual,
+                                            'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com','emp_telefono'=>$fiscales?->telefono ?? '0000000000'
+                                        ];
+                                        $ruta = public_path().'/TMPCFDI/CXCDetalle_'.$team_id.'.pdf';
+                                        $html = View::make('EstadoCXCDetalle', $data)->render();
+                                        Browsershot::html($html)->format('Letter')
+                                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                            ->noSandbox()
+                                            ->scale(0.8)->savePdf($ruta);
+                                        return response()->download($ruta);
+                                    }
                                 })
                         ])
                     ]),
@@ -217,43 +257,72 @@ class ReportesAdmin extends Page implements HasForms
                     })
                     ->label('Filtro de Fechas')
                     ->schema([
-                        DatePicker::make('fecha_inicial')->label('Fecha Inicial')->default(Carbon::now()->format('Y-m-d')),
-                        DatePicker::make('fecha_final')->label('Fecha Final')->default(Carbon::now()->format('Y-m-d')),
+                        //DatePicker::make('fecha_inicial')->label('Fecha Inicial')->default(Carbon::now()->format('Y-m-d')),
+                        //DatePicker::make('fecha_final')->label('Fecha Final')->default(Carbon::now()->format('Y-m-d')),
                         Select::make('cliente')
                             ->label('Proveedor')
                             ->searchable()
                             ->options(function (){
-                                return Auxiliares::where('codigo','like','201%')
-                                    ->distinct('cuenta')
-                                    ->pluck('cuenta');
+                                return Proveedores::where('team_id',Filament::getTenant()->id)
+                                    ->pluck('nombre','id');
                             }),
                         Actions::make([
                             Actions\Action::make('generar_2')
                                 ->label('Generar Reporte')
                                 ->action(function (Get $get,Set $set){
-                                    $reporte_url = 'storage/pagar_'.Filament::getTenant()->id.'.pdf';
-                                    if(\File::exists($reporte_url)) unlink($reporte_url);
-                                    $data = [
-                                        'team_id'=>Filament::getTenant()->id,
-                                        'fecha_inicial'=>$get('fecha_inicial'),
-                                        'fecha_final'=>$get('fecha_final'),
-                                        'cliente'=>$get('cliente')
-                                    ];
-                                    $html = View::make('ReportesAdmin.CuentasPagar',$data)->render();
-                                    Browsershot::html($html)
-                                        ->format('Letter')
-                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-                                        ->noSandbox()
-                                        ->scale(0.8)->savePdf($reporte_url);
-                                    $pdfContent = file_get_contents($reporte_url);
-                                    $this->ReportePDF = base64_encode($pdfContent);
-                                    //dd($this->ReportePDF);
-                                    $this->reporte_url = 'pagar_'.Filament::getTenant()->id.'.pdf';
-                                    $set('reporte_generado','SI');
-                                    $set('reporte','');
-                                    $set('reporte_generado_2',$this->reporte_url);
-                                    //$set('ReportePDF',$this->reporte_url);
+
+                                    if($get('cliente') == null){
+                                        $ejercicio = Filament::getTenant()->ejercicio;
+                                        $periodo = Filament::getTenant()->periodo;
+                                        $team_id = Filament::getTenant()->id;
+                                        $empresa = Filament::getTenant()->name;
+                                        $fiscales = DatosFiscales::where('team_id',$team_id)->first();
+                                        $clientes = EstadCXP_F::select(DB::raw("clave,cliente,sum(corriente) as corriente,sum(vencido) as vencido,sum(saldo) as saldo"))
+                                            ->groupBy('clave')->groupBy('cliente')->where('saldo','!=',0)->get();
+                                        $data = [
+                                            'empresa'=>$empresa,'team_id'=>$team_id,'ejercicio' => $ejercicio,
+                                            'periodo' => $periodo,'maindata'=>$clientes,
+                                            'saldo_corriente'=>$clientes->sum('corriente'),
+                                            'saldo_vencido'=>$clientes->sum('vencido'),
+                                            'saldo_total'=>$clientes->sum('saldo'),
+                                            'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com','emp_telefono'=>$fiscales?->telefono ?? '0000000000'
+                                        ];
+                                        $ruta = public_path().'/TMPCFDI/CXPGeneral_'.$team_id.'.pdf';
+                                        $html = View::make('EstadoCXPGeneral', $data)->render();
+                                        Browsershot::html($html)->format('Letter')
+                                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                            ->noSandbox()
+                                            ->scale(0.8)->savePdf($ruta);
+                                        return response()->download($ruta);
+                                    }else{
+                                        $prov_id = intval($get('cliente'));
+                                        $prov = Proveedores::where('id',$prov_id)->first()->cuenta_contable;
+                                        $ejercicio = Filament::getTenant()->ejercicio;
+                                        $periodo = Filament::getTenant()->periodo;
+                                        $team_id = Filament::getTenant()->id;
+                                        $empresa = Filament::getTenant()->name;
+                                        $fiscales = DatosFiscales::where('team_id',$team_id)->first();
+                                        $maindata = EstadCXP_F::where('clave',$prov)->first();
+                                        $facturas = $maindata->facturas;
+                                        $datacliente = Proveedores::where('cuenta_contable',$prov)->first();
+                                        //dd($this->cliente,$maindata,$facturas);
+                                        $mes_actual = app(MainChartsController::class)->mes_letras(Filament::getTenant()->periodo);
+                                        $data = [
+                                            'empresa'=>$empresa,'team_id'=>$team_id,'ejercicio' => $ejercicio,
+                                            'periodo' => $periodo,'clave'=>$prov,'maindata'=>$maindata,
+                                            'facturas'=>$facturas,'datacliente'=>$datacliente,'mes_actual'=>$mes_actual,
+                                            'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com','emp_telefono'=>$fiscales?->telefono ?? '0000000000'
+                                        ];
+                                        $ruta = public_path().'/TMPCFDI/CXPDetalle_'.$team_id.'.pdf';
+                                        $html = View::make('EstadoCXPDetalle', $data)->render();
+                                        Browsershot::html($html)->format('Letter')
+                                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                            ->noSandbox()
+                                            ->scale(0.8)->savePdf($ruta);
+                                        return response()->download($ruta);
+                                    }
                                 })
                         ])
                     ]),

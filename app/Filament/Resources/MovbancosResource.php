@@ -1802,7 +1802,7 @@ class MovbancosResource extends Resource
                             if($record->contabilizada == 'SI') return false;
                             if($record->contabilizada != 'SI'&&$record->tipo == 'E') return true;
                         })
-                    ->url(fn($record)=>Pages\Cobros::getUrl(['record'=>$record]))
+                    ->url(fn($record)=>Pages\Cobros::getUrl(['record'=>$record])),
                 //--------------------------------------------------------------------------------------------------
                 ])->color('primary')
                 ->visible(function(){

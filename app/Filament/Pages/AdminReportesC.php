@@ -61,7 +61,7 @@ class AdminReportesC extends Page implements HasForms
     {
         return [
             Select::make('reporte')
-                ->options(MainReportes::all()->pluck('reporte','id'))
+                ->options(MainReportes::where('tipo','contable')->pluck('reporte','id'))
                 ->required()->live(),
             Fieldset::make('Cuentas Contables')
                 ->schema([

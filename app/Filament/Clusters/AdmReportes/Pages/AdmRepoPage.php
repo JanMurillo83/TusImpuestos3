@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\AdmReportes\Pages;
 use App\Filament\Clusters\AdmReportes;
 use App\Models\CatCuentas;
 use App\Models\Clientes;
+use App\Models\EstadCXC_F;
 use App\Models\Proveedores;
 use App\Models\Inventario;
 use Carbon\Carbon;
@@ -21,7 +22,9 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Pages\Page;
 use Filament\Tables\Enums\ActionsPosition;
+use Illuminate\Support\Facades\DB;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
+use Spatie\Browsershot\Browsershot;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 use function Termwind\style;
 
@@ -35,6 +38,7 @@ class AdmRepoPage extends Page implements HasForms
     protected static ?string $cluster = AdmReportes::class;
     protected static ?string $title = 'Reportes';
 
+    public ?string $ReportePDF = null;
     public function form(Form $form): Form
     {
         return $form
@@ -51,13 +55,30 @@ class AdmRepoPage extends Page implements HasForms
                             ->pluck('nombre','codigo'))->searchable()
                    ])
                    ->action(function($data){
-                       $this->team_id = Filament::getTenant()->id;
-                       $this->fecha_inicio = $data['fecha_inicio'] ?? null;
-                       $this->fecha_fin = $data['fecha_fin'] ?? null;
-                       $this->cliente_id = $data['cliente_id'] ?? null;
-                       $this->getAction('SaldoCarteraAction')->visible(true);
-                       $this->replaceMountedAction('SaldoCarteraAction');
-                       $this->getAction('SaldoCarteraAction')->visible(false);
+                       if($data['cliente_id'] != null){
+                           $ejercicio = Filament::getTenant()->ejercicio;
+                           $periodo = Filament::getTenant()->periodo;
+                           $team_id = Filament::getTenant()->id;
+                           $empresa = Filament::getTenant()->name;
+                           $clientes = EstadCXC_F::select(DB::raw("clave,cliente,sum(corriente) as corriente,sum(vencido) as vencido,sum(saldo) as saldo"))
+                               ->groupBy('clave')->groupBy('cliente')->where('saldo','!=',0)->get();
+                           $data = [
+                               'empresa'=>$empresa,'team_id'=>$team_id,'ejercicio' => $ejercicio,
+                               'periodo' => $periodo,'maindata'=>$clientes,
+                               'saldo_corriente'=>$clientes->sum('corriente'),
+                               'saldo_vencido'=>$clientes->sum('vencido'),
+                               'saldo_total'=>$clientes->sum('saldo')
+                           ];
+                           $ruta = public_path().'/TMPCFDI/CXCGeneral_'.$team_id.'.pdf';
+                           $html = \Illuminate\Support\Facades\View::make('filament.pages.estado-clientes-general', $data)->render();
+                           Browsershot::html($html)->format('Letter')
+                               ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                               ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                               ->noSandbox()
+                               ->scale(0.8)->savePdf($ruta);
+                           $this->ReportePDF = base64_encode(file_get_contents($ruta));
+                           //return
+                       }
                    }),
                    Action::make('Saldo Proveedores')->extraAttributes(['style'=>'width:15rem !important'])
                        ->form([

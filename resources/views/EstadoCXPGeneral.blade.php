@@ -1,7 +1,26 @@
-<x-filament-panels::page>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://kit.fontawesome.com/48953f55c7.js" crossorigin="anonymous"></script>
-    <div class="bg-slate-300" style="margin-top: -2rem !important; margin-bottom: 2rem !important; margin-left: -1rem !important; margin-right: -1rem !important;">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://kit.fontawesome.com/48953f55c7.js" crossorigin="anonymous"></script>
+<style>
+    @media print{
+        html, body {
+            -webkit-print-color-adjust: exact;
+        }
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        border-bottom: 1px solid #000000;
+        margin-bottom: 2rem;
+    }
+    th, td {
+        text-align: left;
+        padding: 8px;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+<div class="bg-slate-300" style="margin-top: -2rem !important; margin-bottom: 2rem !important; margin-left: -1rem !important; margin-right: -1rem !important;">
     <div class="max-w-full mx-auto my-8 bg-white p-8 rounded-xl shadow">
 
         <!-- Header -->
@@ -9,10 +28,10 @@
             <div class="flex items-center gap-3">
                 <div>
                     <h1 class="text-xl font-bold text-slate-800">
-                        Estado de Cuenta - Saldos de Clientes
+                        Estado de Cuenta - Saldos de Proveedores
                     </h1>
                     <p class="text-xs text-slate-500">
-                        {{$empresa}} · Módulo de Cuentas por Cobrar
+                        {{$empresa}} · Módulo de Cuentas por Pagar
                     </p>
                 </div>
             </div>
@@ -23,26 +42,7 @@
         </header>
 
         <!-- Botones de envío (WhatsApp y correo) -->
-        <section class="mt-4 flex justify-end gap-2 text-xs print:hidden">
-            <!-- WhatsApp: reemplaza TU_NUMERO y la URL del reporte de cartera -->
-            <a
-                href="https://wa.me/TU_NUMERO?text=Te%20comparto%20el%20reporte%20de%20saldos%20de%20clientes%20correspondiente%20al%20periodo%2001/11/2025%20-%2030/11/2025.%20Puedes%20consultarlo%20en%3A%20https%3A%2F%2Ftu-sistema.com%2Freporte%2Fcartera-clientes-2025-11"
-                target="_blank"
-                class="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-green-500 hover:bg-green-600 text-white font-semibold"
-            >
-                <span>📲</span>
-                <span>Enviar por WhatsApp</span>
-            </a>
 
-            <!-- Correo: mailto con asunto y cuerpo -->
-            <a
-                href="mailto:?subject=Reporte%20de%20saldos%20de%20clientes&body=Te%20comparto%20el%20reporte%20de%20saldos%20de%20clientes%20correspondiente%20al%20periodo%2001/11/2025%20-%2030/11/2025.%0APuedes%20consultarlo%20en:%20https://tu-sistema.com/reporte/cartera-clientes-2025-11"
-                class="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-semibold"
-            >
-                <span>✉️</span>
-                <span>Enviar por correo</span>
-            </a>
-        </section>
 
         <section class="mt-5 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
@@ -64,7 +64,7 @@
             <div class="bg-orange-500 text-white rounded-lg p-3">
                 <p class="text-xs">📊 % Cartera vencida</p>
                 <?php
-                    $por_in = $saldo_vencido * 100 / max($saldo_total,1);
+                $por_in = $saldo_vencido * 100 / max($saldo_total,1);
                 ?>
                 <p class="text-lg font-bold mt-1">{{number_format($por_in,2).'%'}}</p>
             </div>
@@ -73,7 +73,7 @@
         <!-- Tabla de saldos por cliente -->
         <section class="mt-6">
             <div class="flex justify-between items-center mb-2 text-xs text-slate-500">
-                <p>Detalle por cliente</p>
+                <p>Detalle por Proveedor</p>
                 <p>Montos en MXN</p>
             </div>
 
@@ -81,29 +81,26 @@
                 <table class="min-w-full text-[11px] border-collapse">
                     <thead>
                     <tr class="bg-slate-100 text-slate-700">
-                        <th class="py-2 px-2 text-left">Cliente</th>
+                        <th class="py-2 px-2 text-left">Proveedor</th>
                         <th class="py-2 px-2 text-left">RFC</th>
                         <th class="py-2 px-2 text-right">Límite de crédito</th>
                         <th class="py-2 px-2 text-right">Saldo TOTAL</th>
                         <th class="py-2 px-2 text-right">% de cobranza</th>
                         <th class="py-2 px-2 text-right">Saldo VENCIDO</th>
                         <th class="py-2 px-2 text-right">Saldo POR VENCER</th>
-                        <th class="py-2 px-2 text-center">Detalle</th>
-                        <th class="py-2 px-2 text-center">Correo</th>
-                        <th class="py-2 px-2 text-center">WhatsApp</th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php
-                        $total_sdo_det = 0;
-                        $total_por_det = 0;
-                        $total_ven_det = 0;
-                        $total_cor_det = 0;
+                    $total_sdo_det = 0;
+                    $total_por_det = 0;
+                    $total_ven_det = 0;
+                    $total_cor_det = 0;
                     ?>
                     @foreach($maindata as $data)
-                        <?php
-                            $cl_data = \App\Models\Clientes::where('cuenta_contable',$data->clave)
-                            ->first();
+                            <?php
+                            $cl_data = \App\Models\Proveedores::where('cuenta_contable',$data->clave)
+                                ->first();
                             $rfc_cl = $cl_data?->rfc ?? 'XAXX010101000';
                             $lim_cl = floatval($cl_data?->limite_credito ?? 0);
                             $por_det = $data->saldo * 100 / max($saldo_total,1);
@@ -111,7 +108,7 @@
                             $total_por_det+= $por_det;
                             $total_ven_det+= floatval($data->vencido);
                             $total_cor_det+= floatval($data->corriente);
-                        ?>
+                            ?>
                         <tr class="border-b border-slate-100">
                             <td class="py-1.5 px-2 font-semibold text-slate-800">
                                 {{$data->cliente}}
@@ -135,30 +132,6 @@
                             <td class="py-1.5 px-2 text-right text-slate-600">
                                 <!-- saldo por vencer calculado -->
                                 {{'$'.number_format($data->corriente,2)}}
-                            </td>
-                            <td class="py-1.5 px-2 text-center ">
-                                <a
-                                    href="{{\App\Filament\Pages\EstadoClientesDetalle::getUrl(['cliente'=>$data->clave])}}"
-                                    class="text-sky-700 hover:underline font-semibold"
-                                >
-                                    Ver detalle
-                                </a>
-                            </td>
-                            <td class="py-1.5 px-2 text-center">
-                                <a
-                                    href="#"
-                                    class="inline-flex items-center px-2 py-1 rounded-md bg-sky-600 hover:bg-sky-700 text-white font-semibold"
-                                >
-                                    ✉️
-                                </a>
-                            </td>
-                            <td class="py-1.5 px-2 text-center">
-                                <a
-                                    href="#"
-                                    class="inline-flex items-center px-2 py-1 rounded-md bg-green-500 hover:bg-green-600 text-white font-semibold"
-                                >
-                                    📲
-                                </a>
                             </td>
                         </tr>
                     @endforeach
@@ -198,10 +171,9 @@
                 La información está sujeta a la captura y conciliación al día de hoy.
             </p>
             <p class="text-right">
-                Departamento de Cuentas por Cobrar<br>
+                Departamento de Compras<br>
                 {{$emp_correo}} · {{$emp_telefono}}
             </p>
         </footer>
     </div>
-    </div>
-</x-filament-panels::page>
+</div>

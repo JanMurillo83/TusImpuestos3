@@ -916,7 +916,9 @@ class CatPolizasResource extends Resource
                         ->default(Filament::getTenant()->periodo),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query->whereBetween('periodo',[$data['Periodo Inicial'],$data['Periodo Final']]);
+                        $inicial = intval($data['Periodo Inicial'] ?? 1);
+                        $final = intval($data['Periodo Final'] ?? 12);
+                        return $query->whereBetween('periodo',[$inicial,$final]);
 
                     })->visible(function($livewire){
                        if($livewire->activeTab == 'OP') return true;

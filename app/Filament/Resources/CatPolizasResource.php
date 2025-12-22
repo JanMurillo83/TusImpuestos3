@@ -910,10 +910,10 @@ class CatPolizasResource extends Resource
                     ->form([
                         Select::make('Periodo Inicial')
                         ->options([1=>1,2=>2,3=>3,4=>4,5=>5,6=>6,7=>7,8=>8,9=>9,10=>10,11=>11,12=>12])
-                        ->default(Filament::getTenant()->periodo),
+                        ->default(1),
                         Select::make('Periodo Final')
                         ->options([1=>1,2=>2,3=>3,4=>4,5=>5,6=>6,7=>7,8=>8,9=>9,10=>10,11=>11,12=>12])
-                        ->default(Filament::getTenant()->periodo),
+                        ->default(12),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         $inicial = intval($data['Periodo Inicial'] ?? 1);

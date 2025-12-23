@@ -4,6 +4,8 @@ namespace App\Filament\Pages;
 
 use App\Exports\BalanceExport;
 use App\Exports\MainExport;
+use App\Models\Auxiliares;
+use App\Models\CatCuentas;
 use App\Models\MainReportes;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -132,6 +134,14 @@ class AdminReportesC extends Page implements HasForms
                         if($no_reporte != 4){
                             if($periodo != Filament::getTenant()->periodo){
                                 (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
+                            }
+                        }else{
+                            $all_aux = Auxiliares::where('team_id',$team_id)->get();
+                            foreach($all_aux as $aux){
+                                $cta = CatCuentas::where('team_id',$team_id)
+                                    ->where('codigo',$aux->codigo)->first();
+                                Auxiliares::where('team_id',$team_id)->where('codigo',$aux->codigo)
+                                    ->update(['cuenta'=>$cta?->nombre ?? 'No existe en catalogo']);
                             }
                         }
                         $cuentaIni = $get('cuenta_ini') ?? null;

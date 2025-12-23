@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
+use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\CuentasCobrarTable;
 use App\Models\CuentasPagarTable;

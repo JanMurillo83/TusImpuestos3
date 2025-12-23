@@ -53,7 +53,7 @@ class EstadCXC_F extends Model
                     }
                 }
             }
-            $claves[] = ['clave'=>$data->clave,'cliente'=>$cliente->nombre,'saldo'=>$saldo_cliente,'vencido'=>$saldo_vencido,'corriente'=>$saldo_corriente,'facturas'=>json_encode($facturas)];
+            $claves[] = ['clave'=>$data->clave,'cliente'=>$cliente?->nombre??'No encontrado','saldo'=>$saldo_cliente,'vencido'=>$saldo_vencido,'corriente'=>$saldo_corriente,'facturas'=>json_encode($facturas)];
         }
         return $claves;
     }

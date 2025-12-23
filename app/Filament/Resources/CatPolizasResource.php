@@ -883,10 +883,55 @@ class CatPolizasResource extends Resource
                 })
             ],Tables\Actions\HeaderActionsPosition::Bottom)
             ->bulkActions([
-                /*Tables\Actions\DeleteBulkAction::make('Eliminar')
+                Tables\Actions\DeleteBulkAction::make('Eliminar')
                 ->icon('fas-trash')
                 ->requiresConfirmation()
-                ->after(function(){
+                ->before(function ($records){
+                    foreach ($records as $record) {
+                        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                        DB::table('cat_polizas_team')
+                            ->where('cat_polizas_id',$record->id)->delete();
+                        $aux_bancos =DB::table('auxiliares')
+                            ->where('cat_polizas_id',$record->id)
+                            ->where('igeg_id','>',0)->get();
+                        foreach ($aux_bancos as $aux_banco) {
+                            $cargo = $aux_banco->cargo;
+                            $abono = $aux_banco->abono;
+                            $impo = floatval($cargo)+floatval($abono);
+                            DB::table('ingresos_egresos')
+                                ->where('id',$aux_banco->igeg_id)
+                                ->increment('pendientemxn',$impo);
+                            DB::table('movbancos')
+                                ->where('id',$record->idmovb)
+                                ->increment('pendiente_apli',$impo);
+                        }
+
+                        DB::table('auxiliares')
+                            ->where('cat_polizas_id',$record->id)->delete();
+                    }
+                })
+                ->after(function($records){
+                    foreach ($records as $record) {
+                        if($record->idmovb > 0){
+                            DB::table('movbancos')->where('id',$record->idmovb)->update([
+                                'tercero'=>null,
+                                'factura'=>null,
+                                'uuid'=>null,
+                                'contabilizada'=>'NO'
+                            ]);
+                        }
+                        if($record->idcfdi > 0){
+                            DB::table('almacencfdis')->where('id',$record->idcfdi)->update([
+                                'used'=>'NO'
+                            ]);
+                        }
+                        if(RegTraspasos::where('poliza',$record->id)->exists()){
+                            $reg = RegTraspasos::where('poliza',$record->id)->first();
+                            Movbancos::where('id',$reg->mov_ent)->update(['contabilizada' => 'NO']);
+                            Movbancos::where('id',$reg->mov_sal)->update(['contabilizada' => 'NO']);
+                        }
+                        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+                    }
 
                 })->visible(function(){
                         $team = Filament::getTenant()->id;
@@ -901,7 +946,7 @@ class CatPolizasResource extends Resource
                             if($estado == 1) return true;
                             else return false;
                         }
-                    })*/
+                })
             ])
             ->striped()->defaultPaginationPageOption(8)
             ->paginated([8, 'all'])

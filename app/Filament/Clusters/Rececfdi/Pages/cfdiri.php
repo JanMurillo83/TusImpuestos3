@@ -6,6 +6,7 @@ use App\Filament\Clusters\Rececfdi;
 use App\Models\Activosfijos;
 use App\Models\Admincuentaspagar;
 use App\Models\Almacencfdis;
+use App\Models\AuxCFDI;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
@@ -1038,6 +1039,7 @@ class cfdiri extends Page implements HasForms, HasTable
         $serie = $record['Serie'];
         $folio = $record['Folio'];
         $uuid = $record['UUID'];
+        $dat_aux = AuxCFDI::where('uuid',$uuid)->first();
         $cfperiodo = $record['periodo'];
         $cfejercicio = $record['ejercicio'];
         $cffecha1 = $record['Fecha'];
@@ -1172,22 +1174,24 @@ class cfdiri extends Page implements HasForms, HasTable
                     'auxiliares_id' => $aux['id'],
                     'cat_polizas_id' => $polno
                 ]);
-                $aux = Auxiliares::create([
-                    'cat_polizas_id' => $polno,
-                    'codigo' => '11901000',
-                    'cuenta' => 'IVA trasladado no cobrado',
-                    'concepto' => $nom_emi,
-                    'cargo' => $iva * $tipoc,
-                    'abono' => 0,
-                    'factura' => $serie . $folio,
-                    'nopartida' => 3,
-                    'uuid' => $uuid,
-                    'team_id' => Filament::getTenant()->id
-                ]);
-                DB::table('auxiliares_cat_polizas')->insert([
-                    'auxiliares_id' => $aux['id'],
-                    'cat_polizas_id' => $polno
-                ]);
+                if($dat_aux->iva > 0) {
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '11901000',
+                        'cuenta' => 'IVA trasladado no cobrado',
+                        'concepto' => $nom_emi,
+                        'cargo' => $iva * $tipoc,
+                        'abono' => 0,
+                        'factura' => $serie . $folio,
+                        'nopartida' => 3,
+                        'uuid' => $uuid,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
                 $rets = 3;
                 if($ret_iva > 0){
                     $rets++;
@@ -1262,22 +1266,24 @@ class cfdiri extends Page implements HasForms, HasTable
                     'auxiliares_id' => $aux['id'],
                     'cat_polizas_id' => $polno
                 ]);
-                $aux = Auxiliares::create([
-                    'cat_polizas_id' => $polno,
-                    'codigo' => '11801000',
-                    'cuenta' => 'IVA acreditable pagado',
-                    'concepto' => $nom_emi,
-                    'cargo' => $iva * $tipoc,
-                    'abono' => 0,
-                    'factura' => $serie . $folio,
-                    'nopartida' => 2,
-                    'uuid' => $uuid,
-                    'team_id' => Filament::getTenant()->id
-                ]);
-                DB::table('auxiliares_cat_polizas')->insert([
-                    'auxiliares_id' => $aux['id'],
-                    'cat_polizas_id' => $polno
-                ]);
+                if($dat_aux->iva > 0) {
+                    $aux = Auxiliares::create([
+                        'cat_polizas_id' => $polno,
+                        'codigo' => '11801000',
+                        'cuenta' => 'IVA acreditable pagado',
+                        'concepto' => $nom_emi,
+                        'cargo' => $iva * $tipoc,
+                        'abono' => 0,
+                        'factura' => $serie . $folio,
+                        'nopartida' => 2,
+                        'uuid' => $uuid,
+                        'team_id' => Filament::getTenant()->id
+                    ]);
+                    DB::table('auxiliares_cat_polizas')->insert([
+                        'auxiliares_id' => $aux['id'],
+                        'cat_polizas_id' => $polno
+                    ]);
+                }
                 $aux = Auxiliares::create([
                     'cat_polizas_id' => $polno,
                     'codigo' => $ctaclie,

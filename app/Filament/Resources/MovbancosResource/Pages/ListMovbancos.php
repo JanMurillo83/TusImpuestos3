@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\MovbancosResource\Pages;
 
 use App\Filament\Resources\MovbancosResource;
+use App\Models\AuxCFDI;
 use App\Models\BancoCuentas;
 use App\Models\ContaPeriodos;
 use App\Models\Movbancos;

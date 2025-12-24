@@ -5,6 +5,7 @@ namespace App\Filament\Resources\MovbancosResource\Pages;
 use App\Filament\Resources\MovbancosResource;
 use App\Http\Controllers\DescargaSAT;
 use App\Models\Almacencfdis;
+use App\Models\AuxCFDI;
 use App\Models\Auxiliares;
 use App\Models\BancoCuentas;
 use App\Models\CatCuentas;
@@ -378,6 +379,7 @@ class Pagos extends Page implements HasForms
                 $cta_proveedor = CatCuentas::where('team_id', Filament::getTenant()->id)
                     ->where('codigo', $cta_pro)->first();
                 $monto_par = 0;
+                $dat_aux = AuxCFDI::where('uuid',$fss->UUID)->first();
                 try {
                     $aplicar = floatval($factura['Monto a Pagar']);
                     $cxp_ =CuentasPagar::where('team_id', Filament::getTenant()->id)
@@ -434,39 +436,108 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11801000',
-                        'cuenta' => '-IVA acreditable pagado',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => (floatval($monto_par) / 1.16) * 0.16,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11901000',
-                        'cuenta' => 'IVA pendiente de pago',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => (floatval($monto_par) / 1.16) * 0.16,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-
+                    if($dat_aux->iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11801000',
+                            'cuenta' => '-IVA acreditable pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11901000',
+                            'cuenta' => 'IVA pendiente de pago',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_isr > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21604000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21605000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21610000',
+                            'cuenta' => 'Impuestos retenidos de IVA X Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21606000',
+                            'cuenta' => 'Impuestos retenidos de IVA pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
                     $st_con = 'NO';
                     $n_pen = floatval($get('pendiente')) - floatval($monto_par);
                     $n_pen2 = floatval($factura['Pendiente']) - floatval($monto_par);
@@ -566,39 +637,108 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11801000',
-                        'cuenta' => 'IVA acreditable pagado',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => $iva_1,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11901000',
-                        'cuenta' => 'IVA pendiente de pago',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $iva_2,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($dat_aux->iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11801000',
+                            'cuenta' => 'IVA acreditable pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11901000',
+                            'cuenta' => 'IVA pendiente de pago',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_isr > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21604000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21605000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21610000',
+                            'cuenta' => 'Impuestos retenidos de IVA X Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21606000',
+                            'cuenta' => 'Impuestos retenidos de IVA pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $cod_uti,
@@ -709,38 +849,108 @@ class Pagos extends Page implements HasForms
                         $imp_pesos+= $pesos;
                         $mon_apli_com+= $pesos;
                     }
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11801000',
-                        'cuenta' => 'IVA acreditable pagado',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => $iva_1,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11901000',
-                        'cuenta' => 'IVA pendiente de pago',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $iva_2,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' =>$partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($dat_aux->iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11801000',
+                            'cuenta' => 'IVA acreditable pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11901000',
+                            'cuenta' => 'IVA pendiente de pago',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_isr > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21604000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21605000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21610000',
+                            'cuenta' => 'Impuestos retenidos de IVA X Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21606000',
+                            'cuenta' => 'Impuestos retenidos de IVA pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
                     $aux = Auxiliares::create([
                         'cat_polizas_id' => $polno,
                         'codigo' => $cta_proveedor->codigo,
@@ -863,38 +1073,108 @@ class Pagos extends Page implements HasForms
                         'cat_polizas_id' => $polno
                     ]);
                     $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11801000',
-                        'cuenta' => 'IVA acreditable pagado',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => $iva_1,
-                        'abono' => 0,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
-                    $aux = Auxiliares::create([
-                        'cat_polizas_id' => $polno,
-                        'codigo' => '11901000',
-                        'cuenta' => 'IVA pendiente de pago',
-                        'concepto' => $fss->Emisor_Nombre,
-                        'cargo' => 0,
-                        'abono' => $iva_2,
-                        'factura' => $fss->Serie . $fss->Folio,
-                        'nopartida' => $partida,
-                        'team_id' => Filament::getTenant()->id
-                    ]);
-                    DB::table('auxiliares_cat_polizas')->insert([
-                        'auxiliares_id' => $aux['id'],
-                        'cat_polizas_id' => $polno
-                    ]);
-                    $partida++;
+                    if($dat_aux->iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11801000',
+                            'cuenta' => 'IVA acreditable pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '11901000',
+                            'cuenta' => 'IVA pendiente de pago',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_isr > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21604000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21605000',
+                            'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
+                    if($dat_aux->ret_iva > 0) {
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21610000',
+                            'cuenta' => 'Impuestos retenidos de IVA X Pagar',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => 0,
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                        $aux = Auxiliares::create([
+                            'cat_polizas_id' => $polno,
+                            'codigo' => '21606000',
+                            'cuenta' => 'Impuestos retenidos de IVA pagado',
+                            'concepto' => $fss->Emisor_Nombre,
+                            'cargo' => 0,
+                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'factura' => $fss->Serie . $fss->Folio,
+                            'nopartida' => $partida,
+                            'team_id' => Filament::getTenant()->id
+                        ]);
+                        DB::table('auxiliares_cat_polizas')->insert([
+                            'auxiliares_id' => $aux['id'],
+                            'cat_polizas_id' => $polno
+                        ]);
+                        $partida++;
+                    }
                     if($no_intera == 0) {
                         $aux = Auxiliares::create([
                             'cat_polizas_id' => $polno,
@@ -1056,113 +1336,6 @@ class Pagos extends Page implements HasForms
                 ->update(['cuenta_contable'=>$cta_con]);
         }
         return $cta_con;
-    }
-    public function graba_mov(Get $get)
-    {
-        $record = $this->datos_mov;
-        $data_tmp = $get('facturas_a_pagar');
-        $ban = DB::table('banco_cuentas')->where('id',$record->cuenta)->first();
-        $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','Eg')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
-        $poliza = CatPolizas::create([
-            'tipo' => 'Eg',
-            'folio' => $nopoliza,
-            'fecha' => $record->fecha,
-            'concepto' => 'Pagos a Facturas',
-            'cargos' => $get('monto_total'),
-            'abonos' => $get('monto_total'),
-            'periodo' => Filament::getTenant()->periodo,
-            'ejercicio' => Filament::getTenant()->ejercicio,
-            'referencia' => 'Pagos a Facturas '.Carbon::now()->format('d/m/Y'),
-            'uuid' => '',
-            'tiposat' => 'Eg',
-            'team_id' => Filament::getTenant()->id,
-            'idmovb' => $record->id
-        ]);
-        $polno = $poliza['id'];
-        $partida = 1;
-        foreach ($data_tmp as $data) {
-            $fss = DB::table('almacencfdis')->where('id',$data['id_xml'])->first();
-            $ter = DB::table('proveedores')->where('rfc',$fss->Emisor_Rfc)->first();
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>$ter->cuenta_contable,
-                'cuenta'=>$ter->nombre,
-                'concepto'=>$fss->Emisor_Nombre,
-                'cargo'=>$data['Monto a Pagar'],
-                'abono'=>0,
-                'factura'=>$fss->Serie . $fss->Folio,
-                'nopartida'=>$partida,
-                'team_id'=>Filament::getTenant()->id,
-                'igeg_id'=>$data['igeg_id_id']
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $partida++;
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>'11801000',
-                'cuenta'=>'-IVA acreditable pagado',
-                'concepto'=>$fss->Emisor_Nombre,
-                'cargo'=>(floatval($data['Monto a Pagar']) / 1.16) * 0.16,
-                'abono'=>0,
-                'factura'=>$fss->Serie . $fss->Folio,
-                'nopartida'=>$partida,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $partida++;
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>'11901000',
-                'cuenta'=>'IVA pendiente de pago',
-                'concepto'=>$fss->Emisor_Nombre,
-                'cargo'=>0,
-                'abono'=>(floatval($data['Monto a Pagar']) / 1.16) * 0.16,
-                'factura'=>$fss->Serie . $fss->Folio,
-                'nopartida'=>$partida,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $partida++;
-            $n_pen2 = floatval($data['Pendiente']) - floatval($data['Monto a Pagar']);
-            IngresosEgresos::where('id',$data['id_fac'])->update([
-                'pendientemxn' => $n_pen2
-            ]);
-
-            // Aplicar pago a CxP y disminuir saldo del proveedor
-
-        }
-        $aux = Auxiliares::create([
-            'cat_polizas_id'=>$polno,
-            'codigo'=>$ban->codigo,
-            'cuenta'=>$ban->banco,
-            'concepto'=>'Pagos a Facturas',
-            'cargo'=>0,
-            'abono'=>$get('monto_total'),
-            'factura'=>$this->fact_nombres,
-            'nopartida'=>$partida,
-            'team_id'=>Filament::getTenant()->id
-        ]);
-        DB::table('auxiliares_cat_polizas')->insert([
-            'auxiliares_id'=>$aux['id'],
-            'cat_polizas_id'=>$polno
-        ]);
-        $partida++;
-        $n_pen = floatval($get('pendiente')) - floatval($get('monto_total'));
-
-        Movbancos::where('id',$record->id)->update([
-            'pendiente_apli'=>$n_pen,
-            'contabilizada'=>'SI'
-        ]);
-        return 'Grabado';
     }
     public function FacturasGet(): array
     {

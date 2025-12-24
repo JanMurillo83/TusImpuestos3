@@ -28,27 +28,28 @@ class EstadCXP_F extends Model
             $saldo_vencido = 0;
             $saldo_corriente = 0;
             $fecha_corte = Carbon::create($ejercicio,$periodo,1)->format('Y-m-d');
-            foreach ($fac_data as $fac)
-            {
-                $fecha = Carbon::create(EstadCXP::where('clave',$data->clave)->where('factura',$fac->factura)->first()->fecha)->format('Y-m-d');
-                $vencimiento = Carbon::create($fecha)->addDays(30);
-                $factura_i = EstadCXP::where('clave',$data->clave)->where('factura',$fac->factura)->get();
-                $fac_saldo = $factura_i->sum('cargos')-$factura_i->sum('abonos');
-                if($fac_saldo > 0) {
-                    $facturas[] = [
-                        'factura' => $fac->factura,
-                        'fecha' => $fecha,
-                        'vencimiento' => $vencimiento,
-                        'importe' => $factura_i->sum('cargos'),
-                        'pagos' => $factura_i->sum('abonos'),
-                        'saldo' => $factura_i->sum('cargos') - $factura_i->sum('abonos'),
-                        'uuid'=> EstadCXP::where('clave',$data->clave)->where('factura',$fac->factura)->first()->uuid
-                    ];
-                    $saldo_cliente += $factura_i->sum('cargos') - $factura_i->sum('abonos');
-                    if ($vencimiento < $fecha_corte) {
-                        $saldo_vencido += $factura_i->sum('cargos') - $factura_i->sum('abonos');
-                    } else {
-                        $saldo_corriente += $factura_i->sum('cargos') - $factura_i->sum('abonos');
+            foreach ($fac_data as $fac) {
+                if (EstadCXP::where('clave', $data->clave)->where('factura', $fac->factura)->exists()) {
+                    $fecha = Carbon::create(EstadCXP::where('clave', $data->clave)->where('factura', $fac->factura)->first()->fecha)->format('Y-m-d');
+                    $vencimiento = Carbon::create($fecha)->addDays(30);
+                    $factura_i = EstadCXP::where('clave', $data->clave)->where('factura', $fac->factura)->get();
+                    $fac_saldo = $factura_i->sum('cargos') - $factura_i->sum('abonos');
+                    if ($fac_saldo > 0) {
+                        $facturas[] = [
+                            'factura' => $fac->factura,
+                            'fecha' => $fecha,
+                            'vencimiento' => $vencimiento,
+                            'importe' => $factura_i->sum('cargos'),
+                            'pagos' => $factura_i->sum('abonos'),
+                            'saldo' => $factura_i->sum('cargos') - $factura_i->sum('abonos'),
+                            'uuid' => EstadCXP::where('clave', $data->clave)->where('factura', $fac->factura)->first()->uuid
+                        ];
+                        $saldo_cliente += $factura_i->sum('cargos') - $factura_i->sum('abonos');
+                        if ($vencimiento < $fecha_corte) {
+                            $saldo_vencido += $factura_i->sum('cargos') - $factura_i->sum('abonos');
+                        } else {
+                            $saldo_corriente += $factura_i->sum('cargos') - $factura_i->sum('abonos');
+                        }
                     }
                 }
             }

@@ -137,12 +137,12 @@ class AdminReportesC extends Page implements HasForms
                             }
                         }else{
                             $all_aux = Auxiliares::where('team_id',$team_id)->get();
-                            foreach($all_aux as $aux){
+                            /*foreach($all_aux as $aux){
                                 $cta = CatCuentas::where('team_id',$team_id)
                                     ->where('codigo',$aux->codigo)->first();
                                 Auxiliares::where('team_id',$team_id)->where('codigo',$aux->codigo)
                                     ->update(['cuenta'=>$cta?->nombre ?? 'No existe en catalogo']);
-                            }
+                            }*/
                         }
                         $cuentaIni = $get('cuenta_ini') ?? null;
                         $cuentaFin = $get('cuenta_fin') ?? null;

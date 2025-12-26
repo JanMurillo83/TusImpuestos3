@@ -494,8 +494,8 @@ class ReportesController extends Controller
     }
     public function ContabilizaReporte($ejercicio,$periodo,$team_id)
     {
-        Auxiliares::where('team_id',$team_id)->where('codigo','like','Sueldos%')
-        ->update(['codigo'=>'50102000','cuenta'=>'Sueldos y salarios']);
+        /*Auxiliares::where('team_id',$team_id)->where('codigo','like','Sueldos%')
+        ->update(['codigo'=>'50102000','cuenta'=>'Sueldos y salarios']);*/
         $polizas = CatPolizas::where('team_id',$team_id)->get();
         foreach($polizas as $poliza)
         {

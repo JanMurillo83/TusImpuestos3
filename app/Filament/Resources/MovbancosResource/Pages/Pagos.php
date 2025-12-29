@@ -567,8 +567,8 @@ class Pagos extends Page implements HasForms
                     $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
                     $up_p1 = $dolares * $tipoc;
                     $up_p2 = $dolares * $tipoc_f;
-                    $up_p3 = ($dolares /1.16*0.16)*$tipoc_f;
-                    $up_p4 = ($dolares /1.16*0.16)*$tipoc;
+                    $up_p3 = $dat_aux->iva*$tipoc_f;
+                    $up_p4 = $dat_aux->iva*$tipoc;
                     $uti_per = $up_p1 - $up_p2 + $up_p3 - $up_p4;
                     if ($uti_per > 0) {
                         $imp_uti_c = $uti_per;
@@ -643,7 +643,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '11801000',
                             'cuenta' => 'IVA acreditable pagado',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'cargo' => ($dat_aux->iva * $tipoc),
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,

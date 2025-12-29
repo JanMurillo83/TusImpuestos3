@@ -194,12 +194,7 @@ class AdminReportesC extends Page implements HasForms
                         $fechaIni = $get('periodo_ini') ?? null;
                         $fechaFin = $get('periodo_fin') ?? null;
                         //dd($cuentaIni,$cuentaFin,$fechaIni,$fechaFin);
-                        $path = $record->ruta;
-
-                        $ruta = public_path().'/TMPCFDI/'.$reporte.'_'.$team_id.'.pdf';
-                        if(\File::exists($ruta)) unlink($ruta);
-                        $logo = public_path().'/images/MainLogo.png';
-                        //$logo_64 = 'data:image/png;base64,'.base64_encode(file_get_contents($logo));
+                        $path = $record->ruta_excel;
                         $logo_64 = '';
                         $data = [
                             'empresa'=>$team_id,

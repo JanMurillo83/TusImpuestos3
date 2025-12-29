@@ -35,12 +35,12 @@ $saldo5_acum = 0;
             <center>
                 <h5>{{$empresas->name}}</h5>
                 <div>
-                    Posicion financiera, Estado de Resultados Periodo {{$periodo}}
+                    Posición financiera, Estado de Resultados Periodo {{$periodo}}
                 </div>
             </center>
         </div>
-        <div class="col-3">
-            Fecha de Emision: <?php echo $fecha->toDateString('d-m-Y'); ?>
+        <div class="col-3" style="font-size: 10px">
+            Fecha de Emisión: <?php echo $fecha->toDateString('d-m-Y'); ?>
         </div>
     </div>
     <hr>
@@ -49,7 +49,6 @@ $saldo5_acum = 0;
             <label style="font-weight: bold">Ingresos</label>
             <table class="table border">
                 <tr>
-                    <th style="font-weight: bold">Codigo</th>
                     <th style="font-weight: bold">Cuenta</th>
                     <th style="font-weight: bold;text-align: end; justify-content: end">Periodo</th>
                     <th style="font-weight: bold;text-align: end; justify-content: end">Acumulado</th>
@@ -69,7 +68,6 @@ $saldo5_acum = 0;
                     @if($cod > 399&&$cod < 500)
                             <?php $saldo1+=$saldo; $saldo1_acum +=$saldo_acum?>
                         <tr>
-                            <td>{{$cuenta->codigo}}</td>
                             <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum + $saldo ,2)}}</td>
@@ -77,7 +75,7 @@ $saldo5_acum = 0;
                     @endif
                 @endforeach
                 <tr>
-                    <td colspan="2" style="font-weight: bold;">Total de Ingresos:</td>
+                    <td style="font-weight: bold;">Total de Ingresos:</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo1,2)}}</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo1 + $saldo1_acum,2)}}</td>
                 </tr>
@@ -85,7 +83,6 @@ $saldo5_acum = 0;
             <label style="font-weight: bold">Egresos</label>
             <table class="table border">
                 <tr>
-                    <th style="font-weight: bold">Codigo</th>
                     <th style="font-weight: bold">Cuenta</th>
                     <th style="font-weight: bold;text-align: end; justify-content: end">Periodo</th>
                     <th style="font-weight: bold;text-align: end; justify-content: end">Acumulado</th>
@@ -102,10 +99,17 @@ $saldo5_acum = 0;
                             $saldo_acum = $cuenta->anterior;
                         }
                         ?>
-                    @if($cod > 499)
+                    @if($cod > 499 && $cod != 702)
                             <?php $saldo2+=$saldo;$saldo2_acum+=$saldo_acum; ?>
                         <tr>
-                            <td>{{$cuenta->codigo}}</td>
+                            <td>{{$cuenta->cuenta}}</td>
+                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
+                            <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum + $saldo,2)}}</td>
+                        </tr>
+                    @endif
+                    @if($cod == 702)
+                            <?php $saldo2-=$saldo;$saldo2_acum-=$saldo_acum; ?>
+                        <tr>
                             <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_acum + $saldo,2)}}</td>
@@ -113,12 +117,12 @@ $saldo5_acum = 0;
                     @endif
                 @endforeach
                 <tr>
-                    <td colspan="2" style="font-weight: bold;">Total Egresos:</td>
+                    <td style="font-weight: bold;">Total Egresos:</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo2,2)}}</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo2+$saldo2_acum,2)}}</td>
                 </tr>
                 <tr>
-                    <td colspan="2" style="font-weight: bold;">Utilidad o Perdida:</td>
+                    <td style="font-weight: bold;">Utilidad o Perdida:</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-$saldo2),2)}}</td>
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format(($saldo1-$saldo2)+($saldo1_acum-$saldo2_acum),2)}}</td>
                 </tr>

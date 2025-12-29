@@ -59,23 +59,20 @@ $saldo5 = 0;
                 </div>
             </center>
         </div>
-        <div class="col-3" style="font-size: 10px">
-            Fecha de Emisión: <?php echo $fecha->toDateString('d-m-Y'); ?>
+        <div class="col-3">
+            Fecha de Emision: <?php echo $fecha->toDateString('d-m-Y'); ?>
         </div>
     </div>
     <hr>
     <div class="row mt-2">
         <div class="col-6">
+            <label style="font-weight: bold">Activo a corto plazo</label>
             <table>
-                <thead>
-                    <tr>
-                        <th colspan="3">Activo a corto plazo</th>
-                    </tr>
-                    <tr>
-                        <th colspan="2" style="font-weight: bold">Cuenta</th>
-                        <th style="font-weight: bold">Saldo</th>
-                    </tr>
-                </thead>
+                <tr>
+                    <th style="font-weight: bold">Codigo</th>
+                    <th style="font-weight: bold">Cuenta</th>
+                    <th style="font-weight: bold">Saldo</th>
+                </tr>
                 @foreach($cuentas as $cuenta)
                         <?php $cod = intval(substr($cuenta->codigo,0,3));
                         $saldo = 0;
@@ -89,7 +86,8 @@ $saldo5 = 0;
                     @if($cod < 150)
                             <?php $saldo1+=$saldo; ?>
                         <tr>
-                            <td colspan="2">{{$cuenta->cuenta}}</td>
+                            <td>{{$cuenta->codigo}}</td>
+                            <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                         </tr>
 
@@ -100,15 +98,13 @@ $saldo5 = 0;
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo1,2)}}</td>
                 </tr>
             </table>
+            <label style="font-weight: bold">Activo a largo plazo</label>
             <table>
-                <thead>
-                    <tr><th colspan="3">Activo a largo plazo</th></tr>
-                    <tr>
-                        <th style="font-weight: bold" colspan="2">Cuenta</th>
-                        <th style="font-weight: bold">Saldo</th>
-                    </tr>
-                </thead>
-
+                <tr>
+                    <th style="font-weight: bold">Codigo</th>
+                    <th style="font-weight: bold">Cuenta</th>
+                    <th style="font-weight: bold">Saldo</th>
+                </tr>
                 @foreach($cuentas as $cuenta)
                         <?php $cod = intval(substr($cuenta->codigo,0,3));
                         $saldo = 0;
@@ -122,7 +118,8 @@ $saldo5 = 0;
                     @if($cod > 149&&$cod < 200)
                             <?php $saldo2+=$saldo; ?>
                         <tr>
-                            <td colspan="2">{{$cuenta->cuenta}}</td>
+                            <td>{{$cuenta->codigo}}</td>
+                            <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                         </tr>
                     @endif
@@ -138,14 +135,13 @@ $saldo5 = 0;
             </table>
         </div>
         <div class="col-6">
+            <label style="font-weight: bold">Pasivo a corto plazo</label>
             <table>
-                <thead>
-                <tr><th colspan="3">Pasivo a corto plazo</th></tr>
                 <tr>
-                    <th style="font-weight: bold" colspan="2">Cuenta</th>
+                    <th style="font-weight: bold">Codigo</th>
+                    <th style="font-weight: bold">Cuenta</th>
                     <th style="font-weight: bold">Saldo</th>
                 </tr>
-                </thead>
                 @foreach($cuentas as $cuenta)
                         <?php $cod = intval(substr($cuenta->codigo,0,3));
                         $saldo = 0;
@@ -159,7 +155,8 @@ $saldo5 = 0;
                     @if($cod > 199&&$cod < 300)
                             <?php $saldo3+=$saldo; ?>
                         <tr>
-                            <td colspan="2">{{$cuenta->cuenta}}</td>
+                            <td>{{$cuenta->codigo}}</td>
+                            <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                         </tr>
                     @endif
@@ -169,14 +166,13 @@ $saldo5 = 0;
                     <td style="font-weight: bold; text-align: end; justify-content: end">{{'$'.number_format($saldo3,2)}}</td>
                 </tr>
             </table>
+            <label style="font-weight: bold">Capital</label>
             <table>
-                <thead>
-                    <tr><th colspan="3">Capital</th></tr>
                 <tr>
-                    <th style="font-weight: bold" colspan="2">Cuenta</th>
+                    <th style="font-weight: bold">Codigo</th>
+                    <th style="font-weight: bold">Cuenta</th>
                     <th style="font-weight: bold">Saldo</th>
                 </tr>
-                </thead>
                 @foreach($cuentas as $cuenta)
                         <?php $cod = intval(substr($cuenta->codigo,0,3));
                         $saldo = 0;
@@ -190,7 +186,8 @@ $saldo5 = 0;
                     @if($cod > 299&&$cod < 400)
                             <?php $saldo4+=$saldo; ?>
                         <tr>
-                            <td colspan="2">{{$cuenta->cuenta}}</td>
+                            <td>{{$cuenta->codigo}}</td>
+                            <td>{{$cuenta->cuenta}}</td>
                             <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
                         </tr>
                     @endif

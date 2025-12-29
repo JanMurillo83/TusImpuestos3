@@ -17,64 +17,37 @@ $saldo5 = 0;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Balance General</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <style>
-        @media print{
-            html, body {
-            -webkit-print-color-adjust: exact;
-            }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            border-bottom: 1px solid #000000;
-            margin-bottom: 2rem;
-        }
-        th, td {
-            text-align: left;
-            padding: 8px;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        th {
-            background-color: #edf4ff;
-            font-weight: bold;
+        .item1 {
+            grid-column: 1 / span 2;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="row mt-5">
-        <div class="col-3">
-            <img src="{{$logo}}" alt="Tus-Impuestos" width="120px">
+    <div class="container">
+        <div class="item1" style="margin-top: 2rem">
+            {{$empresas->name}}
         </div>
-        <div class="col-6">
-            <center>
-                <h5>{{$empresas->name}}</h5>
-                <div>
-                    Posicion financiera, Balance General Periodo {{$periodo}}
-                </div>
-            </center>
-        </div>
-        <div class="col-3" style="font-size: 10px">
-            Fecha de Emisión: <?php echo $fecha->toDateString('d-m-Y'); ?>
+        <div class="item1">
+            Posición financiera, Balance General Periodo {{$periodo}} Fecha de Emisión: <?php echo $fecha->toDateString('d-m-Y'); ?>
         </div>
     </div>
-    <hr>
-    <div class="row mt-2">
-        <div class="col-6">
+    <div class="container">
+        <div>
             <table>
                 <thead>
-                    <tr>
-                        <th colspan="3">Activo a corto plazo</th>
-                    </tr>
-                    <tr>
-                        <th colspan="2" style="font-weight: bold">Cuenta</th>
-                        <th style="font-weight: bold">Saldo</th>
-                    </tr>
+                <tr>
+                    <th colspan="3">Activo a corto plazo</th>
+                </tr>
+                <tr>
+                    <th colspan="2" style="font-weight: bold">Cuenta</th>
+                    <th style="font-weight: bold">Saldo</th>
+                </tr>
                 </thead>
                 @foreach($cuentas as $cuenta)
                         <?php $cod = intval(substr($cuenta->codigo,0,3));
@@ -102,11 +75,11 @@ $saldo5 = 0;
             </table>
             <table>
                 <thead>
-                    <tr><th colspan="3">Activo a largo plazo</th></tr>
-                    <tr>
-                        <th style="font-weight: bold" colspan="2">Cuenta</th>
-                        <th style="font-weight: bold">Saldo</th>
-                    </tr>
+                <tr><th colspan="3">Activo a largo plazo</th></tr>
+                <tr>
+                    <th style="font-weight: bold" colspan="2">Cuenta</th>
+                    <th style="font-weight: bold">Saldo</th>
+                </tr>
                 </thead>
 
                 @foreach($cuentas as $cuenta)
@@ -137,7 +110,7 @@ $saldo5 = 0;
                 </tr>
             </table>
         </div>
-        <div class="col-6">
+        <div>
             <table>
                 <thead>
                 <tr><th colspan="3">Pasivo a corto plazo</th></tr>
@@ -171,7 +144,7 @@ $saldo5 = 0;
             </table>
             <table>
                 <thead>
-                    <tr><th colspan="3">Capital</th></tr>
+                <tr><th colspan="3">Capital</th></tr>
                 <tr>
                     <th style="font-weight: bold" colspan="2">Cuenta</th>
                     <th style="font-weight: bold">Saldo</th>
@@ -225,6 +198,5 @@ $saldo5 = 0;
             </table>
         </div>
     </div>
-</div>
 </body>
 </html>

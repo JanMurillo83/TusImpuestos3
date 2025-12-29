@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Viscfdire\Pages;
 
 use App\Filament\Clusters\Viscfdire;
 use App\Models\Almacencfdis;
+use App\Models\AuxCFDI;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
@@ -62,11 +63,13 @@ class visrecf extends Page implements HasForms, HasTable
     {
         return $table
             ->recordClasses('row_gral')
-        ->query(
-            Almacencfdis::where('team_id',Filament::getTenant()->id)
-            ->where('xml_type','Recibidos')
-            ->where('TipoDeComprobante','I')
-             )
+        ->query(Almacencfdis::query())
+            ->modifyQueryUsing(function (Builder $query): Builder {
+                return $query
+                    ->where('team_id',Filament::getTenant()->id)
+                    ->where('xml_type','Recibidos')
+                    ->where('TipoDeComprobante','I');
+            })
         ->columns([
             TextColumn::make('Fecha')
                 ->searchable()
@@ -215,6 +218,7 @@ class visrecf extends Page implements HasForms, HasTable
                             $receptor = $comp->Receptor;
                             $conceptos = $comp->Conceptos;
                             $partidas = [];
+                            $aux_cfdi = AuxCFDI::where('uuid',$record->UUID)->first();
                             foreach($conceptos() as $concepto){
                                 $partidas []= [
                                     'Clave'=>$concepto['ClaveProdServ'],
@@ -241,8 +245,8 @@ class visrecf extends Page implements HasForms, HasTable
                                             return $comp['moneda'];
                                         }),
                                     TextInput::make('TC')->label('T.C.')
-                                        ->default(function () use ($comp){
-                                            return $comp['TipoCambio'];
+                                        ->default(function () use ($aux_cfdi){
+                                            return number_format($aux_cfdi->tipo_cambio,2);
                                         })->currencyMask(precision: 4)->prefix('$'),
                                     TextInput::make('Emisor')
                                         ->default(function () use ($emisor){
@@ -274,17 +278,33 @@ class visrecf extends Page implements HasForms, HasTable
                                     Group::make([
                                         TextInput::make('Subtotal')
                                             ->default(function () use ($comp){
-                                                return $comp['subtotal'];
+                                                return number_format($comp['subtotal'],2);
                                             })->inlineLabel()->currencyMask()->prefix('$'),
+                                        TextInput::make('Descuento')
+                                            ->default(function () use ($aux_cfdi){
+                                                return number_format($aux_cfdi->descuento,2);
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                    ]),
+                                    Group::make([
                                         TextInput::make('IVA')->label('I.V.A')
                                             ->default(function () use ($comp){
-                                                return $comp->impuestos['totalImpuestosTrasladados'];
+                                                return number_format($comp->impuestos['totalImpuestosTrasladados'],2);
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                        TextInput::make('RET IVA')->label('RET I.V.A')
+                                            ->default(function () use ($aux_cfdi){
+                                                return number_format($aux_cfdi->ret_iva,2);
+                                            })->inlineLabel()->currencyMask()->prefix('$'),
+                                    ]),
+                                    Group::make([
+                                        TextInput::make('RET ISR')->label('RET I.S.R')
+                                            ->default(function () use ($aux_cfdi){
+                                                return number_format($aux_cfdi->ret_isr,2);
                                             })->inlineLabel()->currencyMask()->prefix('$'),
                                         TextInput::make('Total')
                                             ->default(function () use ($comp){
-                                                return $comp['total'];
+                                                return number_format($comp['total'],2);
                                             })->inlineLabel()->currencyMask()->prefix('$'),
-                                    ])
+                                    ]),
                                 ])->columns(4);
                         }),
                     Action::make('Notas')

@@ -655,7 +655,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         $total = floatval(0.00);
                         $tipocambio = 1;
                     }
-                    $pagostot = $pagoscom->searchNode('pago20:Totales');
+                    $pagostot = $pagoscom?->searchNode('pago20:Totales') ?? 0;
                     $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
                     $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
                     $retencion = floatval(0.00);

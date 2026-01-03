@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Filament\Clusters\tiadmin\Resources\CotizacionesResource\Pages;
+
+use App\Filament\Clusters\tiadmin\Resources\CotizacionesResource;
+use Filament\Actions;
+use Filament\Resources\Pages\ListRecords;
+
+class ListCotizaciones extends ListRecords
+{
+    protected static string $resource = CotizacionesResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            //Actions\CreateAction::make(),
+        ];
+    }
+
+    public function callImprimir($record)
+    {
+
+        $tabla = $this->getTable();
+        $tabla->getAction('Imprimir_Doc')->visible(true);
+        $this->replaceMountedTableAction('Imprimir_Doc');
+        $tabla->getAction('Imprimir_Doc')->visible(false);
+    }
+}

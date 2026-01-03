@@ -53,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
                     ->collapsed(),
             ]);
         });
+
         FilamentView::registerRenderHook(
             PanelsRenderHook::FOOTER,
             fn (): View => view('customFooter'),

@@ -457,118 +457,118 @@ class CotizacionesResource extends Resource
     {
         return $table
             ->recordClasses('row_gral')
-        ->defaultPaginationPageOption(5)
-        ->paginationPageOptions([5,'all'])
-        ->striped()
-        ->columns([
-            Tables\Columns\TextColumn::make('docto')
-                ->label('Cotizacion')
-                ->numeric()
-                ->sortable(),
-            Tables\Columns\TextColumn::make('fecha')
-                ->date('d-m-Y')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('nombre')
-                ->searchable()
-                ->label('Cliente'),
-            Tables\Columns\TextColumn::make('subtotal')
-                ->numeric()
-                ->sortable()
-                ->currency('USD',true),
-            Tables\Columns\TextColumn::make('iva')
-                ->numeric()
-                ->sortable()
-                ->currency('USD',true),
-            Tables\Columns\TextColumn::make('total')
-                ->numeric()
-                ->sortable()
-                ->currency('USD',true),
-            Tables\Columns\TextColumn::make('moneda')
-                ->label('Moneda')
-                ->searchable(),
-            Tables\Columns\TextColumn::make('tcambio')
-                ->label('T.Cambio')
-                ->numeric()
-                ->formatStateUsing(fn($state) => number_format((float)$state, 6))
-                ->toggleable(isToggledHiddenByDefault: true),
-            Tables\Columns\TextColumn::make('estado')
-                ->searchable(),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Action::make('Cancelar')
-                ->icon('fas-ban')
-                ->tooltip('Cancelar')->label('')
-                ->color(Color::Red)
-                ->badge()
-                ->requiresConfirmation()
-                ->action(function(Model $record){
-                    $est = $record->estado;
-                    if($est == 'Activa')
-                    {
-                        Cotizaciones::where('id',$record->id)->update([
-                            'estado'=>'Cancelada'
-                        ]);
-                        Notification::make()
-                        ->title('Cotizacion Cancelada')
-                        ->success()
-                        ->send();
-                    }
-                }),
-                Action::make('Imprimir_Doc')
-                ->label('')->icon(null)->visible(false)
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction('')
-                ->modalContent(function($record){
-                    $idorden = $record->id;
-                    if($idorden != null)
-                    {
-                        $archivo = public_path('/Reportes/Cotizacion.pdf');
-                        if(File::exists($archivo)) unlink($archivo);
-                        SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
-                            ->setOption("enable-local-file-access",true)
-                            ->setOption('encoding', 'utf-8')
-                            ->save($archivo);
-                        $ruta = env('APP_URL').'/Reportes/Cotizacion.pdf';
-                        //dd($ruta);
-                    }
-                })->form([
-                    PdfViewerField::make('archivo')
-                    ->fileUrl(env('APP_URL').'/Reportes/Cotizacion.pdf')
-                ]),
-                Tables\Actions\EditAction::make()
-                ->label('')->icon(null)
-                ->modalSubmitActionLabel('Grabar')
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
-                ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('7xl')
-                ->after(function($record,$livewire){
-                    $livewire->callImprimir($record);
-                })->iconPosition(IconPosition::After),
-            ])
-            ->headerActions([
-                CreateAction::make('Agregar')
-                ->createAnother(false)
-                ->tooltip('Nueva Cotizacion')
-                ->label('Agregar')->icon('fas-circle-plus')
-                ->modalSubmitActionLabel('Grabar')
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
-                ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('7xl')->badge()
-                ->after(function($record,$livewire){
-                    $livewire->callImprimir($record);
-                })
-            ],HeaderActionsPosition::Bottom)
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //Tables\Actions\DeleteBulkAction::make(),
-                ]),
+            ->defaultPaginationPageOption(5)
+            ->paginationPageOptions([5,'all'])
+            ->striped()
+            ->columns([
+                Tables\Columns\TextColumn::make('docto')
+                    ->label('Cotizacion')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('fecha')
+                    ->date('d-m-Y')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('nombre')
+                    ->searchable()
+                    ->label('Cliente'),
+                Tables\Columns\TextColumn::make('subtotal')
+                    ->numeric()
+                    ->sortable()
+                    ->currency('USD',true),
+                Tables\Columns\TextColumn::make('iva')
+                    ->numeric()
+                    ->sortable()
+                    ->currency('USD',true),
+                Tables\Columns\TextColumn::make('total')
+                    ->numeric()
+                    ->sortable()
+                    ->currency('USD',true),
+                Tables\Columns\TextColumn::make('moneda')
+                    ->label('Moneda')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('tcambio')
+                    ->label('T.Cambio')
+                    ->numeric()
+                    ->formatStateUsing(fn($state) => number_format((float)$state, 6))
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('estado')
+                    ->searchable(),
+                ])
+                ->filters([
+                    //
+                ])
+                ->actions([
+                    Action::make('Cancelar')
+                    ->icon('fas-ban')
+                    ->tooltip('Cancelar')->label('')
+                    ->color(Color::Red)
+                    ->badge()
+                    ->requiresConfirmation()
+                    ->action(function(Model $record){
+                        $est = $record->estado;
+                        if($est == 'Activa')
+                        {
+                            Cotizaciones::where('id',$record->id)->update([
+                                'estado'=>'Cancelada'
+                            ]);
+                            Notification::make()
+                            ->title('Cotizacion Cancelada')
+                            ->success()
+                            ->send();
+                        }
+                    }),
+                    Action::make('Imprimir_Doc')
+                    ->label('')->icon(null)->visible(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalSubmitAction('')
+                    ->modalContent(function($record){
+                        $idorden = $record->id;
+                        if($idorden != null)
+                        {
+                            $archivo = public_path('/Reportes/Cotizacion.pdf');
+                            if(File::exists($archivo)) unlink($archivo);
+                            SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
+                                ->setOption("enable-local-file-access",true)
+                                ->setOption('encoding', 'utf-8')
+                                ->save($archivo);
+                            $ruta = env('APP_URL').'/Reportes/Cotizacion.pdf';
+                            //dd($ruta);
+                        }
+                    })->form([
+                        PdfViewerField::make('archivo')
+                        ->fileUrl(env('APP_URL').'/Reportes/Cotizacion.pdf')
+                    ]),
+                    Tables\Actions\EditAction::make()
+                    ->label('')->icon(null)
+                    ->modalSubmitActionLabel('Grabar')
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
+                    ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
+                    ->modalFooterActionsAlignment(Alignment::Left)
+                    ->modalWidth('7xl')
+                    ->after(function($record,$livewire){
+                        $livewire->callImprimir($record);
+                    })->iconPosition(IconPosition::After),
+                ])
+                ->headerActions([
+                    CreateAction::make('Agregar')
+                    ->createAnother(false)
+                    ->tooltip('Nueva Cotizacion')
+                    ->label('Agregar')->icon('fas-circle-plus')
+                    ->modalSubmitActionLabel('Grabar')
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
+                    ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
+                    ->modalFooterActionsAlignment(Alignment::Left)
+                    ->modalWidth('7xl')->badge()
+                    ->after(function($record,$livewire){
+                        $livewire->callImprimir($record);
+                    })
+                ],HeaderActionsPosition::Bottom)
+                ->bulkActions([
+                    Tables\Actions\BulkActionGroup::make([
+                        //Tables\Actions\DeleteBulkAction::make(),
+                    ]),
             ]);
     }
 

@@ -10,7 +10,7 @@ class Remisiones extends Model
 {
     protected $fillable = ['serie','folio','docto','fecha','clie','nombre','esquema','subtotal',
         'iva','retiva','retisr','ieps','total','observa','estado','metodo',
-        'forma','uso','moneda','tcambio','uuid','condiciones','vendedor','siguiente','team_id'];
+        'forma','uso','moneda','tcambio','uuid','pedido_id','cotizacion_id','condiciones','vendedor','siguiente','team_id'];
 
     public function partidas(): HasMany
     {

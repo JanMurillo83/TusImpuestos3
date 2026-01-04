@@ -58,7 +58,7 @@ use PhpOffice\PhpSpreadsheet\Reader\IReader;
 class ComprasResource extends Resource
 {
     protected static ?string $model = Compras::class;
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
     protected static ?string $navigationIcon = 'fas-cart-plus';
     protected static ?string $label = 'Compra';
     protected static ?string $pluralLabel = 'Compras';
@@ -724,6 +724,220 @@ class ComprasResource extends Resource
                     }
 
                 }),
+                ActionsAction::make('Crear desde Orden')
+                    ->icon('fas-file-import')
+                    ->color(Color::Green)
+                    ->form([
+                        Forms\Components\Select::make('orden_id')
+                            ->label('Orden de Compra')
+                            ->searchable()
+                            ->options(\App\Models\Ordenes::where('team_id', Filament::getTenant()->id)
+                                ->whereIn('estado', ['Activa','Parcial'])
+                                ->pluck('folio','id')),
+                        Forms\Components\TextInput::make('cantidad')
+                            ->label('Cantidad a recibir (vacío = pendientes)')
+                            ->numeric()
+                            ->nullable(),
+                    ])
+                    ->action(function(array $data){
+                        $ord = \App\Models\Ordenes::find($data['orden_id'] ?? 0);
+                        if(!$ord){
+                            Notification::make()->title('Seleccione una Orden válida')->danger()->send();
+                            return;
+                        }
+                        // Crear Compra desde Orden
+                        $compra = \App\Models\Compras::create([
+                            'folio' => (\App\Models\Compras::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                            'fecha' => now()->format('Y-m-d'),
+                            'prov' => $ord->prov,
+                            'nombre' => $ord->nombre,
+                            'esquema' => $ord->esquema,
+                            'subtotal' => 0,
+                            'iva' => 0,
+                            'retiva' => 0,
+                            'retisr' => 0,
+                            'ieps' => 0,
+                            'total' => 0,
+                            'moneda' => $ord->moneda,
+                            'tcambio' => $ord->tcambio ?? 1,
+                            'observa' => 'Generada desde Orden #'.$ord->folio,
+                            'estado' => 'Activa',
+                            'orden' => $ord->id,
+                            'orden_id' => $ord->id,
+                            'requisicion_id' => $ord->requisicion_id,
+                            'team_id' => Filament::getTenant()->id,
+                        ]);
+                        $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
+                        $partidas = \App\Models\OrdenesPartidas::where('ordenes_id', $ord->id)->get();
+                        foreach ($partidas as $par) {
+                            $pend = $par->pendientes ?? $par->cant;
+                            if ($pend <= 0) continue;
+                            $cantRecibir = $pend;
+                            if (!empty($data['cantidad']) && $data['cantidad'] > 0) {
+                                $cantRecibir = min($pend, $data['cantidad']);
+                            }
+                            $unit = $par->costo;
+                            $lineSubtotal = $unit * $cantRecibir;
+                            $factor = $par->cant > 0 ? ($cantRecibir / $par->cant) : 0;
+                            $lineIva = $par->iva * $factor;
+                            $lineRetIva = $par->retiva * $factor;
+                            $lineRetIsr = $par->retisr * $factor;
+                            $lineIeps = $par->ieps * $factor;
+                            $lineTotal = $par->total * $factor;
+
+                            \App\Models\ComprasPartidas::create([
+                                'compras_id' => $compra->id,
+                                'item' => $par->item,
+                                'descripcion' => $par->descripcion,
+                                'cant' => $cantRecibir,
+                                'costo' => $unit,
+                                'subtotal' => $lineSubtotal,
+                                'iva' => $lineIva,
+                                'retiva' => $lineRetIva,
+                                'retisr' => $lineRetIsr,
+                                'ieps' => $lineIeps,
+                                'total' => $lineTotal,
+                                'unidad' => $par->unidad,
+                                'cvesat' => $par->cvesat,
+                                'prov' => $par->prov ?? $ord->prov,
+                                'observa' => 'Desde Orden partida #'.$par->id,
+                                'idorden' => $ord->id,
+                                'orden_partida_id' => $par->id,
+                                'requisicion_partida_id' => $par->requisicion_partida_id,
+                                'moneda' => $ord->moneda,
+                                'tcambio' => $ord->tcambio ?? 1,
+                                'team_id' => Filament::getTenant()->id,
+                            ]);
+
+                            $par->pendientes = max(0, ($par->pendientes ?? $par->cant) - $cantRecibir);
+                            $par->save();
+
+                            $subtotal += $lineSubtotal; $iva += $lineIva; $retiva += $lineRetIva; $retisr += $lineRetIsr; $ieps += $lineIeps; $total += $lineTotal;
+                        }
+
+                        $compra->update([
+                            'subtotal' => $subtotal,
+                            'iva' => $iva,
+                            'retiva' => $retiva,
+                            'retisr' => $retisr,
+                            'ieps' => $ieps,
+                            'total' => $total,
+                        ]);
+
+                        $quedanPend = \App\Models\OrdenesPartidas::where('ordenes_id', $ord->id)
+                            ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
+                            ->exists();
+                        $nuevoEstado = $quedanPend ? 'Parcial' : 'Cerrada';
+                        $ord->estado = $nuevoEstado;
+                        $ord->save();
+
+                        Notification::make()->title('Compra generada #'.$compra->folio)->success()->send();
+                    }),
+                ActionsAction::make('Crear desde Requisición')
+                    ->icon('fas-file-circle-plus')
+                    ->color(Color::Green)
+                    ->form([
+                        Forms\Components\Select::make('requisicion_id')
+                            ->label('Requisición')
+                            ->searchable()
+                            ->options(\App\Models\Requisiciones::where('team_id', Filament::getTenant()->id)
+                                ->whereIn('estado', ['Activa','Parcial'])
+                                ->pluck('folio','id')),
+                        Forms\Components\TextInput::make('cantidad')
+                            ->label('Cantidad a recibir (vacío = pendientes)')
+                            ->numeric()
+                            ->nullable(),
+                    ])
+                    ->action(function(array $data){
+                        $req = \App\Models\Requisiciones::find($data['requisicion_id'] ?? 0);
+                        if(!$req){
+                            Notification::make()->title('Seleccione una Requisición válida')->danger()->send();
+                            return;
+                        }
+                        $compra = \App\Models\Compras::create([
+                            'folio' => (\App\Models\Compras::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                            'fecha' => now()->format('Y-m-d'),
+                            'prov' => $req->prov,
+                            'nombre' => $req->nombre,
+                            'esquema' => $req->esquema,
+                            'subtotal' => 0,
+                            'iva' => 0,
+                            'retiva' => 0,
+                            'retisr' => 0,
+                            'ieps' => 0,
+                            'total' => 0,
+                            'moneda' => $req->moneda,
+                            'tcambio' => $req->tcambio ?? 1,
+                            'observa' => 'Generada desde Requisición #'.$req->folio,
+                            'estado' => 'Activa',
+                            'requisicion_id' => $req->id,
+                            'team_id' => Filament::getTenant()->id,
+                        ]);
+                        $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
+                        $partidas = \App\Models\RequisicionesPartidas::where('requisiciones_id', $req->id)->get();
+                        foreach ($partidas as $par) {
+                            $pend = $par->pendientes ?? $par->cant;
+                            if ($pend <= 0) continue;
+                            $cantRecibir = $pend;
+                            if (!empty($data['cantidad']) && $data['cantidad'] > 0) {
+                                $cantRecibir = min($pend, $data['cantidad']);
+                            }
+                            $unit = $par->costo;
+                            $lineSubtotal = $unit * $cantRecibir;
+                            $factor = $par->cant > 0 ? ($cantRecibir / $par->cant) : 0;
+                            $lineIva = $par->iva * $factor;
+                            $lineRetIva = $par->retiva * $factor;
+                            $lineRetIsr = $par->retisr * $factor;
+                            $lineIeps = $par->ieps * $factor;
+                            $lineTotal = $par->total * $factor;
+
+                            \App\Models\ComprasPartidas::create([
+                                'compras_id' => $compra->id,
+                                'item' => $par->item,
+                                'descripcion' => $par->descripcion,
+                                'cant' => $cantRecibir,
+                                'costo' => $unit,
+                                'subtotal' => $lineSubtotal,
+                                'iva' => $lineIva,
+                                'retiva' => $lineRetIva,
+                                'retisr' => $lineRetIsr,
+                                'ieps' => $lineIeps,
+                                'total' => $lineTotal,
+                                'unidad' => $par->unidad,
+                                'cvesat' => $par->cvesat,
+                                'prov' => $par->prov ?? $req->prov,
+                                'observa' => 'Desde Requisición partida #'.$par->id,
+                                'orden_partida_id' => null,
+                                'requisicion_partida_id' => $par->id,
+                                'moneda' => $req->moneda,
+                                'tcambio' => $req->tcambio ?? 1,
+                                'team_id' => Filament::getTenant()->id,
+                            ]);
+
+                            $par->pendientes = max(0, ($par->pendientes ?? $par->cant) - $cantRecibir);
+                            $par->save();
+
+                            $subtotal += $lineSubtotal; $iva += $lineIva; $retiva += $lineRetIva; $retisr += $lineRetIsr; $ieps += $lineIeps; $total += $lineTotal;
+                        }
+
+                        $compra->update([
+                            'subtotal' => $subtotal,
+                            'iva' => $iva,
+                            'retiva' => $retiva,
+                            'retisr' => $retisr,
+                            'ieps' => $ieps,
+                            'total' => $total,
+                        ]);
+
+                        $quedanPend = \App\Models\RequisicionesPartidas::where('requisiciones_id', $req->id)
+                            ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
+                            ->exists();
+                        $nuevoEstado = $quedanPend ? 'Parcial' : 'Cerrada';
+                        $req->estado = $nuevoEstado;
+                        $req->save();
+
+                        Notification::make()->title('Compra generada #'.$compra->folio)->success()->send();
+                    }),
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

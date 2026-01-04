@@ -89,7 +89,7 @@ use function Laravel\Prompts\text;
 class FacturasResource extends Resource
 {
     protected static ?string $model = Facturas::class;
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
     protected static ?string $navigationIcon = 'fas-file-invoice-dollar';
     protected static ?string $label = 'Factura';
     protected static ?string $pluralLabel = 'Facturas';

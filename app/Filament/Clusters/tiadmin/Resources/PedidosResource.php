@@ -54,7 +54,7 @@ class PedidosResource extends Resource
     protected static ?string $navigationIcon = 'fas-file-lines';
     protected static ?string $label = 'Pedido';
     protected static ?string $pluralLabel = 'Pedidos';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
     protected static ?string $navigationGroup = 'Ventas';
 
     public static function form(Form $form): Form

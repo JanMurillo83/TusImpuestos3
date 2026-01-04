@@ -67,7 +67,7 @@ class FacturaModelosResource extends Resource
     protected static ?string $pluralLabel = 'Facturas modelo';
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Ventas';
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 8;
     public static function form(Form $form): Form
     {
         return $form

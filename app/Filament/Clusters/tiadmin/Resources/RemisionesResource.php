@@ -50,7 +50,7 @@ class RemisionesResource extends Resource
     protected static ?string $navigationIcon = 'fas-receipt';
     protected static ?string $label = 'Remisión';
     protected static ?string $pluralLabel = 'Remisiones';
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 3;
     protected static ?string $navigationGroup = 'Ventas';
 
     public static function form(Form $form): Form

@@ -41,7 +41,7 @@ class PagosResource extends Resource
     protected static ?string $navigationIcon = 'fas-money-bill-transfer';
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Ventas';
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 6;
 
     public static function form(Form $form): Form
     {

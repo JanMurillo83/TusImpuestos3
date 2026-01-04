@@ -54,7 +54,7 @@ class CotizacionesResource extends Resource
     protected static ?string $navigationIcon = 'fas-file-invoice';
     protected static ?string $label = 'Cotización';
     protected static ?string $pluralLabel = 'Cotizaciones';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 5;
     protected static ?string $navigationGroup = 'Ventas';
 
     public static function form(Form $form): Form

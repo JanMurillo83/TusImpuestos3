@@ -46,7 +46,7 @@ use PhpOffice\PhpSpreadsheet\Reader\IReader;
 class RequisicionesResource extends Resource
 {
     protected static ?string $model = Requisiciones::class;
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 4;
     protected static ?string $navigationIcon = 'fas-file-lines';
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Compras';
@@ -433,7 +433,111 @@ class RequisicionesResource extends Resource
                         ->success()
                         ->send();
                     }
-                })
+                }),
+                ActionsAction::make('Generar Orden')
+                    ->icon('fas-file-invoice-dollar')
+                    ->color(Color::Green)
+                    ->visible(fn($record) => in_array($record->estado, ['Activa','Parcial']))
+                    ->form([
+                        Forms\Components\TextInput::make('cantidad')
+                            ->label('Cantidad a convertir (dejar vacío para convertir pendientes)')
+                            ->numeric()
+                            ->nullable(),
+                    ])
+                    ->action(function (Model $record, array $data) {
+                        $req = $record->fresh();
+                        if (!in_array($req->estado, ['Activa','Parcial'])) {
+                            Notification::make()->title('Estado no válido')->danger()->send();
+                            return;
+                        }
+                        // Crear Orden
+                        $orden = \App\Models\Ordenes::create([
+                            'folio' => (\App\Models\Ordenes::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                            'fecha' => now()->format('Y-m-d'),
+                            'prov' => $req->prov,
+                            'nombre' => $req->nombre,
+                            'esquema' => $req->esquema,
+                            'subtotal' => 0,
+                            'iva' => 0,
+                            'retiva' => 0,
+                            'retisr' => 0,
+                            'ieps' => 0,
+                            'total' => 0,
+                            'moneda' => $req->moneda,
+                            'tcambio' => $req->tcambio ?? 1,
+                            'observa' => 'Generada desde Requisición #'.$req->folio,
+                            'estado' => 'Abierta',
+                            'requisicion_id' => $req->id,
+                            'team_id' => Filament::getTenant()->id,
+                        ]);
+
+                        $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
+                        $partidas = \App\Models\RequisicionesPartidas::where('requisiciones_id', $req->id)->get();
+                        foreach ($partidas as $par) {
+                            $pend = $par->pendientes ?? $par->cant;
+                            if ($pend <= 0) continue;
+                            $cantConvertir = $pend;
+                            if (!empty($data['cantidad']) && $data['cantidad'] > 0) {
+                                $cantConvertir = min($pend, $data['cantidad']);
+                            }
+                            // Proporcionalmente calcular importes por unidad
+                            $unit = $par->costo;
+                            $lineSubtotal = $unit * $cantConvertir;
+                            $factor = $par->cant > 0 ? ($cantConvertir / $par->cant) : 0;
+                            $lineIva = $par->iva * $factor;
+                            $lineRetIva = $par->retiva * $factor;
+                            $lineRetIsr = $par->retisr * $factor;
+                            $lineIeps = $par->ieps * $factor;
+                            $lineTotal = $par->total * $factor;
+
+                            \App\Models\OrdenesPartidas::create([
+                                'ordenes_id' => $orden->id,
+                                'item' => $par->item,
+                                'descripcion' => $par->descripcion,
+                                'cant' => $cantConvertir,
+                                'pendientes' => $cantConvertir,
+                                'costo' => $unit,
+                                'subtotal' => $lineSubtotal,
+                                'iva' => $lineIva,
+                                'retiva' => $lineRetIva,
+                                'retisr' => $lineRetIsr,
+                                'ieps' => $lineIeps,
+                                'total' => $lineTotal,
+                                'unidad' => $par->unidad,
+                                'cvesat' => $par->cvesat,
+                                'prov' => $par->prov ?? $req->prov,
+                                'observa' => 'Desde Requisición partida #'.$par->id,
+                                'idcompra' => null,
+                                'team_id' => Filament::getTenant()->id,
+                                'requisicion_partida_id' => $par->id,
+                            ]);
+
+                            // Actualizar pendientes en requisición
+                            $par->pendientes = max(0, ($par->pendientes ?? $par->cant) - $cantConvertir);
+                            $par->save();
+
+                            $subtotal += $lineSubtotal; $iva += $lineIva; $retiva += $lineRetIva; $retisr += $lineRetIsr; $ieps += $lineIeps; $total += $lineTotal;
+                        }
+
+                        $orden->update([
+                            'subtotal' => $subtotal,
+                            'iva' => $iva,
+                            'retiva' => $retiva,
+                            'retisr' => $retisr,
+                            'ieps' => $ieps,
+                            'total' => $total,
+                        ]);
+
+                        // Actualizar estado de la requisición
+                        $quedanPend = \App\Models\RequisicionesPartidas::where('requisiciones_id', $req->id)
+                            ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
+                            ->exists();
+                        $nuevoEstado = $quedanPend ? 'Parcial' : 'Cerrada';
+                        $req->estado = $nuevoEstado;
+                        $req->save();
+
+                        Notification::make()->title('Orden generada #'.$orden->folio)->success()->send();
+                    })
             ])
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([

@@ -68,7 +68,7 @@ use PhpOffice\PhpSpreadsheet\Reader\IReader;
 class NotasdeCreditoResource extends Resource
 {
     protected static ?string $model = NotadeCredito::class;
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
     protected static ?string $navigationIcon = 'fas-file-invoice-dollar';
     protected static ?string $label = 'Nota de Credito';
     protected static ?string $pluralLabel = 'Notas de Credito';

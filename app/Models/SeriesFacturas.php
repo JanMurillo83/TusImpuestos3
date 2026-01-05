@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class SeriesFacturas extends Model
 {
-    protected $fillable = ['serie', 'tipo', 'folio','team_id'];
+    protected $fillable = ['serie','descripcion', 'tipo', 'folio','team_id'];
 }

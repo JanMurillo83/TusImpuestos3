@@ -13,7 +13,11 @@
         use Illuminate\Support\Facades\DB;
         use Carbon\Carbon;
         $empresa = Team::where('id',$idempresa)->first();
-        $facturas = Facturas::where('team_id',$idempresa)->whereBetween(DB::raw('DATE(fecha)'),[$inicial,$final])->get();
+        $query = Facturas::where('team_id',$idempresa)->whereBetween(DB::raw('DATE(fecha)'),[$inicial,$final]);
+        if(isset($serie) && $serie != 'General') {
+            $query->where('serie',$serie);
+        }
+        $facturas = $query->get();
     ?>
 </head>
 <body>
@@ -23,7 +27,7 @@
                 <center>
                     <h1>Resumen de Facturas</h1>
                     <h3>{{$empresa->name}}</h3>
-                    <h5>Periodo: {{Carbon::create($inicial)->format('d-m-Y')}} a {{Carbon::create($final)->format('d-m-Y')}}</h5>
+                    <h5>Periodo: {{Carbon::create($inicial)->format('d-m-Y')}} a {{Carbon::create($final)->format('d-m-Y')}} (Serie: {{ $serie ?? 'General' }})</h5>
                 </center>
             </div>
         </div>

@@ -205,12 +205,21 @@ class AdmRepoPage extends Page implements HasForms
                           ->default(Carbon::now()->startOfMonth()),
                       DatePicker::make('fecha_fin')
                           ->label('Fecha Fin')
-                          ->default(Carbon::now())
+                          ->default(Carbon::now()),
+                      Select::make('serie')
+                          ->label('Serie')
+                          ->options(function(){
+                              $series = \App\Models\SeriesFacturas::where('team_id',Filament::getTenant()->id)->pluck('serie','serie')->toArray();
+                              return array_merge(['General'=>'General'],$series);
+                          })
+                          ->default('General')
+                          ->required(),
                   ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
                       ->action(function($data){
                           $this->team_id = Filament::getTenant()->id;
                           $this->fecha_inicio = $data['fecha_inicio'] ?? null;
                           $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->serie = $data['serie'] ?? 'General';
                           $this->getAction('FacturacionAction')->visible(true);
                           $this->replaceMountedAction('FacturacionAction');
                           $this->getAction('FacturacionAction')->visible(false);
@@ -248,6 +257,7 @@ class AdmRepoPage extends Page implements HasForms
     public $cliente_id;
     public $proveedor_id;
     public $producto_id;
+    public $serie;
     public function getActions(): array
     {
         return [
@@ -327,6 +337,7 @@ class AdmRepoPage extends Page implements HasForms
                     'idempresa' => $this->team_id,
                     'inicial' => $this->fecha_inicio,
                     'final' => $this->fecha_fin,
+                    'serie' => $this->serie,
                 ]))
                 ->modalWidth('7xl'),
             Html2MediaAction::make('ComprasAction')

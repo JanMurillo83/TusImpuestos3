@@ -74,6 +74,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\HtmlString;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use PhpCfdi\CfdiExpresiones\DiscoverExtractor;
 use PhpCfdi\CfdiToPdf\CfdiDataBuilder;
@@ -107,9 +108,22 @@ class FacturasResource extends Resource
                     ->schema([
                         Hidden::make('team_id')->default(Filament::getTenant()->id),
                         Forms\Components\Hidden::make('id'),
-                        Forms\Components\Hidden::make('serie')->default(function (){
+                        Forms\Components\Select::make('sel_serie')
+                            ->label('Serie')
+                            ->live(onBlur: true)
+                            ->options(SeriesFacturas::where('team_id',Filament::getTenant()->id)
+                                ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
+                                ->pluck('descripcion','id'))
+                            ->default(function (){
                             return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->serie ?? 'A';
+                        })->afterStateUpdated(function(Get $get,Set $set){
+                            $ser = $get('sel_serie');
+                            $fol = SeriesFacturas::where('id',$ser)->first();
+                            $set('serie',$fol->serie);
+                            $set('folio',$fol->folio + 1);
+                            $set('docto',$fol->serie.$fol->folio + 1);
                         }),
+                        Forms\Components\Hidden::make('serie'),
                         Forms\Components\Hidden::make('folio')
                         ->default(function(){
                             return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->folio + 1 ?? count(Facturas::all()) + 1;
@@ -126,7 +140,7 @@ class FacturasResource extends Resource
                     Forms\Components\Select::make('clie')
                         ->searchable()
                         ->label('Cliente')
-                        ->columnSpan(2)
+                        ->columnSpan(3)
                         ->live()
                         ->required()
                         ->options(Clientes::all()->pluck('nombre','id'))
@@ -155,7 +169,7 @@ class FacturasResource extends Resource
                         ->numeric()->default(1)->prefix('$')
                         ->currencyMask(decimalSeparator:'.',precision:4),
                     Forms\Components\TextInput::make('condiciones')
-                        ->columnSpan(3)->default('CONTADO'),
+                        ->columnSpan(2)->default('CONTADO'),
                     Forms\Components\Select::make('forma')
                         ->label('Metodo de Pago')
                         ->options(Formas::all()->pluck('mostrar','clave'))
@@ -169,7 +183,7 @@ class FacturasResource extends Resource
                         ->label('Uso de CFDI')
                         ->options(Usos::all()->pluck('mostrar','clave'))
                         ->default('G03')
-                        ->columnSpan(2),
+                        ->columnSpan(1),
                     Forms\Components\Select::make('docto_rela')
                         ->label('Documento Relacionado')
                         ->options(Facturas::all()->pluck('docto','id'))
@@ -635,7 +649,7 @@ class FacturasResource extends Resource
             Tables\Columns\TextColumn::make('estado')
                 ->searchable()
             ->formatStateUsing(function ($record){
-                if($record->estado == 'Activa') return '<span class="badge badge-error">No Timbrada</span>';
+                if($record->estado == 'Activa') return new HtmlString('<span class="badge badge-error">No Timbrada</span>');
                 else return $record->estado;
             }),
             ])
@@ -999,7 +1013,8 @@ class FacturasResource extends Resource
                     ->after(function($record,$livewire){
                         $partidas = $record->partidas;
                         $nopar = 0;
-                        SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->increment('folio',1);
+                        SeriesFacturas::where('team_id',Filament::getTenant()->id)
+                        ->where('tipo','F')->where('serie',$record->serie)->increment('folio',1);
                         $esq = Esquemasimp::where('id',$record->esquema)->first();
                         $imp1 = $esq->iva * 0.01;
                         $imp2 = $esq->retiva * 0.01;
@@ -1157,10 +1172,13 @@ class FacturasResource extends Resource
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full')
+                ->before(function ($record,$data){
+                    $ser = intval($data['sel_serie']);
+                    SeriesFacturas::where('id',$ser)->increment('folio',1);
+                })
                 ->after(function($record,$livewire){
                     $partidas = $record->partidas;
                     $nopar = 0;
-                    SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->increment('folio',1);
                     $esq = Esquemasimp::where('id',$record->esquema)->first();
                     $imp1 = $esq->iva * 0.01;
                     $imp2 = $esq->retiva * 0.01;

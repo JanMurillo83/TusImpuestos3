@@ -195,6 +195,10 @@ class FacturasResource extends Resource
                                 return false; else return true;
                         })
                         ->addActionLabel('Agregar')
+                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                            // Si es una nueva factura (no tiene ID aún) y no viene de remisión
+                            // Podemos intentar manejar el inventario aquí o en el afterCreate del Page
+                        })
                         ->headers([
                             Header::make('Cantidad')->width('100px'),
                             Header::make('Item')->width('300px'),
@@ -719,6 +723,18 @@ class FacturasResource extends Resource
                             CuentasCobrar::where('documento',$record->docto)
                                 ->where('team_id',Filament::getTenant()->id)->delete();
                             Clientes::where('id',$record->clie)->decrement('saldo', $record->total);
+
+                            // Regresar inventario si no vino de remisión
+                            if (!$record->remision_id) {
+                                foreach ($record->partidas as $partida) {
+                                    $prod = Inventario::find($partida->item);
+                                    if ($prod) {
+                                        $prod->exist += $partida->cant;
+                                        $prod->save();
+                                    }
+                                }
+                            }
+
                             Notification::make()
                                 ->title('Factura Cancelada')
                                 ->success()

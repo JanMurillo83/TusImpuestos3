@@ -476,10 +476,215 @@ class PedidosResource extends Resource
                                 'estado'=>'Cancelada'
                             ]);
                             Notification::make()
-                                ->title('Pedido Cancelada')
+                                ->title('Pedido Cancelado')
                                 ->success()
                                 ->send();
                         }
+                    }),
+                Action::make('Generar Remisión')
+                    ->icon('fas-shipping-fast')
+                    ->color(Color::Blue)
+                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
+                    ->action(function (Model $record) {
+                        $req = $record->fresh();
+                        $folio = (\App\Models\Remisiones::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1;
+                        $remision = \App\Models\Remisiones::create([
+                            'serie' => 'R',
+                            'folio' => $folio,
+                            'docto' => 'R' . $folio,
+                            'fecha' => now()->format('Y-m-d'),
+                            'clie' => $req->clie,
+                            'nombre' => $req->nombre,
+                            'esquema' => $req->esquema,
+                            'subtotal' => 0,
+                            'iva' => 0,
+                            'retiva' => 0,
+                            'retisr' => 0,
+                            'ieps' => 0,
+                            'total' => 0,
+                            'moneda' => $req->moneda,
+                            'tcambio' => $req->tcambio ?? 1,
+                            'observa' => 'Generado desde Pedido #' . $req->folio,
+                            'estado' => 'Activa',
+                            'pedido_id' => $req->id,
+                            'team_id' => Filament::getTenant()->id,
+                        ]);
+
+                        $subtotal = 0;
+                        $iva = 0;
+                        $retiva = 0;
+                        $retisr = 0;
+                        $ieps = 0;
+                        $total = 0;
+                        $partidas = \App\Models\PedidosPartidas::where('pedidos_id', $req->id)->get();
+                        DB::transaction(function () use ($partidas, $remision, $req, &$subtotal, &$iva, &$retiva, &$retisr, &$ieps, &$total) {
+                            foreach ($partidas as $par) {
+                                $pend = $par->pendientes ?? $par->cant;
+                                if ($pend <= 0) continue;
+
+                                $unit = $par->precio;
+                                $lineSubtotal = $unit * $pend;
+                                $factor = $par->cant > 0 ? ($pend / $par->cant) : 0;
+                                $lineIva = $par->iva * $factor;
+                                $lineRetIva = $par->retiva * $factor;
+                                $lineRetIsr = $par->retisr * $factor;
+                                $lineIeps = $par->ieps * $factor;
+                                $lineTotal = $par->total * $factor;
+
+                                \App\Models\RemisionesPartidas::create([
+                                    'remisiones_id' => $remision->id,
+                                    'item' => $par->item,
+                                    'descripcion' => $par->descripcion,
+                                    'cant' => $pend,
+                                    'pendientes' => $pend,
+                                    'precio' => $unit,
+                                    'subtotal' => $lineSubtotal,
+                                    'iva' => $lineIva,
+                                    'retiva' => $lineRetIva,
+                                    'retisr' => $lineRetIsr,
+                                    'ieps' => $lineIeps,
+                                    'total' => $lineTotal,
+                                    'unidad' => $par->unidad,
+                                    'cvesat' => $par->cvesat,
+                                    'clie' => $par->clie ?? $req->clie,
+                                    'team_id' => Filament::getTenant()->id,
+                                ]);
+
+                                // Descontar inventario
+                                $prod = Inventario::find($par->item);
+                                if ($prod) {
+                                    $prod->exist -= $pend;
+                                    $prod->save();
+                                }
+
+                                $par->pendientes = 0;
+                                $par->save();
+
+                                $subtotal += $lineSubtotal;
+                                $iva += $lineIva;
+                                $retiva += $lineRetIva;
+                                $retisr += $lineRetIsr;
+                                $ieps += $lineIeps;
+                                $total += $lineTotal;
+                            }
+                        });
+
+                        $remision->update([
+                            'subtotal' => $subtotal,
+                            'iva' => $iva,
+                            'retiva' => $retiva,
+                            'retisr' => $retisr,
+                            'ieps' => $ieps,
+                            'total' => $total,
+                        ]);
+
+                        $req->update(['estado' => 'Cerrada']);
+                        Notification::make()->title('Remisión generada #' . $remision->folio)->success()->send();
+                    }),
+                Action::make('Generar Factura')
+                    ->icon('fas-file-invoice')
+                    ->color(Color::Orange)
+                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
+                    ->action(function (Model $record) {
+                        $req = $record->fresh();
+                        $ser = SeriesFacturas::where('team_id', Filament::getTenant()->id)->where('tipo', 'F')->first();
+                        $serie = $ser->serie ?? 'A';
+                        $folio = ($ser->folio ?? 0) + 1;
+                        if ($ser) {
+                            $ser->update(['folio' => $folio]);
+                        }
+
+                        $factura = \App\Models\Facturas::create([
+                            'serie' => $serie,
+                            'folio' => $folio,
+                            'docto' => $serie . $folio,
+                            'fecha' => now()->format('Y-m-d'),
+                            'clie' => $req->clie,
+                            'nombre' => $req->nombre,
+                            'esquema' => $req->esquema,
+                            'subtotal' => 0,
+                            'iva' => 0,
+                            'retiva' => 0,
+                            'retisr' => 0,
+                            'ieps' => 0,
+                            'total' => 0,
+                            'moneda' => $req->moneda,
+                            'tcambio' => $req->tcambio ?? 1,
+                            'observa' => 'Generado desde Pedido #' . $req->folio,
+                            'estado' => 'Activa',
+                            'pedido_id' => $req->id,
+                            'team_id' => Filament::getTenant()->id,
+                        ]);
+
+                        $subtotal = 0;
+                        $iva = 0;
+                        $retiva = 0;
+                        $retisr = 0;
+                        $ieps = 0;
+                        $total = 0;
+                        $partidas = \App\Models\PedidosPartidas::where('pedidos_id', $req->id)->get();
+                        DB::transaction(function () use ($partidas, $factura, $req, &$subtotal, &$iva, &$retiva, &$retisr, &$ieps, &$total) {
+                            foreach ($partidas as $par) {
+                                $pend = $par->pendientes ?? $par->cant;
+                                if ($pend <= 0) continue;
+
+                                $unit = $par->precio;
+                                $lineSubtotal = $unit * $pend;
+                                $factor = $par->cant > 0 ? ($pend / $par->cant) : 0;
+                                $lineIva = $par->iva * $factor;
+                                $lineRetIva = $par->retiva * $factor;
+                                $lineRetIsr = $par->retisr * $factor;
+                                $lineIeps = $par->ieps * $factor;
+                                $lineTotal = $par->total * $factor;
+
+                                \App\Models\FacturasPartidas::create([
+                                    'facturas_id' => $factura->id,
+                                    'item' => $par->item,
+                                    'descripcion' => $par->descripcion,
+                                    'cant' => $pend,
+                                    'precio' => $unit,
+                                    'subtotal' => $lineSubtotal,
+                                    'iva' => $lineIva,
+                                    'retiva' => $lineRetIva,
+                                    'retisr' => $lineRetIsr,
+                                    'ieps' => $lineIeps,
+                                    'total' => $lineTotal,
+                                    'unidad' => $par->unidad,
+                                    'cvesat' => $par->cvesat,
+                                    'clie' => $par->clie ?? $req->clie,
+                                    'team_id' => Filament::getTenant()->id,
+                                ]);
+
+                                // Descontar inventario
+                                $prod = Inventario::find($par->item);
+                                if ($prod) {
+                                    $prod->exist -= $pend;
+                                    $prod->save();
+                                }
+
+                                $par->pendientes = 0;
+                                $par->save();
+
+                                $subtotal += $lineSubtotal;
+                                $iva += $lineIva;
+                                $retiva += $lineRetIva;
+                                $retisr += $lineRetIsr;
+                                $ieps += $lineIeps;
+                                $total += $lineTotal;
+                            }
+                        });
+
+                        $factura->update([
+                            'subtotal' => $subtotal,
+                            'iva' => $iva,
+                            'retiva' => $retiva,
+                            'retisr' => $retisr,
+                            'ieps' => $ieps,
+                            'total' => $total,
+                        ]);
+
+                        $req->update(['estado' => 'Facturado']);
+                        Notification::make()->title('Factura generada #' . $factura->folio)->success()->send();
                     }),
                 Action::make('Imprimir_Doc')
                     ->label('')->icon(null)->visible(false)

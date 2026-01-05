@@ -460,6 +460,64 @@ class RemisionesResource extends Resource
                                 ->send();
                         }
                     }),
+                Action::make('Generar Factura')
+                    ->icon('fas-file-invoice')
+                    ->color(Color::Orange)
+                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
+                    ->action(function (Model $record) {
+                        $req = $record->fresh();
+                        $ser = \App\Models\SeriesFacturas::where('team_id', Filament::getTenant()->id)->where('tipo', 'F')->first();
+                        $serie = $ser->serie ?? 'A';
+                        $folio = ($ser->folio ?? 0) + 1;
+                        if ($ser) {
+                            $ser->update(['folio' => $folio]);
+                        }
+
+                        $factura = \App\Models\Facturas::create([
+                            'serie' => $serie,
+                            'folio' => $folio,
+                            'docto' => $serie . $folio,
+                            'fecha' => now()->format('Y-m-d'),
+                            'clie' => $req->clie,
+                            'nombre' => $req->nombre,
+                            'esquema' => $req->esquema,
+                            'subtotal' => $req->subtotal,
+                            'iva' => $req->iva,
+                            'retiva' => $req->retiva,
+                            'retisr' => $req->retisr,
+                            'ieps' => $req->ieps,
+                            'total' => $req->total,
+                            'moneda' => $req->moneda,
+                            'tcambio' => $req->tcambio ?? 1,
+                            'observa' => 'Generado desde Remisión #' . $req->folio,
+                            'estado' => 'Activa',
+                            'remision_id' => $req->id,
+                            'team_id' => Filament::getTenant()->id,
+                        ]);
+
+                        foreach ($req->partidas as $par) {
+                            \App\Models\FacturasPartidas::create([
+                                'facturas_id' => $factura->id,
+                                'item' => $par->item,
+                                'descripcion' => $par->descripcion,
+                                'cant' => $par->cant,
+                                'precio' => $par->precio,
+                                'subtotal' => $par->subtotal,
+                                'iva' => $par->iva,
+                                'retiva' => $par->retiva,
+                                'retisr' => $par->retisr,
+                                'ieps' => $par->ieps,
+                                'total' => $par->total,
+                                'unidad' => $par->unidad,
+                                'cvesat' => $par->cvesat,
+                                'clie' => $par->clie ?? $req->clie,
+                                'team_id' => Filament::getTenant()->id,
+                            ]);
+                        }
+
+                        $req->update(['estado' => 'Facturada']);
+                        Notification::make()->title('Factura generada #' . $factura->folio)->success()->send();
+                    }),
                 Tables\Actions\EditAction::make()
                     ->label('')->icon(null)
                     ->modalSubmitActionLabel('Grabar')

@@ -42,9 +42,9 @@ class AppServiceProvider extends ServiceProvider
                 NavigationGroup::make()
                     ->label('Bancos')
                     ->collapsed(),
-                NavigationGroup::make()
+                /*NavigationGroup::make()
                     ->label('Administracion')
-                    ->collapsed(),
+                    ->collapsed(),*/
                 NavigationGroup::make()
                     ->label('Reportes')
                     ->collapsed(),

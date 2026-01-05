@@ -246,7 +246,32 @@ class OrdenesResource extends Resource
                             Forms\Components\Textarea::make('observa')
                                 ->columnSpanFull()->label('Observaciones')
                                 ->rows(3),
-
+                            Section::make('Datos de Entrega')
+                                ->schema([
+                                    Forms\Components\TextInput::make('entrega_lugar')
+                                        ->label('Lugar de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_direccion')
+                                        ->label('Dirección de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_horario')
+                                        ->label('Horario de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_contacto')
+                                        ->label('Contacto de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_telefono')
+                                        ->label('Teléfono de Entrega'),
+                                ])->columns(3),
+                            Section::make('Datos Comerciales')
+                                ->schema([
+                                    Forms\Components\TextInput::make('condiciones_pago')
+                                        ->label('Condiciones de Pago'),
+                                    Forms\Components\TextInput::make('condiciones_entrega')
+                                        ->label('Condiciones de Entrega'),
+                                    Forms\Components\TextInput::make('oc_referencia_interna')
+                                        ->label('Referencia Interna'),
+                                    Forms\Components\TextInput::make('nombre_elaboro')
+                                        ->label('Elaboró'),
+                                    Forms\Components\TextInput::make('nombre_autorizo')
+                                        ->label('Autorizó'),
+                                ])->columns(3),
                         ])->grow(true)->columns(5)
                     ->columnSpanFull(),
                     Section::make('Totales')
@@ -331,8 +356,8 @@ class OrdenesResource extends Resource
                                     $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
                                     $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                                     if(File::exists($ruta))File::delete($ruta);
-                                    $data = ['idorden'=>$idorden,'id_empresa'=>$id_empresa];
-                                    $html = View::make('RepOrden',$data)->render();
+                                    $data = ['idorden'=>$idorden,'team_id'=>$id_empresa,'prov_id'=>$record->prov];
+                                    $html = View::make('NFTO_OrdendeCompra',$data)->render();
                                     Browsershot::html($html)->format('Letter')
                                         ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                                         ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
@@ -444,13 +469,13 @@ class OrdenesResource extends Resource
                         $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta))File::delete($ruta);
-                        $data = ['idorden'=>$idorden,'id_empresa'=>$id_empresa];
-                        $html = View::make('RepOrden',$data)->render();
+                        $data = ['idorden'=>$idorden,'team_id'=>$id_empresa,'prov_id'=>$record->prov];
+                        $html = View::make('NFTO_OrdendeCompra',$data)->render();
                         Browsershot::html($html)->format('Letter')
                             ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                             ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                             ->noSandbox()
-                            ->scale(0.5)->savePdf($ruta);
+                            ->scale(0.8)->savePdf($ruta);
                         return response()->download($ruta);
                     }),
                 Tables\Actions\ViewAction::make()

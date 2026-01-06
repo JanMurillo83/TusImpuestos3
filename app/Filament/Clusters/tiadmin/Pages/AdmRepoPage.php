@@ -38,6 +38,10 @@ class AdmRepoPage extends Page implements HasForms
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Reportes';
     protected static ?string $title = 'Reportes';
+    public static function canAccess(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+    }
 
     public ?string $ReportePDF = null;
     public function form(Form $form): Form

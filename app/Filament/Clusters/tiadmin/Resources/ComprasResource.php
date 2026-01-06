@@ -59,6 +59,10 @@ class ComprasResource extends Resource
 {
     protected static ?string $model = Compras::class;
     protected static ?int $navigationSort = 2;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
+    }
     protected static ?string $navigationIcon = 'fas-cart-plus';
     protected static ?string $label = 'Compra';
     protected static ?string $pluralLabel = 'Compras';

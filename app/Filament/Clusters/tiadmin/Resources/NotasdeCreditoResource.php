@@ -69,6 +69,10 @@ class NotasdeCreditoResource extends Resource
 {
     protected static ?string $model = NotadeCredito::class;
     protected static ?int $navigationSort = 7;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+    }
     protected static ?string $navigationIcon = 'fas-file-invoice-dollar';
     protected static ?string $label = 'Nota de Credito';
     protected static ?string $pluralLabel = 'Notas de Credito';

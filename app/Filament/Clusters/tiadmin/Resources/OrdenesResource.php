@@ -55,6 +55,10 @@ class OrdenesResource extends Resource
 {
     protected static ?string $model = Ordenes::class;
     protected static ?int $navigationSort = 3;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
+    }
     protected static ?string $navigationIcon = 'fas-cart-arrow-down';
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Compras';

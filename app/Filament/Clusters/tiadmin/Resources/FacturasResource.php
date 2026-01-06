@@ -91,6 +91,10 @@ class FacturasResource extends Resource
 {
     protected static ?string $model = Facturas::class;
     protected static ?int $navigationSort = 2;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista']);
+    }
     protected static ?string $navigationIcon = 'fas-file-invoice-dollar';
     protected static ?string $label = 'Factura';
     protected static ?string $pluralLabel = 'Facturas';
@@ -112,17 +116,18 @@ class FacturasResource extends Resource
                             ->label('Serie')
                             ->live(onBlur: true)
                             ->options(SeriesFacturas::where('team_id',Filament::getTenant()->id)
+                                ->where('tipo','F')
                                 ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
                                 ->pluck('descripcion','id'))
-                            ->default(function (){
-                            return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->serie ?? 'A';
-                        })->afterStateUpdated(function(Get $get,Set $set){
-                            $ser = $get('sel_serie');
-                            $fol = SeriesFacturas::where('id',$ser)->first();
-                            $set('serie',$fol->serie);
-                            $set('folio',$fol->folio + 1);
-                            $set('docto',$fol->serie.$fol->folio + 1);
-                        }),
+                                ->default(function (){
+                                    return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->serie ?? 'A';
+                                })->afterStateUpdated(function(Get $get,Set $set){
+                                    $ser = $get('sel_serie');
+                                    $fol = SeriesFacturas::where('id',$ser)->first();
+                                    $set('serie',$fol->serie);
+                                    $set('folio',$fol->folio + 1);
+                                    $set('docto',$fol->serie.$fol->folio + 1);
+                                }),
                         Forms\Components\Hidden::make('serie'),
                         Forms\Components\Hidden::make('folio')
                         ->default(function(){

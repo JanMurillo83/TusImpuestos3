@@ -23,6 +23,10 @@ class CatCuentasResource extends Resource
     protected static ?string $label = 'Cuenta Contable';
     protected static ?string $pluralLabel = 'Cuentas Contables';
     protected static ?string $navigationIcon ='fas-list-ol';
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
 
     public static function form(Form $form): Form
     {

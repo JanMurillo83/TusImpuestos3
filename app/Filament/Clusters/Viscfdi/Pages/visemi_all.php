@@ -51,6 +51,10 @@ class visemi_all extends Page implements HasForms, HasTable
     protected static ?string $title = 'Todos Emitidos';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemif';
     protected static ?int $navigationSort = 5;
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
     public function table(Table $table): Table
     {
         return $table

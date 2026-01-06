@@ -84,6 +84,11 @@ class MovbancosResource extends Resource
     protected static ?string $pluralLabel = 'Movimientos Bancarios';
     protected static ?string $navigationIcon ='fas-money-bill-transfer';
 
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
+
     public function mount():void
     {
         $ids = Movbancos::where('team_id',Filament::getTenant()->id)

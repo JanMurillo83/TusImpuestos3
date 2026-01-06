@@ -29,6 +29,10 @@ class ConceptosmiResource extends Resource
     protected static ?string $label = 'Concepto';
     protected static ?string $pluralLabel = 'Conceptos de Movimiento';
     protected static ?int $navigationSort = 5;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+    }
 
     public static function form(Form $form): Form
     {

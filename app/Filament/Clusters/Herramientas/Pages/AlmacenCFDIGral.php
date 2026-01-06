@@ -32,7 +32,10 @@ class AlmacenCFDIGral extends Page implements HasTable
     protected static ?string $title = 'Almacen CFDI';
     protected static ?string $navigationLabel = 'Almacen CFDI';
     protected static ?int $navigationSort = 4;
-
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador']);
+    }
 
     public function table(Table $table): Table
     {

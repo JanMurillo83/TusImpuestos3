@@ -29,11 +29,9 @@ class Tools extends Page implements HasForms, HasActions
     protected static string $view = 'filament.clusters.herramientas.pages.tools';
     protected static ?string $cluster = Herramientas::class;
     protected static ?string $title = 'Herramientas';
-
-    protected static function setShouldRegisterNavigation(): bool
+    public static function shouldRegisterNavigation () : bool
     {
-        if(auth()->id() == 1) return true;
-        return false;
+        return auth()->user()->hasRole(['administrador']);
     }
 
     public ? int $periodo;

@@ -81,6 +81,10 @@ class DescargasSAT extends Page implements HasTable,HasForms
     protected static ?string $title = 'Descargas SAT';
     protected static ?int $navigationSort = 3;
 
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador']);
+    }
     public function table(Table $table): Table
     {
         return $table

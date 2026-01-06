@@ -57,6 +57,10 @@ class visemip extends Page implements HasForms, HasTable
     protected static ?string $cluster = Viscfdi::class;
     protected static ?string $title = 'C. de Pago Emitidos';
     protected static string $view = 'filament.clusters.viscfdi.pages.visemip';
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
     public function table(Table $table): Table
     {
         return $table

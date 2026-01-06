@@ -26,6 +26,10 @@ class ActivosfijosResource extends Resource
     protected static ?string $pluralLabel = 'Activos Fijos';
     protected static ?string $navigationIcon ='fas-car-side';
     protected static ?int $navigationSort =4;
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
 
     public static function form(Form $form): Form
     {

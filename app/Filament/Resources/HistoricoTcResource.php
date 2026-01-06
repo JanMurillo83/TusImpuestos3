@@ -23,6 +23,7 @@ class HistoricoTcResource extends Resource
     protected static ?string $label = 'Tipo de Cambio';
     protected static ?string $pluralLabel = 'Tipos de Cambio';
     protected static ?string $navigationIcon ='fas-calendar-day';
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

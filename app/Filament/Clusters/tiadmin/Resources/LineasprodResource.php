@@ -30,6 +30,10 @@ class LineasprodResource extends Resource
     protected static ?string $label = 'Linea';
     protected static ?string $pluralLabel = 'Lineas';
     protected static ?int $navigationSort = 3;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+    }
 
     public static function form(Form $form): Form
     {

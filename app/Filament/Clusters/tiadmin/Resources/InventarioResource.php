@@ -56,6 +56,10 @@ class InventarioResource extends Resource
     protected static ?string $label = 'Producto';
     protected static ?string $pluralLabel = 'Productos';
     protected static ?int $navigationSort = 1;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+    }
 
     public static function form(Form $form): Form
     {

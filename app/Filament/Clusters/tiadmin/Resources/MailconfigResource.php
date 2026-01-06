@@ -23,6 +23,10 @@ class MailconfigResource extends Resource
 
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Configuracion';
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador']);
+    }
     protected static ?int $navigationSort = 3;
     protected static ?string $label = 'Configuracion de Correo';
     protected static ?string $pluralLabel = 'Configuracion de Correo';

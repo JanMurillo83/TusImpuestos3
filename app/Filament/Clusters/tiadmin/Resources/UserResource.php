@@ -24,6 +24,10 @@ class UserResource extends Resource
     protected static ?string $navigationIcon = 'fas-users';
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Configuracion';
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador']);
+    }
     protected static ?string $label = 'Usuario';
     protected static ?string $pluralLabel = 'Usuarios';
     protected static bool $isScopedToTenant = false;

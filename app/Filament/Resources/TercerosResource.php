@@ -22,6 +22,10 @@ class TercerosResource extends Resource
     protected static ?string $label = 'Tercero';
     protected static ?string $pluralLabel = 'Terceros';
     protected static ?string $navigationIcon = 'fas-users';
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
 
     public static function form(Form $form): Form
     {

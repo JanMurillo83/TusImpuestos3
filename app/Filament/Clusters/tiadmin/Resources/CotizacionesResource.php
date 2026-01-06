@@ -55,6 +55,10 @@ class CotizacionesResource extends Resource
     protected static ?string $label = 'Cotización';
     protected static ?string $pluralLabel = 'Cotizaciones';
     protected static ?int $navigationSort = 5;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+    }
     protected static ?string $navigationGroup = 'Ventas';
 
     public static function form(Form $form): Form
@@ -103,8 +107,8 @@ class CotizacionesResource extends Resource
                             Forms\Components\Textarea::make('observa')
                                 ->columnSpan(3)->label('Observaciones')
                                 ->rows(1),
-                            Forms\Components\TextInput::make('condiciones')
-                                ->columnSpan(2)->default('CONTADO'),
+                            Forms\Components\TextInput::make('condiciones_pago')
+                                ->columnSpan(2)->label('Condiciones de Pago'),
                             Forms\Components\Select::make('moneda')
                                 ->label('Moneda')
                                 ->options([
@@ -276,8 +280,33 @@ class CotizacionesResource extends Resource
                                     Hidden::make('observa'),
                                     Hidden::make('siguiente'),
                                     Hidden::make('costo'),
-                                ])->columnSpan('full')->streamlined()
-
+                                ])->columnSpan('full')->streamlined(),
+                            Section::make('Datos de Entrega')
+                                ->schema([
+                                    Forms\Components\TextInput::make('entrega_lugar')
+                                        ->label('Lugar de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_direccion')
+                                        ->label('Dirección de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_horario')
+                                        ->label('Horario de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_contacto')
+                                        ->label('Contacto de Entrega'),
+                                    Forms\Components\TextInput::make('entrega_telefono')
+                                        ->label('Teléfono de Entrega'),
+                                ])->columns(3),
+                            Section::make('Datos Comerciales')
+                                ->schema([
+                                    Forms\Components\TextInput::make('condiciones_pago')
+                                        ->label('Condiciones de Pago'),
+                                    Forms\Components\TextInput::make('condiciones_entrega')
+                                        ->label('Condiciones de Entrega'),
+                                    Forms\Components\TextInput::make('oc_referencia_interna')
+                                        ->label('Referencia Interna'),
+                                    Forms\Components\TextInput::make('nombre_elaboro')
+                                        ->label('Elaboró'),
+                                    Forms\Components\TextInput::make('nombre_autorizo')
+                                        ->label('Autorizó'),
+                                ])->columns(3),
                         ])->grow(true)->columns(5),
                     Section::make('Totales')
                         ->schema([
@@ -361,7 +390,13 @@ class CotizacionesResource extends Resource
                                         {
                                             $archivo = public_path('/Reportes/Cotizacion.pdf');
                                             if(File::exists($archivo)) unlink($archivo);
-                                            SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
+                                            $cotiza = Cotizaciones::find($idorden);
+                                            $data = [
+                                                'idcotiza' => $idorden,
+                                                'team_id' => Filament::getTenant()->id,
+                                                'clie_id' => $cotiza->clie
+                                            ];
+                                            SnappyPdf::loadView('NFTO_Cotizacion', $data)
                                                 ->setOption('encoding', 'utf-8')
                                                 ->setOption("enable-local-file-access",true)
                                                 ->save($archivo);
@@ -499,11 +534,11 @@ class CotizacionesResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ActionGroup::make([
                 Action::make('Cancelar')
                     ->icon('fas-ban')
-                    ->tooltip('Cancelar')->label('')
+                    ->tooltip('Cancelar')->label('Cancelar Cotización')
                     ->color(Color::Red)
-                    ->badge()
                     ->requiresConfirmation()
                     ->action(function(Model $record){
                         $est = $record->estado;
@@ -849,7 +884,12 @@ class CotizacionesResource extends Resource
                         {
                             $archivo = public_path('/Reportes/Cotizacion.pdf');
                             if(File::exists($archivo)) unlink($archivo);
-                            SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
+                            $data = [
+                                'idcotiza' => $idorden,
+                                'team_id' => Filament::getTenant()->id,
+                                'clie_id' => $record->clie
+                            ];
+                            SnappyPdf::loadView('NFTO_Cotizacion', $data)
                                 ->setOption("enable-local-file-access",true)
                                 ->setOption('encoding', 'utf-8')
                                 ->save($archivo);
@@ -861,7 +901,6 @@ class CotizacionesResource extends Resource
                             ->fileUrl(env('APP_URL').'/Reportes/Cotizacion.pdf')
                     ]),
                 Tables\Actions\EditAction::make()
-                    ->label('')->icon(null)
                     ->modalSubmitActionLabel('Grabar')
                     ->modalCancelActionLabel('Cerrar')
                     ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
@@ -872,6 +911,7 @@ class CotizacionesResource extends Resource
                         $livewire->callImprimir($record);
                     })->iconPosition(IconPosition::After),
             ])
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
                     ->createAnother(false)

@@ -36,6 +36,10 @@ class MovinventarioResource extends Resource
     protected static ?string $label = 'Movimiento';
     protected static ?string $pluralLabel = 'Movimientos al inventario';
     protected static ?int $navigationSort = 2;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+    }
 
     public static function form(Form $form): Form
     {

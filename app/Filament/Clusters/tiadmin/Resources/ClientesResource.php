@@ -37,6 +37,10 @@ class ClientesResource extends Resource
     protected static ?string $label = 'Cliente';
     protected static ?string $pluralLabel = 'Clientes';
     protected static ?int $navigationSort = 1;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+    }
     protected static ?string $navigationGroup = 'Ventas';
 
     public static function form(Form $form): Form

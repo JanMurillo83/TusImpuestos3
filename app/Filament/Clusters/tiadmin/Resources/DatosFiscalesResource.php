@@ -24,6 +24,10 @@ class DatosFiscalesResource extends Resource
     protected static ?string $navigationIcon = 'fas-user-tag';
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Configuracion';
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador']);
+    }
 
     public static function form(Form $form): Form
     {

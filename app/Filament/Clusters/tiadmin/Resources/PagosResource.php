@@ -42,6 +42,10 @@ class PagosResource extends Resource
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Ventas';
     protected static ?int $navigationSort = 6;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista']);
+    }
 
     public static function form(Form $form): Form
     {

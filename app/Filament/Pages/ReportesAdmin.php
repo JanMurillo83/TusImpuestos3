@@ -47,6 +47,10 @@ class ReportesAdmin extends Page implements HasForms
     public ?string $reporte_generado;
     public ?string $reporte_generado_2;
     public ?string $ReportePDF = '';
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
     public function mount():void
     {
         $id = Filament::getTenant()->id;

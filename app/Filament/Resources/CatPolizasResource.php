@@ -51,6 +51,10 @@ class CatPolizasResource extends Resource
     protected static ?string $pluralLabel = 'Polizas';
     protected static ?string $navigationIcon ='fas-scale-balanced';
     public ?string $activeTab = 'Todas';
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
     public static function form(Form $form): Form
     {
         return $form

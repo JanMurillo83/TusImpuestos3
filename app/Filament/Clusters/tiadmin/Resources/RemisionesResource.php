@@ -51,6 +51,10 @@ class RemisionesResource extends Resource
     protected static ?string $label = 'Remisión';
     protected static ?string $pluralLabel = 'Remisiones';
     protected static ?int $navigationSort = 3;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+    }
     protected static ?string $navigationGroup = 'Ventas';
 
     public static function form(Form $form): Form

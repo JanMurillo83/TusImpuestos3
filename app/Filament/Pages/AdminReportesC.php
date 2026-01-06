@@ -41,7 +41,10 @@ class AdminReportesC extends Page implements HasForms
     public ?string $cuenta_ini = '';
     public ?string $cuenta_fin = '';
     public ?string $ReportePDF = '';
-
+    public static function shouldRegisterNavigation () : bool
+    {
+        return auth()->user()->hasRole(['administrador','contador']);
+    }
     public function mount():void
     {
         (new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);

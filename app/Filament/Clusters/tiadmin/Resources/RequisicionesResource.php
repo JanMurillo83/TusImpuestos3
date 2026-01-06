@@ -47,6 +47,10 @@ class RequisicionesResource extends Resource
 {
     protected static ?string $model = Requisiciones::class;
     protected static ?int $navigationSort = 4;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
+    }
     protected static ?string $navigationIcon = 'fas-file-lines';
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Compras';

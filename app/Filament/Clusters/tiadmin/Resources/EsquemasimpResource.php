@@ -25,6 +25,10 @@ class EsquemasimpResource extends Resource
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Inventario';
     protected static ?int $navigationSort = 4;
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+    }
     protected static ?string $label = 'Esquema de Impuestos';
     protected static ?string $pluralLabel = 'Esquemas de Impuestos';
     public static function form(Form $form): Form

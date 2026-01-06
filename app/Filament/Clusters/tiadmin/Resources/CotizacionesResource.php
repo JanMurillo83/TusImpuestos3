@@ -43,9 +43,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
+use Spatie\Browsershot\Browsershot;
 
 class CotizacionesResource extends Resource
 {
@@ -382,29 +384,21 @@ class CotizacionesResource extends Resource
                                 ActionsAction::make('Imprimir Cotizacion')
                                     ->badge()->tooltip('Imprimir Cotizacion')
                                     ->icon('fas-print')
-                                    ->modalCancelActionLabel('Cerrar')
-                                    ->modalSubmitAction('')
-                                    ->modalContent(function(Get $get){
-                                        $idorden = $get('id');
-                                        if($idorden != null)
-                                        {
-                                            $archivo = public_path('/Reportes/Cotizacion.pdf');
-                                            if(File::exists($archivo)) unlink($archivo);
-                                            $cotiza = Cotizaciones::find($idorden);
-                                            $data = [
-                                                'idcotiza' => $idorden,
-                                                'team_id' => Filament::getTenant()->id,
-                                                'clie_id' => $cotiza->clie
-                                            ];
-                                            SnappyPdf::loadView('NFTO_Cotizacion', $data)
-                                                ->setOption('encoding', 'utf-8')
-                                                ->setOption("enable-local-file-access",true)
-                                                ->save($archivo);
-                                        }
-                                    })->form([
-                                        PdfViewerField::make('archivo')
-                                            ->fileUrl(env('APP_URL').'/Reportes/Cotizacion.pdf')
-                                    ])
+                                    ->action(function($record){
+                                        $idorden = $record->id;
+                                        $id_empresa = Filament::getTenant()->id;
+                                        $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                                        if(File::exists($ruta))File::delete($ruta);
+                                        $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
+                                        $html = View::make('NFTO_Cotizacion',$data)->render();
+                                        Browsershot::html($html)->format('Letter')
+                                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                            ->noSandbox()
+                                            ->scale(0.8)->savePdf($ruta);
+                                        return response()->download($ruta);
+                                    })
                             ])->visibleOn('edit'),
                             Actions::make([
                                 ActionsAction::make('Enlazar Orden')
@@ -535,6 +529,25 @@ class CotizacionesResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                    Action::make('Imprimir')
+                        ->icon('fas-print')
+                        ->modalCancelActionLabel('Cerrar')
+                        ->modalSubmitAction('')
+                        ->action(function($record){
+                            $idorden = $record->id;
+                            $id_empresa = Filament::getTenant()->id;
+                            $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                            $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                            if(File::exists($ruta))File::delete($ruta);
+                            $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
+                            $html = View::make('NFTO_Cotizacion',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
+                        }),
                 Action::make('Cancelar')
                     ->icon('fas-ban')
                     ->tooltip('Cancelar')->label('Cancelar Cotización')
@@ -874,32 +887,6 @@ class CotizacionesResource extends Resource
                         $req->update(['estado' => 'Facturada']);
                         Notification::make()->title('Factura generada #' . $factura->folio)->success()->send();
                     }),
-                Action::make('Imprimir_Doc')
-                    ->label('')->icon(null)->visible(false)
-                    ->modalCancelActionLabel('Cerrar')
-                    ->modalSubmitAction('')
-                    ->modalContent(function($record){
-                        $idorden = $record->id;
-                        if($idorden != null)
-                        {
-                            $archivo = public_path('/Reportes/Cotizacion.pdf');
-                            if(File::exists($archivo)) unlink($archivo);
-                            $data = [
-                                'idcotiza' => $idorden,
-                                'team_id' => Filament::getTenant()->id,
-                                'clie_id' => $record->clie
-                            ];
-                            SnappyPdf::loadView('NFTO_Cotizacion', $data)
-                                ->setOption("enable-local-file-access",true)
-                                ->setOption('encoding', 'utf-8')
-                                ->save($archivo);
-                            $ruta = env('APP_URL').'/Reportes/Cotizacion.pdf';
-                            //dd($ruta);
-                        }
-                    })->form([
-                        PdfViewerField::make('archivo')
-                            ->fileUrl(env('APP_URL').'/Reportes/Cotizacion.pdf')
-                    ]),
                 Tables\Actions\EditAction::make()
                     ->modalSubmitActionLabel('Grabar')
                     ->modalCancelActionLabel('Cerrar')

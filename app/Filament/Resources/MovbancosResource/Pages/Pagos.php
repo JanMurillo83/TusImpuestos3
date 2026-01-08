@@ -175,7 +175,7 @@ class Pagos extends Page implements HasForms
                                         return $model->pendienteusd;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
                             ])
-                            ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
+                            ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 0)->where('pendientemxn', '>', 0.10)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
                     })
                     ->getOptionLabelFromRecordUsing(function (IngresosEgresos $model) {
                         return "{$model->referencia}";
@@ -396,6 +396,15 @@ class Pagos extends Page implements HasForms
                 if ($factura['Moneda'] != 'MXN') $monto_par = floatval($factura['Monto a Pagar']);
 
                 if ($factura['Moneda'] == 'MXN' && $moneda_pago == 'MXN') {
+                    // Calcular proporción del pago
+                    $total_factura_mxn = floatval($fss->Total) * floatval($dat_aux->tipo_cambio);
+                    $proporcion_pago = $monto_par / $total_factura_mxn;
+
+                    // Calcular IVA y retenciones proporcionales
+                    $iva_proporcional = ($dat_aux->iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_isr_proporcional = ($dat_aux->ret_isr * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_iva_proporcional = ($dat_aux->ret_iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+
                     if($no_intera == 0) {
                         $aux = Auxiliares::create([
                             'cat_polizas_id' => $polno,
@@ -442,7 +451,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '11801000',
                             'cuenta' => '-IVA acreditable pagado',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'cargo' => $iva_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -459,7 +468,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'IVA pendiente de pago',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => $iva_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -476,7 +485,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21604000',
                             'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_isr_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -493,7 +502,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => $ret_isr_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -510,7 +519,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21610000',
                             'cuenta' => 'Impuestos retenidos de IVA X Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_iva_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -527,7 +536,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos retenidos de IVA pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => $ret_iva_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -562,13 +571,23 @@ class Pagos extends Page implements HasForms
                     $dolares = $factura['USD a Pagar'];
                     $tipoc = $tipoc_mov;
 
+                    // Calcular proporción del pago
+                    $total_factura_usd = floatval($fss->Total);
+                    $proporcion_pago = $dolares / $total_factura_usd;
+
+                    // Calcular IVA y retenciones proporcionales
+                    $iva_proporcional_mov = ($dat_aux->iva * $tipoc) * $proporcion_pago;
+                    $iva_proporcional_fac = ($dat_aux->iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_isr_proporcional = ($dat_aux->ret_isr * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_iva_proporcional = ($dat_aux->ret_iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
                     $iva_2 = $dolares / 1.16 * 0.16 * $tipoc_f;
                     $up_p1 = $dolares * $tipoc;
                     $up_p2 = $dolares * $tipoc_f;
-                    $up_p3 = $dat_aux->iva*$tipoc_f;
-                    $up_p4 = $dat_aux->iva*$tipoc;
+                    $up_p3 = $iva_proporcional_fac;
+                    $up_p4 = $iva_proporcional_mov;
                     $uti_per = $up_p1 - $up_p2 + $up_p3 - $up_p4;
                     if ($uti_per > 0) {
                         $imp_uti_c = $uti_per;
@@ -643,7 +662,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '11801000',
                             'cuenta' => 'IVA acreditable pagado',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->iva * $tipoc),
+                            'cargo' => $iva_proporcional_mov,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -660,7 +679,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'IVA pendiente de pago',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => $iva_proporcional_fac,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -677,7 +696,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21604000',
                             'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_isr_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -694,7 +713,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => $ret_isr_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -711,7 +730,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21610000',
                             'cuenta' => 'Impuestos retenidos de IVA X Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_iva_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -728,7 +747,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos retenidos de IVA pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => $ret_iva_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -780,6 +799,16 @@ class Pagos extends Page implements HasForms
                     $tipoc = floatval($record->tcambio);
                     $cfdi  = Almacencfdis::where('id', $fac_id)->first();
                     $iva_fac = floatval($cfdi->TotalImpuestosTrasladados);
+
+                    // Calcular proporción del pago
+                    $total_factura_usd = floatval($fss->Total);
+                    $proporcion_pago = $dolares / $total_factura_usd;
+
+                    // Calcular IVA y retenciones proporcionales
+                    $iva_proporcional = ($dat_aux->iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_isr_proporcional = ($dat_aux->ret_isr * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_iva_proporcional = ($dat_aux->ret_iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+
                     //dd($factura,$cfdi->TotalImpuestosTrasladados);
                     $complemento = (($dolares * $tipoc_f) - $dolares);
                     $iva_1 = $dolares / 1.16 * 0.16 * $tipoc;
@@ -855,7 +884,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '11801000',
                             'cuenta' => 'IVA acreditable pagado',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'cargo' => $iva_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -872,7 +901,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'IVA pendiente de pago',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => $iva_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -889,7 +918,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21604000',
                             'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_isr_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -906,7 +935,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => $ret_isr_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -923,7 +952,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21610000',
                             'cuenta' => 'Impuestos retenidos de IVA X Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_iva_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -940,7 +969,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos retenidos de IVA pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => $ret_iva_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -1019,6 +1048,16 @@ class Pagos extends Page implements HasForms
                     $dolares = floatval($monto_par);
                     $tipoc_f = floatval($factura['Tipo Cambio']);
                     $tipoc = floatval($get('tipo_cambio'));
+
+                    // Calcular proporción del pago
+                    $total_factura_mxn = floatval($fss->Total) * floatval($dat_aux->tipo_cambio);
+                    $proporcion_pago = $pesos / $total_factura_mxn;
+
+                    // Calcular IVA y retenciones proporcionales
+                    $iva_proporcional = ($dat_aux->iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_isr_proporcional = ($dat_aux->ret_isr * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $ret_iva_proporcional = ($dat_aux->ret_iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+
                     $complemento = (($dolares * $tipoc) - $dolares);
                     $iva_1 = ((($dolares / 1.16) * 0.16) * $tipoc);
                     $iva_2 = ((($dolares / 1.16) * 0.16) * $tipoc_f);
@@ -1079,7 +1118,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '11801000',
                             'cuenta' => 'IVA acreditable pagado',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'cargo' => $iva_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -1096,7 +1135,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'IVA pendiente de pago',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->iva * $dat_aux->tipo_cambio),
+                            'abono' => $iva_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -1113,7 +1152,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21604000',
                             'cuenta' => 'Impuestos ret de ISR x servicios prof x Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_isr_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -1130,7 +1169,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos ret de ISR x servicios prof pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_isr * $dat_aux->tipo_cambio),
+                            'abono' => $ret_isr_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id
@@ -1147,7 +1186,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '21610000',
                             'cuenta' => 'Impuestos retenidos de IVA X Pagar',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'cargo' => $ret_iva_proporcional,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -1164,7 +1203,7 @@ class Pagos extends Page implements HasForms
                             'cuenta' => 'Impuestos retenidos de IVA pagado',
                             'concepto' => $fss->Emisor_Nombre,
                             'cargo' => 0,
-                            'abono' => ($dat_aux->ret_iva * $dat_aux->tipo_cambio),
+                            'abono' => $ret_iva_proporcional,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
                             'team_id' => Filament::getTenant()->id

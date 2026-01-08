@@ -1040,6 +1040,7 @@ class cfdiri extends Page implements HasForms, HasTable
         $folio = $record['Folio'];
         $uuid = $record['UUID'];
         $dat_aux = AuxCFDI::where('uuid',$uuid)->first();
+        //dd($dat_aux);
         $cfperiodo = $record['periodo'];
         $cfejercicio = $record['ejercicio'];
         $cffecha1 = $record['Fecha'];

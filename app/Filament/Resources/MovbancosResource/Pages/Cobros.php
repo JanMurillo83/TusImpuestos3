@@ -175,7 +175,7 @@ class Cobros extends Page implements HasForms
                                         return $model->pendienteusd;
                                     })->numeric(decimalPlaces: 2, decimalSeparator: '.'),
                             ])
-                            ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 1)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
+                            ->modifyQueryUsing(fn (Builder $query) => $query->where('ingresos_egresos.team_id', Filament::getTenant()->id)->where('tipo', 1)->where('pendientemxn', '>', 0.10)->join('almacencfdis','ingresos_egresos.xml_id','=','almacencfdis.id'));
 
                     })
                     ->getOptionLabelFromRecordUsing(function (Get $get) {

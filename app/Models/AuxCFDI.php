@@ -45,16 +45,19 @@ class AuxCFDI extends Model
             $impuestos = $CFDI->Impuestos;
             $traslados = $impuestos['TotalImpuestosTrasladados'];
             $retenciones = $impuestos['TotalImpuestosRetenidos'];
+
             $uuid = $CFDI->Complemento->TimbreFiscalDigital['UUID'];
+            // dd($documento,$impuestos,$traslados,$retenciones);
             $ImpuestosTraslados = $impuestos->Traslados;
             $iva = 0;
             $ieps = 0;
             $otro_impuesto = 0;
+            //if($uuid == '6055a03a-2d52-4a06-85f1-38f514c7e9d8') dd(floatval($traslados));
             if(floatval($traslados) > 0) {
                 foreach ($ImpuestosTraslados() as $traslado) {
-                    if ($traslado['impuesto'] == '002') $iva = floatval($traslado['importe']);
-                    if ($traslado['impuesto'] == '003') $ieps = floatval($traslado['importe']);
-                    if ($traslado['impuesto'] != '003' && $traslado['impuesto'] != '002') $otro_impuesto = floatval($traslado['importe']);
+                    if ($traslado['impuesto'] == '002') $iva+= floatval($traslado['importe']);
+                    if ($traslado['impuesto'] == '003') $ieps+= floatval($traslado['importe']);
+                    if ($traslado['impuesto'] != '003' && $traslado['impuesto'] != '002') $otro_impuesto+= floatval($traslado['importe']);
                 }
             }
             $ImpuestosRetenciones = $impuestos->Retenciones;
@@ -64,10 +67,10 @@ class AuxCFDI extends Model
             $otra_ret = 0;
             if(floatval($retenciones) > 0) {
                 foreach ($ImpuestosRetenciones() as $retencion) {
-                    if ($retencion['impuesto'] == '001') $ret_isr = floatval($retencion['importe']);
-                    if ($retencion['impuesto'] == '002') $ret_iva = floatval($retencion['importe']);
-                    if ($retencion['impuesto'] == '003') $ret_ieps = floatval($retencion['importe']);
-                    if ($retencion['impuesto'] != '001' && $retencion['impuesto'] != '002' && $retencion['impuesto'] != '003') $otra_ret = floatval($retencion['importe']);
+                    if ($retencion['impuesto'] == '001') $ret_isr+= floatval($retencion['importe']);
+                    if ($retencion['impuesto'] == '002') $ret_iva+= floatval($retencion['importe']);
+                    if ($retencion['impuesto'] == '003') $ret_ieps+= floatval($retencion['importe']);
+                    if ($retencion['impuesto'] != '001' && $retencion['impuesto'] != '002' && $retencion['impuesto'] != '003') $otra_ret+= floatval($retencion['importe']);
                 }
             }
             $datos [] =[

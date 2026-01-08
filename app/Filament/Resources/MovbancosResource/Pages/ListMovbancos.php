@@ -214,49 +214,72 @@ class ListMovbancos extends ListRecords
                     $periodo = Filament::getTenant()->periodo;
                     $tax_id = Filament::getTenant()->taxid;
                     $team_id = Filament::getTenant()->id;
-                    /*for($i=0;$i<count($collection);$i++){
-                        $fecha = Carbon::create($ejercicio,$periodo,intval($collection[$i]['dia']))->format('Y-m-d');
-                        $collection[$i]['fecha'] = $fecha;
-                        $collection[$i]['pendiente_apli'] = floatval($collection[$i]['importe']);
-                        /*Movbancos::create([
-                            'fecha'=>$fecha,
-                            'tax_id'=>$tax_id,
-                            'tipo'=>$collection[$i]['tipo'],
-                            'cuenta'=>$data['cuenta'],
-                            'importe'=>floatval($collection[$i]['importe']),
-                            'concepto'=>$collection[$i]['concepto'],
-                            'contabilizada'=>'NO',
-                            'ejercicio'=>$ejercicio,
-                            'periodo'=>$periodo,
-                            'moneda'=>'MXN',
-                            'tcambio'=>1.0,
-                            'pendiente_apli'=>floatval($collection[$i]['importe']),
-                            'team_id'=>$team_id,
-                            'dia'=>intval($collection[$i]['dia'])
-                        ]);
-                    }*/
-                    /*foreach ($collection as $datos) {
-                        $fecha = Carbon::create($ejercicio,$periodo,intval($datos['dia']))->format('Y-m-d');
+                    $registros_creados = 0;
 
-                        Movbancos::create([
-                            'fecha'=>$fecha,
-                            'tax_id'=>$tax_id,
-                            'tipo'=>$datos['tipo'],
-                            'cuenta'=>$data['cuenta'],
-                            'importe'=>floatval($datos['importe']),
-                            'concepto'=>$datos['concepto'],
-                            'contabilizada'=>'NO',
-                            'ejercicio'=>$ejercicio,
-                            'periodo'=>$periodo,
-                            'moneda'=>'MXN',
-                            'tcambio'=>1.0,
-                            'pendiente_apli'=>floatval($datos['importe']),
-                            'team_id'=>$team_id,
-                            'dia'=>intval($datos['dia'])
-                        ]);
-                    }*/
+                    try {
+                        foreach ($collection as $datos) {
+                            // Validar que tenga las columnas requeridas
+                            if (!isset($datos['dia']) || !isset($datos['tipo']) || !isset($datos['importe']) || !isset($datos['concepto'])) {
+                                continue; // Salta registros incompletos
+                            }
+
+                            $fecha = Carbon::create($ejercicio, $periodo, intval($datos['dia']))->format('Y-m-d');
+
+                            Movbancos::create([
+                                'fecha' => $fecha,
+                                'tax_id' => $tax_id,
+                                'tipo' => $datos['tipo'],
+                                'cuenta' => $data['cuenta'],
+                                'importe' => floatval($datos['importe']),
+                                'concepto' => $datos['concepto'],
+                                'contabilizada' => 'NO',
+                                'ejercicio' => $ejercicio,
+                                'periodo' => $periodo,
+                                'moneda' => 'MXN',
+                                'tcambio' => 1.0,
+                                'pendiente_apli' => floatval($datos['importe']),
+                                'team_id' => $team_id,
+                                'dia' => intval($datos['dia'])
+                            ]);
+                            $registros_creados++;
+                        }
+
+                        if ($registros_creados > 0) {
+                            Notification::make()
+                                ->title('Importación exitosa')
+                                ->body("Se importaron {$registros_creados} movimientos bancarios.")
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Sin registros')
+                                ->body('No se encontraron registros válidos para importar.')
+                                ->warning()
+                                ->send();
+                        }
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title('Error en la importación')
+                            ->body('Error: ' . $e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+
                     return $collection;
-                })->visible(false),
+                })->visible(function(){
+                    $team = Filament::getTenant()->id;
+                    $periodo = Filament::getTenant()->periodo;
+                    $ejercicio = Filament::getTenant()->ejercicio;
+                    if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
+                    {
+                        return true;
+                    }
+                    else{
+                        $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
+                        if($estado == 1) return true;
+                        else return false;
+                    }
+                }),
             Actions\CreateAction::make()
                 ->label('Agregar')
                 ->icon('fas-plus')
@@ -287,6 +310,7 @@ class ListMovbancos extends ListRecords
             \EightyNine\ExcelImport\ExcelImportAction::make('Importar2')
                 ->label('Importar')
                 ->color("primary")
+                ->visible(false)
                 ->beforeUploadField([
                     Hidden::make('tax_id')
                         ->default(Filament::getTenant()->taxid),
@@ -329,45 +353,62 @@ class ListMovbancos extends ListRecords
                     ]);
                 })
                 ->processCollectionUsing(function (string $modelClass, Collection $collection,$data) {
-                    //dd($data);
-
                     $tax_id = Filament::getTenant()->taxid;
                     $team_id = Filament::getTenant()->id;
-                    for($i=0;$i<count($collection);$i++) {
-                        $fecha = Carbon::create($collection[$i]['fecha'])->format('Y-m-d');
-                        $ejercicio = intval(Carbon::create($collection[$i]['fecha'])->format('Y'));
-                        $periodo = intval(Carbon::create($collection[$i]['fecha'])->format('m'));
-                        Movbancos::create([
-                            'fecha'=>$fecha,
-                            'tax_id'=>$tax_id,
-                            'tipo'=>$collection[$i]['tipo'],
-                            'cuenta'=>$data['cuenta'],
-                            'importe'=>floatval($collection[$i]['importe']),
-                            'concepto'=>$collection[$i]['concepto'],
-                            'contabilizada'=>'NO',
-                            'ejercicio'=>$ejercicio,
-                            'periodo'=>$periodo,
-                            'moneda'=>'MXN',
-                            'tcambio'=>1.0,
-                            'pendiente_apli'=>floatval($collection[$i]['importe']),
-                            'team_id'=>$team_id,
-                            'dia'=>intval(Carbon::create($collection[$i]['fecha'])->format('d'))
-                        ]);
+                    $registros_creados = 0;
+
+                    try {
+                        foreach($collection as $datos) {
+                            // Validar que tenga las columnas requeridas
+                            if (!isset($datos['fecha']) || !isset($datos['tipo']) || !isset($datos['importe']) || !isset($datos['concepto'])) {
+                                continue; // Salta registros incompletos
+                            }
+
+                            $fecha = Carbon::create($datos['fecha'])->format('Y-m-d');
+                            $ejercicio = intval(Carbon::create($datos['fecha'])->format('Y'));
+                            $periodo = intval(Carbon::create($datos['fecha'])->format('m'));
+
+                            Movbancos::create([
+                                'fecha' => $fecha,
+                                'tax_id' => $tax_id,
+                                'tipo' => $datos['tipo'],
+                                'cuenta' => $data['cuenta'],
+                                'importe' => floatval($datos['importe']),
+                                'concepto' => $datos['concepto'],
+                                'contabilizada' => 'NO',
+                                'ejercicio' => $ejercicio,
+                                'periodo' => $periodo,
+                                'moneda' => 'MXN',
+                                'tcambio' => 1.0,
+                                'pendiente_apli' => floatval($datos['importe']),
+                                'team_id' => $team_id,
+                                'dia' => intval(Carbon::create($datos['fecha'])->format('d'))
+                            ]);
+                            $registros_creados++;
+                        }
+
+                        if ($registros_creados > 0) {
+                            Notification::make()
+                                ->title('Importación exitosa')
+                                ->body("Se importaron {$registros_creados} movimientos bancarios.")
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Sin registros')
+                                ->body('No se encontraron registros válidos para importar.')
+                                ->warning()
+                                ->send();
+                        }
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title('Error en la importación')
+                            ->body('Error: ' . $e->getMessage())
+                            ->danger()
+                            ->send();
                     }
+
                     return $collection;
-                })->visible(function(){
-                    $team = Filament::getTenant()->id;
-                    $periodo = Filament::getTenant()->periodo;
-                    $ejercicio = Filament::getTenant()->ejercicio;
-                    if(!ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->exists())
-                    {
-                        return true;
-                    }
-                    else{
-                        $estado = ContaPeriodos::where('team_id',$team)->where('periodo',$periodo)->where('ejercicio',$ejercicio)->first()->estado;
-                        if($estado == 1) return true;
-                        else return false;
-                    }
                 })
         ];
     }

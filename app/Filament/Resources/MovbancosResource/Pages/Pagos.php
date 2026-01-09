@@ -806,6 +806,7 @@ class Pagos extends Page implements HasForms
 
                     // Calcular IVA y retenciones proporcionales
                     $iva_proporcional = ($dat_aux->iva * $dat_aux->tipo_cambio) * $proporcion_pago;
+                    $iva_proporcional2 = ($dat_aux->iva * $tipoc) * $proporcion_pago;
                     $ret_isr_proporcional = ($dat_aux->ret_isr * $dat_aux->tipo_cambio) * $proporcion_pago;
                     $ret_iva_proporcional = ($dat_aux->ret_iva * $dat_aux->tipo_cambio) * $proporcion_pago;
 
@@ -884,7 +885,7 @@ class Pagos extends Page implements HasForms
                             'codigo' => '11801000',
                             'cuenta' => 'IVA acreditable pagado',
                             'concepto' => $fss->Emisor_Nombre,
-                            'cargo' => $iva_proporcional,
+                            'cargo' => $iva_proporcional2,
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
@@ -1291,10 +1292,11 @@ class Pagos extends Page implements HasForms
                 }
             }
         }
-        //Auxiliares::where('id', $id_cta_banco)->update(['abono' => $mon_apli_ban]);
-        Auxiliares::where('id', $id_cta_banco)->update(['abono' => $record->importe]);
+        Auxiliares::where('id', $id_cta_banco)->update(['abono' => $mon_apli_ban]);
+        //Auxiliares::where('id', $id_cta_banco)->update(['abono' => $record->importe]);
         if($id_cta_banco_com > 0) {
-            $n_imp = ($record->importe * $record->tcambio) - $record->importe;
+            //$n_imp = ($record->importe * $record->tcambio) - $record->importe;
+            $n_imp = ($mon_apli_ban * $record->tcambio) - $record->importe;
             Auxiliares::where('id', $id_cta_banco_com)->update(['abono' => $n_imp]);
         }
 

@@ -41,6 +41,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
+use Spatie\Browsershot\Browsershot;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
 
@@ -423,6 +424,22 @@ class RequisicionesResource extends Resource
                     ->visible(function ($record) {
                         if($record->estado == 'Activa') return false;
                         else return true;
+                    }),
+                Tables\Actions\Action::make('Imprimir')->icon('fas-print')
+                    ->action(function($record){
+                        $idrequisicion = $record->id;
+                        $id_empresa = Filament::getTenant()->id;
+                        $archivo_pdf = 'REQUISICION'.$record->id.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                        if(File::exists($ruta))File::delete($ruta);
+                        $data = ['idrequisicion'=>$idrequisicion,'team_id'=>$id_empresa,'prov_id'=>$record->prov];
+                        $html = View::make('NFTO_Requisicion',$data)->render();
+                        Browsershot::html($html)->format('Letter')
+                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                            ->noSandbox()
+                            ->scale(0.8)->savePdf($ruta);
+                        return response()->download($ruta);
                     }),
                 ActionsAction::make('Cancelar')
                 ->icon('fas-ban')

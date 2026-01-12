@@ -10,6 +10,7 @@ use App\Models\Inventario;
 use App\Models\Movinventario;
 use App\Models\SurtidoInve;
 use Carbon\Carbon;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -112,7 +113,8 @@ class SurtidoInveResource extends Resource
                         'costo'=>$record->costo_u,
                         'precio'=>$record->precio_u,
                         'concepto'=>6,
-                        'tipoter'=>'C'
+                        'tipoter'=>'C',
+                        'team_id'=>Filament::getTenant()->id,
                     ]);
                     Inventario::where('id',$record->item_id)->decrement('exist',$record->cant);
                     Notification::make()->title('Surtido')->success()->send();
@@ -133,7 +135,8 @@ class SurtidoInveResource extends Resource
                             'costo'=>$record->costo_u,
                             'precio'=>$record->precio_u,
                             'concepto'=>5,
-                            'tipoter'=>'C'
+                            'tipoter'=>'C',
+                            'team_id'=>Filament::getTenant()->id,
                         ]);
                         Inventario::where('id',$record->item_id)->increment('exist',$record->cant);
                         Notification::make()->title('Cancelado')->success()->send();

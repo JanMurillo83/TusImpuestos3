@@ -644,7 +644,8 @@ class ComprasResource extends Resource
                                 'precio'=>0,
                                 'concepto'=>1,
                                 'tipoter'=>'P',
-                                'tercero'=>$record->prov
+                                'tercero'=>$record->prov,
+                                'team_id'=>Filament::getTenant()->id,
                             ]);
 
                             $cost = $partida->costo;

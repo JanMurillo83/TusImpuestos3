@@ -11,6 +11,7 @@ use App\Models\Inventario;
 use App\Models\Lineasprod;
 use App\Models\Movinventario;
 use App\Models\Unidades;
+use App\Models\Conceptosmi;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -235,6 +236,54 @@ class InventarioResource extends Resource
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left),
+                Tables\Actions\Action::make('Kardex')
+                    ->icon('fas-history')
+                    ->color('info')
+                    ->modalWidth('7xl')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->form(function (Model $record) {
+                        $movimientos = Movinventario::where('producto', $record->id)
+                            ->where('team_id', Filament::getTenant()->id)
+                            ->orderBy('fecha', 'desc')
+                            ->get()
+                            ->map(function ($mov) {
+                                $concepto = Conceptosmi::find($mov->concepto);
+                                return [
+                                    'fecha' => Carbon::parse($mov->fecha)->format('d/m/Y'),
+                                    'tipo' => $mov->tipo,
+                                    'cant' => number_format($mov->cant, 2),
+                                    'costo' => '$' . number_format($mov->costo, 2),
+                                    'precio' => '$' . number_format($mov->precio, 2),
+                                    'concepto' => $concepto?->descripcion ?? 'N/A',
+                                ];
+                            })->toArray();
+
+                        return [
+                            TableRepeater::make('movimientos')
+                                ->label('Movimientos al Inventario')
+                                ->addable(false)
+                                ->deletable(false)
+                                ->reorderable(false)
+                                ->headers([
+                                    Header::make('fecha')->label('Fecha'),
+                                    Header::make('tipo')->label('Tipo'),
+                                    Header::make('cant')->label('Cantidad'),
+                                    Header::make('costo')->label('Costo'),
+                                    Header::make('precio')->label('Precio'),
+                                    Header::make('concepto')->label('Concepto'),
+                                ])
+                                ->schema([
+                                    Forms\Components\TextInput::make('fecha')->readOnly(),
+                                    Forms\Components\TextInput::make('tipo')->readOnly(),
+                                    Forms\Components\TextInput::make('cant')->readOnly(),
+                                    Forms\Components\TextInput::make('costo')->readOnly(),
+                                    Forms\Components\TextInput::make('precio')->readOnly(),
+                                    Forms\Components\TextInput::make('concepto')->readOnly(),
+                                ])
+                                ->default($movimientos),
+                        ];
+                    }),
             ])
             ->headerActions([
                 CreateAction::make('Agregar')
@@ -252,6 +301,13 @@ class InventarioResource extends Resource
                 ->modalSubmitActionLabel('Importar')
                 ->modalCancelActionLabel('Cancelar')
                 ->form([
+                    Forms\Components\Actions::make([
+                        Forms\Components\Actions\Action::make('downloadLayout')
+                            ->label('Descargar Layout')
+                            ->icon('fas-download')
+                            ->color(Color::Blue)
+                            ->action(fn() => static::downloadLayout()),
+                    ]),
                     FileUpload::make('ExcelFile')
                     ->label('Seleccionar Archivo')
                     ->storeFiles(false)
@@ -275,6 +331,7 @@ class InventarioResource extends Resource
                                 ['descripcion' => $row[2]]
                             );
                             DB::table('inventarios')->insert([
+                               'team_id'=>Filament::getTenant()->id,
                                'clave'=>$row[0],
                                'descripcion'=>$row[1],
                                'linea'=>$linea->id,
@@ -479,5 +536,42 @@ class InventarioResource extends Resource
             //'create' => Pages\CreateInventario::route('/create'),
             //'edit' => Pages\EditInventario::route('/{record}/edit'),
         ];
+    }
+
+    public static function downloadLayout()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = [
+            'Clave',
+            'Descripcion',
+            'Linea',
+            'Marca',
+            'Modelo',
+            'U_Costo',
+            'P_Costo',
+            'Precio1',
+            'Precio2',
+            'Precio3',
+            'Precio4',
+            'Precio5',
+            'Existencia',
+            'Esquema',
+            'Servicio',
+            'Unidad',
+            'CveSat'
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'layout_importacion_inventario.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 }

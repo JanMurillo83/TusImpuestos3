@@ -57,7 +57,7 @@ use Spatie\Browsershot\Browsershot;
 class OrdenesResource extends Resource
 {
     protected static ?string $model = Ordenes::class;
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 2;
     public static function canViewAny(): bool
     {
         return auth()->user()->hasRole(['administrador', 'contador', 'compras']);

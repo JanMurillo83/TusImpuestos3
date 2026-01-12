@@ -56,7 +56,7 @@ class CotizacionesResource extends Resource
     protected static ?string $navigationIcon = 'fas-file-invoice';
     protected static ?string $label = 'Cotización';
     protected static ?string $pluralLabel = 'Cotizaciones';
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 1;
     public static function canViewAny(): bool
     {
         return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);

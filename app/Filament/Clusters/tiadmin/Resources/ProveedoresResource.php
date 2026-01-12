@@ -36,7 +36,7 @@ class ProveedoresResource extends Resource
     protected static ?string $navigationGroup = 'Compras';
     protected static ?string $label = 'Proveedor';
     protected static ?string $pluralLabel = 'Proveedores';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
     public static function canViewAny(): bool
     {
         return auth()->user()->hasRole(['administrador', 'contador', 'compras']);

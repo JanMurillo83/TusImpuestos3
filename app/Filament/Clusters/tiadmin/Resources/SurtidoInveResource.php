@@ -5,10 +5,12 @@ namespace App\Filament\Clusters\tiadmin\Resources;
 use App\Filament\Clusters\tiadmin;
 use App\Filament\Clusters\tiadmin\Resources\SurtidoInveResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\SurtidoInveResource\RelationManagers;
+use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\Inventario;
 use App\Models\Movinventario;
 use App\Models\SurtidoInve;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;
@@ -140,7 +142,21 @@ class SurtidoInveResource extends Resource
                         ]);
                         Inventario::where('id',$record->item_id)->increment('exist',$record->cant);
                         Notification::make()->title('Cancelado')->success()->send();
-                    })
+                    }),
+                Tables\Actions\Action::make('Imprimir')
+                    ->icon('fas-print')
+                    ->label('Imprimir')
+                    ->color('info')
+                    ->action(function (SurtidoInve $record) {
+                        $dafis = DatosFiscales::where('team_id', Filament::getTenant()->id)->first();
+                        $factura = Facturas::find($record->factura_id);
+                        $pdf = Pdf::loadView('RepSurtido', [
+                            'surtido' => $record,
+                            'dafis' => $dafis,
+                            'factura' => $factura,
+                        ]);
+                        return response()->streamDownload(fn () => print($pdf->output()), "Surtido_{$record->id}.pdf");
+                    }),
 
             ],Tables\Enums\ActionsPosition::BeforeCells);
     }

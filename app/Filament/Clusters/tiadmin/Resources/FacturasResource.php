@@ -1716,6 +1716,7 @@ class FacturasResource extends Resource
                     }),
                 Action::make('Importar Ped')
                     ->label('Importar Pedido')
+                    ->visible(false)
                     ->icon('fas-file-import')
                     ->form(function (Forms\ComponentContainer $form) {
                         return $form->schema([

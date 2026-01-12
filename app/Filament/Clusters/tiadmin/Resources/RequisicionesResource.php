@@ -47,7 +47,7 @@ use PhpOffice\PhpSpreadsheet\Reader\IReader;
 class RequisicionesResource extends Resource
 {
     protected static ?string $model = Requisiciones::class;
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 1;
     public static function canViewAny(): bool
     {
         return auth()->user()->hasRole(['administrador', 'contador', 'compras']);

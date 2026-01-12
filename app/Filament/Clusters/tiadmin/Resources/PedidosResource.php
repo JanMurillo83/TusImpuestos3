@@ -56,6 +56,7 @@ class PedidosResource extends Resource
     protected static ?string $label = 'Pedido';
     protected static ?string $pluralLabel = 'Pedidos';
     protected static ?int $navigationSort = 4;
+    protected static bool $shouldRegisterNavigation = false;
     public static function canViewAny(): bool
     {
         return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);

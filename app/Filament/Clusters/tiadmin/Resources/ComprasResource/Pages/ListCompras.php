@@ -5,10 +5,12 @@ namespace App\Filament\Clusters\tiadmin\Resources\ComprasResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\ComprasResource;
 use App\Models\Compras;
 use App\Models\DatosFiscales;
+use App\Models\Movinventario;
 use App\Models\Ordenes;
 use App\Models\Proveedores;
 use App\Models\Requisiciones;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Carbon\Carbon;
 use Filament\Actions;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -426,11 +428,22 @@ class ListCompras extends ListRecords
                                             'unidad' => $parOriginal->unidad,
                                             'cvesat' => $parOriginal->cvesat,
                                             'prov' => $parOriginal->prov ?? $req->prov,
-                                            'observa' => 'Desde Requisición #'.$req->folio.' partida #'.$parOriginal->id,
+                                            'observa' => 'Desde Orden #'.$req->folio.' partida #'.$parOriginal->id,
                                             'team_id' => Filament::getTenant()->id,
                                             'orden_partida_id' => $parOriginal->id,
                                         ]);
-
+                                        Movinventario::insert([
+                                            'producto'=>$parOriginal->item,
+                                            'tipo'=>'Entrada',
+                                            'fecha'=>Carbon::now(),
+                                            'cant'=>$parOriginal->cant,
+                                            'costo'=>$parOriginal->costo,
+                                            'precio'=>0,
+                                            'concepto'=>1,
+                                            'tipoter'=>'P',
+                                            'tercero'=>$parOriginal->prov,
+                                            'team_id'=>Filament::getTenant()->id,
+                                        ]);
                                         // Actualizar pendientes en Requisición
                                         $parOriginal->pendientes = max(0, ($parOriginal->pendientes ?? $parOriginal->cant) - $cantConvertir);
                                         $parOriginal->save();
@@ -448,7 +461,7 @@ class ListCompras extends ListRecords
                                     ]);
 
                                     // Actualizar estado de la requisición
-                                    $quedanPend = \App\Models\OrdenesPartidas::where('requisiciones_id', $req->id)
+                                    $quedanPend = \App\Models\OrdenesPartidas::where('ordenes_id', $req->id)
                                         ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
                                         ->exists();
 

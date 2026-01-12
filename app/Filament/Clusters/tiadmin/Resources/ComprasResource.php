@@ -591,10 +591,7 @@ class ComprasResource extends Resource
                         Compras::where('id',$record->id)->update([
                             'estado'=>'Cancelada'
                         ]);
-                        Notification::make()
-                        ->title('Compra Cancelada')
-                        ->success()
-                        ->send();
+
                         Ordenes::where('id',$record->orden_id)->update([
                             'estado'=>'Activa'
                         ]);
@@ -603,6 +600,10 @@ class ComprasResource extends Resource
                             $cant = $p->cant;
                             OrdenesPartidas::where('id',$p->orden_partida_id)->increment('pendientes',$cant);
                         }
+                        Notification::make()
+                            ->title('Compra Cancelada')
+                            ->success()
+                            ->send();
                     }
                 }),
                 Tables\Actions\Action::make('Imprimir')->icon('fas-print')

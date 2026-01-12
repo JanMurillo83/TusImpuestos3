@@ -55,6 +55,7 @@ class RemisionesResource extends Resource
     {
         return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
     }
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationGroup = 'Ventas';
 
     public static function form(Form $form): Form

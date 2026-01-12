@@ -548,6 +548,169 @@ class CotizacionesResource extends Resource
                                 ->scale(0.8)->savePdf($ruta);
                             return response()->download($ruta);
                         }),
+                    Action::make('Generar Factura')
+                        ->label('Facturar Cotización')
+                        ->icon('fas-file-invoice')
+                        ->color(Color::Green)
+                        ->visible(fn($record) => in_array($record->estado, ['Activa','Parcial']))
+                        ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
+                            $partidas = CotizacionesPartidas::where('cotizaciones_id',$record->id)
+                                ->where(function($q) {
+                                    $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
+                                })
+                                ->get()
+                                ->map(function ($partida) {
+                                    return [
+                                        'partida_id' => $partida->id,
+                                        'item' => $partida->item,
+                                        'descripcion' => $partida->descripcion,
+                                        'cantidad_original' => $partida->cant,
+                                        'cantidad_pendiente' => $partida->pendientes ?? $partida->cant,
+                                        'cantidad_a_facturar' => $partida->pendientes ?? $partida->cant,
+                                        'precio' => $partida->precio,
+                                    ];
+                                })->toArray();
+                            $form->fill([
+                                'partidas' => $partidas,
+                            ]);
+                        })
+                        ->form([
+                            Forms\Components\Section::make('Información de la Cotización')
+                                ->schema([
+                                    Forms\Components\Grid::make(3)
+                                        ->schema([
+                                            Forms\Components\Placeholder::make('origen_folio')
+                                                ->label('Folio Cotización')
+                                                ->content(fn ($record) => $record->folio),
+                                            Forms\Components\Placeholder::make('origen_fecha')
+                                                ->label('Fecha')
+                                                ->content(fn ($record) => $record->fecha),
+                                            Forms\Components\Placeholder::make('origen_cliente')
+                                                ->label('Cliente')
+                                                ->content(fn ($record) => $record->nombre),
+                                        ]),
+                                ]),
+                            Forms\Components\Repeater::make('partidas')
+                                ->label('Partidas Pendientes')
+                                ->schema([
+                                    Forms\Components\Hidden::make('partida_id'),
+                                    Forms\Components\Grid::make(4)
+                                        ->schema([
+                                            Forms\Components\Placeholder::make('item_desc')
+                                                ->label('Producto / Descripción')
+                                                ->content(fn ($get) => ($get('item') ? '[' . \App\Models\Inventario::find($get('item'))?->clave . '] ' : '') . $get('descripcion'))
+                                                ->columnSpan(2),
+                                            Forms\Components\Placeholder::make('pendiente')
+                                                ->label('Pendiente')
+                                                ->content(fn ($get) => $get('cantidad_pendiente')),
+                                            Forms\Components\TextInput::make('cantidad_a_facturar')
+                                                ->label('A Facturar')
+                                                ->numeric()
+                                                ->required()
+                                                ->minValue(0.01)
+                                                ->maxValue(fn ($get) => $get('cantidad_pendiente'))
+                                                ->reactive(),
+                                        ]),
+                                ])
+                                ->addable(false)
+                                ->deletable(false)
+                                ->reorderable(false)
+                        ])
+                        ->action(function (Model $record, array $data) {
+                            $cot = $record->fresh();
+                            $partidasSeleccionadas = collect($data['partidas'])->filter(fn($p) => $p['cantidad_a_facturar'] > 0);
+
+                            if ($partidasSeleccionadas->isEmpty()) {
+                                Notification::make()->title('Debe seleccionar al menos una partida con cantidad mayor a cero.')->danger()->send();
+                                return;
+                            }
+
+                            DB::beginTransaction();
+                            try {
+                                $factura = \App\Models\Facturas::create([
+                                    'serie' => 'F', // Default series or pick from settings
+                                    'folio' => (\App\Models\Facturas::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                                    'fecha' => now()->format('Y-m-d'),
+                                    'clie' => $cot->clie,
+                                    'nombre' => $cot->nombre,
+                                    'esquema' => $cot->esquema,
+                                    'subtotal' => 0,
+                                    'iva' => 0,
+                                    'retiva' => 0,
+                                    'retisr' => 0,
+                                    'ieps' => 0,
+                                    'total' => 0,
+                                    'moneda' => $cot->moneda,
+                                    'tcambio' => $cot->tcambio ?? 1,
+                                    'observa' => 'Generada desde Cotización #'.$cot->folio,
+                                    'estado' => 'Activa',
+                                    'cotizacion_id' => $cot->id,
+                                    'team_id' => Filament::getTenant()->id,
+                                    'metodo' => $cot->metodo ?? 'PUE',
+                                    'forma' => $cot->forma ?? '01',
+                                    'uso' => $cot->uso ?? 'G03',
+                                    'condiciones' => $cot->condiciones ?? 'CONTADO',
+                                ]);
+
+                                $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
+
+                                foreach ($partidasSeleccionadas as $pData) {
+                                    $parOriginal = \App\Models\CotizacionesPartidas::find($pData['partida_id']);
+                                    if (!$parOriginal) continue;
+
+                                    $cantFacturar = $pData['cantidad_a_facturar'];
+                                    $factor = $parOriginal->cant > 0 ? ($cantFacturar / $parOriginal->cant) : 0;
+
+                                    $lineSubtotal = $parOriginal->precio * $cantFacturar;
+                                    $lineIva = $parOriginal->iva * $factor;
+                                    $lineRetIva = $parOriginal->retiva * $factor;
+                                    $lineRetIsr = $parOriginal->retisr * $factor;
+                                    $lineIeps = $parOriginal->ieps * $factor;
+                                    $lineTotal = $lineSubtotal + $lineIva - $lineRetIva - $lineRetIsr + $lineIeps;
+
+                                    \App\Models\FacturasPartidas::create([
+                                        'facturas_id' => $factura->id,
+                                        'item' => $parOriginal->item,
+                                        'descripcion' => $parOriginal->descripcion,
+                                        'cant' => $cantFacturar,
+                                        'precio' => $parOriginal->precio,
+                                        'subtotal' => $lineSubtotal,
+                                        'iva' => $lineIva,
+                                        'retiva' => $lineRetIva,
+                                        'retisr' => $lineRetIsr,
+                                        'ieps' => $lineIeps,
+                                        'total' => $lineTotal,
+                                        'unidad' => $parOriginal->unidad,
+                                        'cvesat' => $parOriginal->cvesat,
+                                        'costo' => $parOriginal->costo,
+                                        'clie' => $cot->clie,
+                                        'team_id' => Filament::getTenant()->id,
+                                    ]);
+
+                                    $subtotal += $lineSubtotal; $iva += $lineIva; $retiva += $lineRetIva;
+                                    $retisr += $lineRetIsr; $ieps += $lineIeps; $total += $lineTotal;
+
+                                    $nuevosPendientes = ($parOriginal->pendientes ?? $parOriginal->cant) - $cantFacturar;
+                                    $parOriginal->update(['pendientes' => max(0, $nuevosPendientes)]);
+                                }
+
+                                $factura->update([
+                                    'subtotal' => $subtotal, 'iva' => $iva, 'retiva' => $retiva,
+                                    'retisr' => $retisr, 'ieps' => $ieps, 'total' => $total,
+                                    'docto' => 'F'.$factura->folio
+                                ]);
+
+                                $pendientesTotales = \App\Models\CotizacionesPartidas::where('cotizaciones_id', $cot->id)->sum('pendientes');
+                                $nuevoEstado = $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial';
+                                $cot->update(['estado' => $nuevoEstado]);
+
+                                DB::commit();
+                                Notification::make()->title('Factura generada exitosamente')->success()->send();
+                            } catch (\Exception $e) {
+                                DB::rollBack();
+                                Notification::make()->title('Error al generar factura: ' . $e->getMessage())->danger()->send();
+                            }
+                        }),
                 Action::make('Cancelar')
                     ->icon('fas-ban')
                     ->tooltip('Cancelar')->label('Cancelar Cotización')
@@ -566,327 +729,6 @@ class CotizacionesResource extends Resource
                                 ->send();
                         }
                     }),
-                Action::make('Generar Pedido')
-                    ->icon('fas-file-invoice-dollar')
-                    ->color(Color::Green)
-                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
-                    ->form([
-                        Forms\Components\TextInput::make('cantidad')
-                            ->label('Cantidad a convertir (dejar vacío para convertir pendientes)')
-                            ->numeric()
-                            ->nullable(),
-                    ])
-                    ->action(function (Model $record, array $data) {
-                        $req = $record->fresh();
-                        if (!in_array($req->estado, ['Activa', 'Parcial'])) {
-                            Notification::make()->title('Estado no válido')->danger()->send();
-                            return;
-                        }
-                        // Crear Pedido
-                        $folio = (\App\Models\Pedidos::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1;
-                        $pedido = \App\Models\Pedidos::create([
-                            'serie' => 'P',
-                            'folio' => $folio,
-                            'docto' => 'P' . $folio,
-                            'fecha' => now()->format('Y-m-d'),
-                            'clie' => $req->clie,
-                            'nombre' => $req->nombre,
-                            'esquema' => $req->esquema,
-                            'subtotal' => 0,
-                            'iva' => 0,
-                            'retiva' => 0,
-                            'retisr' => 0,
-                            'ieps' => 0,
-                            'total' => 0,
-                            'moneda' => $req->moneda,
-                            'tcambio' => $req->tcambio ?? 1,
-                            'observa' => 'Generado desde Cotización #' . $req->folio,
-                            'estado' => 'Activa',
-                            'cotizacion_id' => $req->id,
-                            'team_id' => Filament::getTenant()->id,
-                        ]);
-
-                        $subtotal = 0;
-                        $iva = 0;
-                        $retiva = 0;
-                        $retisr = 0;
-                        $ieps = 0;
-                        $total = 0;
-                        $partidas = \App\Models\CotizacionesPartidas::where('cotizaciones_id', $req->id)->get();
-                        foreach ($partidas as $par) {
-                            $pend = $par->pendientes ?? $par->cant;
-                            if ($pend <= 0) continue;
-                            $cantConvertir = $pend;
-                            if (!empty($data['cantidad']) && $data['cantidad'] > 0) {
-                                $cantConvertir = min($pend, $data['cantidad']);
-                            }
-
-                            $unit = $par->precio;
-                            $lineSubtotal = $unit * $cantConvertir;
-                            $factor = $par->cant > 0 ? ($cantConvertir / $par->cant) : 0;
-                            $lineIva = $par->iva * $factor;
-                            $lineRetIva = $par->retiva * $factor;
-                            $lineRetIsr = $par->retisr * $factor;
-                            $lineIeps = $par->ieps * $factor;
-                            $lineTotal = $par->total * $factor;
-
-                            \App\Models\PedidosPartidas::create([
-                                'pedidos_id' => $pedido->id,
-                                'item' => $par->item,
-                                'descripcion' => $par->descripcion,
-                                'cant' => $cantConvertir,
-                                'pendientes' => $cantConvertir,
-                                'precio' => $unit,
-                                'subtotal' => $lineSubtotal,
-                                'iva' => $lineIva,
-                                'retiva' => $lineRetIva,
-                                'retisr' => $lineRetIsr,
-                                'ieps' => $lineIeps,
-                                'total' => $lineTotal,
-                                'unidad' => $par->unidad,
-                                'cvesat' => $par->cvesat,
-                                'clie' => $par->clie ?? $req->clie,
-                                'observa' => 'Desde Cotización partida #' . $par->id,
-                                'team_id' => Filament::getTenant()->id,
-                                'cotizacion_partida_id' => $par->id,
-                            ]);
-
-                            $par->pendientes = max(0, ($par->pendientes ?? $par->cant) - $cantConvertir);
-                            $par->save();
-
-                            $subtotal += $lineSubtotal;
-                            $iva += $lineIva;
-                            $retiva += $lineRetIva;
-                            $retisr += $lineRetIsr;
-                            $ieps += $lineIeps;
-                            $total += $lineTotal;
-                        }
-
-                        $pedido->update([
-                            'subtotal' => $subtotal,
-                            'iva' => $iva,
-                            'retiva' => $retiva,
-                            'retisr' => $retisr,
-                            'ieps' => $ieps,
-                            'total' => $total,
-                        ]);
-
-                        $quedanPend = \App\Models\CotizacionesPartidas::where('cotizaciones_id', $req->id)
-                            ->where(function ($q) {
-                                $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
-                            })
-                            ->exists();
-                        $nuevoEstado = $quedanPend ? 'Parcial' : 'Cerrada';
-                        $req->estado = $nuevoEstado;
-                        $req->save();
-
-                        Notification::make()->title('Pedido generado #' . $pedido->folio)->success()->send();
-                    }),
-                Action::make('Generar Remisión')
-                    ->icon('fas-shipping-fast')
-                    ->color(Color::Blue)
-                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
-                    ->action(function (Model $record) {
-                        $req = $record->fresh();
-                        $folio = (\App\Models\Remisiones::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1;
-                        $remision = \App\Models\Remisiones::create([
-                            'serie' => 'R',
-                            'folio' => $folio,
-                            'docto' => 'R' . $folio,
-                            'fecha' => now()->format('Y-m-d'),
-                            'clie' => $req->clie,
-                            'nombre' => $req->nombre,
-                            'esquema' => $req->esquema,
-                            'subtotal' => 0,
-                            'iva' => 0,
-                            'retiva' => 0,
-                            'retisr' => 0,
-                            'ieps' => 0,
-                            'total' => 0,
-                            'moneda' => $req->moneda,
-                            'tcambio' => $req->tcambio ?? 1,
-                            'observa' => 'Generado desde Cotización #' . $req->folio,
-                            'estado' => 'Activa',
-                            'cotizacion_id' => $req->id,
-                            'team_id' => Filament::getTenant()->id,
-                        ]);
-
-                        $subtotal = 0;
-                        $iva = 0;
-                        $retiva = 0;
-                        $retisr = 0;
-                        $ieps = 0;
-                        $total = 0;
-                        $partidas = \App\Models\CotizacionesPartidas::where('cotizaciones_id', $req->id)->get();
-                        DB::transaction(function () use ($partidas, $remision, $req, &$subtotal, &$iva, &$retiva, &$retisr, &$ieps, &$total) {
-                            foreach ($partidas as $par) {
-                                $pend = $par->pendientes ?? $par->cant;
-                                if ($pend <= 0) continue;
-
-                                $unit = $par->precio;
-                                $lineSubtotal = $unit * $pend;
-                                $factor = $par->cant > 0 ? ($pend / $par->cant) : 0;
-                                $lineIva = $par->iva * $factor;
-                                $lineRetIva = $par->retiva * $factor;
-                                $lineRetIsr = $par->retisr * $factor;
-                                $lineIeps = $par->ieps * $factor;
-                                $lineTotal = $par->total * $factor;
-
-                                \App\Models\RemisionesPartidas::create([
-                                    'remisiones_id' => $remision->id,
-                                    'item' => $par->item,
-                                    'descripcion' => $par->descripcion,
-                                    'cant' => $pend,
-                                    'pendientes' => $pend,
-                                    'precio' => $unit,
-                                    'subtotal' => $lineSubtotal,
-                                    'iva' => $lineIva,
-                                    'retiva' => $lineRetIva,
-                                    'retisr' => $lineRetIsr,
-                                    'ieps' => $lineIeps,
-                                    'total' => $lineTotal,
-                                    'unidad' => $par->unidad,
-                                    'cvesat' => $par->cvesat,
-                                    'clie' => $par->clie ?? $req->clie,
-                                    'team_id' => Filament::getTenant()->id,
-                                ]);
-
-                                // Descontar inventario
-                                $prod = Inventario::find($par->item);
-                                if ($prod) {
-                                    $prod->exist -= $pend;
-                                    $prod->save();
-                                }
-
-                                $par->pendientes = 0;
-                                $par->save();
-
-                                $subtotal += $lineSubtotal;
-                                $iva += $lineIva;
-                                $retiva += $lineRetIva;
-                                $retisr += $lineRetIsr;
-                                $ieps += $lineIeps;
-                                $total += $lineTotal;
-                            }
-                        });
-
-                        $remision->update([
-                            'subtotal' => $subtotal,
-                            'iva' => $iva,
-                            'retiva' => $retiva,
-                            'retisr' => $retisr,
-                            'ieps' => $ieps,
-                            'total' => $total,
-                        ]);
-
-                        $req->update(['estado' => 'Cerrada']);
-                        Notification::make()->title('Remisión generada #' . $remision->folio)->success()->send();
-                    }),
-                Action::make('Generar Factura')
-                    ->icon('fas-file-invoice')
-                    ->color(Color::Orange)
-                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
-                    ->action(function (Model $record) {
-                        $req = $record->fresh();
-                        $ser = SeriesFacturas::where('team_id', Filament::getTenant()->id)->where('tipo', 'F')->first();
-                        $serie = $ser->serie ?? 'A';
-                        $folio = ($ser->folio ?? 0) + 1;
-                        if ($ser) {
-                            $ser->update(['folio' => $folio]);
-                        }
-
-                        $factura = \App\Models\Facturas::create([
-                            'serie' => $serie,
-                            'folio' => $folio,
-                            'docto' => $serie . $folio,
-                            'fecha' => now()->format('Y-m-d'),
-                            'clie' => $req->clie,
-                            'nombre' => $req->nombre,
-                            'esquema' => $req->esquema,
-                            'subtotal' => 0,
-                            'iva' => 0,
-                            'retiva' => 0,
-                            'retisr' => 0,
-                            'ieps' => 0,
-                            'total' => 0,
-                            'moneda' => $req->moneda,
-                            'tcambio' => $req->tcambio ?? 1,
-                            'observa' => 'Generado desde Cotización #' . $req->folio,
-                            'estado' => 'Activa',
-                            'cotizacion_id' => $req->id,
-                            'team_id' => Filament::getTenant()->id,
-                        ]);
-
-                        $subtotal = 0;
-                        $iva = 0;
-                        $retiva = 0;
-                        $retisr = 0;
-                        $ieps = 0;
-                        $total = 0;
-                        $partidas = \App\Models\CotizacionesPartidas::where('cotizaciones_id', $req->id)->get();
-                        DB::transaction(function () use ($partidas, $factura, $req, &$subtotal, &$iva, &$retiva, &$retisr, &$ieps, &$total) {
-                            foreach ($partidas as $par) {
-                                $pend = $par->pendientes ?? $par->cant;
-                                if ($pend <= 0) continue;
-
-                                $unit = $par->precio;
-                                $lineSubtotal = $unit * $pend;
-                                $factor = $par->cant > 0 ? ($pend / $par->cant) : 0;
-                                $lineIva = $par->iva * $factor;
-                                $lineRetIva = $par->retiva * $factor;
-                                $lineRetIsr = $par->retisr * $factor;
-                                $lineIeps = $par->ieps * $factor;
-                                $lineTotal = $par->total * $factor;
-
-                                \App\Models\FacturasPartidas::create([
-                                    'facturas_id' => $factura->id,
-                                    'item' => $par->item,
-                                    'descripcion' => $par->descripcion,
-                                    'cant' => $pend,
-                                    'precio' => $unit,
-                                    'subtotal' => $lineSubtotal,
-                                    'iva' => $lineIva,
-                                    'retiva' => $lineRetIva,
-                                    'retisr' => $lineRetIsr,
-                                    'ieps' => $lineIeps,
-                                    'total' => $lineTotal,
-                                    'unidad' => $par->unidad,
-                                    'cvesat' => $par->cvesat,
-                                    'clie' => $par->clie ?? $req->clie,
-                                    'team_id' => Filament::getTenant()->id,
-                                ]);
-
-                                // Descontar inventario
-                                $prod = Inventario::find($par->item);
-                                if ($prod) {
-                                    $prod->exist -= $pend;
-                                    $prod->save();
-                                }
-
-                                $par->pendientes = 0;
-                                $par->save();
-
-                                $subtotal += $lineSubtotal;
-                                $iva += $lineIva;
-                                $retiva += $lineRetIva;
-                                $retisr += $lineRetIsr;
-                                $ieps += $lineIeps;
-                                $total += $lineTotal;
-                            }
-                        });
-
-                        $factura->update([
-                            'subtotal' => $subtotal,
-                            'iva' => $iva,
-                            'retiva' => $retiva,
-                            'retisr' => $retisr,
-                            'ieps' => $ieps,
-                            'total' => $total,
-                        ]);
-
-                        $req->update(['estado' => 'Facturada']);
-                        Notification::make()->title('Factura generada #' . $factura->folio)->success()->send();
-                    }),
                 Tables\Actions\EditAction::make()
                     ->modalSubmitActionLabel('Grabar')
                     ->modalCancelActionLabel('Cerrar')
@@ -895,7 +737,19 @@ class CotizacionesResource extends Resource
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('7xl')
                     ->after(function($record,$livewire){
-                        $livewire->callImprimir($record);
+                        $idorden = $record->id;
+                        $id_empresa = Filament::getTenant()->id;
+                        $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                        if(File::exists($ruta))File::delete($ruta);
+                        $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
+                        $html = View::make('NFTO_Cotizacion',$data)->render();
+                        Browsershot::html($html)->format('Letter')
+                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                            ->noSandbox()
+                            ->scale(0.8)->savePdf($ruta);
+                        return response()->download($ruta);
                     })->iconPosition(IconPosition::After),
             ])
             ],Tables\Enums\ActionsPosition::BeforeColumns)
@@ -911,7 +765,23 @@ class CotizacionesResource extends Resource
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
                     ->after(function($record,$livewire){
-                        $livewire->callImprimir($record);
+                        $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();
+                        foreach($partidas_pen as $par){
+                            CotizacionesPartidas::where('id',$par->id)->update(['pendientes'=>$par->cant]);
+                        }
+                        $idorden = $record->id;
+                        $id_empresa = Filament::getTenant()->id;
+                        $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                        if(File::exists($ruta))File::delete($ruta);
+                        $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
+                        $html = View::make('NFTO_Cotizacion',$data)->render();
+                        Browsershot::html($html)->format('Letter')
+                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                            ->noSandbox()
+                            ->scale(0.8)->savePdf($ruta);
+                        return response()->download($ruta);
                     })
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([

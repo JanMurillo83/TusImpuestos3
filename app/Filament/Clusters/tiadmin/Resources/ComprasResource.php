@@ -8,6 +8,7 @@ use App\Filament\Clusters\tiadmin\Resources\OrdenesResource\RelationManagers;
 use App\Models\Almacencfdis;
 use App\Models\CatCuentas;
 use App\Models\Compras;
+use App\Models\ComprasPartidas;
 use App\Models\CuentasPagar;
 use App\Models\Esquemasimp;
 use App\Models\Inventario;
@@ -16,6 +17,7 @@ use App\Models\Ordenes;
 use App\Models\OrdenesPartidas;
 use App\Models\Proveedores;
 use App\Models\Proyectos;
+use App\Models\Requisiciones;
 use App\Models\Terceros;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -64,11 +66,11 @@ class ComprasResource extends Resource
         return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
     }
     protected static ?string $navigationIcon = 'fas-cart-plus';
-    protected static ?string $label = 'Compra';
-    protected static ?string $pluralLabel = 'Compras';
+    protected static ?string $label = 'Recepción';
+    protected static ?string $pluralLabel = 'Recepciones';
 
     protected static ?string $cluster = tiadmin::class;
-    protected static ?string $navigationGroup = 'Compras';
+    protected static ?string $navigationGroup = 'Inventario';
 
     public static function form(Form $form): Form
     {
@@ -76,7 +78,7 @@ class ComprasResource extends Resource
         ->columns(6)
         ->schema([
             Hidden::make('cfdi_id')->default(0),
-            Select::make('cfdi_prov')
+            Select::make('cfdi_prov')->visible(false)
                 ->label('Importar CFDI')
                 ->searchable()
                 ->columnSpanFull()
@@ -155,7 +157,7 @@ class ComprasResource extends Resource
             }),
             Hidden::make('team_id')->default(Filament::getTenant()->id),
             Split::make([
-                FieldSet::make('Compra')
+                FieldSet::make('Recepción')
                     ->schema([
                         Forms\Components\Hidden::make('id'),
                         Forms\Components\TextInput::make('folio')
@@ -589,12 +591,18 @@ class ComprasResource extends Resource
                         Compras::where('id',$record->id)->update([
                             'estado'=>'Cancelada'
                         ]);
-                        CuentasPagar::where('refer',$record->id)->delete();
-                        Proveedores::where('id',$record->prov)->decrement('saldo', ($record->total*$record->tcambio));
                         Notification::make()
                         ->title('Compra Cancelada')
                         ->success()
                         ->send();
+                        Ordenes::where('id',$record->orden_id)->update([
+                            'estado'=>'Activa'
+                        ]);
+                        $partidas = ComprasPartidas::where('compras_id',$record->id)->get();
+                        foreach($partidas as $p){
+                            $cant = $p->cant;
+                            OrdenesPartidas::where('id',$p->orden_partida_id)->increment('pendientes',$cant);
+                        }
                     }
                 }),
                 Tables\Actions\Action::make('Imprimir')->icon('fas-print')
@@ -619,59 +627,7 @@ class ComprasResource extends Resource
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('7xl')->button()
                 ->after(function($record){
-                    $tcambio = $record?->tcambio ?? 1.00;
-                    //dd($record->total,$tcambio);
-                    $existe = CatCuentas::where('nombre',$record->nombre)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first();
-                    $ctaclie = '20101000';
-                    $provee = Proveedores::where('id',$record->prov)->first();
-                    if($existe)
-                    {
-                        $ctaclie = $existe->codigo;
-                    }
-                    else
-                    {
-                        $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20101000')->max('codigo')) + 1;
-                        CatCuentas::firstOrCreate([
-                            'nombre' =>  $record->nombre,
-                            'team_id' => Filament::getTenant()->id,
-                            'codigo'=>$nuecta,
-                            'acumula'=>'20101000',
-                            'tipo'=>'D',
-                            'naturaleza'=>'A',
-                        ]);
-                        Terceros::create([
-                            'rfc'=>$provee->rfc,
-                            'nombre'=>$record->nombre,
-                            'tipo'=>'Proveedor',
-                            'cuenta'=>$nuecta,
-                            'telefono'=>'',
-                            'correo'=>'',
-                            'contacto'=>'',
-                            'tax_id'=>$provee->rfc,
-                            'team_id'=>Filament::getTenant()->id
-                        ]);
-                        $ctaclie = $nuecta;
-                    }
-                    //-----------------------------------------------------------------------------------
-                    Almacencfdis::where('id',$record->cfdi_id)->update([
-                        'comp_used'=>'SI'
-                    ]);
-                    $cliente_d = Proveedores::where('id',$record->prov)->first();
-                    $dias_cr = intval($cliente_d?->dias_credito ?? 0);
-                    CuentasPagar::create([
-                        'proveedor'=>$record->prov,
-                        'concepto'=>1,
-                        'descripcion'=>'Compra',
-                        'documento'=>$record->folio,
-                        'fecha'=>Carbon::now(),
-                        'vencimiento'=>Carbon::now()->addDays($dias_cr),
-                        'importe'=>$record->total * $tcambio,
-                        'saldo'=>$record->total * $tcambio,
-                        'team_id'=>Filament::getTenant()->id,
-                        'refer'=>$record->id
-                    ]);
-                    Proveedores::where('id',$record->prov)->increment('saldo', ($record->total*$tcambio));
-                    $partidas = $record->partidas;
+                    $partidas = ComprasPartidas::where('compras_id',$record->id)->get();
                     // Procesar movimientos de inventario y actualizar enlace con la orden
                     foreach($partidas as $partida)
                     {
@@ -728,219 +684,39 @@ class ComprasResource extends Resource
                     }
 
                 }),
-                ActionsAction::make('Crear desde Orden')
+                Tables\Actions\Action::make('Importar Req')
+                    ->label('Importar Requisición')
                     ->icon('fas-file-import')
-                    ->color(Color::Green)
-                    ->form([
-                        Forms\Components\Select::make('orden_id')
-                            ->label('Orden de Compra')
-                            ->searchable()
-                            ->options(\App\Models\Ordenes::where('team_id', Filament::getTenant()->id)
-                                ->whereIn('estado', ['Activa','Parcial'])
-                                ->pluck('folio','id')),
-                        Forms\Components\TextInput::make('cantidad')
-                            ->label('Cantidad a recibir (vacío = pendientes)')
-                            ->numeric()
-                            ->nullable(),
-                    ])
-                    ->action(function(array $data){
-                        $ord = \App\Models\Ordenes::find($data['orden_id'] ?? 0);
-                        if(!$ord){
-                            Notification::make()->title('Seleccione una Orden válida')->danger()->send();
-                            return;
-                        }
-                        // Crear Compra desde Orden
-                        $compra = \App\Models\Compras::create([
-                            'folio' => (\App\Models\Compras::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
-                            'fecha' => now()->format('Y-m-d'),
-                            'prov' => $ord->prov,
-                            'nombre' => $ord->nombre,
-                            'esquema' => $ord->esquema,
-                            'subtotal' => 0,
-                            'iva' => 0,
-                            'retiva' => 0,
-                            'retisr' => 0,
-                            'ieps' => 0,
-                            'total' => 0,
-                            'moneda' => $ord->moneda,
-                            'tcambio' => $ord->tcambio ?? 1,
-                            'observa' => 'Generada desde Orden #'.$ord->folio,
-                            'estado' => 'Activa',
-                            'orden' => $ord->id,
-                            'orden_id' => $ord->id,
-                            'requisicion_id' => $ord->requisicion_id,
-                            'team_id' => Filament::getTenant()->id,
+                    ->form(function (Forms\ComponentContainer $form) {
+                        return $form->schema([
+                            Select::make('sel_requisicion')->label('Requisición')
+                                ->options(
+                                    Requisiciones::whereIn('estado',['Activa','Parcial'])
+                                        ->get()->pluck('folio','id')
+                                )
                         ]);
-                        $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
-                        $partidas = \App\Models\OrdenesPartidas::where('ordenes_id', $ord->id)->get();
-                        foreach ($partidas as $par) {
-                            $pend = $par->pendientes ?? $par->cant;
-                            if ($pend <= 0) continue;
-                            $cantRecibir = $pend;
-                            if (!empty($data['cantidad']) && $data['cantidad'] > 0) {
-                                $cantRecibir = min($pend, $data['cantidad']);
-                            }
-                            $unit = $par->costo;
-                            $lineSubtotal = $unit * $cantRecibir;
-                            $factor = $par->cant > 0 ? ($cantRecibir / $par->cant) : 0;
-                            $lineIva = $par->iva * $factor;
-                            $lineRetIva = $par->retiva * $factor;
-                            $lineRetIsr = $par->retisr * $factor;
-                            $lineIeps = $par->ieps * $factor;
-                            $lineTotal = $par->total * $factor;
-
-                            \App\Models\ComprasPartidas::create([
-                                'compras_id' => $compra->id,
-                                'item' => $par->item,
-                                'descripcion' => $par->descripcion,
-                                'cant' => $cantRecibir,
-                                'costo' => $unit,
-                                'subtotal' => $lineSubtotal,
-                                'iva' => $lineIva,
-                                'retiva' => $lineRetIva,
-                                'retisr' => $lineRetIsr,
-                                'ieps' => $lineIeps,
-                                'total' => $lineTotal,
-                                'unidad' => $par->unidad,
-                                'cvesat' => $par->cvesat,
-                                'prov' => $par->prov ?? $ord->prov,
-                                'observa' => 'Desde Orden partida #'.$par->id,
-                                'idorden' => $ord->id,
-                                'orden_partida_id' => $par->id,
-                                'requisicion_partida_id' => $par->requisicion_partida_id,
-                                'moneda' => $ord->moneda,
-                                'tcambio' => $ord->tcambio ?? 1,
-                                'team_id' => Filament::getTenant()->id,
-                            ]);
-
-                            $par->pendientes = max(0, ($par->pendientes ?? $par->cant) - $cantRecibir);
-                            $par->save();
-
-                            $subtotal += $lineSubtotal; $iva += $lineIva; $retiva += $lineRetIva; $retisr += $lineRetIsr; $ieps += $lineIeps; $total += $lineTotal;
-                        }
-
-                        $compra->update([
-                            'subtotal' => $subtotal,
-                            'iva' => $iva,
-                            'retiva' => $retiva,
-                            'retisr' => $retisr,
-                            'ieps' => $ieps,
-                            'total' => $total,
-                        ]);
-
-                        $quedanPend = \App\Models\OrdenesPartidas::where('ordenes_id', $ord->id)
-                            ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
-                            ->exists();
-                        $nuevoEstado = $quedanPend ? 'Parcial' : 'Cerrada';
-                        $ord->estado = $nuevoEstado;
-                        $ord->save();
-
-                        Notification::make()->title('Compra generada #'.$compra->folio)->success()->send();
+                    })
+                    ->action(function($data,$livewire){
+                        $livewire->requ = $data['sel_requisicion'];
+                        $livewire->getAction('Importar Requisición')->visible(true);
+                        $livewire->replaceMountedAction('Importar Requisición');
                     }),
-                ActionsAction::make('Crear desde Requisición')
-                    ->icon('fas-file-circle-plus')
-                    ->color(Color::Green)
-                    ->form([
-                        Forms\Components\Select::make('requisicion_id')
-                            ->label('Requisición')
-                            ->searchable()
-                            ->options(\App\Models\Requisiciones::where('team_id', Filament::getTenant()->id)
-                                ->whereIn('estado', ['Activa','Parcial'])
-                                ->pluck('folio','id')),
-                        Forms\Components\TextInput::make('cantidad')
-                            ->label('Cantidad a recibir (vacío = pendientes)')
-                            ->numeric()
-                            ->nullable(),
-                    ])
-                    ->action(function(array $data){
-                        $req = \App\Models\Requisiciones::find($data['requisicion_id'] ?? 0);
-                        if(!$req){
-                            Notification::make()->title('Seleccione una Requisición válida')->danger()->send();
-                            return;
-                        }
-                        $compra = \App\Models\Compras::create([
-                            'folio' => (\App\Models\Compras::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
-                            'fecha' => now()->format('Y-m-d'),
-                            'prov' => $req->prov,
-                            'nombre' => $req->nombre,
-                            'esquema' => $req->esquema,
-                            'subtotal' => 0,
-                            'iva' => 0,
-                            'retiva' => 0,
-                            'retisr' => 0,
-                            'ieps' => 0,
-                            'total' => 0,
-                            'moneda' => $req->moneda,
-                            'tcambio' => $req->tcambio ?? 1,
-                            'observa' => 'Generada desde Requisición #'.$req->folio,
-                            'estado' => 'Activa',
-                            'requisicion_id' => $req->id,
-                            'team_id' => Filament::getTenant()->id,
+                Tables\Actions\Action::make('Importar Ord')
+                    ->label('Importar Orden')
+                    ->icon('fas-file-import')
+                    ->form(function (Forms\ComponentContainer $form) {
+                        return $form->schema([
+                            Select::make('sel_requisicion')->label('Orden de Compra')
+                                ->options(
+                                    Ordenes::whereIn('estado',['Activa','Parcial'])
+                                        ->get()->pluck('folio','id')
+                                )
                         ]);
-                        $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
-                        $partidas = \App\Models\RequisicionesPartidas::where('requisiciones_id', $req->id)->get();
-                        foreach ($partidas as $par) {
-                            $pend = $par->pendientes ?? $par->cant;
-                            if ($pend <= 0) continue;
-                            $cantRecibir = $pend;
-                            if (!empty($data['cantidad']) && $data['cantidad'] > 0) {
-                                $cantRecibir = min($pend, $data['cantidad']);
-                            }
-                            $unit = $par->costo;
-                            $lineSubtotal = $unit * $cantRecibir;
-                            $factor = $par->cant > 0 ? ($cantRecibir / $par->cant) : 0;
-                            $lineIva = $par->iva * $factor;
-                            $lineRetIva = $par->retiva * $factor;
-                            $lineRetIsr = $par->retisr * $factor;
-                            $lineIeps = $par->ieps * $factor;
-                            $lineTotal = $par->total * $factor;
-
-                            \App\Models\ComprasPartidas::create([
-                                'compras_id' => $compra->id,
-                                'item' => $par->item,
-                                'descripcion' => $par->descripcion,
-                                'cant' => $cantRecibir,
-                                'costo' => $unit,
-                                'subtotal' => $lineSubtotal,
-                                'iva' => $lineIva,
-                                'retiva' => $lineRetIva,
-                                'retisr' => $lineRetIsr,
-                                'ieps' => $lineIeps,
-                                'total' => $lineTotal,
-                                'unidad' => $par->unidad,
-                                'cvesat' => $par->cvesat,
-                                'prov' => $par->prov ?? $req->prov,
-                                'observa' => 'Desde Requisición partida #'.$par->id,
-                                'orden_partida_id' => null,
-                                'requisicion_partida_id' => $par->id,
-                                'moneda' => $req->moneda,
-                                'tcambio' => $req->tcambio ?? 1,
-                                'team_id' => Filament::getTenant()->id,
-                            ]);
-
-                            $par->pendientes = max(0, ($par->pendientes ?? $par->cant) - $cantRecibir);
-                            $par->save();
-
-                            $subtotal += $lineSubtotal; $iva += $lineIva; $retiva += $lineRetIva; $retisr += $lineRetIsr; $ieps += $lineIeps; $total += $lineTotal;
-                        }
-
-                        $compra->update([
-                            'subtotal' => $subtotal,
-                            'iva' => $iva,
-                            'retiva' => $retiva,
-                            'retisr' => $retisr,
-                            'ieps' => $ieps,
-                            'total' => $total,
-                        ]);
-
-                        $quedanPend = \App\Models\RequisicionesPartidas::where('requisiciones_id', $req->id)
-                            ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
-                            ->exists();
-                        $nuevoEstado = $quedanPend ? 'Parcial' : 'Cerrada';
-                        $req->estado = $nuevoEstado;
-                        $req->save();
-
-                        Notification::make()->title('Compra generada #'.$compra->folio)->success()->send();
+                    })
+                    ->action(function($data,$livewire){
+                        $livewire->requ = $data['sel_requisicion'];
+                        $livewire->getAction('Importar Orden')->visible(true);
+                        $livewire->replaceMountedAction('Importar Orden');
                     }),
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([

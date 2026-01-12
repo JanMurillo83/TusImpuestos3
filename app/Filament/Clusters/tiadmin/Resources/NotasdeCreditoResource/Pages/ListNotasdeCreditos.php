@@ -20,7 +20,7 @@ class ListNotasdeCreditos extends ListRecords
     {
         return [
             Html2MediaAction::make('Imprimir_Doc_P')
-                ->visible(false)
+                ->visible(fn($livewire) => $livewire->idorden !== null)
                 ->print(false)
                 ->savePdf()
                 ->preview()

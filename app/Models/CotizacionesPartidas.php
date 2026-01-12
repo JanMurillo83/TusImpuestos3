@@ -10,7 +10,7 @@ class CotizacionesPartidas extends Model
     protected $fillable = ['cotizaciones_id','item','descripcion','cant',
     'pendientes','precio','subtotal','iva','retiva','retisr','ieps',
     'total','unidad','cvesat','costo','clie','observa','anterior','siguiente',
-    'team_id'];
+    'team_id','pedido_partida_id'];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

@@ -25,7 +25,10 @@ use App\Models\Metodos;
 use App\Models\Movinventario;
 use App\Models\Notasventa;
 use App\Models\NotasventaPartidas;
+use App\Models\Pedidos;
+use App\Models\PedidosPartidas;
 use App\Models\SeriesFacturas;
+use App\Models\SurtidoInve;
 use App\Models\TableSettings;
 use App\Models\Team;
 use App\Models\Unidades;
@@ -475,63 +478,283 @@ class FacturasResource extends Resource
                             })
                         ]),
                         Actions::make([
-                        ActionsAction::make('Importar Cotización')
-                            ->badge()->tooltip('Importar Cotización')
-                            ->icon('fas-file-import')
+                        ActionsAction::make('Facturar Cotización')
+                            ->badge()->tooltip('Facturar Cotización')
+                            ->icon('fas-file-invoice')
+                            ->color(Color::Green)
                             ->modalCancelActionLabel('Cerrar')
-                            ->modalSubmitActionLabel('Seleccionar')
-                            ->form([
-                                Select::make('CotizacionSel')
-                                    ->searchable()
-                                    ->label('Seleccionar Cotización')
-                                    ->options(
-                                        Cotizaciones::whereIn('estado',["Activa","Parcial"])
-                                            ->where('team_id',Filament::getTenant()->id)
-                                            ->select(DB::raw("concat('Folio: ',folio,' Fecha: ',fecha,' Cliente: ',nombre,' Importe: ',total) as Cot"),'id')
-                                            ->pluck('Cot','id')
-                                    )
-                            ])->action(function(Get $get, Set $set, $data){
-                                $cotId = $data['CotizacionSel'] ?? null;
+                            ->modalSubmitActionLabel('Grabar')
+                            ->modalWidth('7xl')
+                            ->mountUsing(function (Forms\ComponentContainer $form, $livewire) {
+                                $cotId = $livewire->requ ?? null;
                                 if(!$cotId) return;
-                                $set('cotizacion_id',$cotId);
-                                $cot = Cotizaciones::where('id',$cotId)->first();
+                                $record = Cotizaciones::find($cotId);
+                                if(!$record) return;
+
+                                $partidas = CotizacionesPartidas::where('cotizaciones_id',$record->id)
+                                    ->where(function($q) {
+                                        $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
+                                    })
+                                    ->get()
+                                    ->map(function ($partida) {
+                                        return [
+                                            'partida_id' => $partida->id,
+                                            'item' => $partida->item,
+                                            'descripcion' => $partida->descripcion,
+                                            'cantidad_original' => $partida->cant,
+                                            'cantidad_pendiente' => $partida->pendientes ?? $partida->cant,
+                                            'cantidad_a_facturar' => $partida->pendientes ?? $partida->cant,
+                                            'precio' => $partida->precio,
+                                        ];
+                                    })->toArray();
+                                $form->fill([
+                                    'cotizacion_id' => $record->id,
+                                    'clie' => $record->clie,
+                                    'nombre' => $record->nombre,
+                                    'esquema' => $record->esquema,
+                                    'moneda' => $record->moneda,
+                                    'tcambio' => $record->tcambio,
+                                    'metodo' => $record->metodo ?? 'PUE',
+                                    'forma' => $record->forma ?? '01',
+                                    'uso' => $record->uso ?? 'G03',
+                                    'condiciones' => $record->condiciones ?? 'CONTADO',
+                                    'partidas' => $partidas,
+                                ]);
+                            })
+                            ->form([
+                                Forms\Components\Section::make('Información de la Cotización')
+                                    ->schema([
+                                        Forms\Components\Grid::make(3)
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('origen_folio')
+                                                    ->label('Folio Cotización')
+                                                    ->content(fn ($livewire) => Cotizaciones::find($livewire->requ)?->folio),
+                                                Forms\Components\Placeholder::make('origen_fecha')
+                                                    ->label('Fecha')
+                                                    ->content(fn ($livewire) => Cotizaciones::find($livewire->requ)?->fecha),
+                                                Forms\Components\Placeholder::make('origen_cliente')
+                                                    ->label('Cliente')
+                                                    ->content(fn ($livewire) => Cotizaciones::find($livewire->requ)?->nombre),
+                                            ]),
+                                    ]),
+                                Forms\Components\Repeater::make('partidas')
+                                    ->label('Partidas Pendientes')
+                                    ->schema([
+                                        Forms\Components\Hidden::make('partida_id'),
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('item_desc')
+                                                    ->label('Producto / Descripción')
+                                                    ->content(fn ($get) => ($get('item') ? '[' . \App\Models\Inventario::find($get('item'))?->clave . '] ' : '') . $get('descripcion'))
+                                                    ->columnSpan(2),
+                                                Forms\Components\Placeholder::make('pendiente')
+                                                    ->label('Pendiente')
+                                                    ->content(fn ($get) => $get('cantidad_pendiente')),
+                                                Forms\Components\TextInput::make('cantidad_a_facturar')
+                                                    ->label('A Facturar')
+                                                    ->numeric()
+                                                    ->required()
+                                                    ->minValue(0.01)
+                                                    ->maxValue(fn ($get) => $get('cantidad_pendiente'))
+                                                    ->reactive(),
+                                            ]),
+                                    ])
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false)
+                            ])
+                            ->action(function (array $data, Set $set, Get $get) {
+                                $cotId = $data['cotizacion_id'] ?? null;
+                                if(!$cotId) return;
+                                $cot = Cotizaciones::find($cotId);
                                 if(!$cot) return;
-                                // Set header fields (respect current if already chosen)
-                                if(!$get('clie')) {
-                                    $set('clie', $cot->clie);
-                                    $set('nombre', $cot->nombre);
-                                }
-                                if($cot->esquema) $set('esquema',$cot->esquema);
-                                if($cot->moneda) $set('moneda',$cot->moneda);
-                                if($cot->tcambio) $set('tcambio',$cot->tcambio);
-                                if($cot->condiciones) $set('condiciones',$cot->condiciones);
-                                if($cot->forma) $set('forma',$cot->forma);
-                                if($cot->metodo) $set('metodo',$cot->metodo);
-                                if($cot->uso) $set('uso',$cot->uso);
-                                if($cot->observa) $set('observa',$cot->observa);
-                                $Qpartidas = CotizacionesPartidas::where('cotizaciones_id',$cotId)->get();
+
+                                $set('cotizacion_id', $cot->id);
+                                $set('clie', $data['clie']);
+                                $set('nombre', $data['nombre']);
+                                $set('esquema', $data['esquema']);
+                                $set('moneda', $data['moneda']);
+                                $set('tcambio', $data['tcambio']);
+                                $set('metodo', $data['metodo']);
+                                $set('forma', $data['forma']);
+                                $set('uso', $data['uso']);
+                                $set('condiciones', $data['condiciones']);
+                                $set('observa', 'Generada desde Cotización #'.$cot->folio);
+
                                 $partidas = [];
-                                foreach($Qpartidas as $opar){
-                                    $pdata = [
-                                        'cant'=>$opar->cant,
-                                        'item'=>$opar->item,
-                                        'descripcion'=>$opar->descripcion,
-                                        'precio'=>$opar->precio,
-                                        'subtotal'=>$opar->subtotal,
-                                        'iva'=>$opar->iva,
-                                        'retiva'=>$opar->retiva,
-                                        'retisr'=>$opar->retisr,
-                                        'ieps'=>$opar->ieps,
-                                        'total'=>$opar->total,
-                                        'unidad'=>$opar->unidad,
-                                        'cvesat'=>$opar->cvesat,
-                                        'clie'=>$cot->clie,
-                                        'costo'=>$opar->precio,
+                                foreach ($data['partidas'] as $pData) {
+                                    $parOriginal = CotizacionesPartidas::find($pData['partida_id']);
+                                    if (!$parOriginal) continue;
+
+                                    $cantFacturar = $pData['cantidad_a_facturar'];
+                                    $factor = $parOriginal->cant > 0 ? ($cantFacturar / $parOriginal->cant) : 0;
+
+                                    $lineSubtotal = $parOriginal->precio * $cantFacturar;
+                                    $lineIva = $parOriginal->iva * $factor;
+                                    $lineRetIva = $parOriginal->retiva * $factor;
+                                    $lineRetIsr = $parOriginal->retisr * $factor;
+                                    $lineIeps = $parOriginal->ieps * $factor;
+                                    $lineTotal = $lineSubtotal + $lineIva - $lineRetIva - $lineRetIsr + $lineIeps;
+
+                                    $partidas[] = [
+                                        'item' => $parOriginal->item,
+                                        'descripcion' => $parOriginal->descripcion,
+                                        'cant' => $cantFacturar,
+                                        'precio' => $parOriginal->precio,
+                                        'subtotal' => $lineSubtotal,
+                                        'iva' => $lineIva,
+                                        'retiva' => $lineRetIva,
+                                        'retisr' => $lineRetIsr,
+                                        'ieps' => $lineIeps,
+                                        'total' => $lineTotal,
+                                        'unidad' => $parOriginal->unidad,
+                                        'cvesat' => $parOriginal->cvesat,
+                                        'costo' => $parOriginal->costo,
+                                        'clie' => $data['clie'],
+                                        'cotizacion_partida_id' => $parOriginal->id, // We'll need to update pendientes on save
                                     ];
-                                    array_push($partidas,$pdata);
                                 }
                                 $set('partidas', $partidas);
-                                Self::updateTotals2($get,$set);
+                                Self::updateTotals2($get, $set);
+                            }),
+                        ActionsAction::make('Facturar Pedido')
+                            ->badge()->tooltip('Facturar Pedido')
+                            ->icon('fas-file-invoice')
+                            ->color(Color::Green)
+                            ->modalCancelActionLabel('Cerrar')
+                            ->modalSubmitActionLabel('Grabar')
+                            ->modalWidth('7xl')
+                            ->mountUsing(function (Forms\ComponentContainer $form, $livewire) {
+                                $pedId = $livewire->requ ?? null;
+                                if(!$pedId) return;
+                                $record = Pedidos::find($pedId);
+                                if(!$record) return;
+
+                                $partidas = PedidosPartidas::where('pedidos_id',$record->id)
+                                    ->where(function($q) {
+                                        $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
+                                    })
+                                    ->get()
+                                    ->map(function ($partida) {
+                                        return [
+                                            'partida_id' => $partida->id,
+                                            'item' => $partida->item,
+                                            'descripcion' => $partida->descripcion,
+                                            'cantidad_original' => $partida->cant,
+                                            'cantidad_pendiente' => $partida->pendientes ?? $partida->cant,
+                                            'cantidad_a_facturar' => $partida->pendientes ?? $partida->cant,
+                                            'precio' => $partida->precio,
+                                        ];
+                                    })->toArray();
+                                $form->fill([
+                                    'pedido_id' => $record->id,
+                                    'clie' => $record->clie,
+                                    'nombre' => $record->nombre,
+                                    'esquema' => $record->esquema,
+                                    'moneda' => $record->moneda,
+                                    'tcambio' => $record->tcambio,
+                                    'metodo' => $record->metodo ?? 'PUE',
+                                    'forma' => $record->forma ?? '01',
+                                    'uso' => $record->uso ?? 'G03',
+                                    'condiciones' => $record->condiciones ?? 'CONTADO',
+                                    'partidas' => $partidas,
+                                ]);
+                            })
+                            ->form([
+                                Forms\Components\Section::make('Información del Pedido')
+                                    ->schema([
+                                        Forms\Components\Grid::make(3)
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('origen_folio')
+                                                    ->label('Folio Pedido')
+                                                    ->content(fn ($livewire) => Pedidos::find($livewire->requ)?->folio),
+                                                Forms\Components\Placeholder::make('origen_fecha')
+                                                    ->label('Fecha')
+                                                    ->content(fn ($livewire) => Pedidos::find($livewire->requ)?->fecha),
+                                                Forms\Components\Placeholder::make('origen_cliente')
+                                                    ->label('Cliente')
+                                                    ->content(fn ($livewire) => Pedidos::find($livewire->requ)?->nombre),
+                                            ]),
+                                    ]),
+                                Forms\Components\Repeater::make('partidas')
+                                    ->label('Partidas Pendientes')
+                                    ->schema([
+                                        Forms\Components\Hidden::make('partida_id'),
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('item_desc')
+                                                    ->label('Producto / Descripción')
+                                                    ->content(fn ($get) => ($get('item') ? '[' . \App\Models\Inventario::find($get('item'))?->clave . '] ' : '') . $get('descripcion'))
+                                                    ->columnSpan(2),
+                                                Forms\Components\Placeholder::make('pendiente')
+                                                    ->label('Pendiente')
+                                                    ->content(fn ($get) => $get('cantidad_pendiente')),
+                                                Forms\Components\TextInput::make('cantidad_a_facturar')
+                                                    ->label('A Facturar')
+                                                    ->numeric()
+                                                    ->required()
+                                                    ->minValue(0.01)
+                                                    ->maxValue(fn ($get) => $get('cantidad_pendiente'))
+                                                    ->reactive(),
+                                            ]),
+                                    ])
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false)
+                            ])
+                            ->action(function (array $data, Set $set, Get $get) {
+                                $pedId = $data['pedido_id'] ?? null;
+                                if(!$pedId) return;
+                                $ped = Pedidos::find($pedId);
+                                if(!$ped) return;
+
+                                $set('pedido_id', $ped->id);
+                                $set('clie', $data['clie']);
+                                $set('nombre', $data['nombre']);
+                                $set('esquema', $data['esquema']);
+                                $set('moneda', $data['moneda']);
+                                $set('tcambio', $data['tcambio']);
+                                $set('metodo', $data['metodo']);
+                                $set('forma', $data['forma']);
+                                $set('uso', $data['uso']);
+                                $set('condiciones', $data['condiciones']);
+                                $set('observa', 'Generada desde Pedido #'.$ped->folio);
+
+                                $partidas = [];
+                                foreach ($data['partidas'] as $pData) {
+                                    $parOriginal = PedidosPartidas::find($pData['partida_id']);
+                                    if (!$parOriginal) continue;
+
+                                    $cantFacturar = $pData['cantidad_a_facturar'];
+                                    $factor = $parOriginal->cant > 0 ? ($cantFacturar / $parOriginal->cant) : 0;
+
+                                    $lineSubtotal = $parOriginal->precio * $cantFacturar;
+                                    $lineIva = $parOriginal->iva * $factor;
+                                    $lineRetIva = $parOriginal->retiva * $factor;
+                                    $lineRetIsr = $parOriginal->retisr * $factor;
+                                    $lineIeps = $parOriginal->ieps * $factor;
+                                    $lineTotal = $lineSubtotal + $lineIva - $lineRetIva - $lineRetIsr + $lineIeps;
+
+                                    $partidas[] = [
+                                        'item' => $parOriginal->item,
+                                        'descripcion' => $parOriginal->descripcion,
+                                        'cant' => $cantFacturar,
+                                        'precio' => $parOriginal->precio,
+                                        'subtotal' => $lineSubtotal,
+                                        'iva' => $lineIva,
+                                        'retiva' => $lineRetIva,
+                                        'retisr' => $lineRetIsr,
+                                        'ieps' => $lineIeps,
+                                        'total' => $lineTotal,
+                                        'unidad' => $parOriginal->unidad,
+                                        'cvesat' => $parOriginal->cvesat,
+                                        'costo' => $parOriginal->costo,
+                                        'clie' => $data['clie'],
+                                        'pedido_partida_id' => $parOriginal->id,
+                                    ];
+                                }
+                                $set('partidas', $partidas);
+                                Self::updateTotals2($get, $set);
                             }),
                         ActionsAction::make('Enlazar Nota')
                             ->badge()->tooltip('Enlazar Nota de Venta')
@@ -570,7 +793,8 @@ class FacturasResource extends Resource
                     ])
                     ])->grow(false),
             ])->columnSpanFull(),
-            Forms\Components\Hidden::make('cotizacion_id')->dehydrated(false),
+            Forms\Components\Hidden::make('cotizacion_id')->dehydrated(true),
+            Forms\Components\Hidden::make('pedido_id')->dehydrated(true),
             Forms\Components\Hidden::make('nombre'),
             Forms\Components\Hidden::make('estado')->default('Activa'),
             Forms\Components\Textarea::make('observa')
@@ -743,16 +967,20 @@ class FacturasResource extends Resource
                                 ->where('team_id',Filament::getTenant()->id)->delete();
                             Clientes::where('id',$record->clie)->decrement('saldo', $record->total);
 
-                            // Regresar inventario si no vino de remisión
-                            if (!$record->remision_id) {
-                                foreach ($record->partidas as $partida) {
-                                    $prod = Inventario::find($partida->item);
-                                    if ($prod) {
-                                        $prod->exist += $partida->cant;
-                                        $prod->save();
-                                    }
-                                }
+                            $par_cot = FacturasPartidas::where('facturas_id',$record->id)->get();
+                            foreach ($par_cot as $partida) {
+                                CotizacionesPartidas::where('id',$partida->cotizacion_partida_id)
+                                    ->increment('pendientes',$partida->cant);
                             }
+                            Cotizaciones::where('id',$record->cotizacion_id)
+                                ->update(['estado'=>'Activa']);
+                            $par_ped = FacturasPartidas::where('facturas_id',$record->id)->get();
+                            foreach ($par_ped as $partid) {
+                                PedidosPartidas::where('id',$partid->pedido_partida_id)
+                                    ->increment('pendientes',$partid->cant);
+                            }
+                            Pedidos::where('id',$record->pedido_id)
+                                ->update(['estado'=>'Activa']);
 
                             Notification::make()
                                 ->title('Factura Cancelada')
@@ -1189,49 +1417,38 @@ class FacturasResource extends Resource
                     $imp2 = $esq->retiva * 0.01;
                     $imp3 = $esq->retisr * 0.01;
                     $imp4 = $esq->ieps * 0.01;
-                    foreach($partidas as $partida)
-                    {
-                        $partida->iva = $partida->subtotal * $imp1;
-                        $partida->retiva = $partida->subtotal * $imp2;
-                        $partida->retisr = $partida->subtotal * $imp3;
-                        $partida->ieps = $partida->subtotal * $imp4;
-                        $partida->save();
-                        $arti = $partida->item;
-                        $inve = Inventario::where('id',$arti)->get();
-                        $inve = $inve[0];
-                        if($inve->servicio == 'NO')
-                        {
-                            Movinventario::insert([
-                                'producto'=>$partida->item,
-                                'tipo'=>'Salida',
-                                'fecha'=>Carbon::now(),
-                                'cant'=>$partida->cant,
-                                'costo'=>$partida->costo,
-                                'precio'=>$partida->precio,
-                                'concepto'=>6,
-                                'tipoter'=>'C',
-                                'tercero'=>$record->clie
-                            ]);
-
-                            $cost = $partida->costo;
-                            $cant = $inve->exist - $partida->cant;
-                            $avg = $inve->p_costo * $inve->exist;
-                            $avgp = 0;
-                            if($avg == 0) $avgp = $cost;
-                            else $avgp = (($inve->p_costo + $cost) * ($inve->exist + $cant)) / ($inve->exist + $cant);
-                            Inventario::where('id',$arti)->update([
-                                'exist' => $cant,
-                                'u_costo'=>$cost,
-                                'p_costo'=>$avgp
-                            ]);
-                        }
-                        $nopar++;
-                    }
-                    Clientes::where('id',$record->clie)->increment('saldo', $record->total);
                     $cliente_d = Clientes::where('id',$record->clie)->first();
-
                     $record->pendiente_pago = $record->total;
                     $record->save();
+
+                    // Actualizar pendientes si viene de Cotización o Pedido
+                    $factura_partidas = FacturasPartidas::where('facturas_id',$record->id)->get();
+                    foreach($factura_partidas as $fpartida) {
+                        if ($fpartida->cotizacion_partida_id) {
+                            $cpartida = CotizacionesPartidas::find($fpartida->cotizacion_partida_id);
+                            if ($cpartida) {
+                                $cpartida->decrement('pendientes', $fpartida->cant);
+                            }
+                        }
+                        if ($fpartida->pedido_partida_id) {
+                            $ppartida = PedidosPartidas::find($fpartida->pedido_partida_id);
+                            if ($ppartida) {
+                                $ppartida->decrement('pendientes', $fpartida->cant);
+                            }
+                        }
+                    }
+
+                    if ($record->cotizacion_id) {
+                        $pendientesTotales = CotizacionesPartidas::where('cotizaciones_id', $record->cotizacion_id)->sum('pendientes');
+                        $nuevoEstado = $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial';
+                        Cotizaciones::where('id', $record->cotizacion_id)->update(['estado' => $nuevoEstado]);
+                    }
+                    if ($record->pedido_id) {
+                        $pendientesTotales = PedidosPartidas::where('pedidos_id', $record->pedido_id)->sum('pendientes');
+                        $nuevoEstado = $pendientesTotales <= 0 ? 'Cerrado' : 'Parcial';
+                        Pedidos::where('id', $record->pedido_id)->update(['estado' => $nuevoEstado]);
+                    }
+
                     if($record->docto_rela != ''){
                         DoctosRelacionados::create([
                             'docto_type'=>'F',
@@ -1263,18 +1480,6 @@ class FacturasResource extends Resource
                                 $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
                                 $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
                                 $dias_cr = intval($cliente_d?->dias_credito ?? 0);
-                                CuentasCobrar::create([
-                                    'cliente'=>$record->clie,
-                                    'concepto'=>1,
-                                    'descripcion'=>'Factura',
-                                    'documento'=>$record->serie.$record->folio,
-                                    'fecha'=>Carbon::now(),
-                                    'vencimiento'=>Carbon::now()->addDays($dias_cr),
-                                    'importe'=>$record->total * $record->tcambio,
-                                    'saldo'=>$record->total * $record->tcambio,
-                                    'team_id'=>Filament::getTenant()->id,
-                                    'refer'=>$record->id
-                                ]);
                                 $emp = Team::where('id',Filament::getTenant()->id)->first();
                                 $cli = Clientes::where('id',$record->clie)->first();
                                 $archivo_pdf = $emp->taxid.'_FACTURA_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
@@ -1324,7 +1529,21 @@ class FacturasResource extends Resource
                                     ->send();
                             }
                             //self::DescargaPdf($record);
-
+                            $par_sur = FacturasPartidas::where('facturas_id',$record->id)->get();
+                            foreach($par_sur as $par) {
+                                SurtidoInve::create([
+                                    'factura_id'=>$record->id,
+                                    'factura_partida_id'=>$par->id,
+                                    'item_id'=>$par->item,
+                                    'descr'=>$par->descripcion,
+                                    'cant'=>$par->cant,
+                                    'precio_u'=>$par->precio,
+                                    'costo_u'=>$par->costo,
+                                    'precio_total'=>$par->subtotal,
+                                    'costo_total'=>$par->costo*$par->cant,
+                                    'team_id'=>Filament::getTenant()->id
+                                ]);
+                            }
                         }
                     //------------------------------------------
 
@@ -1476,7 +1695,43 @@ class FacturasResource extends Resource
                         }
                     }
                     Notification::make()->title('Proceso Terminado '.$recs.' Procesados')->success()->send();
-                })
+                }),
+                Action::make('Importar Cot')
+                    ->label('Importar Cotización')
+                    ->icon('fas-file-import')
+                    ->form(function (Forms\ComponentContainer $form) {
+                        return $form->schema([
+                            Select::make('sel_cotizacion')->label('Cotización')
+                                ->options(
+                                    Cotizaciones::whereIn('estado',['Activa','Parcial'])
+                                        ->where('team_id', Filament::getTenant()->id)
+                                        ->get()->pluck('folio','id')
+                                )
+                        ]);
+                    })
+                    ->action(function($data,$livewire){
+                        $livewire->requ = $data['sel_cotizacion'];
+                        $livewire->getAction('Facturar Cotización')->visible(true);
+                        $livewire->replaceMountedAction('Facturar Cotización');
+                    }),
+                Action::make('Importar Ped')
+                    ->label('Importar Pedido')
+                    ->icon('fas-file-import')
+                    ->form(function (Forms\ComponentContainer $form) {
+                        return $form->schema([
+                            Select::make('sel_pedido')->label('Pedido')
+                                ->options(
+                                    Pedidos::whereIn('estado',['Activa','Parcial'])
+                                        ->where('team_id', Filament::getTenant()->id)
+                                        ->get()->pluck('folio','id')
+                                )
+                        ]);
+                    })
+                    ->action(function($data,$livewire){
+                        $livewire->requ = $data['sel_pedido'];
+                        $livewire->getAction('Facturar Pedido')->visible(true);
+                        $livewire->replaceMountedAction('Facturar Pedido');
+                    }),
             ],HeaderActionsPosition::Bottom);
     }
 

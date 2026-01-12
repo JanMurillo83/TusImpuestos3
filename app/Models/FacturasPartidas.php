@@ -11,7 +11,7 @@ class FacturasPartidas extends Model
     protected $fillable = ['facturas_id','item','descripcion','cant','precio',
     'subtotal','iva','retiva','retisr','ieps','total','unidad','cvesat','costo',
     'clie','observa','anterior','siguiente','por_imp1','por_imp2','por_imp3',
-    'por_imp4','team_id'];
+    'por_imp4','team_id','cotizacion_partida_id','pedido_partida_id'];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

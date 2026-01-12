@@ -688,6 +688,7 @@ class ComprasResource extends Resource
                 Tables\Actions\Action::make('Importar Req')
                     ->label('Importar Requisición')
                     ->icon('fas-file-import')
+                    ->visible(false)
                     ->form(function (Forms\ComponentContainer $form) {
                         return $form->schema([
                             Select::make('sel_requisicion')->label('Requisición')
@@ -710,6 +711,7 @@ class ComprasResource extends Resource
                             Select::make('sel_requisicion')->label('Orden de Compra')
                                 ->options(
                                     Ordenes::whereIn('estado',['Activa','Parcial'])
+                                        ->where('team_id',Filament::getTenant()->id)
                                         ->get()->pluck('folio','id')
                                 )
                         ]);

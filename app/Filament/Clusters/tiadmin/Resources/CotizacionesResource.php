@@ -553,7 +553,7 @@ class CotizacionesResource extends Resource
                         ->label('Facturar Cotización')
                         ->icon('fas-file-invoice')
                         ->color(Color::Green)
-                        ->visible(fn($record) => in_array($record->estado, ['Activa','Parcial']))
+                        ->visible(false)
                         ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
                             $partidas = CotizacionesPartidas::where('cotizaciones_id',$record->id)
                                 ->where(function($q) {

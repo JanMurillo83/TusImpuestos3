@@ -445,7 +445,7 @@ class RequisicionesResource extends Resource
                 ActionsAction::make('Generar Orden')
                     ->icon('fas-file-invoice-dollar')
                     ->color(Color::Green)
-                    ->visible(fn($record) => in_array($record->estado, ['Activa','Parcial']))
+                    ->visible(false)
                     ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
                         $partidas = $record->partidas()
                             ->where(function($q) {

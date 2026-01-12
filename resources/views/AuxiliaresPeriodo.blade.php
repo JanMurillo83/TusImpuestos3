@@ -11,26 +11,51 @@ $cuentaFin = $cuenta_fin ?? null;
 if ($cuentaIni && $cuentaFin && $cuentaIni > $cuentaFin) { [$cuentaIni, $cuentaFin] = [$cuentaFin, $cuentaIni]; }
 
 // Calcular saldos iniciales por cuenta: todo lo anterior al periodo/ejercicio actual
-$prevSaldosQuery = DB::table('auxiliares as a')
-    ->join('cat_polizas as p','p.id','=','a.cat_polizas_id')
-    ->join('cat_cuentas as c', function($j){
-        $j->on('c.codigo','=','a.codigo')->on('c.team_id','=','a.team_id');
-    })
-    ->select('a.codigo','a.cuenta', DB::raw("SUM(CASE WHEN c.naturaleza = 'A' THEN (a.abono - a.cargo) ELSE (a.cargo - a.abono) END) as saldo"))
-    ->where('a.team_id',$empresa)
-    ->where('p.team_id',$empresa)
-    ->where('c.team_id',$empresa)
-    ->when($cuentaIni, function($q) use ($cuentaIni){ $q->where('a.codigo','>=',$cuentaIni); })
-    ->when($cuentaFin, function($q) use ($cuentaFin){ $q->where('a.codigo','<=',$cuentaFin); })
-    ->where(function($q) use ($periodo,$ejercicio,$mes_ini,$mes_fin){
-        $q->where('p.ejercicio','<',$ejercicio)
-          ->orWhere(function($q2) use ($periodo,$ejercicio,$mes_ini,$mes_fin){
-              $q2->where('p.ejercicio',$ejercicio)
-                 ->where('p.periodo','<',intval($mes_ini));
-          });
-    })
-    ->groupBy('a.codigo','a.cuenta')
-    ->get();
+if($cuenta_ini != null && $cuenta_fin != null) {
+    $prevSaldosQuery = DB::table('auxiliares as a')
+        ->join('cat_polizas as p', 'p.id', '=', 'a.cat_polizas_id')
+        ->join('cat_cuentas as c', function ($j) {
+            $j->on('c.codigo', '=', 'a.codigo')->on('c.team_id', '=', 'a.team_id');
+        })
+        ->select('a.codigo', 'a.cuenta', DB::raw("SUM(CASE WHEN c.naturaleza = 'A' THEN (a.abono - a.cargo) ELSE (a.cargo - a.abono) END) as saldo"))
+        ->where('a.team_id', $empresa)
+        ->where('p.team_id', $empresa)
+        ->where('c.team_id', $empresa)
+        ->when($cuentaIni, function ($q) use ($cuentaIni) {
+            $q->where('a.codigo', '>=', $cuentaIni);
+        })
+        ->when($cuentaFin, function ($q) use ($cuentaFin) {
+            $q->where('a.codigo', '<=', $cuentaFin);
+        })
+        ->where(function ($q) use ($periodo, $ejercicio, $mes_ini, $mes_fin) {
+            $q->where('p.ejercicio', '<', $ejercicio)
+                ->orWhere(function ($q2) use ($periodo, $ejercicio, $mes_ini, $mes_fin) {
+                    $q2->where('p.ejercicio', $ejercicio)
+                        ->where('p.periodo', '<', intval($mes_ini));
+                });
+        })
+        ->groupBy('a.codigo', 'a.cuenta')
+        ->get();
+}else{
+    $prevSaldosQuery = DB::table('auxiliares as a')
+        ->join('cat_polizas as p', 'p.id', '=', 'a.cat_polizas_id')
+        ->join('cat_cuentas as c', function ($j) {
+            $j->on('c.codigo', '=', 'a.codigo')->on('c.team_id', '=', 'a.team_id');
+        })
+        ->select('a.codigo', 'a.cuenta', DB::raw("SUM(CASE WHEN c.naturaleza = 'A' THEN (a.abono - a.cargo) ELSE (a.cargo - a.abono) END) as saldo"))
+        ->where('a.team_id', $empresa)
+        ->where('p.team_id', $empresa)
+        ->where('c.team_id', $empresa)
+        ->where(function ($q) use ($periodo, $ejercicio, $mes_ini, $mes_fin) {
+            $q->where('p.ejercicio', '<', $ejercicio)
+                ->orWhere(function ($q2) use ($periodo, $ejercicio, $mes_ini, $mes_fin) {
+                    $q2->where('p.ejercicio', $ejercicio)
+                        ->where('p.periodo', '<', intval($mes_ini));
+                });
+        })
+        ->groupBy('a.codigo', 'a.cuenta')
+        ->get();
+}
 $saldoInicial = [];
 foreach ($prevSaldosQuery as $s) {
     $saldoInicial[$s->codigo.'|'.$s->cuenta] = (float)$s->saldo;

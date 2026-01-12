@@ -13,9 +13,15 @@
         <!-- Encabezado -->
         <header class="flex justify-between items-start border-b pb-4 mb-4">
             <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                    TI
-                </div>
+                @if($fiscales && $fiscales->logo64)
+                    <div class="max-h-16 max-w-[200px] overflow-hidden">
+                        <img src="{{$fiscales->logo64}}" alt="Logo" class="h-auto w-full object-contain">
+                    </div>
+                @else
+                    <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                        TI
+                    </div>
+                @endif
                 <div>
                     <h1 class="text-xl font-bold">
                         COTIZACIÓN

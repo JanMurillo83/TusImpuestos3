@@ -88,7 +88,9 @@
         <table>
             <tr>
                 <td>
-                    @if($dafis && $dafis->logo)
+                    @if($dafis && $dafis->logo64)
+                        <img src="{{ $dafis->logo64 }}" class="logo" alt="Logo">
+                    @elseif($dafis && $dafis->logo)
                         <img src="{{ public_path('storage/' . $dafis->logo) }}" class="logo" alt="Logo">
                     @else
                         <h2>{{ $dafis->nombre ?? 'Empresa' }}</h2>

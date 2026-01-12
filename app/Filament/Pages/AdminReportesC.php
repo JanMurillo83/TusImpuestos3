@@ -64,6 +64,7 @@ class AdminReportesC extends Page implements HasForms
 
     protected function getReporteFormSchema(): array
     {
+        $idAux = MainReportes::where('reporte', 'Reporte de Auxiliares')->first()?->id ?? 4;
         return [
             Select::make('reporte')
                 ->options(MainReportes::where('tipo','contable')->pluck('reporte','id'))
@@ -87,9 +88,9 @@ class AdminReportesC extends Page implements HasForms
                             ->searchable()->columnSpanFull(),
                     ])->columnSpan(1),
                 ])->columns(1)
-                ->visible(function (Get $get){
+                ->visible(function (Get $get) use ($idAux) {
                     $reporte = $get('reporte');
-                    if($reporte == 4) return true;
+                    if($reporte == $idAux) return true;
                     return false;
                 }),
             Fieldset::make('Filtro de Periodo')
@@ -101,9 +102,9 @@ class AdminReportesC extends Page implements HasForms
                         ->label('Periodo Final')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12'])
                         ->default(Filament::getTenant()->periodo),
                 ])->columns(2)
-                ->visible(function (Get $get){
+                ->visible(function (Get $get) use ($idAux) {
                     $reporte = $get('reporte');
-                    if($reporte == 4) return true;
+                    if($reporte == $idAux) return true;
                     return false;
                 }),
             Fieldset::make('Filtro de Periodo')
@@ -112,9 +113,9 @@ class AdminReportesC extends Page implements HasForms
                         ->label('Periodo')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12'])
                         ->default(Filament::getTenant()->periodo),
                 ])->columns(2)
-                ->visible(function (Get $get){
+                ->visible(function (Get $get) use ($idAux) {
                     $reporte = $get('reporte');
-                    if($reporte == 4||$reporte == null) return false;
+                    if($reporte == $idAux||$reporte == null) return false;
                     return true;
                 }),
             Actions::make([
@@ -126,7 +127,7 @@ class AdminReportesC extends Page implements HasForms
                         $repor = $repo?->pdf ?? '';
                         if($repor == 'SI') return false;
                         else return true;
-                    })->action(function(Get $get){
+                    })->action(function(Get $get) use ($idAux) {
                         $no_reporte = intval($get('reporte'));
                         $record = MainReportes::where('id',$get('reporte'))->first();
                         $reporte = $record->reporte;
@@ -134,18 +135,10 @@ class AdminReportesC extends Page implements HasForms
                         $ejercicio = Filament::getTenant()->ejercicio;
                         $periodo = $get('periodo_ini') ?? null;
                         if($periodo == null) $periodo = Filament::getTenant()->periodo;
-                        if($no_reporte != 4){
+                        if($no_reporte != $idAux){
                             if($periodo != Filament::getTenant()->periodo){
                                 (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             }
-                        }else{
-                            $all_aux = Auxiliares::where('team_id',$team_id)->get();
-                            /*foreach($all_aux as $aux){
-                                $cta = CatCuentas::where('team_id',$team_id)
-                                    ->where('codigo',$aux->codigo)->first();
-                                Auxiliares::where('team_id',$team_id)->where('codigo',$aux->codigo)
-                                    ->update(['cuenta'=>$cta?->nombre ?? 'No existe en catalogo']);
-                            }*/
                         }
                         $cuentaIni = $get('cuenta_ini') ?? null;
                         $cuentaFin = $get('cuenta_fin') ?? null;
@@ -154,7 +147,8 @@ class AdminReportesC extends Page implements HasForms
                         //dd($cuentaIni,$cuentaFin,$fechaIni,$fechaFin);
                         $path = $record->ruta;
 
-                        $ruta = public_path().'/TMPCFDI/'.$reporte.'_'.$team_id.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/'.str_replace(' ','',$reporte).'_'.$team_id.'.pdf';
+                        //dd($ruta);
                         if(\File::exists($ruta)) unlink($ruta);
                         $logo = public_path().'/images/MainLogo.png';
                         $logo_64 = 'data:image/png;base64,'.base64_encode(file_get_contents($logo));
@@ -174,12 +168,15 @@ class AdminReportesC extends Page implements HasForms
                             ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                             ->noSandbox()
                             ->scale(0.8)->savePdf($ruta);
-                        $this->ReportePDF = base64_encode(file_get_contents($ruta));
-                        (new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
+                        if($no_reporte == 4) return response()->download($ruta);
+                        else $this->ReportePDF = base64_encode(file_get_contents($ruta));
+                        //dd($this->ReportePDF);
+                        //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
+
                     }),
                 Actions\Action::make('Exportar Excel')
                 ->icon('fas-file-excel')->extraAttributes(['style'=>'width: 14rem'])
-                ->action(function(Get $get){
+                ->action(function(Get $get) use ($idAux) {
                         $no_reporte = intval($get('reporte'));
                         $record = MainReportes::where('id',$get('reporte'))->first();
                         $reporte = $record->reporte;
@@ -187,7 +184,7 @@ class AdminReportesC extends Page implements HasForms
                         $ejercicio = Filament::getTenant()->ejercicio;
                         $periodo = $get('periodo_ini') ?? null;
                         if($periodo == null) $periodo = Filament::getTenant()->periodo;
-                        if($no_reporte != 4){
+                        if($no_reporte != $idAux){
                             if($periodo != Filament::getTenant()->periodo){
                                 (new \App\Http\Controllers\ReportesController)->ContabilizaReporte($ejercicio, $periodo, $team_id);
                             }

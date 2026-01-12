@@ -39,7 +39,7 @@ class ListCompras extends ListRecords
         return [
             //Actions\CreateAction::make(),
             Html2MediaAction::make('Imprimir_Doc_E')
-                ->visible(fn($livewire) => $livewire->idorden !== null)
+                ->visible(false)
                 ->print(false)
                 ->savePdf()
                 ->preview(true)
@@ -55,7 +55,7 @@ class ListCompras extends ListRecords
             Actions\Action::make('Importar Requisición')
                 ->icon('fas-file-invoice-dollar')
                 ->color(Color::Green)
-                ->visible(fn($livewire) => $livewire->requ !== null)
+                ->visible(false)
                 ->modalSubmitAction(false)
                 ->modalCancelAction(false)
                 ->mountUsing(function (Form $form,$livewire,Actions\Action $action) {
@@ -267,7 +267,7 @@ class ListCompras extends ListRecords
             Actions\Action::make('Importar Orden')
                 ->icon('fas-file-invoice-dollar')
                 ->color(Color::Green)
-                ->visible(fn($livewire) => $livewire->requ !== null)
+                ->visible(false)
                 ->modalSubmitAction(false)
                 ->modalCancelAction(false)
                 ->mountUsing(function (Form $form,$livewire,Actions\Action $action) {

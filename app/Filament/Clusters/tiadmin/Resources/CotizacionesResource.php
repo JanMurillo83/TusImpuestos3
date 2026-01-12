@@ -45,6 +45,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
+use phpDocumentor\Reflection\Types\True_;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
 use Spatie\Browsershot\Browsershot;
@@ -138,11 +139,11 @@ class CotizacionesResource extends Resource
                                     Header::make('Subtotal'),
                                 ])->schema([
                                     TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
-                                        ->live()
+                                        ->live(onBlur: true)
                                         ->currencyMask(decimalSeparator:'.',precision:2)
                                         ->afterStateUpdated(function(Get $get, Set $set){
-                                            $cant = $get('cant');
-                                            $cost = $get('precio');
+                                            $cant = floatval($get('cant'));
+                                            $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
                                             $set('subtotal',$subt);
                                             $ivap = $get('../../esquema');
@@ -189,7 +190,7 @@ class CotizacionesResource extends Resource
                                             $set('precio',$precio);
                                         })->suffixAction(
                                             ActionsAction::make('AbreItem')
-                                                ->icon('fas-circle-question')
+                                                ->icon('fas-magnifying-glass')
                                                 ->form([
                                                     Select::make('SelItem')
                                                         ->label('Seleccionar')
@@ -198,7 +199,7 @@ class CotizacionesResource extends Resource
                                                 ])
                                                 ->action(function(Set $set,Get $get,$data){
                                                     $cli = $get('../../clie');
-                                                    $cant = $get('cant');
+                                                    $cant = floatval($get('cant'));
                                                     $item = $data['SelItem'];
                                                     $set('item',$item);
                                                     $prod = Inventario::where('id',$item)->get();
@@ -248,8 +249,8 @@ class CotizacionesResource extends Resource
                                         ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                         ->live()
                                         ->afterStateUpdated(function(Get $get, Set $set){
-                                            $cant = $get('cant');
-                                            $cost = $get('precio');
+                                            $cant = floatval($get('cant'));
+                                            $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
                                             $set('subtotal',$subt);
                                             $ivap = $get('../../esquema');

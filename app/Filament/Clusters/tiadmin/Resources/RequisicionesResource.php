@@ -118,7 +118,10 @@ class RequisicionesResource extends Resource
                             ->numeric()
                             ->prefix('$')
                             ->default(1.00)->currencyMask(),
-                        TextInput::make('solicita')->columnSpan(2),
+                        TextInput::make('solicita')
+                            ->default(Filament::auth()->user()->name)
+                            ->readOnly()
+                            ->columnSpan(2),
                         Select::make('proyecto')
                             ->options(Proyectos::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
                             ->columnSpan(2),

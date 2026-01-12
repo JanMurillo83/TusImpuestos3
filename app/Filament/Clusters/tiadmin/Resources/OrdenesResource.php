@@ -723,6 +723,7 @@ class OrdenesResource extends Resource
                         Select::make('sel_requisicion')->label('Requisición')
                         ->options(
                             Requisiciones::whereIn('estado',['Activa','Parcial'])
+                            ->where('team_id', Filament::getTenant()->id)
                             ->get()->pluck('folio','id')
                         )
                     ]);

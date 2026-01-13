@@ -20,6 +20,10 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpCfdi\SatWsDescargaMasiva\RequestBuilder\FielRequestBuilder\Fiel;
 use Spatie\Browsershot\Browsershot;
@@ -41,13 +45,15 @@ class AdminReportesC extends Page implements HasForms
     public ?string $cuenta_ini = '';
     public ?string $cuenta_fin = '';
     public ?string $ReportePDF = '';
+    public ?string $Reporte_PDF = '';
+    public ?string $NewRuta = '';
     public static function shouldRegisterNavigation () : bool
     {
         return auth()->user()->hasRole(['administrador','contador']);
     }
     public function mount():void
     {
-        (new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
+        //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
         $this->periodo_ini = Filament::getTenant()->periodo;
         $this->periodo_fin = Filament::getTenant()->periodo;
         $data = [
@@ -128,6 +134,8 @@ class AdminReportesC extends Page implements HasForms
                         if($repor == 'SI') return false;
                         else return true;
                     })->action(function(Get $get) use ($idAux) {
+                        $this->Reporte_PDF = '';
+                        $this->ReportePDF = '';
                         $no_reporte = intval($get('reporte'));
                         $record = MainReportes::where('id',$get('reporte'))->first();
                         $reporte = $record->reporte;
@@ -168,8 +176,17 @@ class AdminReportesC extends Page implements HasForms
                             ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                             ->noSandbox()
                             ->scale(0.8)->savePdf($ruta);
-                        if($no_reporte == 4) return response()->download($ruta);
-                        else $this->ReportePDF = base64_encode(file_get_contents($ruta));
+                        if($no_reporte == 4) {
+                            $this->ReportePDF = '';
+                            $url_file = public_path('TMPCFDI/Auxiliar.pdf');
+                            if(File::exists($url_file)) unlink($url_file);
+                            File::copy($ruta, $url_file);
+                            $this->Reporte_PDF = 'LLeno';
+                        }
+                        else {
+                            $this->Reporte_PDF = '';
+                            $this->ReportePDF = base64_encode(file_get_contents($ruta));
+                        }
                         //dd($this->ReportePDF);
                         //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
 
@@ -224,8 +241,17 @@ class AdminReportesC extends Page implements HasForms
                     if($this->ReportePDF == '') return false;
                     else return true;
                 }),
+            PdfViewerField::make('Visor')
+                ->columnSpanFull()
+                ->minHeight('80svh')
+                ->visible(function (){
+                    if($this->Reporte_PDF == '') return false;
+                    else return true;
+                })
+                ->fileUrl(URL::asset('TMPCFDI/Auxiliar.pdf')),
         ];
     }
+
     protected function getForms(): array
     {
         return [

@@ -70,21 +70,15 @@ class PagosResource extends Resource
                             Forms\Components\DatePicker::make('fecha_doc')
                                 ->label('Fecha Comprobante')
                                 ->required()
-                                ->afterStateHydrated(function (Forms\Components\DatePicker $component, ?string $state) {
-                                    // if the value is empty in the database, set a default value, if not, just continue with the default component hydration
-                                    if (!$state) {
-                                        $component->state(now()->toDateString());
-                                    }
+                                ->formatStateUsing(fn($state) => Carbon::create($state)->format('Y-m-d') ?? Carbon::now()->format('Y-m-d'))
+                                ->default(function (Forms\Get $get) {
+                                    $fecha = Carbon::create($get('fecha_doc'))->format('Y-m-d');
+                                    return $fecha ?? Carbon::now()->format('Y-m-d');
                                 }),
                             Forms\Components\DatePicker::make('fechapago')
                                 ->label('Fecha del Pago')
                                 ->required()
-                                ->afterStateHydrated(function (Forms\Components\DatePicker $component, ?string $state) {
-                                    // if the value is empty in the database, set a default value, if not, just continue with the default component hydration
-                                    if (!$state) {
-                                        $component->state(now()->toDateString());
-                                    }
-                                }),
+                                ->default(Carbon::now()->format('Y-m-d')),
                             Forms\Components\Hidden::make('clave_doc'),
                             Forms\Components\Select::make('cve_clie')
                                 ->label('Cliente')

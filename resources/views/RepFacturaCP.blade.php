@@ -88,7 +88,7 @@
                 </div>
                 <div class="col-2" style="font-size: 10px !important;">
                     <label><b>COMPROBANTE FOLIO:</b></label> <label>{{$orden->serie.$orden->folio}}</label><br>
-                    <label><b>FECHA:</b></label> <label>{{\Carbon\Carbon::create($orden->fecha_doc)->format('Y-m-d') ?? ''}}</label><br>
+                    <label><b>FECHA:</b></label> <label>{{\Carbon\Carbon::create($orden->fecha_doc)->format('d-m-Y') ?? ''}}</label><br>
                     <label><b>LUGAR DE EXPEDICION:</b></label> <label>{{$dafis->codigo}}</label><br>
                 </div>
             </div>

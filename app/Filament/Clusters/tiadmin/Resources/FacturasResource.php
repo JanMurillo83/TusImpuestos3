@@ -892,6 +892,7 @@ class FacturasResource extends Resource
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full'),
                 Action::make('Imprimir')->icon('fas-print')
+                ->disabled(fn($record)=>$record->estado != 'Timbrada')
                 ->action(function($record){
                     //self::DescargaPdf($record);
                     $emp = Team::where('id',$record->team_id)->first();

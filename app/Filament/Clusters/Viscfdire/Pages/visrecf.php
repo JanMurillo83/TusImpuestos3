@@ -391,17 +391,6 @@ class visrecf extends Page implements HasForms, HasTable
             ->bulkActions([
             ]);
     }
-
-   /* public static function infolist(Infolist $infolist): Infolist
-    {
-        return $infolist
-            ->schema([
-                TextEntry::make('UUID'),
-                TextEntry::make('ejercicio'),
-                TextEntry::make('periodo'),
-            ]);
-    }*/
-
     public static function contabiliza_r($record,$data)
     {
         $tipoxml = $record['xml_type'];

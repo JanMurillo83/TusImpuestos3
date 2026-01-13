@@ -247,7 +247,12 @@ class cfdiri extends Page implements HasForms, HasTable
                                 if($get('forma')== 'TER') return true;
                                 else return false;
                             })
-                            ->options(Terceros::select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                            ->options(
+                                Terceros::select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))
+                                    ->where('team_id',Filament::getTenant()->id)
+                                    ->where('tipo','Acreedor')
+                                    ->pluck('nombre','cuenta')
+                            )
                             ->createOptionForm(function($form){
                                 return $form
                                     ->schema([

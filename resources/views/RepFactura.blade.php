@@ -86,7 +86,9 @@ $logo = public_path('storage/'.$dafis->logo);
     <div style="border-top: 1px solid black"></div>
     <div class="row">
         <div class="col-4">
-           <img src="{{$QrPath}}" alt="" width="90px" style="margin-top: 0.5rem !important;margin-bottom: 0.5rem !important;">
+            @if($QrText != '')
+                <img src="{{$QrPath}}" alt="" width="90px" style="margin-top: 0.5rem !important;margin-bottom: 0.5rem !important;">
+            @endif
         </div>
         <div class="col-6" style="font-size: 10px !important;">
             <label><b>PARA:</b></label><br>

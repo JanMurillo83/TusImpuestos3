@@ -53,7 +53,7 @@ class AdminReportesC extends Page implements HasForms
     }
     public function mount():void
     {
-        //(new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
+        (new \App\Http\Controllers\ReportesController)->ContabilizaReporte(Filament::getTenant()->ejercicio, Filament::getTenant()->periodo, Filament::getTenant()->id);
         $this->periodo_ini = Filament::getTenant()->periodo;
         $this->periodo_fin = Filament::getTenant()->periodo;
         $data = [

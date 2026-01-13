@@ -27,7 +27,7 @@ if($a_xml != null&&$a_xml!='')
     $tfd = $comprobante->complemento->TimbreFiscalDigital;
 }
 $QrPath = public_path('storage/QrCode.svg');
-$QrText = $parameters->expression();
+$QrText = $parameters?->expression() ?? '';
 app(\App\Http\Controllers\QrController::class)->generar_2($QrText,$QrPath);
 $logo = public_path('storage/'.$dafis->logo);
 ?>

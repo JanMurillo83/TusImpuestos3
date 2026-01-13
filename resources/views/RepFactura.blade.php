@@ -28,7 +28,7 @@ if($a_xml != null&&$a_xml!='')
 }
 $QrPath = public_path('storage/QrCode.svg');
 $QrText = $parameters?->expression() ?? '';
-app(\App\Http\Controllers\QrController::class)->generar_2($QrText,$QrPath);
+if($QrText != '') app(\App\Http\Controllers\QrController::class)->generar_2($QrText,$QrPath);
 $logo = public_path('storage/'.$dafis->logo);
 ?>
 <!DOCTYPE html>

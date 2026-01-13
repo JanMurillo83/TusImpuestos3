@@ -1246,8 +1246,6 @@ class FacturasResource extends Resource
                     ->after(function($record,$livewire){
                         $partidas = $record->partidas;
                         $nopar = 0;
-                        SeriesFacturas::where('team_id',Filament::getTenant()->id)
-                        ->where('tipo','F')->where('serie',$record->serie)->increment('folio',1);
                         $esq = Esquemasimp::where('id',$record->esquema)->first();
                         $imp1 = $esq->iva * 0.01;
                         $imp2 = $esq->retiva * 0.01;

@@ -193,18 +193,24 @@ class ListFacturas extends ListRecords
                                     Placeholder::make('pendiente')
                                         ->label('Pendiente')
                                         ->content(fn ($get) => $get('cantidad_pendiente')),
-                                    TextInput::make('cantidad_a_facturar')
-                                        ->label('A Facturar')
-                                        ->numeric()
-                                        ->required()
-                                        ->minValue(0.01)
-                                        ->maxValue(fn ($get) => $get('cantidad_pendiente'))
-                                        ->reactive(),
+                                    Hidden::make('cantidad_a_facturar'),
                                 ]),
                         ])
                         ->addable(false)
                         ->deletable(false)
                         ->reorderable(false),
+                    Grid::make(3)
+                        ->schema([
+                            Placeholder::make('origen_subtotal')
+                                ->label('Subtotal:')
+                                ->content(fn ($livewire) => '$'.number_format(Cotizaciones::find($livewire->requ)?->subtotal,2)),
+                            Placeholder::make('origen_iva')
+                                ->label('I.V.A.:')
+                                ->content(fn ($livewire) => '$'.number_format(Cotizaciones::find($livewire->requ)?->iva,2)),
+                            Placeholder::make('origen_total')
+                                ->label('Total:')
+                                ->content(fn ($livewire) => '$'.number_format(Cotizaciones::find($livewire->requ)?->total,2)),
+                        ]),
                     \Filament\Forms\Components\Actions::make([
                         FormAction::make('Generar Factura')
                             ->color(Color::Green)

@@ -247,7 +247,7 @@ class CotizacionesResource extends Resource
                                     TextInput::make('precio')
                                         ->numeric()
                                         ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
-                                        ->live()
+                                        ->live(onBlur: true)
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = floatval($get('cant'));
                                             $cost = floatval($get('precio'));

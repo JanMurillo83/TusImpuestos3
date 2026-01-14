@@ -65,9 +65,6 @@ class ListOrdenes extends ListRecords
                     $record = Requisiciones::where('id',$fol)->first();
                     //dd($record);
                     $partidas = $record->partidas()
-                        ->where(function($q) {
-                            $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
-                        })
                         ->get()
                         ->map(function ($partida) {
                             return [
@@ -75,8 +72,8 @@ class ListOrdenes extends ListRecords
                                 'item' => $partida->item,
                                 'descripcion' => $partida->descripcion,
                                 'cantidad_original' => $partida->cant,
-                                'cantidad_pendiente' => $partida->pendientes ?? $partida->cant,
-                                'cantidad_a_convertir' => $partida->pendientes ?? $partida->cant,
+                                'cantidad_pendiente' => $partida->cant,
+                                'cantidad_a_convertir' => $partida->cant,
                                 'costo' => $partida->costo,
                             ];
                         })->toArray();
@@ -124,22 +121,39 @@ class ListOrdenes extends ListRecords
                                         ->content(fn ($get) => ($get('item') ? '[' . \App\Models\Inventario::find($get('item'))?->clave . '] ' : '') . $get('descripcion'))
                                         ->columnSpan(2),
                                     Placeholder::make('pendiente')
-                                        ->label('Pendiente')
+                                        ->label('Cantidad')
                                         ->content(fn ($get) => $get('cantidad_pendiente')),
-                                    TextInput::make('cantidad_a_convertir')
-                                        ->label('A Convertir')
-                                        ->numeric()
-                                        ->required()
-                                        ->minValue(0.01)
-                                        ->maxValue(fn ($get) => $get('cantidad_pendiente'))
-                                        ->reactive(),
+                                    Hidden::make('cantidad_a_convertir'),
                                 ]),
                         ])
                         ->addable(false)
                         ->deletable(false)
                         ->reorderable(false),
-                    Hidden::make('is_vis')->default('SI')
-                    ->live(),
+                    Hidden::make('is_vis')->default('SI')->live(),
+                    Grid::make(3)
+                        ->schema([
+                            Placeholder::make('origen_subtotal')
+                                ->label('Subtotal:')
+                                ->content(function ($livewire){
+                                    $fol = $livewire->requ;
+                                    $record = Requisiciones::where('id',$fol)->first();
+                                    return '$'.number_format($record->subtotal,2);
+                                }),
+                            Placeholder::make('origen_iva')
+                                ->label('I.V.A:')
+                                ->content(function ($livewire){
+                                    $fol = $livewire->requ;
+                                    $record = Requisiciones::where('id',$fol)->first();
+                                    return '$'.number_format($record->iva,2);
+                                }),
+                            Placeholder::make('origen_total')
+                                ->label('Total:')
+                                ->content(function ($livewire){
+                                    $fol = $livewire->requ;
+                                    $record = Requisiciones::where('id',$fol)->first();
+                                    return '$'.number_format($record->total,2);
+                                }),
+                        ]),
                     \Filament\Forms\Components\Actions::make([
                         FormAction::make('Generar Orden')
                         ->visible(function(Get $get){

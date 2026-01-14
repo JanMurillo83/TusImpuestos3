@@ -261,12 +261,17 @@ class cfdiei extends Page implements HasForms, HasTable
                                 $cta_nombres = $n_cta->nombre;
                             }
                             $nuevocli = Count(Clientes::where('team_id',Filament::getTenant()->id)->get()) + 1;
+                            $xml_content = $record->content;
+                            $cfdi = Cfdi::newFromString($xml_content);
+                            $comp = $cfdi->getQuickReader();
+                            $receptor = $comp->Receptor;
+                            //dd($receptor,$receptor['RegimenFiscalReceptor']);
                             Clientes::create([
                                 'clave' => $nuevocli,
                                 'rfc'=>$record['Receptor_Rfc'],
                                 'nombre'=>$record['Receptor_Nombre'],
-                                'regimen'=>$record['RegimenFiscalReceptor'],
-                                'codigo'=>$record['DomicilioFiscalReceptor'],
+                                'regimen'=>$receptor['RegimenFiscalReceptor'],
+                                'codigo'=>$receptor['DomicilioFiscalReceptor'],
                                 'dias_credito'=>30,
                                 'cuenta_contable'=>$cta_con,
                                 'team_id' => Filament::getTenant()->id,
@@ -483,12 +488,17 @@ class cfdiei extends Page implements HasForms, HasTable
                                 $cta_nombres = $n_cta->nombre;
                             }
                             $nuevocli = Count(Clientes::where('team_id',Filament::getTenant()->id)->get()) + 1;
+                            $xml_content = $record->content;
+                            $cfdi = Cfdi::newFromString($xml_content);
+                            $comp = $cfdi->getQuickReader();
+                            $receptor = $comp->Receptor;
+                            //dd($receptor,$receptor['RegimenFiscalReceptor']);
                             Clientes::create([
                                 'clave' => $nuevocli,
                                 'rfc'=>$record['Receptor_Rfc'],
                                 'nombre'=>$record['Receptor_Nombre'],
-                                'regimen'=>$record['RegimenFiscalReceptor'],
-                                'codigo'=>$record['DomicilioFiscalReceptor'],
+                                'regimen'=>$receptor['RegimenFiscalReceptor'],
+                                'codigo'=>$receptor['DomicilioFiscalReceptor'],
                                 'dias_credito'=>30,
                                 'cuenta_contable'=>$cta_con,
                                 'team_id' => Filament::getTenant()->id,
@@ -525,9 +535,18 @@ class cfdiei extends Page implements HasForms, HasTable
                                     $cta_nombres =$n_cta->nombre;
                                 }
                             }
+                            $xml_content = $record->content;
+                            $cfdi = Cfdi::newFromString($xml_content);
+                            $comp = $cfdi->getQuickReader();
+                            $receptor = $comp->Receptor;
                             Clientes::where('team_id',Filament::getTenant()->id)
                                 ->where('rfc',$record['Receptor_Rfc'])
-                                ->update(['cuenta_contable'=>$cta_con]);
+                                ->update([
+                                    'cuenta_contable'=>$cta_con,
+                                    'regimen'=>$receptor['RegimenFiscalReceptor'],
+                                    'codigo'=>$receptor['DomicilioFiscalReceptor'],
+                                    'dias_credito'=>30,
+                                ]);
                         }
                         $uuid_v = $record->UUID;
                         $pols = CatPolizas::where('team_id',Filament::getTenant()->id)

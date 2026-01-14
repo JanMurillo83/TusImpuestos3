@@ -265,6 +265,9 @@ class cfdiei extends Page implements HasForms, HasTable
                                 'clave' => $nuevocli,
                                 'rfc'=>$record['Receptor_Rfc'],
                                 'nombre'=>$record['Receptor_Nombre'],
+                                'regimen'=>$record['RegimenFiscalReceptor'],
+                                'codigo'=>$record['DomicilioFiscalReceptor'],
+                                'dias_credito'=>30,
                                 'cuenta_contable'=>$cta_con,
                                 'team_id' => Filament::getTenant()->id,
                             ]);
@@ -484,6 +487,9 @@ class cfdiei extends Page implements HasForms, HasTable
                                 'clave' => $nuevocli,
                                 'rfc'=>$record['Receptor_Rfc'],
                                 'nombre'=>$record['Receptor_Nombre'],
+                                'regimen'=>$record['RegimenFiscalReceptor'],
+                                'codigo'=>$record['DomicilioFiscalReceptor'],
+                                'dias_credito'=>30,
                                 'cuenta_contable'=>$cta_con,
                                 'team_id' => Filament::getTenant()->id,
                             ]);

@@ -1689,9 +1689,11 @@ class FacturasResource extends Resource
                     ->form(function (Forms\ComponentContainer $form) {
                         return $form->schema([
                             Select::make('sel_cotizacion')->label('Cotización')
+                                ->searchable()
                                 ->options(
                                     Cotizaciones::whereIn('estado',['Activa','Parcial'])
                                         ->where('team_id', Filament::getTenant()->id)
+                                        ->select(DB::raw("CONCAT(docto,' - ',nombre,' - ',DATE_FORMAT(fecha,'%d/%m/%Y'),' - ',FORMAT(total,2,'en_US')) AS folio"), 'id')
                                         ->get()->pluck('folio','id')
                                 )
                         ]);

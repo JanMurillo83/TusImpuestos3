@@ -3,19 +3,26 @@
 namespace App\Filament\Clusters\tiadmin\Resources\FacturasResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\FacturasResource;
+use App\Http\Controllers\TimbradoController;
 use App\Models\Clientes;
+use App\Models\CuentasCobrar;
 use App\Models\DatosFiscales;
 use App\Models\Cotizaciones;
 use App\Models\CotizacionesPartidas;
 use App\Models\Facturas;
 use App\Models\FacturasPartidas;
+use App\Models\Formas;
+use App\Models\Metodos;
 use App\Models\Pedidos;
 use App\Models\PedidosPartidas;
 use App\Models\SeriesFacturas;
 use App\Models\SurtidoInve;
 use App\Models\TableSettings;
 use App\Models\Team;
+use App\Models\Usos;
 use Asmit\ResizedColumn\HasResizableColumn;
+use Carbon\Carbon;
+use CfdiUtils\Cleaner\Cleaner;
 use Filament\Actions;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -34,6 +41,9 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
+use Spatie\Browsershot\Browsershot;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class ListFacturas extends ListRecords
@@ -139,7 +149,22 @@ class ListFacturas extends ListRecords
                                             ->required()
                                             ->readOnly(),
                                 ])->columns(5),
-
+                            Grid::make(3)->schema([
+                                Select::make('forma')
+                                    ->label('Metodo de Pago')
+                                    ->options(Formas::all()->pluck('mostrar','clave'))
+                                    ->default('PPD')
+                                    ->columnSpan(1)->required(),
+                                Select::make('metodo')
+                                    ->label('Forma de Pago')
+                                    ->options(Metodos::all()->pluck('mostrar','clave'))
+                                    ->default('99')->required(),
+                                Select::make('uso')
+                                    ->label('Uso de CFDI')
+                                    ->options(Usos::all()->pluck('mostrar','clave'))
+                                    ->default('G03')
+                                    ->columnSpan(1)->required(),
+                            ]),
                             Grid::make(3)
                                 ->schema([
                                     Placeholder::make('origen_folio')
@@ -217,13 +242,18 @@ class ListFacturas extends ListRecords
                                         'estado' => 'Activa',
                                         'cotizacion_id' => $cot->id,
                                         'team_id' => Filament::getTenant()->id,
-                                        'metodo' => $cot->metodo ?? 'PUE',
-                                        'forma' => $cot->forma ?? '01',
-                                        'uso' => $cot->uso ?? 'G03',
+                                        'metodo' => $get('metodo') ?? 'PPD',
+                                        'forma' => $get('forma') ?? '99',
+                                        'uso' => $get('uso') ?? 'G03',
                                         'condiciones' => $cot->condiciones ?? 'CONTADO',
                                     ]);
 
-                                    $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
+                                    $subtotal = 0;
+                                    $iva = 0;
+                                    $retiva = 0;
+                                    $retisr = 0;
+                                    $ieps = 0;
+                                    $total = 0;
 
                                     foreach ($partidasSeleccionadas as $pData) {
                                         $parOriginal = CotizacionesPartidas::find($pData['partida_id']);
@@ -259,19 +289,23 @@ class ListFacturas extends ListRecords
                                             'cotizacion_partida_id' => $parOriginal->id,
                                         ]);
                                         SurtidoInve::create([
-                                            'factura_id'=>$factura->id,
-                                            'factura_partida_id'=>$part_n->id,
-                                            'item_id'=>$parOriginal->item,
-                                            'descr'=>$parOriginal->descripcion,
-                                            'cant'=>$cantFacturar,
-                                            'precio_u'=>$parOriginal->precio,
-                                            'costo_u'=>$parOriginal->costo,
-                                            'precio_total'=>$parOriginal->precio*$parOriginal->cant,
-                                            'costo_total'=>$parOriginal->costo*$parOriginal->cant,
-                                            'team_id'=>Filament::getTenant()->id
+                                            'factura_id' => $factura->id,
+                                            'factura_partida_id' => $part_n->id,
+                                            'item_id' => $parOriginal->item,
+                                            'descr' => $parOriginal->descripcion,
+                                            'cant' => $cantFacturar,
+                                            'precio_u' => $parOriginal->precio,
+                                            'costo_u' => $parOriginal->costo,
+                                            'precio_total' => $parOriginal->precio * $parOriginal->cant,
+                                            'costo_total' => $parOriginal->costo * $parOriginal->cant,
+                                            'team_id' => Filament::getTenant()->id
                                         ]);
-                                        $subtotal += $lineSubtotal; $iva += $lineIva; $retiva += $lineRetIva;
-                                        $retisr += $lineRetIsr; $ieps += $lineIeps; $total += $lineTotal;
+                                        $subtotal += $lineSubtotal;
+                                        $iva += $lineIva;
+                                        $retiva += $lineRetIva;
+                                        $retisr += $lineRetIsr;
+                                        $ieps += $lineIeps;
+                                        $total += $lineTotal;
 
                                         $parOriginal->update(['pendientes' => max(0, ($parOriginal->pendientes ?? $parOriginal->cant) - $cantFacturar)]);
                                     }
@@ -286,14 +320,86 @@ class ListFacturas extends ListRecords
 
                                     DB::commit();
                                     $ser = intval($get('sel_serie'));
-                                    SeriesFacturas::where('id',$ser)->increment('folio',1);
+                                    SeriesFacturas::where('id', $ser)->increment('folio', 1);
+                                    //-----------------------------------------------------------
+                                    $emp = DatosFiscales::where('team_id', Filament::getTenant()->id)->first();
+                                    if ($emp->key != null && $emp->key != '') {
+                                        $record = $factura;
+                                        $receptor = $record->clie;
+                                        $res = app(TimbradoController::class)->TimbrarFactura($record->id, $receptor);
+                                        $resultado = json_decode($res);
+                                        $codigores = $resultado->codigo;
+                                        if ($codigores == "200") {
+                                            $date = Carbon::now();
+                                            $facturamodel = Facturas::find($record->id);
+                                            $facturamodel->timbrado = 'SI';
+                                            $facturamodel->xml = $resultado->cfdi;
+                                            $facturamodel->fecha_tim = $date;
+                                            $facturamodel->save();
+                                            $res2 = app(TimbradoController::class)->actualiza_fac_tim($record->id, $resultado->cfdi, "F");
+                                            $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
+                                            $dias_cr = intval($cliente_d?->dias_credito ?? 0);
+                                            $emp = Team::where('id', Filament::getTenant()->id)->first();
+                                            $cli = Clientes::where('id', $record->clie)->first();
+                                            $archivo_pdf = $emp->taxid . '_FACTURA_CFDI_' . $record->serie . $record->folio . '_' . $cli->rfc . '.pdf';
+                                            $ruta = public_path() . '/TMPCFDI/' . $archivo_pdf;
+                                            if (File::exists($ruta)) File::delete($ruta);
+                                            $data = ['idorden' => $record->id, 'id_empresa' => Filament::getTenant()->id];
+                                            $html = View::make('RepFactura', $data)->render();
+                                            Browsershot::html($html)->format('Letter')
+                                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                                ->noSandbox()
+                                                ->scale(0.8)->savePdf($ruta);
+                                            $nombre = $emp->taxid . '_FACTURA_CFDI_' . $record->serie . $record->folio . '_' . $cli->rfc . '.xml';
+                                            $archivo_xml = public_path() . '/TMPCFDI/' . $nombre;
+                                            if (File::exists($archivo_xml)) unlink($archivo_xml);
+                                            $xml = $resultado->cfdi;
+                                            $xml = Cleaner::staticClean($xml);
+                                            File::put($archivo_xml, $xml);
+                                            //-----------------------------------------------------------
+                                            $zip = new \ZipArchive();
+                                            $zipPath = public_path() . '/TMPCFDI/';
+                                            $zipFileName = $emp->taxid . '_FACTURA_CFDI_' . $record->serie . $record->folio . '_' . $cli->rfc . '.zip';
+                                            $zipFile = $zipPath . $zipFileName;
+                                            if ($zip->open(($zipFile), \ZipArchive::CREATE) === true) {
+                                                $zip->addFile($archivo_xml, $nombre);
+                                                $zip->addFile($ruta, $archivo_pdf);
+                                                $zip->close();
+                                            } else {
+                                                return false;
+                                            }
+                                            $docto = $record->serie . $record->folio;
+                                            self::EnvioCorreo($record->clie, $ruta, $archivo_xml, $docto, $archivo_pdf, $nombre);
+                                            self::MsjTimbrado($mensaje_graba);
+                                            return response()->download($zipFile);
+                                            //-----------------------------------------------------------
+
+                                        } else {
+                                            $mensaje_tipo = "2";
+                                            $mensaje_graba = $resultado->mensaje;
+                                            $record->error_timbrado = $resultado->mensaje;
+                                            $record->save();
+                                            Notification::make()
+                                                ->warning()
+                                                ->title('Error al Timbrar el Documento')
+                                                ->body($mensaje_graba)
+                                                ->persistent()
+                                                ->send();
+                                        }
+                                    }
+                                    //-----------------------------------------------------------
                                     Notification::make()->title('Factura generada exitosamente')->success()->send();
                                     $action->close();
                                     $livewire->dispatch('close-modal', ['id' => $action->getName()]);
-                                } catch (\Exception $e) {
-                                    DB::rollBack();
-                                    Notification::make()->title('Error al generar factura: ' . $e->getMessage())->danger()->send();
+                                }catch (\Exception $e){
+                                    Notification::make()->title('Factura NO generada')
+                                        ->body($e->getMessage())
+                                        ->danger()->send();
+                                    $action->close();
+                                    $livewire->dispatch('close-modal', ['id' => $action->getName()]);
                                 }
+
                             }),
                         FormAction::make('Cancelar')
                             ->color(Color::Red)

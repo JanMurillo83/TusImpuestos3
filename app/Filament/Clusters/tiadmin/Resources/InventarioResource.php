@@ -201,7 +201,7 @@ class InventarioResource extends Resource
                 Tables\Columns\TextColumn::make('clave')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('descripcion')
-                    ->searchable(),
+                    ->searchable()->wrap(),
                 Tables\Columns\TextColumn::make('linea')
                     ->numeric()
                     ->sortable()
@@ -284,7 +284,7 @@ class InventarioResource extends Resource
                                 ->default($movimientos),
                         ];
                     }),
-            ])
+            ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
                     ->createAnother(false)

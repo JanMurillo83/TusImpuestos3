@@ -218,12 +218,19 @@ class AdmRepoPage extends Page implements HasForms
                           })
                           ->default('General')
                           ->required(),
+                      Select::make('cliente_id')
+                          ->label('Cliente')
+                          ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
                   ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
                       ->action(function($data){
                           $this->team_id = Filament::getTenant()->id;
                           $this->fecha_inicio = $data['fecha_inicio'] ?? null;
                           $this->fecha_fin = $data['fecha_fin'] ?? null;
                           $this->serie = $data['serie'] ?? 'General';
+                          $this->cliente_id = $data['cliente_id'] ?? null;
                           $this->getAction('FacturacionAction')->visible(true);
                           $this->replaceMountedAction('FacturacionAction');
                           $this->getAction('FacturacionAction')->visible(false);
@@ -342,6 +349,7 @@ class AdmRepoPage extends Page implements HasForms
                     'inicial' => $this->fecha_inicio,
                     'final' => $this->fecha_fin,
                     'serie' => $this->serie,
+                    'cliente_id' => $this->cliente_id,
                 ]))
                 ->modalWidth('7xl'),
             Html2MediaAction::make('ComprasAction')

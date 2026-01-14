@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\ComprasResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\ComprasResource;
 use App\Models\Compras;
 use App\Models\DatosFiscales;
+use App\Models\Inventario;
 use App\Models\Movinventario;
 use App\Models\Ordenes;
 use App\Models\Proveedores;
@@ -436,7 +437,7 @@ class ListCompras extends ListRecords
                                             'producto'=>$parOriginal->item,
                                             'tipo'=>'Entrada',
                                             'fecha'=>Carbon::now(),
-                                            'cant'=>$parOriginal->cant,
+                                            'cant'=>$cantConvertir,
                                             'costo'=>$parOriginal->costo,
                                             'precio'=>0,
                                             'concepto'=>1,
@@ -444,6 +445,7 @@ class ListCompras extends ListRecords
                                             'tercero'=>$parOriginal->prov,
                                             'team_id'=>Filament::getTenant()->id,
                                         ]);
+                                        Inventario::where('id',$parOriginal->item)->increment('exist',$cantConvertir);
                                         // Actualizar pendientes en Requisición
                                         $parOriginal->pendientes = max(0, ($parOriginal->pendientes ?? $parOriginal->cant) - $cantConvertir);
                                         $parOriginal->save();

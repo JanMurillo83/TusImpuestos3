@@ -17,6 +17,9 @@
         if(isset($serie) && $serie != 'General') {
             $query->where('serie',$serie);
         }
+        if(isset($cliente_id) && $cliente_id != null) {
+            $query->where('clie',$cliente_id);
+        }
         $facturas = $query->get();
     ?>
 </head>
@@ -28,6 +31,10 @@
                     <h1>Resumen de Facturas</h1>
                     <h3>{{$empresa->name}}</h3>
                     <h5>Periodo: {{Carbon::create($inicial)->format('d-m-Y')}} a {{Carbon::create($final)->format('d-m-Y')}} (Serie: {{ $serie ?? 'General' }})</h5>
+                    @if(isset($cliente_id) && $cliente_id != null)
+                        <?php $nomclie = \App\Models\Clientes::find($cliente_id)->nombre ?? 'N/A'; ?>
+                        <h6>Cliente: {{$nomclie}}</h6>
+                    @endif
                 </center>
             </div>
         </div>

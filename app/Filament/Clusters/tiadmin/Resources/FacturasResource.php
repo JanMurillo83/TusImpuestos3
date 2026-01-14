@@ -182,16 +182,16 @@ class FacturasResource extends Resource
                         ->label('Metodo de Pago')
                         ->options(Formas::all()->pluck('mostrar','clave'))
                         ->default('PPD')
-                        ->columnSpan(2),
+                        ->columnSpan(2)->required(),
                     Forms\Components\Select::make('metodo')
                         ->label('Forma de Pago')
                         ->options(Metodos::all()->pluck('mostrar','clave'))
-                        ->default('99'),
+                        ->default('99')->required(),
                     Forms\Components\Select::make('uso')
                         ->label('Uso de CFDI')
                         ->options(Usos::all()->pluck('mostrar','clave'))
                         ->default('G03')
-                        ->columnSpan(1),
+                        ->columnSpan(1)->required(),
                     Forms\Components\Select::make('docto_rela')
                         ->label('Documento Relacionado')
                         ->options(Facturas::all()->pluck('docto','id'))
@@ -964,10 +964,6 @@ class FacturasResource extends Resource
                             Facturas::where('id',$record->id)->update([
                                 'estado'=>'Cancelada'
                             ]);
-                            CuentasCobrar::where('documento',$record->docto)
-                                ->where('team_id',Filament::getTenant()->id)->delete();
-                            Clientes::where('id',$record->clie)->decrement('saldo', $record->total);
-
                             $par_cot = FacturasPartidas::where('facturas_id',$record->id)->get();
                             foreach ($par_cot as $partida) {
                                 CotizacionesPartidas::where('id',$partida->cotizacion_partida_id)
@@ -975,14 +971,6 @@ class FacturasResource extends Resource
                             }
                             Cotizaciones::where('id',$record->cotizacion_id)
                                 ->update(['estado'=>'Activa']);
-                            $par_ped = FacturasPartidas::where('facturas_id',$record->id)->get();
-                            foreach ($par_ped as $partid) {
-                                PedidosPartidas::where('id',$partid->pedido_partida_id)
-                                    ->increment('pendientes',$partid->cant);
-                            }
-                            Pedidos::where('id',$record->pedido_id)
-                                ->update(['estado'=>'Activa']);
-
                             Notification::make()
                                 ->title('Factura Cancelada')
                                 ->success()

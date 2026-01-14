@@ -503,14 +503,14 @@ class OrdenesResource extends Resource
                         Ordenes::where('id',$record->id)->update([
                             'estado'=>'Cancelada'
                         ]);
-                        Requisiciones::where('id',$record->requisicion_id)->update([
-                            'estado'=>'Activa'
-                        ]);
                         $partidas = OrdenesPartidas::where('ordenes_id',$record->id)->get();
                         foreach($partidas as $p){
                             $cant = $p->cant;
                             RequisicionesPartidas::where('id',$p->requisicion_partida_id)->increment('pendientes',$cant);
                         }
+                        Requisiciones::where('id',$record->requisicion_id)->update([
+                            'estado'=>'Activa'
+                        ]);
                         Notification::make()
                         ->title('Orden Cancelada')
                         ->success()
@@ -521,12 +521,9 @@ class OrdenesResource extends Resource
                     ->label('Recibir Orden')
                     ->icon('fas-file-invoice')
                     ->color(Color::Green)
-                    ->visible(fn($record) => in_array($record->estado, ['Activa','Parcial']))
+                    ->visible(false)
                     ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
                         $partidas = OrdenesPartidas::where('ordenes_id',$record->id)
-                            ->where(function($q) {
-                                $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
-                            })
                             ->get()
                             ->map(function ($partida) {
                                 return [
@@ -534,8 +531,8 @@ class OrdenesResource extends Resource
                                     'item' => $partida->item,
                                     'descripcion' => $partida->descripcion,
                                     'cantidad_original' => $partida->cant,
-                                    'cantidad_pendiente' => $partida->pendientes ?? $partida->cant,
-                                    'cantidad_a_recibir' => $partida->pendientes ?? $partida->cant,
+                                    'cantidad_pendiente' => $partida->cant,
+                                    'cantidad_a_recibir' => $partida->cant,
                                     'costo' => $partida->costo,
                                 ];
                             })->toArray();
@@ -576,7 +573,7 @@ class OrdenesResource extends Resource
                                         Forms\Components\TextInput::make('cantidad_a_recibir')
                                             ->label('A Recibir')
                                             ->numeric()
-                                            ->required()
+                                            ->required()->readOnly()
                                             ->minValue(0.01)
                                             ->maxValue(fn ($get) => $get('cantidad_pendiente'))
                                             ->reactive(),

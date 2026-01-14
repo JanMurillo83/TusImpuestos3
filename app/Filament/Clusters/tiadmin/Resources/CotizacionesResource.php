@@ -537,7 +537,7 @@ class CotizacionesResource extends Resource
                         ->action(function($record){
                             $idorden = $record->id;
                             $id_empresa = Filament::getTenant()->id;
-                            $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                            $archivo_pdf = 'COTIZACION'.$record->docto.'.pdf';
                             $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                             if(File::exists($ruta))File::delete($ruta);
                             $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
@@ -740,7 +740,7 @@ class CotizacionesResource extends Resource
                     ->after(function($record,$livewire){
                         $idorden = $record->id;
                         $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                        $archivo_pdf = 'COTIZACION'.$record->docto.'.pdf';
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta))File::delete($ruta);
                         $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];

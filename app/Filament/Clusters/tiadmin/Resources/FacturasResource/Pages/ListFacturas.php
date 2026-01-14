@@ -9,6 +9,7 @@ use App\Models\CuentasCobrar;
 use App\Models\DatosFiscales;
 use App\Models\Cotizaciones;
 use App\Models\CotizacionesPartidas;
+use App\Models\Esquemasimp;
 use App\Models\Facturas;
 use App\Models\FacturasPartidas;
 use App\Models\Formas;
@@ -43,6 +44,7 @@ use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
+use PHPMailer\PHPMailer\PHPMailer;
 use Spatie\Browsershot\Browsershot;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
@@ -254,7 +256,7 @@ class ListFacturas extends ListRecords
                                     $retisr = 0;
                                     $ieps = 0;
                                     $total = 0;
-
+                                    $esquema = Esquemasimp::where('id',$cot->esquema)->first();
                                     foreach ($partidasSeleccionadas as $pData) {
                                         $parOriginal = CotizacionesPartidas::find($pData['partida_id']);
                                         if (!$parOriginal) continue;
@@ -285,6 +287,10 @@ class ListFacturas extends ListRecords
                                             'cvesat' => $parOriginal->cvesat,
                                             'costo' => $parOriginal->costo,
                                             'clie' => $cot->clie,
+                                            'por_imp1'=>$esquema->iva,
+                                            'por_imp2'=>$esquema->retiva,
+                                            'por_imp3'=>$esquema->retisr,
+                                            'por_imp4'=>$esquema->ieps,
                                             'team_id' => Filament::getTenant()->id,
                                             'cotizacion_partida_id' => $parOriginal->id,
                                         ]);
@@ -320,7 +326,7 @@ class ListFacturas extends ListRecords
 
                                     DB::commit();
                                     $ser = intval($get('sel_serie'));
-                                    SeriesFacturas::where('id', $ser)->increment('folio', 1);
+
                                     //-----------------------------------------------------------
                                     $emp = DatosFiscales::where('team_id', Filament::getTenant()->id)->first();
                                     if ($emp->key != null && $emp->key != '') {
@@ -330,6 +336,7 @@ class ListFacturas extends ListRecords
                                         $resultado = json_decode($res);
                                         $codigores = $resultado->codigo;
                                         if ($codigores == "200") {
+                                            SeriesFacturas::where('id', $ser)->increment('folio', 1);
                                             $date = Carbon::now();
                                             $facturamodel = Facturas::find($record->id);
                                             $facturamodel->timbrado = 'SI';
@@ -370,9 +377,9 @@ class ListFacturas extends ListRecords
                                                 return false;
                                             }
                                             $docto = $record->serie . $record->folio;
-                                            self::EnvioCorreo($record->clie, $ruta, $archivo_xml, $docto, $archivo_pdf, $nombre);
-                                            self::MsjTimbrado($mensaje_graba);
-                                            return response()->download($zipFile);
+                                            //self::EnvioCorreo($record->clie, $ruta, $archivo_xml, $docto, $archivo_pdf, $nombre);
+                                            //self::MsjTimbrado($mensaje_graba);
+                                            //return response()->download($zipFile);
                                             //-----------------------------------------------------------
 
                                         } else {
@@ -398,6 +405,16 @@ class ListFacturas extends ListRecords
                                         ->danger()->send();
                                     $action->close();
                                     $livewire->dispatch('close-modal', ['id' => $action->getName()]);
+                                    $can_par = FacturasPartidas::where('facturas_id', $record->id)->get();
+                                    foreach ($can_par as $can_p) {
+                                        CotizacionesPartidas::where('id',$can_p->cotizacion_partida_id)
+                                            ->increment('pendientes',$can_p->cant);
+                                    }
+                                    Cotizaciones::where('id',$record->cotizacion_id)
+                                        ->update(['estado'=>'Activa']);
+                                    FacturasPartidas::where('facturas_id', $record->id)->delete();
+                                    Facturas::where('id',$record->id)->delete();
+                                    SurtidoInve::where('factura_id',$record->id)->delete();
                                 }
 
                             }),
@@ -648,5 +665,51 @@ class ListFacturas extends ListRecords
         $tabla->getAction('Imprimir_Doc')->visible(true);
         $this->replaceMountedTableAction('Imprimir_Doc');
         $tabla->getAction('Imprimir_Doc')->visible(false);
+    }
+
+    public static function EnvioCorreo($cliente,$filepdf,$filexml,$docto,$nombrepdf,$nombrexml)
+    {
+        $Cliente = Clientes::where('id',$cliente)->first();
+        if($Cliente->correo != null) {
+            $mail = new PHPMailer();
+            $mail->isSMTP();
+            //$mail->SMTPDebug = 2;
+            $mail->Host = 'smtp.ionos.mx';
+            $mail->Port = 587;
+            $mail->AuthType = 'LOGIN';
+            $mail->SMTPAuth = true;
+            $mail->SMTPSecure = 'tls';
+            $mail->Username = 'sistema@app-tusimpuestos.com';
+            $mail->Password = '*TusImpuestos2025$*';
+            $mail->setFrom('sistema@app-tusimpuestos.com', Filament::getTenant()->name);
+            $mail->addAddress($Cliente->correo, $Cliente->nombre);
+            $mail->addAttachment($filepdf, $nombrepdf);
+            $mail->addAttachment($filexml, $nombrexml);
+            $mail->Subject = 'Factura CFDI ' . $docto . ' ' . $Cliente->nombre;
+            $mail->msgHTML('<b>Factura CFDI</b>');
+            $mail->Body = 'Factura CFDI';
+            $mail->send();
+            Notification::make()
+                ->success()
+                ->title('Envio de Correo')
+                ->body('Factura Enviada ' . $mail->ErrorInfo)
+                ->send();
+        }else{
+            Notification::make()
+                ->warning()
+                ->title('Envio de Correo')
+                ->body('Cliente sin Correo configurado')
+                ->send();
+        }
+    }
+
+    public static function MsjTimbrado($mensaje_graba)
+    {
+        Notification::make()
+            ->success()
+            ->title('Factura Timbrada Correctamente')
+            ->body($mensaje_graba)
+            ->duration(2000)
+            ->send();
     }
 }

@@ -16,6 +16,7 @@ use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\View;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -104,82 +105,6 @@ class AdmRepoPage extends Page implements HasForms
                            $this->replaceMountedAction('SaldoProveedoresAction');
                            $this->getAction('SaldoProveedoresAction')->visible(false);
                        }),
-                   /*Action::make('Estado Cuenta Cliente')->form([
-                       Select::make('cliente_id')
-                           ->label('Cliente')
-                           ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
-                           ->searchable()
-                           ->required(),
-                       DatePicker::make('fecha_inicio')
-                           ->label('Fecha Inicio')
-                           ->default(Carbon::now()->startOfMonth()),
-                       DatePicker::make('fecha_fin')
-                           ->label('Fecha Fin')
-                           ->default(Carbon::now())
-                   ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
-                       ->action(function($data){
-                           $this->team_id = Filament::getTenant()->id;
-                           $this->cliente_id = $data['cliente_id'];
-                           $this->fecha_inicio = $data['fecha_inicio'] ?? null;
-                           $this->fecha_fin = $data['fecha_fin'] ?? null;
-                           $this->getAction('EstadoCuentaClienteAction')->visible(true);
-                           $this->replaceMountedAction('EstadoCuentaClienteAction');
-                           $this->getAction('EstadoCuentaClienteAction')->visible(false);
-                       }),
-                   Action::make('Estado Cuenta Clientes')->form([
-                       DatePicker::make('fecha_inicio')
-                           ->label('Fecha Inicio')
-                           ->default(Carbon::now()->startOfMonth()),
-                       DatePicker::make('fecha_fin')
-                           ->label('Fecha Fin')
-                           ->default(Carbon::now())
-                   ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
-                       ->action(function($data){
-                           $this->team_id = Filament::getTenant()->id;
-                           $this->fecha_inicio = $data['fecha_inicio'] ?? null;
-                           $this->fecha_fin = $data['fecha_fin'] ?? null;
-                           $this->getAction('EstadoCuentaClientesAction')->visible(true);
-                           $this->replaceMountedAction('EstadoCuentaClientesAction');
-                           $this->getAction('EstadoCuentaClientesAction')->visible(false);
-                       }),
-                   Action::make('Estado Cuenta Proveedor')->form([
-                       Select::make('proveedor_id')
-                           ->label('Proveedor')
-                           ->options(Proveedores::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
-                           ->searchable()
-                           ->required(),
-                       DatePicker::make('fecha_inicio')
-                           ->label('Fecha Inicio')
-                           ->default(Carbon::now()->startOfMonth()),
-                       DatePicker::make('fecha_fin')
-                           ->label('Fecha Fin')
-                           ->default(Carbon::now())
-                   ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
-                       ->action(function($data){
-                           $this->team_id = Filament::getTenant()->id;
-                           $this->proveedor_id = $data['proveedor_id'];
-                           $this->fecha_inicio = $data['fecha_inicio'] ?? null;
-                           $this->fecha_fin = $data['fecha_fin'] ?? null;
-                           $this->getAction('EstadoCuentaProveedorAction')->visible(true);
-                           $this->replaceMountedAction('EstadoCuentaProveedorAction');
-                           $this->getAction('EstadoCuentaProveedorAction')->visible(false);
-                       }),
-                   Action::make('Estado Cuenta Proveedores')->form([
-                       DatePicker::make('fecha_inicio')
-                           ->label('Fecha Inicio')
-                           ->default(Carbon::now()->startOfMonth()),
-                       DatePicker::make('fecha_fin')
-                           ->label('Fecha Fin')
-                           ->default(Carbon::now())
-                   ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
-                       ->action(function($data){
-                           $this->team_id = Filament::getTenant()->id;
-                           $this->fecha_inicio = $data['fecha_inicio'] ?? null;
-                           $this->fecha_fin = $data['fecha_fin'] ?? null;
-                           $this->getAction('EstadoCuentaProveedoresAction')->visible(true);
-                           $this->replaceMountedAction('EstadoCuentaProveedoresAction');
-                           $this->getAction('EstadoCuentaProveedoresAction')->visible(false);
-                       }),*/
                    Action::make('Movimientos Inventario')->form([
                       Select::make('producto_id')
                           ->label('Producto')
@@ -231,9 +156,25 @@ class AdmRepoPage extends Page implements HasForms
                           $this->fecha_fin = $data['fecha_fin'] ?? null;
                           $this->serie = $data['serie'] ?? 'General';
                           $this->cliente_id = $data['cliente_id'] ?? null;
-                          $this->getAction('FacturacionAction')->visible(true);
+                          $ruta = public_path().'/TMPCFDI/ResumenFacturacion_'.Filament::getTenant()->id.'.pdf';
+                          if(\File::exists($ruta)) unlink($ruta);
+                          /*$this->getAction('FacturacionAction')->visible(true);
                           $this->replaceMountedAction('FacturacionAction');
-                          $this->getAction('FacturacionAction')->visible(false);
+                          $this->getAction('FacturacionAction')->visible(false);*/
+                          $data = [
+                              'idempresa' => $this->team_id,
+                              'inicial' => $this->fecha_inicio,
+                              'final' => $this->fecha_fin,
+                              'serie' => $this->serie,
+                              'cliente_id' => $this->cliente_id,
+                          ];
+                          $html = \Illuminate\Support\Facades\View::make('ResumenFacturas', $data)->render();
+                          Browsershot::html($html)->format('Letter')
+                              ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                              ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                              ->noSandbox()
+                              ->scale(0.8)->savePdf($ruta);
+                          $this->ReportePDF = base64_encode(file_get_contents($ruta));
                       }),
                   Action::make('Reporte Compras')->form([
                       DatePicker::make('fecha_inicio')
@@ -258,7 +199,15 @@ class AdmRepoPage extends Page implements HasForms
                           $this->replaceMountedAction('CostoInventarioAction');
                           $this->getAction('CostoInventarioAction')->visible(false);
                       }),
-               ])
+               ]),
+                View::make('ReportesAdmin.your-pdf-viewer')
+                    ->columnSpanFull()
+                    ->viewData(function () {
+                        return ['pdfBase64' => $this->ReportePDF ?? 'No se ha cargado'] ;
+                    })->visible(function (){
+                        if($this->ReportePDF == '') return false;
+                        else return true;
+                    }),
             ])->extraAttributes(['style'=>'margin-top:-5rem']);
     }
 

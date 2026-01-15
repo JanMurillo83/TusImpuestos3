@@ -49,7 +49,8 @@ class ReportesAdmin extends Page implements HasForms
     public ?string $ReportePDF = '';
     public static function shouldRegisterNavigation () : bool
     {
-        return auth()->user()->hasRole(['administrador','contador']);
+        //return auth()->user()->hasRole(['administrador','contador']);
+        return false;
     }
     public function mount():void
     {

@@ -14,6 +14,7 @@ class ContReportes extends Cluster
 
     public static function shouldRegisterNavigation () : bool
     {
-        return auth()->user()->hasRole(['administrador','contador']);
+        //return auth()->user()->hasRole(['administrador','contador']);
+        return false;
     }
 }

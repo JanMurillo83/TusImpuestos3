@@ -372,6 +372,27 @@ class InventarioResource extends Resource
                         }
 
                         return [
+                            Actions::make([
+                                Action::make('downloadLayoutPrecios')
+                                    ->label('Descargar Layout Excel')
+                                    ->icon('fas-download')
+                                    ->color(Color::Blue)
+                                    ->action(fn() => static::downloadLayoutPreciosVolumen($record)),
+                                Action::make('importarPrecios')
+                                    ->label('Importar desde Excel')
+                                    ->icon('fas-file-import')
+                                    ->color(Color::Amber)
+                                    ->form([
+                                        FileUpload::make('excelFile')
+                                            ->label('Seleccionar Archivo Excel')
+                                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'])
+                                            ->storeFiles(false)
+                                            ->required(),
+                                    ])
+                                    ->action(function (Model $record, array $data, $livewire) {
+                                        return static::importarPreciosVolumen($record, $data, $livewire);
+                                    }),
+                            ])->columnSpanFull(),
                             Forms\Components\Tabs::make('Listas')
                                 ->tabs($tabs)
                                 ->columnSpanFull(),
@@ -485,6 +506,25 @@ class InventarioResource extends Resource
                     ->success()
                     ->send();
             }),
+            ActionsAction::make('ImpPreciosVol')
+                ->label('Importar Precios Volumen')
+                ->icon('fas-file-excel')->badge()
+                ->modalSubmitActionLabel('Importar')
+                ->modalCancelActionLabel('Cancelar')
+                ->form([
+                    Forms\Components\Actions::make([
+                        Forms\Components\Actions\Action::make('downloadLayoutPreciosVol')
+                            ->label('Descargar Layout')
+                            ->icon('fas-download')
+                            ->color(Color::Blue)
+                            ->action(fn() => static::downloadLayoutPreciosVolumenMasivo()),
+                    ]),
+                    FileUpload::make('ExcelFile')
+                        ->label('Seleccionar Archivo')
+                        ->storeFiles(false)
+                ])->action(function($data){
+                    static::importarPreciosVolumenMasivo($data);
+                }),
             ActionsAction::make('Fisico')
                 ->label('Inventario Fisico')
                 ->icon('fas-boxes-packing')->badge()
@@ -699,5 +739,322 @@ class InventarioResource extends Resource
         $writer->save($tempFile);
 
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public static function downloadLayoutPreciosVolumen($record)
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Configurar encabezados
+        $headers = [
+            'Lista_Precio',
+            'Cantidad_Desde',
+            'Cantidad_Hasta',
+            'Precio_Unitario',
+            'Activo'
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        // Agregar información del producto en las primeras filas como comentario
+        $sheet->setCellValue('A2', '# SKU: ' . $record->clave);
+        $sheet->setCellValue('A3', '# Producto: ' . $record->descripcion);
+        $sheet->setCellValue('A4', '# Lista_Precio: 1 a 5 (1=Público, 2=Lista2, etc)');
+        $sheet->setCellValue('A5', '# Activo: SI o NO');
+        $sheet->setCellValue('A6', '# Dejar Cantidad_Hasta vacío para sin límite');
+
+        // Agregar datos existentes si los hay
+        $row = 7;
+        for ($lista = 1; $lista <= 5; $lista++) {
+            $precios = \App\Models\PrecioVolumen::where('producto_id', $record->id)
+                ->where('lista_precio', $lista)
+                ->where('team_id', Filament::getTenant()->id)
+                ->orderBy('cantidad_desde')
+                ->get();
+
+            foreach ($precios as $precio) {
+                $sheet->setCellValue('A' . $row, $lista);
+                $sheet->setCellValue('B' . $row, $precio->cantidad_desde);
+                $sheet->setCellValue('C' . $row, $precio->cantidad_hasta ?? '');
+                $sheet->setCellValue('D' . $row, $precio->precio_unitario);
+                $sheet->setCellValue('E' . $row, $precio->activo ? 'SI' : 'NO');
+                $row++;
+            }
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'precios_volumen_' . $record->clave . '.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public static function importarPreciosVolumen($record, $data, $livewire)
+    {
+        try {
+            $archivo = $data['excelFile']->path();
+            $tipo = IOFactory::identify($archivo);
+            $lector = IOFactory::createReader($tipo);
+            $libro = $lector->load($archivo, IReader::IGNORE_EMPTY_CELLS);
+            $hoja = $libro->getActiveSheet();
+            $rows = $hoja->toArray();
+
+            $teamId = Filament::getTenant()->id;
+            $importados = 0;
+            $errores = [];
+
+            // Eliminar todos los precios por volumen existentes del producto
+            \App\Models\PrecioVolumen::where('producto_id', $record->id)
+                ->where('team_id', $teamId)
+                ->delete();
+
+            foreach ($rows as $index => $row) {
+                // Saltar encabezado y líneas de comentarios
+                if ($index == 0 || empty($row[0]) || str_starts_with($row[0], '#')) {
+                    continue;
+                }
+
+                $listaPrecio = $row[0] ?? null;
+                $cantidadDesde = $row[1] ?? null;
+                $cantidadHasta = $row[2] ?? null;
+                $precioUnitario = $row[3] ?? null;
+                $activo = isset($row[4]) ? (strtoupper($row[4]) === 'SI' || $row[4] === true || $row[4] === 1) : true;
+
+                // Validar datos requeridos
+                if (empty($listaPrecio) || !is_numeric($listaPrecio) || $listaPrecio < 1 || $listaPrecio > 5) {
+                    $errores[] = "Fila " . ($index + 1) . ": Lista de precio inválida";
+                    continue;
+                }
+
+                if (empty($cantidadDesde) || !is_numeric($cantidadDesde) || $cantidadDesde < 0) {
+                    $errores[] = "Fila " . ($index + 1) . ": Cantidad desde inválida";
+                    continue;
+                }
+
+                if (empty($precioUnitario) || !is_numeric($precioUnitario) || $precioUnitario < 0) {
+                    $errores[] = "Fila " . ($index + 1) . ": Precio unitario inválido";
+                    continue;
+                }
+
+                // Validar cantidad hasta si está presente
+                if (!empty($cantidadHasta) && (!is_numeric($cantidadHasta) || $cantidadHasta < $cantidadDesde)) {
+                    $errores[] = "Fila " . ($index + 1) . ": Cantidad hasta debe ser mayor que cantidad desde";
+                    continue;
+                }
+
+                // Crear el registro
+                \App\Models\PrecioVolumen::create([
+                    'producto_id' => $record->id,
+                    'lista_precio' => (int)$listaPrecio,
+                    'cantidad_desde' => $cantidadDesde,
+                    'cantidad_hasta' => !empty($cantidadHasta) ? $cantidadHasta : null,
+                    'precio_unitario' => $precioUnitario,
+                    'activo' => $activo,
+                    'team_id' => $teamId,
+                ]);
+
+                $importados++;
+            }
+
+            // Recargar el formulario con los datos actualizados
+            $preciosVolumen = [];
+            for ($lista = 1; $lista <= 5; $lista++) {
+                $precios = \App\Models\PrecioVolumen::where('producto_id', $record->id)
+                    ->where('lista_precio', $lista)
+                    ->where('team_id', $teamId)
+                    ->orderBy('cantidad_desde')
+                    ->get()
+                    ->toArray();
+                $preciosVolumen["lista_{$lista}"] = $precios;
+            }
+            $livewire->form->fill($preciosVolumen);
+
+            // Notificación de éxito
+            $mensaje = "Se importaron {$importados} registros correctamente";
+            if (count($errores) > 0) {
+                $mensaje .= "\n\nErrores encontrados:\n" . implode("\n", array_slice($errores, 0, 5));
+                if (count($errores) > 5) {
+                    $mensaje .= "\n... y " . (count($errores) - 5) . " errores más";
+                }
+            }
+
+            Notification::make()
+                ->title('Importación completada')
+                ->body($mensaje)
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error al importar')
+                ->body('Error: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public static function downloadLayoutPreciosVolumenMasivo()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Configurar encabezados
+        $headers = [
+            'SKU',
+            'Lista_Precio',
+            'Cantidad_Desde',
+            'Cantidad_Hasta',
+            'Precio_Unitario',
+            'Activo'
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        // Agregar información de ayuda
+        $sheet->setCellValue('A2', '# SKU: Clave del producto');
+        $sheet->setCellValue('A3', '# Lista_Precio: 1 a 5 (1=Público, 2=Lista2, etc)');
+        $sheet->setCellValue('A4', '# Activo: SI o NO');
+        $sheet->setCellValue('A5', '# Dejar Cantidad_Hasta vacío para sin límite');
+        $sheet->setCellValue('A6', '# Ejemplo:');
+
+        // Ejemplo
+        $sheet->setCellValue('A7', 'PROD001');
+        $sheet->setCellValue('B7', 1);
+        $sheet->setCellValue('C7', 1);
+        $sheet->setCellValue('D7', 10);
+        $sheet->setCellValue('E7', 100.50);
+        $sheet->setCellValue('F7', 'SI');
+
+        $sheet->setCellValue('A8', 'PROD001');
+        $sheet->setCellValue('B8', 1);
+        $sheet->setCellValue('C8', 11);
+        $sheet->setCellValue('D8', '');
+        $sheet->setCellValue('E8', 95.00);
+        $sheet->setCellValue('F8', 'SI');
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'layout_precios_volumen_masivo.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public static function importarPreciosVolumenMasivo($data)
+    {
+        try {
+            $archivo = $data['ExcelFile']->path();
+            $tipo = IOFactory::identify($archivo);
+            $lector = IOFactory::createReader($tipo);
+            $libro = $lector->load($archivo, IReader::IGNORE_EMPTY_CELLS);
+            $hoja = $libro->getActiveSheet();
+            $rows = $hoja->toArray();
+
+            $teamId = Filament::getTenant()->id;
+            $importados = 0;
+            $errores = [];
+            $productosActualizados = [];
+
+            foreach ($rows as $index => $row) {
+                // Saltar encabezado y líneas de comentarios
+                if ($index == 0 || empty($row[0]) || str_starts_with($row[0], '#')) {
+                    continue;
+                }
+
+                $sku = $row[0] ?? null;
+                $listaPrecio = $row[1] ?? null;
+                $cantidadDesde = $row[2] ?? null;
+                $cantidadHasta = $row[3] ?? null;
+                $precioUnitario = $row[4] ?? null;
+                $activo = isset($row[5]) ? (strtoupper($row[5]) === 'SI' || $row[5] === true || $row[5] === 1) : true;
+
+                // Validar SKU
+                if (empty($sku)) {
+                    $errores[] = "Fila " . ($index + 1) . ": SKU vacío";
+                    continue;
+                }
+
+                // Buscar producto
+                $producto = Inventario::where('clave', $sku)
+                    ->where('team_id', $teamId)
+                    ->first();
+
+                if (!$producto) {
+                    $errores[] = "Fila " . ($index + 1) . ": Producto con SKU '{$sku}' no encontrado";
+                    continue;
+                }
+
+                // Validar datos requeridos
+                if (empty($listaPrecio) || !is_numeric($listaPrecio) || $listaPrecio < 1 || $listaPrecio > 5) {
+                    $errores[] = "Fila " . ($index + 1) . ": Lista de precio inválida para SKU '{$sku}'";
+                    continue;
+                }
+
+                if (empty($cantidadDesde) || !is_numeric($cantidadDesde) || $cantidadDesde < 0) {
+                    $errores[] = "Fila " . ($index + 1) . ": Cantidad desde inválida para SKU '{$sku}'";
+                    continue;
+                }
+
+                if (empty($precioUnitario) || !is_numeric($precioUnitario) || $precioUnitario < 0) {
+                    $errores[] = "Fila " . ($index + 1) . ": Precio unitario inválido para SKU '{$sku}'";
+                    continue;
+                }
+
+                // Validar cantidad hasta si está presente
+                if (!empty($cantidadHasta) && (!is_numeric($cantidadHasta) || $cantidadHasta < $cantidadDesde)) {
+                    $errores[] = "Fila " . ($index + 1) . ": Cantidad hasta debe ser mayor que cantidad desde para SKU '{$sku}'";
+                    continue;
+                }
+
+                // Marcar producto para eliminar precios existentes
+                if (!isset($productosActualizados[$producto->id])) {
+                    \App\Models\PrecioVolumen::where('producto_id', $producto->id)
+                        ->where('team_id', $teamId)
+                        ->delete();
+                    $productosActualizados[$producto->id] = true;
+                }
+
+                // Crear el registro
+                \App\Models\PrecioVolumen::create([
+                    'producto_id' => $producto->id,
+                    'lista_precio' => (int)$listaPrecio,
+                    'cantidad_desde' => $cantidadDesde,
+                    'cantidad_hasta' => !empty($cantidadHasta) ? $cantidadHasta : null,
+                    'precio_unitario' => $precioUnitario,
+                    'activo' => $activo,
+                    'team_id' => $teamId,
+                ]);
+
+                $importados++;
+            }
+
+            // Notificación de éxito
+            $mensaje = "Se importaron {$importados} registros de precios para " . count($productosActualizados) . " productos";
+            if (count($errores) > 0) {
+                $mensaje .= "\n\nErrores encontrados:\n" . implode("\n", array_slice($errores, 0, 10));
+                if (count($errores) > 10) {
+                    $mensaje .= "\n... y " . (count($errores) - 10) . " errores más";
+                }
+            }
+
+            Notification::make()
+                ->title('Importación completada')
+                ->body($mensaje)
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error al importar')
+                ->body('Error: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 }

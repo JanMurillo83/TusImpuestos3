@@ -118,6 +118,7 @@ class FacturasResource extends Resource
                         Forms\Components\Select::make('sel_serie')
                             ->label('Serie')
                             ->live(onBlur: true)
+                            ->required()
                             ->options(SeriesFacturas::where('team_id',Filament::getTenant()->id)
                                 ->where('tipo','F')
                                 ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
@@ -1533,7 +1534,6 @@ class FacturasResource extends Resource
                             }
                         }
                     //------------------------------------------
-
                 }),
                 Action::make('Importar Facturas')
                 ->icon('fas-upload')

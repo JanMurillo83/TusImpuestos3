@@ -1206,6 +1206,9 @@ class FacturasResource extends Resource
                     $mail->Password = '*TusImpuestos2025$*';
                     $mail->setFrom('sistema@app-tusimpuestos.com', Filament::getTenant()->name);
                     $mail->addAddress($Cliente->correo, $Cliente->nombre);
+                    if (!empty($Cliente->correo2)) {
+                        $mail->addAddress($Cliente->correo2, $Cliente->nombre);
+                    }
                     $mail->addAttachment($filepdf,$filepdf);
                     $mail->addAttachment($filexml,$filexml);
                     $mail->Subject = 'Factura CFDI '.$record->docto.' '.$Cliente->nombre;
@@ -1759,6 +1762,9 @@ class FacturasResource extends Resource
             $mail->Password = '*TusImpuestos2025$*';
             $mail->setFrom('sistema@app-tusimpuestos.com', Filament::getTenant()->name);
             $mail->addAddress($Cliente->correo, $Cliente->nombre);
+            if (!empty($Cliente->correo2)) {
+                $mail->addAddress($Cliente->correo2, $Cliente->nombre);
+            }
             $mail->addAttachment($filepdf, $nombrepdf);
             $mail->addAttachment($filexml, $nombrexml);
             $mail->Subject = 'Factura CFDI ' . $docto . ' ' . $Cliente->nombre;

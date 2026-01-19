@@ -89,7 +89,13 @@ class ClientesResource extends Resource
                                             ->tel()
                                             ->maxLength(255),
                                         Forms\Components\TextInput::make('correo')
+                                            ->label('Correo')
+                                            ->email()
                                             ->maxLength(255)->required(),
+                                        Forms\Components\TextInput::make('correo2')
+                                            ->label('Correo 2')
+                                            ->email()
+                                            ->maxLength(255),
                                         Forms\Components\TextInput::make('contacto')
                                             ->maxLength(255),
                                         Forms\Components\Select::make('cuenta_contable')

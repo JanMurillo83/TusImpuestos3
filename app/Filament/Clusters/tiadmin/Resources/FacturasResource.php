@@ -125,12 +125,20 @@ class FacturasResource extends Resource
                                 ->pluck('descripcion','id'))
                                 ->default(function (){
                                     return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->serie ?? 'A';
-                                })->afterStateUpdated(function(Get $get,Set $set){
+                                })->afterStateUpdated(function(Get $get,Set $set,$context){
                                     $ser = $get('sel_serie');
                                     $fol = SeriesFacturas::where('id',$ser)->first();
                                     $set('serie',$fol->serie);
-                                    $set('folio',$fol->folio + 1);
-                                    $set('docto',$fol->serie.$fol->folio + 1);
+                                    $fol_a = 0;
+                                    if($context == 'edit') {
+                                        $set('folio', $fol->folio);
+                                        $fol_a = $fol->folio;
+                                    }
+                                    else {
+                                        $set('folio', $fol->folio + 1);
+                                        $fol_a = $fol->folio + 1;
+                                    }
+                                    $set('docto',$fol->serie.$fol_a);
                                 }),
                         Forms\Components\Hidden::make('serie'),
                         Forms\Components\Hidden::make('folio')

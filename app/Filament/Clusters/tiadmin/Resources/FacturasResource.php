@@ -130,7 +130,8 @@ class FacturasResource extends Resource
                                     $fol = SeriesFacturas::where('id',$ser)->first();
                                     $set('serie',$fol->serie);
                                     $fol_a = 0;
-                                    if($context == 'edit') {
+                                    //dd($context);
+                                    if($context != 'Agregar') {
                                         $set('folio', $fol->folio);
                                         $fol_a = $fol->folio;
                                     }

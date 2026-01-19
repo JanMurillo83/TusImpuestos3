@@ -6,6 +6,7 @@ use App\Filament\Clusters\tiadmin;
 use App\Filament\Clusters\tiadmin\Resources\ClientesResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\ClientesResource\RelationManagers;
 use App\Livewire\CuentasCobrarWidget;
+use App\Models\CatCuentas;
 use App\Models\Clientes;
 use App\Models\Regimenes;
 use Filament\Facades\Filament;
@@ -344,6 +345,43 @@ class ClientesResource extends Resource
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->after(function($record){
                         $record->rfc = strtoupper($record->rfc);
+
+                        // Generar cuenta contable si no existe
+                        if (empty($record->cuenta_contable)) {
+                            $teamId = Filament::getTenant()->id;
+
+                            // Buscar la última cuenta contable de clientes (105-XXX)
+                            $ultimaCuenta = CatCuentas::where('team_id', $teamId)
+                                ->where('codigo', 'like', '105-%')
+                                ->orderBy('codigo', 'desc')
+                                ->first();
+
+                            // Generar nuevo código
+                            if ($ultimaCuenta) {
+                                $partes = explode('-', $ultimaCuenta->codigo);
+                                $nuevoNumero = str_pad((int)$partes[1] + 1, 3, '0', STR_PAD_LEFT);
+                            } else {
+                                $nuevoNumero = '001';
+                            }
+
+                            $nuevoCodigo = '105-' . $nuevoNumero;
+
+                            // Crear la cuenta contable
+                            CatCuentas::create([
+                                'codigo' => $nuevoCodigo,
+                                'nombre' => $record->nombre,
+                                'acumula' => '105',
+                                'tipo' => 'D',
+                                'naturaleza' => 'D',
+                                'csat' => '105.01',
+                                'team_id' => $teamId,
+                                'rfc_asociado' => $record->rfc
+                            ]);
+
+                            // Actualizar el cliente con la nueva cuenta
+                            $record->cuenta_contable = $nuevoCodigo;
+                        }
+
                         $record->save();
                     }),
                 Action::make('ImpProd')

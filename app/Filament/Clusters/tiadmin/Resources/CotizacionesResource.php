@@ -142,13 +142,20 @@ class CotizacionesResource extends Resource
                                     TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
                                         ->live(onBlur: true)
                                         ->currencyMask(decimalSeparator:'.',precision:2)
-                                        ->afterStateUpdated(function(Get $get, Set $set){
+                                        ->afterStateUpdated(function(Get $get, Set $set, $state, $old){
+                                            // Solo recalcular si el valor realmente cambió
+                                            if ($state == $old) {
+                                                return;
+                                            }
+
                                             $cant = floatval($get('cant'));
                                             $cli = $get('../../clie');
                                             $itemId = $get('item');
 
-                                            // Recalcular precio si cambia la cantidad (por políticas de volumen)
-                                            if ($cant > 0 && $cli && $itemId) {
+                                            // Recalcular precio solo si NO estamos editando un registro existente
+                                            // O si explícitamente la cantidad cambió de manera significativa
+                                            $cotizacionId = $get('../../id');
+                                            if ($cant > 0 && $cli && $itemId && !$cotizacionId) {
                                                 $precio = PrecioCalculator::calcularPrecio(
                                                     $itemId,
                                                     $cli,
@@ -169,9 +176,9 @@ class CotizacionesResource extends Resource
                                             $set('retisr',$subt * ($esq->retisr*0.01));
                                             $set('ieps',$subt * ($esq->ieps*0.01));
                                             $ivapar = $subt * ($esq->iva*0.01);
-                                            $retivapar = $subt * ($esq->iva*0.01);
-                                            $retisrpar = $subt * ($esq->iva*0.01);
-                                            $iepspar = $subt * ($esq->iva*0.01);
+                                            $retivapar = $subt * ($esq->retiva*0.01);
+                                            $retisrpar = $subt * ($esq->retisr*0.01);
+                                            $iepspar = $subt * ($esq->ieps*0.01);
                                             $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
                                             $set('total',$tot);
                                             $set('clie',$get('../../clie'));
@@ -283,7 +290,12 @@ class CotizacionesResource extends Resource
                                                 default => null
                                             };
                                         })
-                                        ->afterStateUpdated(function(Get $get, Set $set){
+                                        ->afterStateUpdated(function(Get $get, Set $set, $state, $old){
+                                            // Solo recalcular si el valor realmente cambió
+                                            if ($state == $old) {
+                                                return;
+                                            }
+
                                             $cant = floatval($get('cant'));
                                             $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
@@ -808,6 +820,95 @@ class CotizacionesResource extends Resource
                                 ->success()
                                 ->send();
                         }
+                    }),
+                Action::make('Copiar')
+                    ->icon('fas-copy')
+                    ->label('Copiar Cotización')
+                    ->requiresConfirmation()
+                    ->action(function(Model $record){
+                        DB::transaction(function () use ($record) {
+                            $teamId = Filament::getTenant()->id;
+
+                            // Obtener nuevo folio
+                            $ultimaCotizacion = Cotizaciones::where('team_id', $teamId)
+                                ->orderBy('folio', 'desc')
+                                ->first();
+                            $serie = $record->serie ?? 'C';
+                            $nuevoFolio_ = ($ultimaCotizacion->folio ?? 0) + 1;
+                            $nuevoFolio = $serie.$nuevoFolio_;
+
+                            // Crear encabezado de cotización copiada
+                            $nueva = new Cotizaciones();
+                            $nueva->team_id = $teamId;
+                            $nueva->serie = $serie;
+                            $nueva->folio = $nuevoFolio_;
+                            $nueva->docto = $nuevoFolio;
+                            $nueva->fecha = Carbon::now();
+                            $nueva->clie = $record->clie;
+                            $nueva->direccion_entrega_id = $record->direccion_entrega_id;
+                            $nueva->nombre = $record->nombre;
+                            $nueva->esquema = $record->esquema;
+                            $nueva->subtotal = $record->subtotal;
+                            $nueva->iva = $record->iva;
+                            $nueva->retiva = $record->retiva;
+                            $nueva->retisr = $record->retisr;
+                            $nueva->ieps = $record->ieps;
+                            $nueva->total = $record->total;
+                            $nueva->observa = $record->observa;
+                            $nueva->estado = 'Activa';
+                            $nueva->metodo = $record->metodo;
+                            $nueva->forma = $record->forma;
+                            $nueva->uso = $record->uso;
+                            $nueva->condiciones = $record->condiciones;
+                            $nueva->vendedor = $record->vendedor;
+                            $nueva->moneda = $record->moneda;
+                            $nueva->tcambio = $record->tcambio;
+                            $nueva->entrega_lugar = $record->entrega_lugar;
+                            $nueva->entrega_direccion = $record->entrega_direccion;
+                            $nueva->entrega_horario = $record->entrega_horario;
+                            $nueva->entrega_contacto = $record->entrega_contacto;
+                            $nueva->entrega_telefono = $record->entrega_telefono;
+                            $nueva->condiciones_pago = $record->condiciones_pago;
+                            $nueva->condiciones_entrega = $record->condiciones_entrega;
+                            $nueva->oc_referencia_interna = $record->oc_referencia_interna;
+                            $nueva->nombre_elaboro = $record->nombre_elaboro;
+                            $nueva->nombre_autorizo = $record->nombre_autorizo;
+                            $nueva->save();
+
+                            // Duplicar partidas
+                            $partidas = CotizacionesPartidas::where('cotizaciones_id', $record->id)->get();
+                            foreach ($partidas as $par) {
+                                CotizacionesPartidas::create([
+                                    'cotizaciones_id' => $nueva->id,
+                                    'item' => $par->item,
+                                    'descripcion' => $par->descripcion,
+                                    'cant' => $par->cant,
+                                    'precio' => $par->precio,
+                                    'subtotal' => $par->subtotal,
+                                    'iva' => $par->iva,
+                                    'retiva' => $par->retiva,
+                                    'retisr' => $par->retisr,
+                                    'ieps' => $par->ieps,
+                                    'total' => $par->total,
+                                    'unidad' => $par->unidad,
+                                    'cvesat' => $par->cvesat,
+                                    'costo' => $par->costo,
+                                    'clie' => $par->clie,
+                                    'observa' => $par->observa,
+                                    'pendientes' => $par->cant,
+                                    'por_imp1' => $par->por_imp1,
+                                    'por_imp2' => $par->por_imp2,
+                                    'por_imp3' => $par->por_imp3,
+                                    'por_imp4' => $par->por_imp4,
+                                    'team_id' => $teamId,
+                                ]);
+                            }
+
+                            Notification::make()
+                                ->title('Cotización copiada correctamente: ' . $nueva->docto)
+                                ->success()
+                                ->send();
+                        });
                     }),
                 Tables\Actions\EditAction::make()
                     ->modalSubmitActionLabel('Grabar')

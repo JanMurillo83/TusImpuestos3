@@ -457,6 +457,80 @@ class OrdenesResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                ActionsAction::make('Copiar')
+                    ->icon('fas-copy')
+                    ->label('Copiar Orden de Compra')
+                    ->requiresConfirmation()
+                    ->action(function(Model $record){
+                        DB::transaction(function () use ($record) {
+                            $teamId = Filament::getTenant()->id;
+
+                            // Obtener nuevo folio
+                            $ultimaOrden = Ordenes::where('team_id', $teamId)
+                                ->orderBy('folio', 'desc')
+                                ->first();
+                            $nuevoFolio = ($ultimaOrden->folio ?? 0) + 1;
+
+                            // Crear encabezado de orden copiada
+                            $nueva = new Ordenes();
+                            $nueva->team_id = $teamId;
+                            $nueva->folio = $nuevoFolio;
+                            $nueva->fecha = Carbon::now();
+                            $nueva->prov = $record->prov;
+                            $nueva->nombre = $record->nombre;
+                            $nueva->esquema = $record->esquema;
+                            $nueva->subtotal = $record->subtotal;
+                            $nueva->iva = $record->iva;
+                            $nueva->retiva = $record->retiva;
+                            $nueva->retisr = $record->retisr;
+                            $nueva->ieps = $record->ieps;
+                            $nueva->total = $record->total;
+                            $nueva->observa = $record->observa;
+                            $nueva->estado = 'Activa';
+                            $nueva->requisicion_id = $record->requisicion_id;
+                            $nueva->entrega_lugar = $record->entrega_lugar;
+                            $nueva->entrega_direccion = $record->entrega_direccion;
+                            $nueva->entrega_horario = $record->entrega_horario;
+                            $nueva->entrega_contacto = $record->entrega_contacto;
+                            $nueva->entrega_telefono = $record->entrega_telefono;
+                            $nueva->condiciones_pago = $record->condiciones_pago;
+                            $nueva->condiciones_entrega = $record->condiciones_entrega;
+                            $nueva->oc_referencia_interna = $record->oc_referencia_interna;
+                            $nueva->nombre_elaboro = $record->nombre_elaboro;
+                            $nueva->nombre_autorizo = $record->nombre_autorizo;
+                            $nueva->save();
+
+                            // Duplicar partidas
+                            $partidas = OrdenesPartidas::where('ordenes_id', $record->id)->get();
+                            foreach ($partidas as $par) {
+                                OrdenesPartidas::create([
+                                    'ordenes_id' => $nueva->id,
+                                    'item' => $par->item,
+                                    'descripcion' => $par->descripcion,
+                                    'cant' => $par->cant,
+                                    'pendientes' => $par->cant,
+                                    'costo' => $par->costo,
+                                    'subtotal' => $par->subtotal,
+                                    'iva' => $par->iva,
+                                    'retiva' => $par->retiva,
+                                    'retisr' => $par->retisr,
+                                    'ieps' => $par->ieps,
+                                    'total' => $par->total,
+                                    'unidad' => $par->unidad,
+                                    'cvesat' => $par->cvesat,
+                                    'prov' => $par->prov,
+                                    'observa' => $par->observa,
+                                    'requisicion_partida_id' => $par->requisicion_partida_id,
+                                    'team_id' => $teamId,
+                                ]);
+                            }
+
+                            Notification::make()
+                                ->title('Orden de Compra copiada correctamente: ' . $nueva->folio)
+                                ->success()
+                                ->send();
+                        });
+                    }),
                 Tables\Actions\EditAction::make()
                 ->label('Editar')->icon('fas-edit')
                 ->modalSubmitActionLabel('Grabar')

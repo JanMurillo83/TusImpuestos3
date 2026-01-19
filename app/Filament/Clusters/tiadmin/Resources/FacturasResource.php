@@ -233,17 +233,17 @@ class FacturasResource extends Resource
                             ->live()
                             ->currencyMask(decimalSeparator:'.',precision:2)
                             ->afterStateUpdated(function(Get $get, Set $set){
-                                $cant = $get('cant');
-                                $cost = $get('precio');
+                                $cant = floatval($get('cant'));
+                                $cost = floatval($get('precio'));
                                 $subt = $cost * $cant;
                                 $set('subtotal',$subt);
                                 $ivap = $get('../../esquema');
                                 $esq = Esquemasimp::where('id',$ivap)->get();
                                 $esq = $esq[0];
-                                $set('iva',$subt * ($esq->iva*0.01));
-                                $set('retiva',$subt * ($esq->retiva*0.01));
-                                $set('retisr',$subt * ($esq->retisr*0.01));
-                                $set('ieps',$subt * ($esq->ieps*0.01));
+                                $set('iva',$subt * (floatval($esq->iva)*0.01));
+                                $set('retiva',$subt * (floatval($esq->retiva)*0.01));
+                                $set('retisr',$subt * (floatval($esq->retisr)*0.01));
+                                $set('ieps',$subt * (floatval($esq->ieps)*0.01));
                                 $ivapar = $subt * ($esq->iva*0.01);
                                 $retivapar = $subt * ($esq->retiva*0.01);
                                 $retisrpar = $subt * ($esq->retisr*0.01);

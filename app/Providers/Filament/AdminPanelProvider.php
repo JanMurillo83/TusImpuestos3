@@ -46,6 +46,7 @@ use SolutionForest\FilamentSimpleLightBox\SimpleLightBoxPlugin;
 use Filament\Notifications\Livewire\Notifications;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\VerticalAlignment;
+use WatheqAlshowaiter\FilamentStickyTableHeader\StickyTableHeaderPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -112,6 +113,7 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                // ResizedColumnPlugin::make()->preserveOnDB(true),
                 StickyHeaderPlugin::make(),
+                StickyTableHeaderPlugin::make(),
                 FilamentThemeInspectorPlugin::make()->toggle()->disabled(true),
 
             ]);

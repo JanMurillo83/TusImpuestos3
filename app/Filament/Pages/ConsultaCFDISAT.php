@@ -42,7 +42,7 @@ class ConsultaCFDISAT extends Page implements HasForms,HasActions
     protected static ?string $navigationLabel = 'Consulta CFDI SAT';
     protected static ?string $title = 'Consulta CFDI SAT';
     protected static string $view = 'filament.pages.consulta-c-f-d-i-s-a-t';
-
+    protected static bool $shouldRegisterNavigation = false;
     public ?string $fecha_inicial;
     public ?string $fecha_final;
     public array $emitidos = [];

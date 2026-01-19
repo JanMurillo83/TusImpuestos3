@@ -46,79 +46,242 @@ class ClientesResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-
-            ->extraAttributes(['style'=>'gap:0.3rem'])
             ->schema([
                 Hidden::make('team_id')->default(Filament::getTenant()->id),
-                Fieldset::make('Fiscales')
-                    ->extraAttributes(['style'=>'gap:0.3rem'])
-                    ->columnSpanFull()
-                    ->columns(4)
-                    ->schema([
-                        Forms\Components\TextInput::make('clave')
-                            ->required()
-                            ->readOnly()
-                            ->default(function(){
-                                return count(Clientes::all()) + 1;
-                            }),
-                        Forms\Components\TextInput::make('nombre')
-                            ->required()
-                            ->maxLength(255)
-                            ->columnSpan(3),
-                        Forms\Components\TextInput::make('rfc')
-                            ->required()
-                            ->maxLength(255)
-                            ->default('XAXX010101000'),
-                        Forms\Components\Select::make('regimen')
-                            ->label('Regimen Fiscal')->required()
-                            ->options(Regimenes::all()->pluck('mostrar','clave')),
-                        Forms\Components\TextInput::make('codigo')
-                            ->label('Codigo Postal')
-                            ->maxLength(255)->required(),
-                        Forms\Components\TextInput::make('dias_credito')
-                            ->label('Dias de Credito')
-                            ->numeric()->default(0)->required(),
-                    ]),
-                Fieldset::make('Datos Generales')
-                    ->schema([
-                        Forms\Components\TextInput::make('telefono')
-                            ->tel()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('correo')
-                            ->maxLength(255)->required(),
-                        Forms\Components\TextInput::make('contacto')
-                            ->maxLength(255),
-                        Forms\Components\Select::make('cuenta_contable')
-                            ->label('Cuenta Contable')
-                            ->searchable()
-                            ->options(
-                                DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                                    ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
-                            ),
-                        Forms\Components\Textarea::make('direccion')
-                            ->maxLength(255)->columnSpanFull(),
-                    ])->columns(3),
-                Fieldset::make('Datos de Venta')
-                    ->schema([
-                        Forms\Components\TextInput::make('descuento')
-                            ->required()
-                            ->numeric()
-                            ->default(0.00)
-                            ->suffix('%'),
-                        Forms\Components\Select::make('lista')
-                            ->label('Lista de Precios')
-                            ->options([
-                                1 =>'Precio Publico',
-                                2 =>'Lista de Precios 2',
-                                3 =>'Lista de Precios 3',
-                                4 =>'Lista de Precios 4',
-                                5 =>'Lista de Precios 5'
-                            ])->default(1),
-                        Forms\Components\TextInput::make('saldo')
-                            ->prefix('$')->readOnly()->default(0.00)
-                            ->numeric()->currencyMask(decimalSeparator:'.',precision:2)
-                    ])->columns(3)
-            ])->columns(4);
+                Forms\Components\Tabs::make('Tabs')
+                    ->tabs([
+                        Forms\Components\Tabs\Tab::make('Datos del Cliente')
+                            ->icon('fas-user')
+                            ->schema([
+                                Fieldset::make('Fiscales')
+                                    ->extraAttributes(['style'=>'gap:0.3rem'])
+                                    ->columnSpanFull()
+                                    ->columns(4)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('clave')
+                                            ->required()
+                                            ->readOnly()
+                                            ->default(function(){
+                                                return count(Clientes::all()) + 1;
+                                            }),
+                                        Forms\Components\TextInput::make('nombre')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpan(3),
+                                        Forms\Components\TextInput::make('rfc')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->default('XAXX010101000'),
+                                        Forms\Components\Select::make('regimen')
+                                            ->label('Regimen Fiscal')->required()
+                                            ->options(Regimenes::all()->pluck('mostrar','clave')),
+                                        Forms\Components\TextInput::make('codigo')
+                                            ->label('Codigo Postal')
+                                            ->maxLength(255)->required(),
+                                        Forms\Components\TextInput::make('dias_credito')
+                                            ->label('Dias de Credito')
+                                            ->numeric()->default(0)->required(),
+                                    ]),
+                                Fieldset::make('Datos Generales')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('telefono')
+                                            ->tel()
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('correo')
+                                            ->maxLength(255)->required(),
+                                        Forms\Components\TextInput::make('contacto')
+                                            ->maxLength(255),
+                                        Forms\Components\Select::make('cuenta_contable')
+                                            ->label('Cuenta Contable')
+                                            ->searchable()
+                                            ->options(
+                                                DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                                    ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                            ),
+                                    ])->columns(3),
+                                Fieldset::make('Dirección')
+                                    ->extraAttributes(['style'=>'gap:0.3rem'])
+                                    ->columnSpanFull()
+                                    ->columns(4)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('calle')
+                                            ->maxLength(255)
+                                            ->columnSpan(2),
+                                        Forms\Components\TextInput::make('no_exterior')
+                                            ->label('No. Exterior')
+                                            ->maxLength(50),
+                                        Forms\Components\TextInput::make('no_interior')
+                                            ->label('No. Interior')
+                                            ->maxLength(50),
+                                        Forms\Components\TextInput::make('colonia')
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('municipio')
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('estado')
+                                            ->maxLength(255),
+                                    ]),
+                                Fieldset::make('Datos de Venta')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('descuento')
+                                            ->required()
+                                            ->numeric()
+                                            ->default(0.00)
+                                            ->suffix('%'),
+                                        Forms\Components\Select::make('lista')
+                                            ->label('Lista de Precios')
+                                            ->options([
+                                                1 =>'Precio Publico',
+                                                2 =>'Lista de Precios 2',
+                                                3 =>'Lista de Precios 3',
+                                                4 =>'Lista de Precios 4',
+                                                5 =>'Lista de Precios 5'
+                                            ])->default(1),
+                                        Forms\Components\TextInput::make('saldo')
+                                            ->prefix('$')->readOnly()->default(0.00)
+                                            ->numeric()->currencyMask(decimalSeparator:'.',precision:2)
+                                    ])->columns(3)
+                            ])->columns(4),
+                        Forms\Components\Tabs\Tab::make('Direcciones de Entrega')
+                            ->icon('fas-location-dot')
+                            ->schema([
+                                Forms\Components\Placeholder::make('direcciones_info')
+                                    ->label('')
+                                    ->content('Gestiona las direcciones de entrega para este cliente. Estas direcciones se pueden seleccionar al crear cotizaciones.')
+                                    ->columnSpanFull(),
+                                Forms\Components\Repeater::make('direccionesEntrega')
+                                    ->relationship()
+                                    ->label('')
+                                    ->addActionLabel('Agregar Dirección')
+                                    ->itemLabel(fn (array $state): ?string => $state['nombre_sucursal'] ?? null)
+                                    ->collapsed()
+                                    ->cloneable()
+                                    ->columnSpanFull()
+                                    ->schema([
+                                        Forms\Components\Grid::make(1)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('nombre_sucursal')
+                                                    ->label('Nombre de Sucursal')
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->columnSpanFull(),
+                                            ]),
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('calle')
+                                                    ->maxLength(255)
+                                                    ->columnSpan(2),
+                                                Forms\Components\TextInput::make('no_exterior')
+                                                    ->label('No. Exterior')
+                                                    ->maxLength(50),
+                                                Forms\Components\TextInput::make('no_interior')
+                                                    ->label('No. Interior')
+                                                    ->maxLength(50),
+                                                Forms\Components\TextInput::make('colonia')
+                                                    ->maxLength(255),
+                                                Forms\Components\TextInput::make('municipio')
+                                                    ->maxLength(255),
+                                                Forms\Components\TextInput::make('estado')
+                                                    ->maxLength(255),
+                                                Forms\Components\TextInput::make('codigo_postal')
+                                                    ->label('Código Postal')
+                                                    ->maxLength(10),
+                                            ]),
+                                        Forms\Components\Grid::make(3)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('telefono')
+                                                    ->tel()
+                                                    ->maxLength(255),
+                                                Forms\Components\TextInput::make('contacto')
+                                                    ->maxLength(255),
+                                                Forms\Components\Toggle::make('es_principal')
+                                                    ->label('Dirección Principal')
+                                                    ->default(false),
+                                            ]),
+                                    ]),
+                            ]),
+                        Forms\Components\Tabs\Tab::make('Precios Especiales')
+                            ->icon('fas-tags')
+                            ->schema([
+                                Forms\Components\Placeholder::make('precios_info')
+                                    ->label('')
+                                    ->content('Configura precios especiales para productos específicos. Estos precios tienen prioridad sobre los precios por volumen generales.')
+                                    ->columnSpanFull(),
+                                Forms\Components\Repeater::make('preciosVolumenClientes')
+                                    ->relationship()
+                                    ->label('')
+                                    ->addActionLabel('Agregar Precio Especial')
+                                    ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                        $data['team_id'] = Filament::getTenant()->id;
+                                        return $data;
+                                    })
+                                    ->itemLabel(function (array $state): ?string {
+                                        if (!isset($state['producto_id'])) return null;
+                                        $producto = \App\Models\Inventario::find($state['producto_id']);
+                                        $desde = $state['cantidad_desde'] ?? 0;
+                                        $hasta = $state['cantidad_hasta'] ?? '∞';
+                                        $precio = $state['precio_unitario'] ?? 0;
+                                        return ($producto ? $producto->descripcion : 'Producto') .
+                                               " ({$desde}-{$hasta} unidades) → $" . number_format($precio, 2);
+                                    })
+                                    ->collapsed()
+                                    ->cloneable()
+                                    ->columnSpanFull()
+                                    ->schema([
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\Select::make('producto_id')
+                                                    ->label('Producto')
+                                                    ->searchable()
+                                                    ->required()
+                                                    ->options(\App\Models\Inventario::where('team_id', Filament::getTenant()->id)
+                                                        ->orderBy('descripcion')
+                                                        ->pluck('descripcion', 'id'))
+                                                    ->columnSpan(2),
+                                            ]),
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('cantidad_desde')
+                                                    ->label('Cantidad Desde')
+                                                    ->numeric()
+                                                    ->required()
+                                                    ->default(1)
+                                                    ->minValue(0),
+                                                Forms\Components\TextInput::make('cantidad_hasta')
+                                                    ->label('Cantidad Hasta')
+                                                    ->numeric()
+                                                    ->minValue(0)
+                                                    ->helperText('Dejar vacío para sin límite'),
+                                                Forms\Components\TextInput::make('precio_unitario')
+                                                    ->label('Precio Unitario')
+                                                    ->numeric()
+                                                    ->required()
+                                                    ->prefix('$')
+                                                    ->minValue(0)
+                                                    ->currencyMask(decimalSeparator: '.', precision: 6),
+                                                Forms\Components\TextInput::make('prioridad')
+                                                    ->label('Prioridad')
+                                                    ->numeric()
+                                                    ->default(10)
+                                                    ->helperText('Mayor número = mayor prioridad')
+                                                    ->minValue(1),
+                                            ]),
+                                        Forms\Components\Grid::make(3)
+                                            ->schema([
+                                                Forms\Components\DatePicker::make('vigencia_desde')
+                                                    ->label('Vigente Desde')
+                                                    ->helperText('Dejar vacío para vigencia inmediata'),
+                                                Forms\Components\DatePicker::make('vigencia_hasta')
+                                                    ->label('Vigente Hasta')
+                                                    ->helperText('Dejar vacío para vigencia indefinida'),
+                                                Forms\Components\Toggle::make('activo')
+                                                    ->label('Activo')
+                                                    ->default(true),
+                                            ]),
+                                    ])
+                                    ->defaultItems(0),
+                            ]),
+                    ])->columnSpanFull(),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -150,6 +313,7 @@ class ClientesResource extends Resource
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make()
                         ->label('Editar')->icon('fas-edit')
+                        ->modalWidth('7xl')
                         ->modalSubmitActionLabel('Grabar')
                         ->modalCancelActionLabel('Cerrar')
                         ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))

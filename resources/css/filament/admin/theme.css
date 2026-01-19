@@ -84,6 +84,27 @@ html {
     background-color: oklch(87.1% 0.006 286.286);
 }
 
-.row_gral:active{
+.row_gral_sm{
+    font-size: 0.4em;
+}
+.row_gral_sm:active{
     background-color: oklch(87.1% 0.006 286.286);
+}
+
+.row_gral_sm tr:nth-child(odd){
+    background-color: #c5e0fc;
+}
+.row_gral_sm tr:nth-child(even){
+    background-color: #ebf2fa;
+}
+.row_gral_sm:hover{
+    background-color: oklch(87.1% 0.006 286.286);
+}
+
+.row_gral_sm:active{
+    background-color: oklch(87.1% 0.006 286.286);
+}
+
+.sm_text{
+    font-size: 2px;
 }

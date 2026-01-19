@@ -464,6 +464,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 try {
                                     $cookieJarPath = storage_path() . '/app/public/cookies/';
                                     $cookieJarFile = storage_path() . '/app/public/cookies/' . $rfc . '.json';
+                                    if(\Illuminate\Support\Facades\File::exists($cookieJarFile)) unlink($cookieJarFile);
                                     $downloadsPath_REC = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/RECIBIDOS/';
                                     $downloadsPath_EMI = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/EMITIDOS/';
                                     $downloadsPath2 = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';

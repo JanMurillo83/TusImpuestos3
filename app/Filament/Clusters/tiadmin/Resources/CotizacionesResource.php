@@ -10,6 +10,7 @@ use App\Models\Cotizaciones;
 use App\Models\CotizacionesPartidas;
 use App\Models\Esquemasimp;
 use App\Models\Inventario;
+use App\Services\PrecioCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
@@ -143,6 +144,20 @@ class CotizacionesResource extends Resource
                                         ->currencyMask(decimalSeparator:'.',precision:2)
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = floatval($get('cant'));
+                                            $cli = $get('../../clie');
+                                            $itemId = $get('item');
+
+                                            // Recalcular precio si cambia la cantidad (por políticas de volumen)
+                                            if ($cant > 0 && $cli && $itemId) {
+                                                $precio = PrecioCalculator::calcularPrecio(
+                                                    $itemId,
+                                                    $cli,
+                                                    $cant,
+                                                    Filament::getTenant()->id
+                                                );
+                                                $set('precio', $precio);
+                                            }
+
                                             $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
                                             $set('subtotal',$subt);
@@ -172,21 +187,18 @@ class CotizacionesResource extends Resource
                                             $set('unidad',$prod->unidad ?? 'H87');
                                             $set('cvesat',$prod->cvesat ?? '01010101');
                                             $set('costo',$prod->p_costo);
-                                            $clie = Clientes::where('id',$cli)->get();
-                                            $clie = $clie[0];
-                                            $precio = 0;
-                                            switch($clie->lista)
-                                            {
-                                                case 1: $precio = $prod->precio1; break;
-                                                case 2: $precio = $prod->precio2; break;
-                                                case 3: $precio = $prod->precio3; break;
-                                                case 4: $precio = $prod->precio4; break;
-                                                case 5: $precio = $prod->precio5; break;
-                                                default: $precio = $prod->precio1; break;
-                                            }
-                                            $desc = $clie->descuento * 0.01;
-                                            $prec = $precio * $desc;
-                                            $precio = $precio - $prec;
+
+                                            // Obtener cantidad actual
+                                            $cantidad = floatval($get('cant')) ?: 1;
+
+                                            // Calcular precio usando el nuevo sistema de precios por volumen
+                                            $precio = PrecioCalculator::calcularPrecio(
+                                                $prod->id,
+                                                $cli,
+                                                $cantidad,
+                                                Filament::getTenant()->id
+                                            );
+
                                             $set('precio',$precio);
                                         })->suffixAction(
                                             ActionsAction::make('AbreItem')
@@ -248,6 +260,29 @@ class CotizacionesResource extends Resource
                                         ->numeric()
                                         ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                         ->live(onBlur: true)
+                                        ->helperText(function (Get $get): ?string {
+                                            $cli = $get('../../clie');
+                                            $itemId = $get('item');
+                                            $cantidad = floatval($get('cant')) ?: 1;
+
+                                            if (!$cli || !$itemId) {
+                                                return null;
+                                            }
+
+                                            $info = PrecioCalculator::obtenerInfoPrecio(
+                                                $itemId,
+                                                $cli,
+                                                $cantidad,
+                                                Filament::getTenant()->id
+                                            );
+
+                                            return match($info['tipo']) {
+                                                'cliente_especial' => '🎯 ' . $info['descripcion'],
+                                                'volumen' => '📊 ' . $info['descripcion'],
+                                                'base' => '💰 ' . $info['descripcion'],
+                                                default => null
+                                            };
+                                        })
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = floatval($get('cant'));
                                             $cost = floatval($get('precio'));
@@ -286,6 +321,50 @@ class CotizacionesResource extends Resource
                                 ])->columnSpan('full')->streamlined(),
                             Section::make('Datos de Entrega')
                                 ->schema([
+                                    Forms\Components\Select::make('direccion_entrega_id')
+                                        ->label('Seleccionar Dirección de Entrega')
+                                        ->searchable()
+                                        ->live()
+                                        ->columnSpanFull()
+                                        ->options(function (Get $get) {
+                                            $clienteId = $get('clie');
+                                            if (!$clienteId) {
+                                                return [];
+                                            }
+                                            return \App\Models\DireccionesEntrega::where('cliente_id', $clienteId)
+                                                ->get()
+                                                ->mapWithKeys(function ($direccion) {
+                                                    $label = $direccion->nombre_sucursal;
+                                                    if ($direccion->calle) {
+                                                        $label .= ' - ' . $direccion->calle . ' ' . $direccion->no_exterior;
+                                                    }
+                                                    return [$direccion->id => $label];
+                                                });
+                                        })
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            if (!$state) {
+                                                return;
+                                            }
+                                            $direccion = \App\Models\DireccionesEntrega::find($state);
+                                            if ($direccion) {
+                                                $set('entrega_lugar', $direccion->nombre_sucursal);
+
+                                                $direccionCompleta = collect([
+                                                    $direccion->calle,
+                                                    $direccion->no_exterior ? 'No. Ext. ' . $direccion->no_exterior : null,
+                                                    $direccion->no_interior ? 'No. Int. ' . $direccion->no_interior : null,
+                                                    $direccion->colonia,
+                                                    $direccion->municipio,
+                                                    $direccion->estado,
+                                                    $direccion->codigo_postal ? 'C.P. ' . $direccion->codigo_postal : null,
+                                                ])->filter()->implode(', ');
+
+                                                $set('entrega_direccion', $direccionCompleta);
+                                                $set('entrega_contacto', $direccion->contacto);
+                                                $set('entrega_telefono', $direccion->telefono);
+                                            }
+                                        })
+                                        ->helperText('Selecciona una dirección guardada o llena los campos manualmente'),
                                     Forms\Components\TextInput::make('entrega_lugar')
                                         ->label('Lugar de Entrega'),
                                     Forms\Components\TextInput::make('entrega_direccion')

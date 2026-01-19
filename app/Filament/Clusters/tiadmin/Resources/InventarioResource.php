@@ -284,6 +284,132 @@ class InventarioResource extends Resource
                                 ->default($movimientos),
                         ];
                     }),
+                Tables\Actions\Action::make('PreciosVolumen')
+                    ->label('Precios por Volumen')
+                    ->icon('fas-chart-line')
+                    ->color('success')
+                    ->modalWidth('5xl')
+                    ->modalSubmitActionLabel('Guardar')
+                    ->modalCancelActionLabel('Cerrar')
+                    ->fillForm(function (Model $record) {
+                        $preciosVolumen = [];
+                        for ($lista = 1; $lista <= 5; $lista++) {
+                            $precios = \App\Models\PrecioVolumen::where('producto_id', $record->id)
+                                ->where('lista_precio', $lista)
+                                ->where('team_id', Filament::getTenant()->id)
+                                ->orderBy('cantidad_desde')
+                                ->get()
+                                ->toArray();
+                            $preciosVolumen["lista_{$lista}"] = $precios;
+                        }
+                        return $preciosVolumen;
+                    })
+                    ->form(function (Model $record) {
+                        $tabs = [];
+                        $nombreListas = [
+                            1 => 'Precio Público',
+                            2 => 'Lista 2',
+                            3 => 'Lista 3',
+                            4 => 'Lista 4',
+                            5 => 'Lista 5'
+                        ];
+
+                        for ($lista = 1; $lista <= 5; $lista++) {
+                            $precioBase = match($lista) {
+                                1 => $record->precio1,
+                                2 => $record->precio2,
+                                3 => $record->precio3,
+                                4 => $record->precio4,
+                                5 => $record->precio5,
+                            };
+
+                            $tabs[] = Forms\Components\Tabs\Tab::make($nombreListas[$lista])
+                                ->schema([
+                                    Forms\Components\Placeholder::make("info_lista_{$lista}")
+                                        ->label('')
+                                        ->content("Precio base: $" . number_format($precioBase, 2))
+                                        ->columnSpanFull(),
+                                    Forms\Components\Repeater::make("lista_{$lista}")
+                                        ->label('Escalas de Precio')
+                                        ->schema([
+                                            Forms\Components\Grid::make(4)
+                                                ->schema([
+                                                    Forms\Components\TextInput::make('cantidad_desde')
+                                                        ->label('Cantidad Desde')
+                                                        ->numeric()
+                                                        ->required()
+                                                        ->default(1)
+                                                        ->minValue(0),
+                                                    Forms\Components\TextInput::make('cantidad_hasta')
+                                                        ->label('Cantidad Hasta')
+                                                        ->numeric()
+                                                        ->minValue(0)
+                                                        ->helperText('Dejar vacío para sin límite'),
+                                                    Forms\Components\TextInput::make('precio_unitario')
+                                                        ->label('Precio Unitario')
+                                                        ->numeric()
+                                                        ->required()
+                                                        ->prefix('$')
+                                                        ->minValue(0)
+                                                        ->currencyMask(decimalSeparator: '.', precision: 6),
+                                                    Forms\Components\Toggle::make('activo')
+                                                        ->label('Activo')
+                                                        ->default(true),
+                                                ]),
+                                        ])
+                                        ->addActionLabel('Agregar Rango')
+                                        ->reorderable()
+                                        ->collapsible()
+                                        ->itemLabel(fn (array $state): ?string =>
+                                            isset($state['cantidad_desde'])
+                                                ? "Desde {$state['cantidad_desde']}" .
+                                                  ($state['cantidad_hasta'] ? " hasta {$state['cantidad_hasta']}" : '+') .
+                                                  " → $" . ($state['precio_unitario'] ?? '0')
+                                                : null
+                                        )
+                                        ->columnSpanFull(),
+                                ]);
+                        }
+
+                        return [
+                            Forms\Components\Tabs::make('Listas')
+                                ->tabs($tabs)
+                                ->columnSpanFull(),
+                        ];
+                    })
+                    ->action(function (Model $record, array $data) {
+                        $teamId = Filament::getTenant()->id;
+
+                        for ($lista = 1; $lista <= 5; $lista++) {
+                            // Eliminar precios existentes de esta lista
+                            \App\Models\PrecioVolumen::where('producto_id', $record->id)
+                                ->where('lista_precio', $lista)
+                                ->where('team_id', $teamId)
+                                ->delete();
+
+                            // Crear nuevos precios
+                            if (isset($data["lista_{$lista}"]) && is_array($data["lista_{$lista}"])) {
+                                foreach ($data["lista_{$lista}"] as $precio) {
+                                    if (isset($precio['cantidad_desde']) && isset($precio['precio_unitario'])) {
+                                        \App\Models\PrecioVolumen::create([
+                                            'producto_id' => $record->id,
+                                            'lista_precio' => $lista,
+                                            'cantidad_desde' => $precio['cantidad_desde'],
+                                            'cantidad_hasta' => $precio['cantidad_hasta'] ?? null,
+                                            'precio_unitario' => $precio['precio_unitario'],
+                                            'activo' => $precio['activo'] ?? true,
+                                            'team_id' => $teamId,
+                                        ]);
+                                    }
+                                }
+                            }
+                        }
+
+                        Notification::make()
+                            ->title('Precios por volumen actualizados')
+                            ->success()
+                            ->send();
+                    }),
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')

@@ -5,9 +5,12 @@ namespace App\Filament\Pages;
 use App\Exports\AuxiliaresExport;
 use App\Exports\BalanceExport;
 use App\Exports\BalanzaExport;
+use App\Exports\DiotExport;
 use App\Exports\EdoreExport;
 use App\Http\Controllers\RepContables;
 use App\Http\Controllers\ReportesController;
+use App\Services\DiotService;
+use App\Services\DiotTxtGenerator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\Snappy\Facades\SnappyPdf;
 use Filament\Facades\Filament;
@@ -230,6 +233,21 @@ class ReportesConta extends Page implements HasForms
                             $this->getAction('AfectaIVAIETU')->visible(true);
                             $this->replaceMountedAction('AfectaIVAIETU');
                             $this->getAction('AfectaIVAIETU')->visible(false);
+                        }),
+                    Actions\Action::make('DIOT_TXT')
+                        ->label('DIOT (Archivo TXT)')
+                        ->action(function (){
+                            $ejercicio = Filament::getTenant()->ejercicio;
+                            $periodo = Filament::getTenant()->periodo;
+                            $team_id = Filament::getTenant()->id;
+
+                            $diotService = new DiotService();
+                            $datos = $diotService->obtenerDatosDiot($periodo, $ejercicio, $team_id);
+
+                            $txtGenerator = new DiotTxtGenerator();
+                            $ruta = $txtGenerator->generar($datos, $periodo, $ejercicio, $team_id);
+
+                            return response()->download($ruta);
                         })
                 ])
                 ]),
@@ -286,6 +304,19 @@ class ReportesConta extends Page implements HasForms
                                 $cuentaIni = $state['cuenta_ini'] ?? null;
                                 $cuentaFin = $state['cuenta_fin'] ?? null;
                                 return (new AuxiliaresExport($empresa,$periodo,$ejercicio,$cuentaIni,$cuentaFin))->download('Auxiliares.xlsx');
+                            }),
+                        Actions\Action::make('DIOT_Excel')
+                            ->label('DIOT (Excel)')
+                            ->action(function (){
+                                $empresa = Filament::getTenant()->id;
+                                $periodo = Filament::getTenant()->periodo;
+                                $ejercicio = Filament::getTenant()->ejercicio;
+
+                                $diotService = new DiotService();
+                                $datos = $diotService->obtenerDatosDiot($periodo, $ejercicio, $empresa);
+
+                                return (new DiotExport($datos, $empresa, $periodo, $ejercicio))
+                                    ->download('DIOT_' . $ejercicio . '_' . str_pad($periodo, 2, '0', STR_PAD_LEFT) . '.xlsx');
                             })
                     ])
                 ])

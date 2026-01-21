@@ -891,6 +891,38 @@ class FacturasResource extends Resource
                 if($record->estado == 'Activa') return new HtmlString('<span class="badge badge-error">No Timbrada</span>');
                 else return $record->estado;
             }),
+            Tables\Columns\IconColumn::make('tiene_complemento')
+                ->label('Comp. Pago')
+                ->boolean()
+                ->trueIcon('heroicon-o-check-circle')
+                ->falseIcon('heroicon-o-x-circle')
+                ->trueColor('success')
+                ->falseColor('danger')
+                ->getStateUsing(function ($record) {
+                    // Solo verificar si la forma de pago NO es PUE
+                    if ($record->forma === 'PUE') {
+                        return null; // No mostrar icono para PUE
+                    }
+
+                    // Verificar si existe al menos un registro en par_pagos con este UUID
+                    $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->id)
+                        ->where('team_id', $record->team_id)
+                        ->exists();
+
+                    return $tieneComplemento;
+                })
+                ->tooltip(function ($record) {
+                    if ($record->forma === 'PUE') {
+                        return 'Pago en una sola exhibición';
+                    }
+
+                    $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->uuid)
+                        ->where('team_id', $record->team_id)
+                        ->exists();
+
+                    return $tieneComplemento ? 'Tiene complemento(s) de pago' : 'Sin complemento de pago';
+                })
+                ->sortable(false),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([

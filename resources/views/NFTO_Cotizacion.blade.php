@@ -6,6 +6,7 @@
     $part = \App\Models\CotizacionesPartidas::where('cotizaciones_id',$docto->id)->get();
     $clie = \App\Models\Clientes::where('id',$clie_id)->first();
     $hoy = \Carbon\Carbon::now()->format('d-m-Y');
+    $vendedor = \Filament\Facades\Filament::auth()->user()->name;
 ?>
 <div class="bg-slate-100">
     <div class="max-w-3xl mx-auto my-8 bg-white p-8 rounded-xl shadow text-slate-800 text-sm">
@@ -75,6 +76,7 @@
                 <p><span class="font-semibold">Condiciones de pago:</span> {{$docto->condiciones_pago}}</p>
                 <p><span class="font-semibold">Condiciones de entrega:</span> {{$docto->condiciones_entrega}}</p>
                 <p><span class="font-semibold">Referencia:</span> {{$docto->oc_referencia_interna}}</p>
+                <p><span class="font-semibold">Ejecutivo:</span> {{$vendedor}}</p>
             </div>
         </section>
 
@@ -209,3 +211,4 @@
         </footer>
     </div>
 </div>
+

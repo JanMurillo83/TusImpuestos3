@@ -3,10 +3,13 @@
 namespace App\Filament\Pages;
 
 use App\Exports\BalanceExport;
+use App\Exports\DiotExport;
 use App\Exports\MainExport;
 use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\MainReportes;
+use App\Services\DiotService;
+use App\Services\DiotTxtGenerator;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
@@ -137,6 +140,7 @@ class AdminReportesC extends Page implements HasForms
                         $this->Reporte_PDF = '';
                         $this->ReportePDF = '';
                         $no_reporte = intval($get('reporte'));
+
                         $record = MainReportes::where('id',$get('reporte'))->first();
                         $reporte = $record->reporte;
                         $team_id = Filament::getTenant()->id;
@@ -195,6 +199,32 @@ class AdminReportesC extends Page implements HasForms
                 ->icon('fas-file-excel')->extraAttributes(['style'=>'width: 14rem'])
                 ->action(function(Get $get) use ($idAux) {
                         $no_reporte = intval($get('reporte'));
+                    if($no_reporte == 6) {
+                        $empresa = Filament::getTenant()->id;
+                        $periodo = $get('periodo_ini') ?? null;
+                        if($periodo == null) $periodo = Filament::getTenant()->periodo;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+
+                        $diotService = new DiotService();
+                        $datos = $diotService->obtenerDatosDiot($periodo, $ejercicio, $empresa);
+
+                        return (new DiotExport($datos, $empresa, $periodo, $ejercicio))
+                            ->download('DIOT_' . $ejercicio . '_' . str_pad($periodo, 2, '0', STR_PAD_LEFT) . '.xlsx');
+                    }
+                    if($no_reporte == 7) {
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        $periodo = $get('periodo_ini') ?? null;
+                        if($periodo == null) $periodo = Filament::getTenant()->periodo;
+                        $team_id = Filament::getTenant()->id;
+
+                        $diotService = new DiotService();
+                        $datos = $diotService->obtenerDatosDiot($periodo, $ejercicio, $team_id);
+
+                        $txtGenerator = new DiotTxtGenerator();
+                        $ruta = $txtGenerator->generar($datos, $periodo, $ejercicio, $team_id);
+
+                        return response()->download($ruta);
+                    }
                         $record = MainReportes::where('id',$get('reporte'))->first();
                         $reporte = $record->reporte;
                         $team_id = Filament::getTenant()->id;

@@ -10,6 +10,7 @@ use App\Models\Clientes;
 use App\Models\CuentasCobrar;
 use App\Models\DatosFiscales;
 use App\Models\Facturas;
+use App\Models\Mailconfig;
 use App\Models\Pagos;
 use App\Models\ParPagos;
 use Carbon\Carbon;
@@ -23,6 +24,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +33,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
+use PHPMailer\PHPMailer\PHPMailer;
 use Spatie\Browsershot\Browsershot;
 
 class PagosResource extends Resource
@@ -511,8 +514,69 @@ class PagosResource extends Resource
                                     ->persistent()
                                     ->send();
                             }
-                        })
-
+                        }),
+                    Tables\Actions\Action::make('Enviar por Correo')
+                        ->icon('fas-envelope')
+                        ->action(function($record,$livewire){
+                            $emp = DatosFiscales::where('team_id',$record->team_id)->first();
+                            $cli = Clientes::where('id',$record->cve_clie)->first();
+                            $nombrepdf = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.pdf';
+                            $nombrexml = $emp->rfc.'_COMPROBANTE_CFDI_'.$record->serie.$record->folio.'_'.$cli->rfc.'.xml';
+                            $filepdf = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombrepdf;
+                            $filexml = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombrexml;
+                            if(File::exists($filepdf)) unlink($filepdf);
+                            $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                            $html = View::make('RepFacturaCP',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($filepdf);
+                            if(File::exists($filexml)) unlink($filexml);
+                            $xml = $record->xml;
+                            $xml = Cleaner::staticClean($xml);
+                            File::put($filexml,$xml);
+                            $mailConf = Mailconfig::where('team_id',Filament::getTenant()->id)->first();
+                            $Cliente = Clientes::where('id',$record->clie)->first();
+                            $mail = new PHPMailer();
+                            $mail->isSMTP();
+                            //$mail->SMTPDebug = 2;
+                            $mail->Host = 'smtp.ionos.mx';
+                            $mail->Port = 587;
+                            $mail->AuthType = 'LOGIN';
+                            $mail->SMTPAuth = true;
+                            $mail->SMTPSecure='tls';
+                            $mail->Username = 'sistema@app-tusimpuestos.com';
+                            $mail->Password = '*TusImpuestos2025$*';
+                            $mail->setFrom('sistema@app-tusimpuestos.com', Filament::getTenant()->name);
+                            $mail->addAddress($Cliente->correo, $Cliente->nombre);
+                            if (!empty($Cliente->correo2)) {
+                                $mail->addAddress($Cliente->correo2, $Cliente->nombre);
+                            }
+                            $mail->addAttachment($filepdf,$filepdf);
+                            $mail->addAttachment($filexml,$filexml);
+                            $mail->Subject = 'Factura CFDI '.$record->docto.' '.$Cliente->nombre;
+                            $mail->msgHTML('<b>Factura CFDI</b>');
+                            $mail->Body = 'Factura CFDI';
+                            $mail->send();
+                            Notification::make()
+                                ->success()
+                                ->title('Envio de Correo')
+                                ->body('Factura Enviada '.$mail->ErrorInfo)
+                                ->send();
+                        }),
+                    Action::make('Ver Error')
+                        ->icon('fas-exclamation-triangle')
+                        ->visible(fn($record)=>$record->estado == 'Activa')
+                        ->form(function (Form $form,$record) {
+                            return $form
+                                ->schema([
+                                    Forms\Components\Textarea::make('error_timbrado')
+                                        ->label('Error Timbrado')->default($record->error_timbrado)
+                                        ->readOnly()
+                                ]);
+                        })->modalWidth('7xl')
+                        ->modalSubmitAction(false)
                 ])->dropdownPlacement('top-start')
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             //->recordUrl(fn(Pagos $record): string => Pages\ViewPagos::getUrl([$record->id]))

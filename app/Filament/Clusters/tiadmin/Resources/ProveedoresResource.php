@@ -77,7 +77,35 @@ class ProveedoresResource extends Resource
                 ->options(
                     DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
                         ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
-                )
+                ),
+                Forms\Components\Section::make('Datos para DIOT')
+                    ->schema([
+                        Forms\Components\Select::make('tipo_tercero')
+                            ->label('Tipo de Tercero')
+                            ->options([
+                                '04' => '04 - Nacional',
+                                '05' => '05 - Extranjero',
+                                '15' => '15 - Residente en el Extranjero'
+                            ])
+                            ->default('04')
+                            ->required()
+                            ->helperText('Tipo de tercero para la DIOT'),
+                        Forms\Components\Select::make('tipo_operacion')
+                            ->label('Tipo de Operación')
+                            ->options([
+                                '03' => '03 - Prestación de servicios profesionales',
+                                '06' => '06 - Arrendamiento',
+                                '85' => '85 - Otros'
+                            ])
+                            ->default('85')
+                            ->required()
+                            ->helperText('Tipo de operación para la DIOT'),
+                        Forms\Components\TextInput::make('pais')
+                            ->label('País')
+                            ->maxLength(3)
+                            ->default('MEX')
+                            ->helperText('Código del país (Ej: MEX, USA, CAN)')
+                    ])->columns(3)->collapsible()
 
             ])->columns(3);
     }

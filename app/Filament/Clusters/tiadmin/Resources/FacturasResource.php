@@ -1186,8 +1186,13 @@ class FacturasResource extends Resource
                     $filepdf = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombrepdf;
                     $filexml = $_SERVER["DOCUMENT_ROOT"].'/storage/TMPXMLFiles/'.$nombrexml;
                     if(File::exists($filepdf)) unlink($filepdf);
-                    Pdf::loadView('RepFactura',['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id])
-                        ->save($filepdf);
+                    $data = ['idorden'=>$record->id,'id_empresa'=>Filament::getTenant()->id];
+                    $html = View::make('RepFactura',$data)->render();
+                    Browsershot::html($html)->format('Letter')
+                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                        ->noSandbox()
+                        ->scale(0.8)->savePdf($filepdf);
                     if(File::exists($filexml)) unlink($filexml);
                     $xml = $record->xml;
                     $xml = Cleaner::staticClean($xml);

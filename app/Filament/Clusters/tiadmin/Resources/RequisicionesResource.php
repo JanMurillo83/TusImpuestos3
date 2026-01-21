@@ -151,15 +151,16 @@ class RequisicionesResource extends Resource
                                     $set('retisr',$subt * ($esq->retisr*0.01));
                                     $set('ieps',$subt * ($esq->ieps*0.01));
                                     $ivapar = $subt * ($esq->iva*0.01);
-                                    $retivapar = $subt * ($esq->iva*0.01);
-                                    $retisrpar = $subt * ($esq->iva*0.01);
-                                    $iepspar = $subt * ($esq->iva*0.01);
+                                    $retivapar = $subt * ($esq->retiva*0.01);
+                                    $retisrpar = $subt * ($esq->retisr*0.01);
+                                    $iepspar = $subt * ($esq->ieps*0.01);
                                     $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
                                     $set('total',$tot);
                                     $set('prov',$get('../../prov'));
                                     Self::updateTotals($get,$set);
                                 }),
                                 TextInput::make('item')
+                                    ->required()
                                     ->live(onBlur:true)
                                     ->afterStateUpdated(function(Get $get, Set $set){
                                         $prod = Inventario::where('id',$get('item'))->get();
@@ -197,9 +198,9 @@ class RequisicionesResource extends Resource
                                             $set('retisr',$subt * ($esq->retisr*0.01));
                                             $set('ieps',$subt * ($esq->ieps*0.01));
                                             $ivapar = $subt * ($esq->iva*0.01);
-                                            $retivapar = $subt * ($esq->iva*0.01);
-                                            $retisrpar = $subt * ($esq->iva*0.01);
-                                            $iepspar = $subt * ($esq->iva*0.01);
+                                            $retivapar = $subt * ($esq->retiva*0.01);
+                                            $retisrpar = $subt * ($esq->retisr*0.01);
+                                            $iepspar = $subt * ($esq->ieps*0.01);
                                             $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
                                             $set('total',$tot);
                                             $set('prov',$get('../../prov'));

@@ -185,6 +185,7 @@ class CotizacionesResource extends Resource
                                             Self::updateTotals($get,$set);
                                         }),
                                     TextInput::make('item')
+                                        ->required()
                                         ->live(onBlur:true)
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cli = $get('../../clie');

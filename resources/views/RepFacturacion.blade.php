@@ -15,6 +15,7 @@
         $q->orderBy('fecha');
         $facturas = $q->get();
         $total_subtotal = 0; $total_iva = 0; $total_total = 0;
+        $fiscales = \App\Models\DatosFiscales::where('team_id',$team)->first();
     ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

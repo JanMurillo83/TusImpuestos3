@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DatosFiscales extends Model
 {
     protected $fillable = ['nombre','rfc','regimen','codigo','cer','key',
-    'csdpass','logo','logo64','team_id','direccion','correo','telefono','coeficiente','porcentaje'];
+    'csdpass','logo','logo64','team_id','direccion','correo','telefono','coeficiente','porcentaje',
+    'banco','cuenta','clabe','beneficiario'];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

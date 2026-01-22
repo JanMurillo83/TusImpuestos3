@@ -33,44 +33,65 @@ class DatosFiscalesResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('nombre')
-                    ->maxLength(255)->columnSpanFull(3),
-                Forms\Components\TextInput::make('rfc')
-                    ->maxLength(255),
-                Forms\Components\Select::make('regimen')
-                    ->options(Regimenes::all()->pluck('mostrar','clave')),
-                Forms\Components\TextInput::make('codigo')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('csdpass')
-                    ->label('Password CSD')->password()->revealable(),
-                Forms\Components\FileUpload::make('cer')
-                    ->columnSpan(2)
-                    ->directory(function (Get $get){
-                        return 'CSDFiles/'.$get('rfc');
-                    }),
-                Forms\Components\FileUpload::make('key')
-                    ->columnSpan(2)
-                    ->directory(function (Get $get){
-                        return 'CSDFiles/'.$get('rfc');
-                    }),
-                Forms\Components\TextInput::make('coeficiente')
-                ->label('Coeficiente de Utilidad')
-                ->numeric()
-                ->default(0)->required()->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 6),
-                Forms\Components\TextInput::make('porcentaje')
-                    ->label('Tasa de ISR')
-                    ->numeric()->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
-                    ->default(30)->suffix('%')->required(),
-                Forms\Components\FileUpload::make('logo')
-                    ->image()
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('direccion')
-                    ->maxLength(255)->columnSpanFull(),
-                Forms\Components\TextInput::make('telefono')
-                    ->maxLength(255)->columnSpan(2),
-                Forms\Components\TextInput::make('correo')
-                    ->maxLength(255)->columnSpan(2),
-            ])->columns(4);
+                Forms\Components\Tabs::make('Tabs')
+                    ->tabs([
+                        Forms\Components\Tabs\Tab::make('Datos Fiscales')
+                            ->schema([
+                                Forms\Components\TextInput::make('nombre')
+                                    ->maxLength(255)->columnSpanFull(3),
+                                Forms\Components\TextInput::make('rfc')
+                                    ->maxLength(255),
+                                Forms\Components\Select::make('regimen')
+                                    ->options(Regimenes::all()->pluck('mostrar','clave')),
+                                Forms\Components\TextInput::make('codigo')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('csdpass')
+                                    ->label('Password CSD')->password()->revealable(),
+                                Forms\Components\FileUpload::make('cer')
+                                    ->columnSpan(2)
+                                    ->directory(function (Get $get){
+                                        return 'CSDFiles/'.$get('rfc');
+                                    }),
+                                Forms\Components\FileUpload::make('key')
+                                    ->columnSpan(2)
+                                    ->directory(function (Get $get){
+                                        return 'CSDFiles/'.$get('rfc');
+                                    }),
+                                Forms\Components\TextInput::make('coeficiente')
+                                ->label('Coeficiente de Utilidad')
+                                ->numeric()
+                                ->default(0)->required()->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 6),
+                                Forms\Components\TextInput::make('porcentaje')
+                                    ->label('Tasa de ISR')
+                                    ->numeric()->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
+                                    ->default(30)->suffix('%')->required(),
+                                Forms\Components\FileUpload::make('logo')
+                                    ->image()
+                                    ->columnSpanFull(),
+                                Forms\Components\TextInput::make('direccion')
+                                    ->maxLength(255)->columnSpanFull(),
+                                Forms\Components\TextInput::make('telefono')
+                                    ->maxLength(255)->columnSpan(2),
+                                Forms\Components\TextInput::make('correo')
+                                    ->maxLength(255)->columnSpan(2),
+                            ])->columns(4),
+                        Forms\Components\Tabs\Tab::make('Datos Bancarios')
+                            ->schema([
+                                Forms\Components\TextInput::make('banco')
+                                    ->label('Banco')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('cuenta')
+                                    ->label('Cuenta')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('clabe')
+                                    ->label('CLABE')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('beneficiario')
+                                    ->label('Beneficiario')
+                                    ->maxLength(255),
+                            ])->columns(2),
+                    ])->columnSpanFull(),
+            ]);
     }
 
     public static function table(Table $table): Table

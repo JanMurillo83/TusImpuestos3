@@ -215,7 +215,9 @@ class CotizacionesResource extends Resource
                                                     Select::make('SelItem')
                                                         ->label('Seleccionar')
                                                         ->searchable()
-                                                        ->options(Inventario::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
+                                                        ->options(Inventario::where('team_id',Filament::getTenant()->id)
+                                                            ->select('id',DB::raw('CONCAT("Item: ",descripcion,"  Exist: ",FORMAT(exist,2)) as descripcion'))
+                                                            ->pluck('descripcion','id'))
                                                 ])
                                                 ->action(function(Set $set,Get $get,$data){
                                                     $cli = $get('../../clie');

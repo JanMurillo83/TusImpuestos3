@@ -198,16 +198,29 @@
                 </p>
             </div>
         </section>
-
+        @if($fiscales->banco != '')
+        <section class="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+            <div class="border border-slate-200 rounded-lg p-3">
+                <p class="text-[10px] font-semibold text-slate-500 mb-1">REFERENCIAS BANCARIAS</p>
+                <p><span class="font-semibold">Banco:</span> {{$fiscales->banco}}</p>
+                <p><span class="font-semibold">Cuenta:</span> {{$fiscales->cuenta}}</p>
+                <p><span class="font-semibold">CLABE:</span> {{$fiscales->clabe}}</p>
+                <p><span class="font-semibold">Beneficiario:</span> {{$fiscales->beneficiario}}</p>
+            </div>
+        </section>
+        @endif
         <!-- Footer -->
         <footer class="mt-6 pt-4 border-t text-[10px] text-slate-500 flex justify-between">
-            <p>
-                Documento generado automáticamente por Tus-Impuestos.<br>
-                Esta cotización tiene una vigencia de 15 días naturales.
-            </p>
-            <p class="text-right">
-                {{$fiscales->correo}}
-            </p>
+            <div>
+                <p>
+                    Documento generado automáticamente por Tus-Impuestos.<br>
+                    Esta cotización tiene una vigencia de 15 días naturales.
+                </p>
+                <p class="text-right">
+                    {{$fiscales->correo}}
+                </p>
+            </div>
+            <br>
         </footer>
     </div>
 </div>

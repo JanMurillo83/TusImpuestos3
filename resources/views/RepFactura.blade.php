@@ -243,6 +243,27 @@ $logo = public_path('storage/'.$dafis->logo);
             </tr>
         </table>
     </div>
+    <div class="row mt-1 border-2">
+        @if($dafis->banco != '')
+            <table class="table mt-2">
+                <tr>
+                    <td colspan="4" style="font-weight: bold">REFERENCIAS BANCARIAS</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold">Banco:</td>
+                    <td>{{$dafis->banco}}</td>
+                    <td style="font-weight: bold">Cuenta:</td>
+                    <td>{{$dafis->cuenta}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold">CLABE:</td>
+                    <td>{{$dafis->clabe}}</td>
+                    <td style="font-weight: bold">Beneficiario:</td>
+                    <td>{{$dafis->beneficiario}}</td>
+                </tr>
+            </table>
+        @endif
+    </div>
     <table class="table table-bordered mt-2">
         <tr><td style="font-weight: bold">Sello CFDI:</td></tr>
         <tr><td style="font-weight: normal">{{chunk_split($tfd['SelloCFD'] ?? '', 150)}}</td></tr>

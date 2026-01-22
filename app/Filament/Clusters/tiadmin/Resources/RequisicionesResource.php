@@ -111,7 +111,7 @@ class RequisicionesResource extends Resource
                             ->label('Tipo de Cambio')
                             ->required()
                             ->reactive()
-                            ->disabled(function(Get $get){
+                            ->readOnly(function(Get $get){
                                 $mon = $get('moneda');
                                 if($mon == 'MXN') return true;
                                 else return false;
@@ -439,7 +439,7 @@ class RequisicionesResource extends Resource
                             $nueva->observa = $record->observa;
                             $nueva->estado = 'Activa';
                             $nueva->moneda = $record->moneda;
-                            $nueva->tcambio = $record->tcambio;
+                            $nueva->tcambio = $record->tcambio ?? 1;
                             $nueva->solicita = $record->solicita;
                             $nueva->proyecto = $record->proyecto;
                             $nueva->save();

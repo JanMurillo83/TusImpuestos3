@@ -3,6 +3,9 @@
 @import "../../../../vendor/asmit/resized-column/resources/css/resized-column.css";
 @config 'tailwind.config.js';
 
+.fi-ta{
+    margin-bottom: 2rem !important;
+}
 .fi-ta-table > tbody {
     @apply divide-none;
 }

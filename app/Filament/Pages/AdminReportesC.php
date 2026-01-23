@@ -10,6 +10,9 @@ use App\Models\CatCuentas;
 use App\Models\MainReportes;
 use App\Services\DiotService;
 use App\Services\DiotTxtGenerator;
+use App\Services\CatalogoCuentasXmlService;
+use App\Services\BalanzaComprobacionXmlService;
+use App\Services\PolizasXmlService;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
@@ -255,6 +258,47 @@ class AdminReportesC extends Page implements HasForms
                         ];
                         $nombre = $reporte.'_'.$periodo.'_'.$ejercicio.'.xlsx';
                         return (new MainExport($path, $data))->download($nombre);
+                    }),
+                Actions\Action::make('Descargar XML')
+                    ->icon('fas-file-code')->extraAttributes(['style'=>'width: 14rem'])
+                    ->disabled(function (Get $get){
+                        $rep = $get('reporte');
+                        $repo = MainReportes::where('id',$rep)->first();
+                        $ruta = $repo?->ruta ?? '';
+                        // Solo habilitar para reportes XML (CatalogoCuentas_XML, BalanzaComprobacion_XML, PolizasPeriodo_XML)
+                        if(str_contains($ruta, '_XML')) return false;
+                        else return true;
+                    })
+                    ->action(function(Get $get) {
+                        $record = MainReportes::where('id',$get('reporte'))->first();
+                        $ruta = $record->ruta;
+                        $team_id = Filament::getTenant()->id;
+                        $ejercicio = Filament::getTenant()->ejercicio;
+                        $periodo = $get('periodo_ini') ?? Filament::getTenant()->periodo;
+
+                        try {
+                            if($ruta == 'CatalogoCuentas_XML') {
+                                $service = new CatalogoCuentasXmlService();
+                                $archivoGenerado = $service->generar($team_id, $ejercicio, $periodo);
+                                return response()->download($archivoGenerado);
+                            }
+                            elseif($ruta == 'BalanzaComprobacion_XML') {
+                                $service = new BalanzaComprobacionXmlService();
+                                $archivoGenerado = $service->generar($team_id, $ejercicio, $periodo);
+                                return response()->download($archivoGenerado);
+                            }
+                            elseif($ruta == 'PolizasPeriodo_XML') {
+                                $service = new PolizasXmlService();
+                                $archivoGenerado = $service->generar($team_id, $ejercicio, $periodo);
+                                return response()->download($archivoGenerado);
+                            }
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error al generar XML')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     }),
             ])
         ];

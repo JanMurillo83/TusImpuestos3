@@ -887,10 +887,25 @@ class NotasdeCreditoResource extends Resource
                     ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
+                    ->mutateFormDataUsing(function (array $data): array {
+                        // Obtener siguiente folio de forma segura para Notas de Crédito
+                        $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                            ->where('tipo', 'N')
+                            ->first();
+
+                        if ($serieRow) {
+                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
+                            $data['serie'] = $folioData['serie'];
+                            $data['folio'] = $folioData['folio'];
+                            $data['docto'] = $folioData['docto'];
+                        }
+
+                        return $data;
+                    })
                     ->after(function($record,$livewire){
                         $partidas = $record->partidas;
                         $nopar = 0;
-                        SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','N')->increment('folio',1);
+                        // El folio ya fue incrementado al obtenerlo con obtenerSiguienteFolio()
                         $esq = Esquemasimp::where('id',$record->esquema)->first();
                         $imp1 = $esq->iva * 0.01;
                         $imp2 = $esq->retiva * 0.01;

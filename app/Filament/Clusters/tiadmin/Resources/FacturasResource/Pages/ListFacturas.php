@@ -227,13 +227,14 @@ class ListFacturas extends ListRecords
 
                                 DB::beginTransaction();
                                 try {
-                                    $ser = $get('serie');
-                                    $fol = $get('folio');
-                                    $doc = $get('docto');
+                                    // Obtener siguiente folio de forma segura
+                                    $serieId = intval($get('sel_serie'));
+                                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+
                                     $factura = \App\Models\Facturas::create([
-                                        'serie' => $ser,
-                                        'folio' => $fol,
-                                        'docto' => $doc,
+                                        'serie' => $folioData['serie'],
+                                        'folio' => $folioData['folio'],
+                                        'docto' => $folioData['docto'],
                                         'fecha' => now()->format('Y-m-d'),
                                         'clie' => $cot->clie,
                                         'nombre' => $cot->nombre,
@@ -331,7 +332,6 @@ class ListFacturas extends ListRecords
                                     $cot->update(['estado' => $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial']);
 
                                     DB::commit();
-                                    $ser = intval($get('sel_serie'));
 
                                     //-----------------------------------------------------------
                                     $emp = DatosFiscales::where('team_id', Filament::getTenant()->id)->first();
@@ -342,7 +342,7 @@ class ListFacturas extends ListRecords
                                         $resultado = json_decode($res);
                                         $codigores = $resultado->codigo;
                                         if ($codigores == "200") {
-                                            SeriesFacturas::where('id', $ser)->increment('folio', 1);
+                                            // El folio ya fue incrementado al obtenerlo con obtenerSiguienteFolio()
                                             $date = Carbon::now();
                                             $facturamodel = Facturas::find($record->id);
                                             $facturamodel->timbrado = 'SI';
@@ -545,13 +545,14 @@ class ListFacturas extends ListRecords
 
                                 DB::beginTransaction();
                                 try {
-                                    $ser = $get('serie');
-                                    $fol = $get('folio');
-                                    $doc = $get('docto');
+                                    // Obtener siguiente folio de forma segura
+                                    $serieId = intval($get('sel_serie'));
+                                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+
                                     $factura = \App\Models\Facturas::create([
-                                        'serie' => $ser,
-                                        'folio' => $fol,
-                                        'docto' => $doc,
+                                        'serie' => $folioData['serie'],
+                                        'folio' => $folioData['folio'],
+                                        'docto' => $folioData['docto'],
                                         'fecha' => now()->format('Y-m-d'),
                                         'clie' => $cot->clie,
                                         'nombre' => $cot->nombre,
@@ -636,8 +637,7 @@ class ListFacturas extends ListRecords
                                     $cot->update(['estado' => $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial']);
 
                                     DB::commit();
-                                    $ser = intval($get('sel_serie'));
-                                    SeriesFacturas::where('id',$ser)->increment('folio',1);
+                                    // El folio ya fue incrementado al obtenerlo con obtenerSiguienteFolio()
                                     Notification::make()->title('Factura generada exitosamente')->success()->send();
                                     $action->close();
                                     $livewire->dispatch('close-modal', ['id' => $action->getName()]);

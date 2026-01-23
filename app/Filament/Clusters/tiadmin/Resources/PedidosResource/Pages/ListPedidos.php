@@ -205,9 +205,8 @@ class ListPedidos extends ListRecords
                                     $cot->update(['estado' => $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial']);
 
                                     DB::commit();
-                                    $ser = intval($get('sel_serie'));
-                                    SeriesFacturas::where('id',$ser)->increment('folio',1);
-                                    Notification::make()->title('Factura generada exitosamente')->success()->send();
+                                    // Nota: No se incrementa folio de facturas porque esto es un PEDIDO, no una factura
+                                    Notification::make()->title('Pedido generado exitosamente')->success()->send();
                                     $action->close();
                                     $livewire->dispatch('close-modal', ['id' => $action->getName()]);
                                 } catch (\Exception $e) {

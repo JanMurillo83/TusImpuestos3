@@ -1124,16 +1124,20 @@ class FacturasResource extends Resource
                     ->action(function(Model $record){
                         DB::transaction(function () use ($record) {
                             $teamId = Filament::getTenant()->id;
-                            $serieRow = SeriesFacturas::where('team_id', $teamId)->where('tipo', 'F')->lockForUpdate()->first();
-                            $serie = $serieRow->serie ?? 'A';
-                            $nuevoFolio = ($serieRow->folio ?? 0) + 1;
+                            $serieRow = SeriesFacturas::where('team_id', $teamId)->where('tipo', 'F')->first();
+                            if (!$serieRow) {
+                                throw new \Exception("No se encontró una serie de facturación configurada");
+                            }
+
+                            // Obtener siguiente folio de forma segura
+                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
 
                             // Crear encabezado de factura copiada
                             $nueva = new Facturas();
                             $nueva->team_id = $teamId;
-                            $nueva->serie = $serie;
-                            $nueva->folio = $nuevoFolio;
-                            $nueva->docto = $serie . $nuevoFolio;
+                            $nueva->serie = $folioData['serie'];
+                            $nueva->folio = $folioData['folio'];
+                            $nueva->docto = $folioData['docto'];
                             $nueva->fecha = Carbon::now();
                             $nueva->clie = $record->clie;
                             $nueva->nombre = $record->nombre;
@@ -1196,11 +1200,7 @@ class FacturasResource extends Resource
                                 ]);
                             }
 
-                            // Incrementar folio de la serie utilizada
-                            if ($serieRow) {
-                                $serieRow->folio = $nuevoFolio;
-                                $serieRow->save();
-                            }
+                            // El folio ya fue incrementado por obtenerSiguienteFolio()
 
                             Notification::make()
                                 ->title('Factura copiada correctamente: ' . $nueva->docto)
@@ -1442,9 +1442,16 @@ class FacturasResource extends Resource
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full')
-                ->before(function ($record,$data){
-                    $ser = intval($data['sel_serie']);
-                    SeriesFacturas::where('id',$ser)->increment('folio',1);
+                ->mutateFormDataUsing(function (array $data): array {
+                    // Obtener siguiente folio de forma segura justo antes de crear
+                    $serieId = intval($data['sel_serie']);
+                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+
+                    $data['serie'] = $folioData['serie'];
+                    $data['folio'] = $folioData['folio'];
+                    $data['docto'] = $folioData['docto'];
+
+                    return $data;
                 })
                 ->after(function($record,$livewire){
                     $partidas = $record->partidas;

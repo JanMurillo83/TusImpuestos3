@@ -1,0 +1,58 @@
+============================================================
+  PASOS PARA APLICAR EN PRODUCCIÓN
+  Corrección de Folios Duplicados
+============================================================
+
+📋 RESUMEN:
+-----------
+El código ya está commiteado y listo para desplegar.
+Solo necesitas hacer git pull y ejecutar el script.
+
+⚠️ IMPORTANTE:
+--------------
+1. Hacer RESPALDO de la base de datos ANTES de comenzar
+2. Ejecutar en horario de baja actividad (opcional pero recomendado)
+3. Tiempo estimado: 5-10 minutos
+
+🚀 OPCIÓN 1: AUTOMÁTICA (RECOMENDADO)
+--------------------------------------
+En el servidor de producción, ejecutar:
+
+cd /ruta/del/proyecto
+git pull origin main
+./desplegar_correccion_folios.sh
+
+El script hará todo automáticamente:
+✓ Verificará duplicados
+✓ Corregirá duplicados
+✓ Aplicará índice único
+✓ Verificará que todo esté OK
+✓ Limpiará caché
+
+📖 OPCIÓN 2: MANUAL
+-------------------
+Si prefieres hacerlo paso a paso, seguir la guía:
+DESPLIEGUE_FOLIOS_DUPLICADOS.md
+
+📊 VERIFICACIÓN POST-DESPLIEGUE:
+---------------------------------
+1. Crear una factura de prueba
+2. Verificar que el folio se asigna correctamente
+3. Verificar que se puede timbrar sin problemas
+4. Revisar logs: tail -f storage/logs/laravel.log
+
+✅ COMMITS INCLUIDOS:
+---------------------
+- ef6263c: Correcciones de código (SeriesFacturas, FacturasResource, etc.)
+- b70ad4f: Documentación y script de despliegue
+
+🆘 SI ALGO SALE MAL:
+--------------------
+1. Restaurar respaldo de base de datos
+2. git reset --hard HEAD~2
+3. php artisan optimize:clear
+4. Contactar al equipo de desarrollo
+
+📞 CONTACTO:
+------------
+Para dudas o problemas durante el despliegue, contactar inmediatamente.

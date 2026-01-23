@@ -129,13 +129,149 @@ class CotizacionesResource extends Resource
                                 ->required(fn(Forms\Get $get) => $get('moneda') !== 'MXN')
                                 ->prefix('$')
                                 ->currencyMask(decimalSeparator:'.', precision:6),
+                            Actions::make([
+                                ActionsAction::make('ImportarExcel')
+                                    ->visible(function(Get $get){
+                                        // Solo visible en nuevas cotizaciones (sin id) y con cliente seleccionado
+                                        return !$get('id') && $get('clie') > 0;
+                                    })
+                                    ->label('Importar Partidas')
+                                    ->badge()->tooltip('Importar Partidas desde Excel')
+                                    ->modalCancelActionLabel('Cancelar')
+                                    ->modalSubmitActionLabel('Importar')
+                                    ->icon('fas-file-excel')
+                                    ->form([
+                                        FileUpload::make('ExcelFile')
+                                            ->label('Archivo Excel')
+                                            ->acceptedFileTypes(['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                            ->helperText('El archivo debe contener: Cantidad, Clave, Descripción, Precio Unitario, Observaciones')
+                                            ->storeFiles(false)
+                                            ->required()
+                                    ])->action(function(Get $get,Set $set,$data){
+                                        try {
+                                            $archivo = $data['ExcelFile']->path();
+                                            $tipo = IOFactory::identify($archivo);
+                                            $lector = IOFactory::createReader($tipo);
+                                            $libro = $lector->load($archivo, IReader::IGNORE_EMPTY_CELLS);
+                                            $hoja = $libro->getActiveSheet();
+                                            $rows = $hoja->toArray();
+
+                                            $partidas = [];
+                                            $errores = [];
+
+                                            // Saltar encabezado (fila 0)
+                                            for($r = 1; $r < count($rows); $r++) {
+                                                $row = $rows[$r];
+
+                                                // Validar que la fila tenga datos
+                                                if(empty($row[0]) && empty($row[1])) continue;
+
+                                                $cant = floatval($row[0] ?? 0);
+                                                $clave = trim($row[1] ?? '');
+                                                $descripcion = trim($row[2] ?? '');
+                                                $precioUnitario = floatval($row[3] ?? 0);
+                                                $observaciones = trim($row[4] ?? '');
+
+                                                // Buscar producto por clave
+                                                $prod = Inventario::where('team_id', Filament::getTenant()->id)
+                                                    ->where('clave', $clave)
+                                                    ->first();
+
+                                                if(!$prod) {
+                                                    $errores[] = "Fila ".($r+1).": Producto con clave '{$clave}' no encontrado";
+                                                    continue;
+                                                }
+
+                                                if($cant <= 0) {
+                                                    $errores[] = "Fila ".($r+1).": Cantidad inválida";
+                                                    continue;
+                                                }
+
+                                                if($precioUnitario <= 0) {
+                                                    $errores[] = "Fila ".($r+1).": Precio unitario inválido";
+                                                    continue;
+                                                }
+
+                                                // Calcular subtotal e impuestos
+                                                $subt = $precioUnitario * $cant;
+                                                $ivap = $get('esquema');
+                                                $esq = Esquemasimp::where('id', $ivap)->first();
+
+                                                if(!$esq) {
+                                                    $errores[] = "Esquema de impuestos no encontrado";
+                                                    break;
+                                                }
+
+                                                $ivapar = $subt * ($esq->iva * 0.01);
+                                                $retivapar = $subt * ($esq->retiva * 0.01);
+                                                $retisrpar = $subt * ($esq->retisr * 0.01);
+                                                $iepspar = $subt * ($esq->ieps * 0.01);
+                                                $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
+
+                                                // Usar descripción del Excel si está disponible, sino la del inventario
+                                                $descFinal = !empty($descripcion) ? $descripcion : $prod->descripcion;
+
+                                                $partidas[] = [
+                                                    'cant' => $cant,
+                                                    'item' => $prod->id,
+                                                    'descripcion' => $descFinal,
+                                                    'precio' => $precioUnitario,
+                                                    'subtotal' => $subt,
+                                                    'iva' => $ivapar,
+                                                    'retiva' => $retivapar,
+                                                    'retisr' => $retisrpar,
+                                                    'ieps' => $iepspar,
+                                                    'total' => $tot,
+                                                    'unidad' => $prod->unidad ?? 'H87',
+                                                    'cvesat' => $prod->cvesat ?? '01010101',
+                                                    'costo' => $prod->p_costo ?? 0,
+                                                    'clie' => $get('clie'),
+                                                    'observa' => $observaciones
+                                                ];
+                                            }
+
+                                            if(!empty($errores)) {
+                                                Notification::make()
+                                                    ->title('Errores en la importación')
+                                                    ->body(implode("\n", $errores))
+                                                    ->warning()
+                                                    ->duration(10000)
+                                                    ->send();
+                                            }
+
+                                            if(!empty($partidas)) {
+                                                $set('partidas', $partidas);
+                                                Self::updateTotals2($get, $set);
+
+                                                Notification::make()
+                                                    ->title('Importación exitosa')
+                                                    ->body(count($partidas).' partidas importadas')
+                                                    ->success()
+                                                    ->send();
+                                            } else {
+                                                Notification::make()
+                                                    ->title('No se importaron partidas')
+                                                    ->body('Verifique el formato del archivo')
+                                                    ->danger()
+                                                    ->send();
+                                            }
+
+                                        } catch(\Exception $e) {
+                                            Notification::make()
+                                                ->title('Error al importar')
+                                                ->body($e->getMessage())
+                                                ->danger()
+                                                ->send();
+                                        }
+                                    })
+                            ])->columnSpanFull(),
                             TableRepeater::make('partidas')
                                 ->relationship()
                                 ->addActionLabel('Agregar')
                                 ->headers([
-                                    Header::make('Cantidad'),
-                                    Header::make('Item'),
-                                    Header::make('Descripcion')->width('200px'),
+                                    Header::make('Cantidad')->width('100px'),
+                                    Header::make('Item')->width('300px'),
+                                    Header::make('Descripcion')->width('300px'),
                                     Header::make('Unitario'),
                                     Header::make('Subtotal'),
                                 ])->schema([
@@ -184,7 +320,11 @@ class CotizacionesResource extends Resource
                                             $set('clie',$get('../../clie'));
                                             Self::updateTotals($get,$set);
                                         }),
-                                    TextInput::make('item')
+                                    Select::make('item')
+                                        ->searchable()
+                                        ->options(Inventario::where('team_id',Filament::getTenant()->id)
+                                            ->select('id',DB::raw('CONCAT("Item: ",descripcion,"  Exist: ",FORMAT(exist,2)) as descripcion'))
+                                            ->pluck('descripcion','id'))
                                         ->required()
                                         ->live(onBlur:true)
                                         ->afterStateUpdated(function(Get $get, Set $set){
@@ -208,63 +348,7 @@ class CotizacionesResource extends Resource
                                             );
 
                                             $set('precio',$precio);
-                                        })->suffixAction(
-                                            ActionsAction::make('AbreItem')
-                                                ->icon('fas-magnifying-glass')
-                                                ->form([
-                                                    Select::make('SelItem')
-                                                        ->label('Seleccionar')
-                                                        ->searchable()
-                                                        ->options(Inventario::where('team_id',Filament::getTenant()->id)
-                                                            ->select('id',DB::raw('CONCAT("Item: ",descripcion,"  Exist: ",FORMAT(exist,2)) as descripcion'))
-                                                            ->pluck('descripcion','id'))
-                                                ])
-                                                ->action(function(Set $set,Get $get,$data){
-                                                    $cli = $get('../../clie');
-                                                    $cant = floatval($get('cant'));
-                                                    $item = $data['SelItem'];
-                                                    $set('item',$item);
-                                                    $prod = Inventario::where('id',$item)->get();
-                                                    $prod = $prod[0];
-                                                    $set('descripcion',$prod->descripcion);
-                                                    $set('unidad',$prod->unidad ?? 'H87');
-                                                    $set('cvesat',$prod->cvesat ?? '01010101');
-                                                    $set('costo',$prod->p_costo);
-                                                    $clie = Clientes::where('id',$cli)->get();
-                                                    $clie = $clie[0];
-                                                    $precio = 0;
-                                                    switch($clie->lista)
-                                                    {
-                                                        case 1: $precio = $prod->precio1; break;
-                                                        case 2: $precio = $prod->precio2; break;
-                                                        case 3: $precio = $prod->precio3; break;
-                                                        case 4: $precio = $prod->precio4; break;
-                                                        case 5: $precio = $prod->precio5; break;
-                                                        default: $precio = $prod->precio1; break;
-                                                    }
-                                                    $desc = $clie->descuento * 0.01;
-                                                    $prec = $precio * $desc;
-                                                    $precio = $precio - $prec;
-                                                    $set('precio',$precio);
-                                                    $subt = $precio * $cant;
-                                                    $set('subtotal',$subt);
-                                                    $ivap = $get('../../esquema');
-                                                    $esq = Esquemasimp::where('id',$ivap)->get();
-                                                    $esq = $esq[0];
-                                                    $set('iva',$subt * ($esq->iva*0.01));
-                                                    $set('retiva',$subt * ($esq->retiva*0.01));
-                                                    $set('retisr',$subt * ($esq->retisr*0.01));
-                                                    $set('ieps',$subt * ($esq->ieps*0.01));
-                                                    $ivapar = $subt * ($esq->iva*0.01);
-                                                    $retivapar = $subt * ($esq->retiva*0.01);
-                                                    $retisrpar = $subt * ($esq->retisr*0.01);
-                                                    $iepspar = $subt * ($esq->ieps*0.01);
-                                                    $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                                    $set('total',$tot);
-                                                    $set('clie',$get('../../clie'));
-                                                    Self::updateTotals($get,$set);
-                                                })
-                                        ),
+                                        }),
                                     TextInput::make('descripcion'),
                                     TextInput::make('precio')
                                         ->numeric()
@@ -420,61 +504,6 @@ class CotizacionesResource extends Resource
                             Forms\Components\TextInput::make('total')
                                 ->numeric()
                                 ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
-                            Actions::make([
-                                ActionsAction::make('ImportarExcel')
-                                    ->visible(function(Get $get){
-                                        if($get('clie') > 0&&$get('subtotal') == 0) return true;
-                                        else return false;
-                                    })
-                                    ->label('Importar Partidas')
-                                    ->badge()->tooltip('Importar Excel')
-                                    ->modalCancelActionLabel('Cancelar')
-                                    ->modalSubmitActionLabel('Importar')
-                                    ->icon('fas-file-excel')
-                                    ->form([
-                                        FileUpload::make('ExcelFile')
-                                            ->label('Archivo Excel')
-                                            ->storeFiles(false)
-                                    ])->action(function(Get $get,Set $set,$data){
-                                        //dd($data['ExcelFile']->path());
-                                        $archivo = $data['ExcelFile']->path();
-                                        $tipo=IOFactory::identify($archivo);
-                                        $lector=IOFactory::createReader($tipo);
-                                        $libro = $lector->load($archivo, IReader::IGNORE_EMPTY_CELLS);
-                                        $hoja = $libro->getActiveSheet();
-                                        $rows = $hoja->toArray();
-                                        $r = 0;
-                                        $partidas = [];
-                                        foreach($rows as $row)
-                                        {
-                                            if($r > 0)
-                                            {
-                                                $cant = $row[0];
-                                                $item = $row[1];
-                                                $cost = $row[2];
-                                                $prod = Inventario::where('clave',$item)->get();
-                                                $prod = $prod[0];
-                                                $subt = $cost * $cant;
-                                                $ivap = $get('esquema');
-                                                $esq = Esquemasimp::where('id',$ivap)->get();
-                                                $esq = $esq[0];
-                                                $ivapar = $subt * ($esq->iva*0.01);
-                                                $retivapar = $subt * ($esq->retiva*0.01);
-                                                $retisrpar = $subt * ($esq->retisr*0.01);
-                                                $iepspar = $subt * ($esq->ieps*0.01);
-                                                $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                                $data = ['cant'=>$cant,'item'=>$prod->id,'descripcion'=>$prod->descripcion,
-                                                    'costo'=>$cost,'subtotal'=>$subt,'iva'=>$ivapar,
-                                                    'retiva'=>$retivapar,'retisr'=>$retisrpar,
-                                                    'ieps'=>$iepspar,'total'=>$tot,'prov'=>$get('prov')];
-                                                array_push($partidas,$data);
-                                            }
-                                            $r++;
-                                        }
-                                        $set('partidas', $partidas);
-                                        Self::updateTotals2($get,$set);
-                                    })
-                            ]),
                             Actions::make([
                                 ActionsAction::make('Imprimir Cotizacion')
                                     ->badge()->tooltip('Imprimir Cotizacion')

@@ -525,6 +525,12 @@ class InventarioResource extends Resource
                 ])->action(function($data){
                     static::importarPreciosVolumenMasivo($data);
                 }),
+            ActionsAction::make('ExportarExcel')
+                ->label('Exportar')
+                ->icon('fas-file-excel')->badge()
+                ->action(function(){
+                    return static::exportarInventarioExcel();
+                }),
             ActionsAction::make('Fisico')
                 ->label('Inventario Fisico')
                 ->icon('fas-boxes-packing')->badge()
@@ -1056,5 +1062,78 @@ class InventarioResource extends Resource
                 ->danger()
                 ->send();
         }
+    }
+
+    public static function exportarInventarioExcel()
+    {
+        $teamId = Filament::getTenant()->id;
+        $inventarios = Inventario::where('team_id', $teamId)->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Configurar encabezados
+        $headers = [
+            'Clave',
+            'Descripción',
+            'Línea',
+            'Marca',
+            'Modelo',
+            'Último Costo',
+            'Costo Promedio',
+            'Precio 1',
+            'Precio 2',
+            'Precio 3',
+            'Precio 4',
+            'Precio 5',
+            'Existencia',
+            'Esquema',
+            'Servicio',
+            'Unidad',
+            'Clave SAT'
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        // Agregar datos
+        $row = 2;
+        foreach ($inventarios as $inv) {
+            $linea = Lineasprod::find($inv->linea);
+            $esquema = Esquemasimp::find($inv->esquema);
+
+            $sheet->setCellValue('A' . $row, $inv->clave);
+            $sheet->setCellValue('B' . $row, $inv->descripcion);
+            $sheet->setCellValue('C' . $row, $linea?->descripcion ?? '');
+            $sheet->setCellValue('D' . $row, $inv->marca);
+            $sheet->setCellValue('E' . $row, $inv->modelo);
+            $sheet->setCellValue('F' . $row, $inv->u_costo);
+            $sheet->setCellValue('G' . $row, $inv->p_costo);
+            $sheet->setCellValue('H' . $row, $inv->precio1);
+            $sheet->setCellValue('I' . $row, $inv->precio2);
+            $sheet->setCellValue('J' . $row, $inv->precio3);
+            $sheet->setCellValue('K' . $row, $inv->precio4);
+            $sheet->setCellValue('L' . $row, $inv->precio5);
+            $sheet->setCellValue('M' . $row, $inv->exist);
+            $sheet->setCellValue('N' . $row, $esquema?->descripcion ?? '');
+            $sheet->setCellValue('O' . $row, $inv->servicio);
+            $sheet->setCellValue('P' . $row, $inv->unidad);
+            $sheet->setCellValue('Q' . $row, $inv->cvesat);
+
+            $row++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'inventario_' . date('Y-m-d_His') . '.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        Notification::make()
+            ->title('Inventario exportado')
+            ->success()
+            ->send();
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 }

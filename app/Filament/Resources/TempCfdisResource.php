@@ -21,6 +21,8 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\TempCfdisExport;
 
 class TempCfdisResource extends Resource
 {
@@ -203,6 +205,12 @@ class TempCfdisResource extends Resource
                 $livewire->resetTableFiltersForm(); // If you want to reset the filter before apply
                 $livewire->tableFilters['Existe']['isActive'] = !$livewire->tableFilters['Existe']['isActive'];
                 $livewire->updatedTableFilters();
+            }),
+                Action::make('Exportar')
+            ->label('Exportar a Excel')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->action(function () {
+                return Excel::download(new TempCfdisExport(Filament::getTenant()->id), 'cfdi-sat-' . date('Y-m-d') . '.xlsx');
             }),
             ],Tables\Actions\HeaderActionsPosition::Bottom)
             ->bulkActions([

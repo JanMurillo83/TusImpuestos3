@@ -331,22 +331,23 @@ class CotizacionesResource extends Resource
                                             $cli = $get('../../clie');
                                             $prod = Inventario::where('id',$get('item'))->first();
                                             if(!$prod) return;
-                                            $prod = $prod[0];
-                                            $set('descripcion',$prod->descripcion);
+                                            $set('descripcion',$prod->descripcion ?? 'No se selecciono producto');
                                             $set('unidad',$prod->unidad ?? 'H87');
                                             $set('cvesat',$prod->cvesat ?? '01010101');
-                                            $set('costo',$prod->p_costo);
+                                            $set('costo',$prod->p_costo ?? 0);
 
                                             // Obtener cantidad actual
                                             $cantidad = floatval($get('cant')) ?: 1;
 
                                             // Calcular precio usando el nuevo sistema de precios por volumen
-                                            $precio = PrecioCalculator::calcularPrecio(
-                                                $prod->id,
-                                                $cli,
-                                                $cantidad,
-                                                Filament::getTenant()->id
-                                            );
+                                            if($prod) {
+                                                $precio = PrecioCalculator::calcularPrecio(
+                                                    $prod->id,
+                                                    $cli,
+                                                    $cantidad,
+                                                    Filament::getTenant()->id
+                                                );
+                                            }
 
                                             $set('precio',$precio);
                                         }),

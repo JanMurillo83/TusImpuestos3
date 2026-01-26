@@ -948,7 +948,7 @@ class CotizacionesResource extends Resource
                     ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                     ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                     ->modalFooterActionsAlignment(Alignment::Left)
-                    ->modalWidth('7xl')
+                    ->modalWidth('full')
                     ->after(function($record,$livewire){
                         $idorden = $record->id;
                         $id_empresa = Filament::getTenant()->id;

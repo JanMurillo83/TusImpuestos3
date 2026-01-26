@@ -1000,6 +1000,8 @@ class CotizacionesResource extends Resource
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
                 CreateAction::make('Agregar')
+                    ->closeModalByClickingAway(false)
+                    ->closeModalByEscaping(false)
                     ->createAnother(false)
                     ->tooltip('Nueva Cotizacion')
                     ->label('Agregar')->icon('fas-circle-plus')

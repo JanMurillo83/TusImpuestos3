@@ -504,7 +504,37 @@ class CotizacionesResource extends Resource
                                 ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('total')
                                 ->numeric()
-                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
+                                ->suffixActions([
+                                    Actions\Action::make('Calcular Total')
+                                    ->icon('fas-calculator')
+                                    ->iconButton()
+                                    ->visible(function ($context){
+                                        if ($context == 'edit') return true;
+                                        else return false;
+                                    })->action(function(Get $get, Set $set){
+                                        $partidas = $get('partidas');
+                                        $total = 0;
+                                        foreach($partidas as $partida){
+                                            $cant = floatval($partida['cant']);
+                                            $prec = floatval($partida['precio']);
+                                            $total += $cant * $prec;
+                                        }
+                                        $set('subtotal',$total);
+                                        $esq = $get('esquema');
+                                        $esque = Esquemasimp::where('id',$esq)->first();
+                                        $iva = $total * (floatval($esque->iva)*0.01);
+                                        $ret_iva = $total * (floatval($esque->retiva)*0.01);
+                                        $ret_isr = $total * (floatval($esque->retisr)*0.01);
+                                        $ieps = $total * (floatval($esque->ieps)*0.01);
+
+                                        $set('iva',$iva);
+                                        $set('retiva',$ret_iva);
+                                        $set('retisr',$ret_isr);
+                                        $set('ieps',$ieps);
+                                        $set('Impuestos',$iva-$ret_iva-$ret_isr+$ieps);
+                                    })
+                                ]),
                             Actions::make([
                                 ActionsAction::make('Imprimir Cotizacion')
                                     ->badge()->tooltip('Imprimir Cotizacion')

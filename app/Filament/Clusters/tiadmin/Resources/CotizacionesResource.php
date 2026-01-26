@@ -494,15 +494,14 @@ class CotizacionesResource extends Resource
                             Forms\Components\TextInput::make('subtotal')
                                 ->readOnly()
                                 ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
-                            Forms\Components\Hidden::make('iva'),
+                            Forms\Components\Hidden::make('Impuestos'),
                             Forms\Components\Hidden::make('retiva'),
                             Forms\Components\Hidden::make('retisr'),
                             Forms\Components\Hidden::make('ieps'),
-                            Forms\Components\TextInput::make('Impuestos')
+                            Forms\Components\TextInput::make('iva')
+                                ->label('Impuestos')
                                 ->readOnly()
-                                ->numeric()->prefix('$')->default(function (Get $get){
-                                    return floatval($get('iva')) - floatval($get('retiva')) - floatval($get('retisr')) + floatval($get('ieps'));
-                                })->currencyMask(decimalSeparator:'.',precision:2),
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('total')
                                 ->numeric()
                                 ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),

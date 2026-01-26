@@ -859,12 +859,16 @@ class FacturasResource extends Resource
         ->paginationPageOptions([5,'all'])
         ->striped()
             ->modifyQueryUsing(function ($query) {
-                return $query->OrderBy('fecha','desc')
+                return $query->OrderBy('created_at','desc')
                 ->OrderBy('folio','desc');
             })
         ->columns([
-            Tables\Columns\TextColumn::make('docto')
-                ->label('Factura')
+            Tables\Columns\TextColumn::make('serie')
+                ->label('Serie')
+                ->numeric()
+                ->sortable()->width('20%')->searchable(),
+            Tables\Columns\TextColumn::make('folio')
+                ->label('Folio')
                 ->numeric()
                 ->sortable()->width('20%')->searchable(),
             Tables\Columns\TextColumn::make('fecha')

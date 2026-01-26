@@ -329,7 +329,8 @@ class CotizacionesResource extends Resource
                                         ->live(onBlur:true)
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cli = $get('../../clie');
-                                            $prod = Inventario::where('id',$get('item'))->get();
+                                            $prod = Inventario::where('id',$get('item'))->first();
+                                            if(!$prod) return;
                                             $prod = $prod[0];
                                             $set('descripcion',$prod->descripcion);
                                             $set('unidad',$prod->unidad ?? 'H87');

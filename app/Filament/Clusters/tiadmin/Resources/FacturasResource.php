@@ -866,7 +866,7 @@ class FacturasResource extends Resource
                 ->sortable()->width('20%')->searchable(),
             Tables\Columns\TextColumn::make('folio')
                 ->label('Folio')
-                ->numeric()
+                ->numeric(thousandsSeparator: '',decimalPlaces: 0)
                 ->sortable()->width('20%')->searchable(),
             Tables\Columns\TextColumn::make('fecha')
                 ->date('d-m-Y')

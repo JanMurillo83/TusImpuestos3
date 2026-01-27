@@ -40,8 +40,7 @@ class SeriesFacturasResource extends Resource
                     ->default('F'),
                 Forms\Components\TextInput::make('folio')
                     ->required()
-                    ->numeric()->default(0)
-                    ->disabledOn('edit'),
+                    ->numeric()->default(0),
                 Forms\Components\TextInput::make('descripcion')
                     ->maxLength(255),
                 Forms\Components\Hidden::make('team_id')
@@ -80,8 +79,8 @@ class SeriesFacturasResource extends Resource
     {
         return [
             'index' => Pages\ListSeriesFacturas::route('/'),
-            'create' => Pages\CreateSeriesFacturas::route('/create'),
-            'edit' => Pages\EditSeriesFacturas::route('/{record}/edit'),
+            //'create' => Pages\CreateSeriesFacturas::route('/create'),
+            //'edit' => Pages\EditSeriesFacturas::route('/{record}/edit'),
         ];
     }
 }

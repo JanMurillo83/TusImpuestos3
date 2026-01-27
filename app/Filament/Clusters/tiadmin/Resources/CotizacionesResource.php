@@ -495,7 +495,7 @@ class CotizacionesResource extends Resource
                                     Forms\Components\TextInput::make('oc_referencia_interna')
                                         ->label('Referencia Interna'),
                                     Forms\Components\TextInput::make('nombre_elaboro')
-                                        ->label('Elaboró'),
+                                        ->label('Elaboró')->default(Filament::auth()->user()->name),
                                     Forms\Components\TextInput::make('nombre_autorizo')
                                         ->label('Autorizó'),
                                 ])->columns(3),
@@ -553,7 +553,7 @@ class CotizacionesResource extends Resource
                                     ->action(function($record){
                                         $idorden = $record->id;
                                         $id_empresa = Filament::getTenant()->id;
-                                        $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                                        $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
                                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                                         if(File::exists($ruta))File::delete($ruta);
                                         $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
@@ -727,7 +727,7 @@ class CotizacionesResource extends Resource
                         ->action(function($record){
                             $idorden = $record->id;
                             $id_empresa = Filament::getTenant()->id;
-                            $archivo_pdf = 'COTIZACION'.$record->docto.'.pdf';
+                            $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
                             $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                             if(File::exists($ruta))File::delete($ruta);
                             $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
@@ -1018,8 +1018,15 @@ class CotizacionesResource extends Resource
                     ->modalWidth('full')
                     ->after(function($record,$livewire){
                         $idorden = $record->id;
+                        $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();
+                        foreach($partidas_pen as $par){
+                            CotizacionesPartidas::where('id',$par->id)->update(['pendientes'=>$par->cant]);
+                        }
+                        Cotizaciones::where('id',$record->id)->update([
+                            'nombre_elaboro'=>Filament::auth()->user()->name,
+                        ]);
                         $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'COTIZACION'.$record->docto.'.pdf';
+                        $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta))File::delete($ruta);
                         $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
@@ -1053,7 +1060,7 @@ class CotizacionesResource extends Resource
                         }
                         $idorden = $record->id;
                         $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'COTIZACION'.$record->id.'.pdf';
+                        $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta))File::delete($ruta);
                         $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];

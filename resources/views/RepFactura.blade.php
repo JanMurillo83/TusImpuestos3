@@ -41,15 +41,15 @@ $logo = public_path('storage/'.$dafis->logo);
     <meta name="viewport" content="width=device-width, initial-scale=0.8" charset="UTF-8" />
     <title>CFDI - Ingreso</title>
 </head>
-<body style="font-size: 8px !important;">
+<body style="font-size: 10px !important;">
 <div class="container mt-5" style="margin-left: 1rem !important; margin-right: 1rem !important;">
     <div class="row">
-        <div class="col-6" style="font-size: 9px !important;">
-            <label style="font-size: 12px">ESTE DOCUMENTO ES UNA REPRESENTACIÓN IMPRESA DE UN CFDI.</label>
-            <label style="font-size: 12px">EMISOR <b>{{$dafis->nombre}}</b></label>
+        <div class="col-6" style="font-size: 11px !important;">
+            <label style="font-size: 14px">ESTE DOCUMENTO ES UNA REPRESENTACIÓN IMPRESA DE UN CFDI.</label>
+            <label style="font-size: 14px">EMISOR <b>{{$dafis->nombre}}</b></label>
         </div>
         <div class="col-4"></div>
-        <div class="col-2" style="font-size: 10px !important;">
+        <div class="col-2" style="font-size: 12px !important;">
             <h4>{{$orden->serie.$orden->folio}}</h4>
         </div>
     </div>
@@ -58,7 +58,7 @@ $logo = public_path('storage/'.$dafis->logo);
         <div class="col-3">
             <img src="{{$logo}}" alt="Tus Impuestos" width="100px" style="margin-top: 1rem !important;">
         </div>
-        <div class="col-3" style="font-size: 10px !important;">
+        <div class="col-3" style="font-size: 12px !important;">
             <b>{{$dafis->nombre}}</b><br>
             <label>{{$dafis->rfc}}</label><br>
             <label><b>REGIMEN FISCAL</b></label><br>
@@ -69,7 +69,7 @@ $logo = public_path('storage/'.$dafis->logo);
             <label><b>FORMA DE PAGO:</b></label><label>{{$orden->metodo}}</label><br>
             <label><b>METODO DE PAGO:</b></label><label>{{$orden->forma}}</label>
         </div>
-        <div class="col-4" style="font-size: 10px !important;">
+        <div class="col-4" style="font-size: 12px !important;">
             <label><b>TIPO DE COMPROBANTE:</b></label><label> I - Ingreso</label><br>
             <label><b>FOLIO FISCAL:</b></label><label>{{$tfd['UUID']?? ''}}</label><br>
             <label><b>NUMERO DE SERIE DEL CERTIFICADO DEL SAT:</b></label><label>{{$tfd['NoCertificadoSAT'] ?? ''}}</label><br>
@@ -77,7 +77,7 @@ $logo = public_path('storage/'.$dafis->logo);
             <label><b>NUMERO DE SERIE DEL CSD DEL EMISOR:</b></label><label>{{$comprobante['NoCertificado'] ?? ''}}</label><br>
             <label><b>CLAVE CONFIRMACIÓN:</b></label>
         </div>
-        <div class="col-2" style="font-size: 10px !important;">
+        <div class="col-2" style="font-size: 12px !important;">
             <label><b>FACTURA FOLIO:</b></label> <label>{{$orden->serie.$orden->folio}}</label><br>
             <label><b>FECHA:</b></label> <label>{{$comprobante['Fecha'] ?? ''}}</label><br>
             <label><b>LUGAR DE EXPEDICION:</b></label> <label>{{$dafis->codigo}}</label><br>
@@ -90,7 +90,7 @@ $logo = public_path('storage/'.$dafis->logo);
                 <img src="{{$QrPath}}" alt="" width="90px" style="margin-top: 0.5rem !important;margin-bottom: 0.5rem !important;">
             @endif
         </div>
-        <div class="col-6" style="font-size: 10px !important;">
+        <div class="col-6" style="font-size: 12px !important;">
             <label><b>PARA:</b></label><br>
             <label>{{$orden->nombre}}</label><br>
             <label>{{$prove->rfc}}</label><br>
@@ -98,14 +98,14 @@ $logo = public_path('storage/'.$dafis->logo);
             <label><b>NumRegIdTrib:</b></label><br>
             <label><b>USO CFDI:</b></label><label>{{$orden->uso}}</label><br>
         </div>
-        <div class="col-2" style="font-size: 10px !important;">
+        <div class="col-2" style="font-size: 12px !important;">
             <h6>NOTAS:</h6>
             <label>{{$orden->observa}}</label>
         </div>
     </div>
     <!--Row1-->
 
-    <div class="row" style="font-size: 9px !important;">
+    <div class="row" style="font-size: 11px !important;">
         <table style="width: 98% !important;">
             <tr>
                 <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CANTIDAD</th>
@@ -117,11 +117,11 @@ $logo = public_path('storage/'.$dafis->logo);
                 <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">IMPORTE</th>
             </tr>
             @foreach ($partidas as $part)
-                <tr style="font-size: 9px !important;">
+                <tr style="font-size: 11px !important;">
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{number_format(floatval($part->cant), 2, '.')}}</td>
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{$part->cvesat}}</td>
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{$part->unidad}}</td>
-                    <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 8px !important;vertical-align: top !important;" colspan="2">{{$part->descripcion}}</td>
+                    <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 10px !important;vertical-align: top !important;" colspan="2">{{$part->descripcion}}</td>
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{'$ '.number_format(floatval($part->precio), 2, '.')}}</td>
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{'$ '.number_format(0)}}</td>
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{'$ '.number_format(floatval($part->subtotal), 2, '.')}}</td>
@@ -130,7 +130,7 @@ $logo = public_path('storage/'.$dafis->logo);
         </table>
     </div>
     <div class="row" style="margin-top: 3rem; margin-left: -2rem !important">
-        <div class="col-8" style="font-size: 10px !important;">
+        <div class="col-8" style="font-size: 12px !important;">
             <?php
             $tiporel = '';
             $doctore = '';
@@ -153,27 +153,27 @@ $logo = public_path('storage/'.$dafis->logo);
             <label><b>TIPO RELACIÓN: </b>{{$tiporel}}</label><br>
             <label><b>CFDI RELACIONADO: </b>{{$doctore}}</label>
         </div>
-        <div class="col-4" style="font-size: 10px !important;margin-left: -2rem !important;">
+        <div class="col-4" style="font-size: 12px !important;margin-left: -2rem !important;">
             <table style="padding-right: 2rem !important; width: 100% !important;font-size: 15px !important; margin-right: 1rem !important;">
                 <tr>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">SUBTOTAL:</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end">SUBTOTAL:</td>
                     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->subtotal), 2, '.')}}</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->subtotal), 2, '.')}}</td>
                 </tr>
                 <tr>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">DESCUENTO:</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end">DESCUENTO:</td>
                     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval(0), 2, '.')}}</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval(0), 2, '.')}}</td>
                 </tr>
                 <tr>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">IMPUESTOS TRASLADADOS:</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end">IMPUESTOS TRASLADADOS:</td>
                     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->iva)+floatval($orden->ieps), 2, '.')}}</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->iva)+floatval($orden->ieps), 2, '.')}}</td>
                 </tr>
                 <tr>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">IMPUESTOS RETENIDOS:</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end">IMPUESTOS RETENIDOS:</td>
                     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->retiva)+floatval($orden->retisr), 2, '.')}}</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->retiva)+floatval($orden->retisr), 2, '.')}}</td>
                 </tr>
                 <tr>
                     <td colspan="2">
@@ -181,16 +181,16 @@ $logo = public_path('storage/'.$dafis->logo);
                     </td>
                 </tr>
                 <tr>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end">TOTAL:</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end">TOTAL:</td>
                     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                    <td style="font-size: 10px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->total), 2, '.')}}</td>
+                    <td style="font-size: 12px !important;font-weight: bold;text-align: end; align-content: end; margin-left: 2rem">{{number_format(floatval($orden->total), 2, '.')}}</td>
                 </tr>
             </table>
         </div>
     </div>
     <div class="row">
         <div class="col-7"></div>
-        <div class="col-5" style="font-size: 10px !important;">
+        <div class="col-5" style="font-size: 12px !important;">
             <?php
             $formatter = new \Luecano\NumeroALetras\NumeroALetras();
             $cant_letras = '';
@@ -210,7 +210,7 @@ $logo = public_path('storage/'.$dafis->logo);
         </div>
 
     </div>
-    <div class="row" style="font-size: 10px !important;">
+    <div class="row" style="font-size: 12px !important;">
         <table style="width: 98% !important;">
             <tr>
                 <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; vertical-align: top !important;">RETENCIONES LOCALES</th>

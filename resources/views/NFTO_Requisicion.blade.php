@@ -8,7 +8,7 @@
     $hoy = \Carbon\Carbon::now()->format('d-m-Y');
 ?>
 <div class="bg-slate-100">
-    <div class="max-w-3xl mx-auto my-8 bg-white p-8 rounded-xl shadow text-slate-800 text-sm">
+    <div class="max-w-3xl mx-auto my-8 bg-white p-8 rounded-xl shadow text-slate-800 text-base">
 
         <!-- Encabezado -->
         <header class="flex justify-between items-start border-b pb-4 mb-4">
@@ -31,7 +31,7 @@
                     </p>
                 </div>
             </div>
-            <div class="text-right text-[11px] text-slate-600 space-y-1">
+            <div class="text-right text-[13px] text-slate-600 space-y-1">
                 <p><span class="font-semibold">Folio:</span> {{$docto->folio}}</p>
                 <p><span class="font-semibold">Fecha emisión:</span> {{$docto->fecha}}</p>
                 <p><span class="font-semibold">Proyecto:</span> {{ \App\Models\Proyectos::find($docto->proyecto)->descripcion ?? '' }}</p>
@@ -39,9 +39,9 @@
         </header>
 
         <!-- Datos empresa y proveedor -->
-        <section class="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+        <section class="grid grid-cols-2 gap-4 mb-4 text-[13px]">
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">DATOS DE LA EMPRESA</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">DATOS DE LA EMPRESA</p>
                 <p class="font-semibold text-slate-800">{{$empresa->name}}</p>
                 @if($fiscales)
                     <p>{{$fiscales->nombre}}</p>
@@ -52,7 +52,7 @@
                 @endif
             </div>
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">PROVEEDOR SUGERIDO</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">PROVEEDOR SUGERIDO</p>
                 @if($prove)
                     <p class="font-semibold text-slate-800">{{$prove->nombre}}</p>
                     <p>{{$prove->rfc}}</p>
@@ -67,9 +67,9 @@
         </section>
 
         <!-- Datos de solicitud -->
-        <section class="mb-4 text-[11px]">
+        <section class="mb-4 text-[13px]">
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">INFORMACIÓN ADICIONAL</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">INFORMACIÓN ADICIONAL</p>
                 <div class="grid grid-cols-2 gap-4">
                     <p><span class="font-semibold">Solicita:</span> {{$docto->solicita}}</p>
                     <p><span class="font-semibold">Estado:</span> {{$docto->estado}}</p>
@@ -80,11 +80,11 @@
 
         <!-- Tabla de partidas -->
         <section class="mb-4">
-            <p class="text-[11px] text-slate-500 mb-1">
+            <p class="text-[13px] text-slate-500 mb-1">
                 Detalle de productos / servicios requeridos:
             </p>
             <div class="overflow-x-auto border border-slate-200 rounded-lg">
-                <table class="min-w-full text-[11px] border-collapse">
+                <table class="min-w-full text-[13px] border-collapse">
                     <thead class="bg-slate-100 text-slate-700">
                     <tr>
                         <th class="py-2 px-2 text-left">#</th>
@@ -124,7 +124,7 @@
                     </tr>
                     @if($par->observa)
                         <tr class="bg-slate-50/50">
-                            <td colspan="7" class="py-1 px-4 text-[10px] text-slate-500 italic">
+                            <td colspan="7" class="py-1 px-4 text-[12px] text-slate-500 italic">
                                 Nota: {{$par->observa}}
                             </td>
                         </tr>
@@ -137,7 +137,7 @@
 
         <!-- Totales -->
         <section class="flex justify-end mb-4">
-            <div class="w-full sm:w-72 text-[11px]">
+            <div class="w-full sm:w-72 text-[13px]">
                 <div class="flex justify-between py-1">
                     <span class="text-slate-600">Subtotal:</span>
                     <span class="font-semibold text-slate-800">{{'$'.number_format($docto->subtotal,2)}}</span>
@@ -148,9 +148,9 @@
                 </div>
                 <div class="flex justify-between py-1 border-t mt-1 pt-2">
                     <span class="text-slate-700 font-semibold">TOTAL ESTIMADO:</span>
-                    <span class="font-bold text-slate-900 text-base">{{'$'.number_format($docto->total,2)}}</span>
+                    <span class="font-bold text-slate-900 text-lg">{{'$'.number_format($docto->total,2)}}</span>
                 </div>
-                <p class="mt-2 text-[10px] text-slate-500">
+                <p class="mt-2 text-[12px] text-slate-500">
                     <?php
                     $formatter = new \Luecano\NumeroALetras\NumeroALetras();
                     $cant_letras = '';
@@ -170,8 +170,8 @@
 
         <!-- Observaciones -->
         @if($docto->observa)
-        <section class="mb-4 text-[11px]">
-            <p class="text-[10px] font-semibold text-slate-600 mb-1">OBSERVACIONES</p>
+        <section class="mb-4 text-[13px]">
+            <p class="text-[12px] font-semibold text-slate-600 mb-1">OBSERVACIONES</p>
             <p class="border border-slate-200 rounded-lg p-3 min-h-[40px] text-slate-600 leading-snug">
                 {{$docto->observa}}
             </p>
@@ -179,7 +179,7 @@
         @endif
 
         <!-- Firmas -->
-        <section class="grid grid-cols-2 gap-8 text-[11px] mt-12">
+        <section class="grid grid-cols-2 gap-8 text-[13px] mt-12">
             <div class="text-center">
                 <p class="border-t border-slate-400 pt-2 font-semibold">
                     {{$docto->solicita}}
@@ -200,7 +200,7 @@
         </section>
 
         <!-- Footer -->
-        <footer class="mt-12 pt-4 border-t text-[10px] text-slate-500 flex justify-between">
+        <footer class="mt-12 pt-4 border-t text-[12px] text-slate-500 flex justify-between">
             <p>
                 Documento generado automáticamente por Tus-Impuestos.<br>
                 Requisición Interna.

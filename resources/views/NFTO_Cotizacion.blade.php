@@ -9,7 +9,7 @@
     $vendedor = \Filament\Facades\Filament::auth()->user()->name;
 ?>
 <div class="bg-slate-100">
-    <div class="max-w-3xl mx-auto my-8 bg-white p-8 rounded-xl shadow text-slate-800 text-sm">
+    <div class="max-w-3xl mx-auto my-8 bg-white p-8 rounded-xl shadow text-slate-800 text-base">
 
         <!-- Encabezado -->
         <header class="flex justify-between items-start border-b pb-4 mb-4">
@@ -32,16 +32,16 @@
                     </p>
                 </div>
             </div>
-            <div class="text-right text-[11px] text-slate-600 space-y-1">
+            <div class="text-right text-[13px] text-slate-600 space-y-1">
                 <p><span class="font-semibold">Folio:</span> {{$docto->docto}}</p>
                 <p><span class="font-semibold">Fecha emisión:</span> {{$hoy}}</p>
             </div>
         </header>
 
         <!-- Datos empresa y cliente -->
-        <section class="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+        <section class="grid grid-cols-2 gap-4 mb-4 text-[13px]">
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">DATOS DE LA EMPRESA</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">DATOS DE LA EMPRESA</p>
                 <p class="font-semibold text-slate-800">{{$empresa->name}}</p>
                 <p>{{$fiscales->nombre}}</p>
                 <p>{{$fiscales->direccion}}</p>
@@ -50,7 +50,7 @@
                 <p>Correo: {{$fiscales->correo}}</p>
             </div>
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">CLIENTE</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">CLIENTE</p>
                 <p class="font-semibold text-slate-800">{{$clie->nombre}}</p>
                 <p>{{$clie->rfc}}</p>
                 <p>{{$clie->direccion}}</p>
@@ -61,9 +61,9 @@
         </section>
 
         <!-- Datos de entrega / condiciones comerciales -->
-        <section class="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+        <section class="grid grid-cols-2 gap-4 mb-4 text-[13px]">
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">DATOS DE ENTREGA</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">DATOS DE ENTREGA</p>
                 <p><span class="font-semibold">Lugar:</span> {{$docto->entrega_lugar}}</p>
                 <p><span class="font-semibold">Dirección:</span> {{$docto->entrega_direccion}}</p>
                 <p><span class="font-semibold">Horario:</span> {{$docto->entrega_horario}}</p>
@@ -71,7 +71,7 @@
                 <p><span class="font-semibold">Teléfono:</span> {{$docto->entrega_telefono}}</p>
             </div>
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">CONDICIONES COMERCIALES</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">CONDICIONES COMERCIALES</p>
                 <p><span class="font-semibold">Moneda:</span> {{$docto->moneda}}</p>
                 <p><span class="font-semibold">Condiciones de pago:</span> {{$docto->condiciones_pago}}</p>
                 <p><span class="font-semibold">Condiciones de entrega:</span> {{$docto->condiciones_entrega}}</p>
@@ -82,11 +82,11 @@
 
         <!-- Tabla de partidas -->
         <section class="mb-4">
-            <p class="text-[11px] text-slate-500 mb-1">
+            <p class="text-[13px] text-slate-500 mb-1">
                 Detalle de productos / servicios cotizados:
             </p>
             <div class="overflow-x-auto border border-slate-200 rounded-lg">
-                <table class="min-w-full text-[11px] border-collapse">
+                <table class="min-w-full text-[13px] border-collapse">
                     <thead class="bg-slate-100 text-slate-700">
                     <tr>
                         <th class="py-2 px-2 text-left">#</th>
@@ -140,7 +140,7 @@
 
         <!-- Totales -->
         <section class="flex justify-end mb-4">
-            <div class="w-full sm:w-72 text-[11px]">
+            <div class="w-full sm:w-72 text-[13px]">
                 <div class="flex justify-between py-1">
                     <span class="text-slate-600">Subtotal:</span>
                     <span class="font-semibold text-slate-800">{{'$'.number_format($docto->subtotal,2)}}</span>
@@ -151,9 +151,9 @@
                 </div>
                 <div class="flex justify-between py-1 border-t mt-1 pt-2">
                     <span class="text-slate-700 font-semibold">TOTAL COTIZACIÓN:</span>
-                    <span class="font-bold text-slate-900 text-base">{{'$'.number_format($docto->total,2)}}</span>
+                    <span class="font-bold text-slate-900 text-lg">{{'$'.number_format($docto->total,2)}}</span>
                 </div>
-                <p class="mt-2 text-[10px] text-slate-500">
+                <p class="mt-2 text-[12px] text-slate-500">
                     <?php
                     $formatter = new \Luecano\NumeroALetras\NumeroALetras();
                     $cant_letras = '';
@@ -172,15 +172,15 @@
         </section>
 
         <!-- Observaciones -->
-        <section class="mb-4 text-[11px]">
-            <p class="text-[10px] font-semibold text-slate-600 mb-1">OBSERVACIONES</p>
+        <section class="mb-4 text-[13px]">
+            <p class="text-[12px] font-semibold text-slate-600 mb-1">OBSERVACIONES</p>
             <p class="border border-slate-200 rounded-lg p-3 min-h-[60px] text-slate-600 leading-snug">
                 {{$docto->observa}}
             </p>
         </section>
 
         <!-- Firmas -->
-        <section class="grid grid-cols-2 gap-8 text-[11px] mt-6">
+        <section class="grid grid-cols-2 gap-8 text-[13px] mt-6">
             <div class="text-center">
                 <p class="border-t border-slate-400 pt-2 font-semibold">
                     {{$docto->nombre_elaboro}}
@@ -199,9 +199,9 @@
             </div>
         </section>
         @if($fiscales->banco != '')
-        <section class="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+        <section class="grid grid-cols-2 gap-4 mb-4 text-[13px]">
             <div class="border border-slate-200 rounded-lg p-3">
-                <p class="text-[10px] font-semibold text-slate-500 mb-1">REFERENCIAS BANCARIAS</p>
+                <p class="text-[12px] font-semibold text-slate-500 mb-1">REFERENCIAS BANCARIAS</p>
                 <p><span class="font-semibold">Banco:</span> {{$fiscales->banco}}</p>
                 <p><span class="font-semibold">Cuenta:</span> {{$fiscales->cuenta}}</p>
                 <p><span class="font-semibold">CLABE:</span> {{$fiscales->clabe}}</p>
@@ -210,7 +210,7 @@
         </section>
         @endif
         <!-- Footer -->
-        <footer class="mt-6 pt-4 border-t text-[10px] text-slate-500 flex justify-between">
+        <footer class="mt-6 pt-4 border-t text-[12px] text-slate-500 flex justify-between">
             <div>
                 <p>
                     Documento generado automáticamente por Tus-Impuestos.<br>

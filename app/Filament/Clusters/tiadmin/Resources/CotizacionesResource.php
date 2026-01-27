@@ -49,6 +49,8 @@ use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use phpDocumentor\Reflection\Types\True_;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Spatie\Browsershot\Browsershot;
 
 class CotizacionesResource extends Resource
@@ -141,6 +143,13 @@ class CotizacionesResource extends Resource
                                     ->modalSubmitActionLabel('Importar')
                                     ->icon('fas-file-excel')
                                     ->form([
+                                        Actions::make([
+                                            ActionsAction::make('downloadLayoutPartidas')
+                                                ->label('Descargar Layout')
+                                                ->icon('fas-download')
+                                                ->color(Color::Blue)
+                                                ->action(fn() => static::downloadLayoutPartidas()),
+                                        ]),
                                         FileUpload::make('ExcelFile')
                                             ->label('Archivo Excel')
                                             ->acceptedFileTypes(['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
@@ -638,6 +647,31 @@ class CotizacionesResource extends Resource
         $retenciones = floatval($impuesto2) + floatval($impuesto3);
         $set('Impuestos',$traslados-$retenciones);
         $set('total',$total);
+    }
+
+    public static function downloadLayoutPartidas()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = [
+            'Cantidad',
+            'Clave',
+            'Descripcion',
+            'Precio Unitario',
+            'Observaciones',
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'layout_partidas_cotizacion.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
     public static function table(Table $table): Table

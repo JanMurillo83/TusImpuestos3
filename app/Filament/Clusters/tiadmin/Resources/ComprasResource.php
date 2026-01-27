@@ -53,9 +53,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
+use Spatie\Browsershot\Browsershot;
 
 class ComprasResource extends Resource
 {
@@ -468,25 +470,22 @@ class ComprasResource extends Resource
                         Action::make('Imprimir Compra')
                             ->badge()->tooltip('Imprimir Compra')
                             ->icon('fas-print')
-                            ->modalCancelActionLabel('Cerrar')
-                            ->modalSubmitAction('')
-                            ->modalContent(function(Get $get){
+                            ->action(function(Get $get){
                                 $idorden = $get('id');
                                 if($idorden != null)
                                 {
-                                    $archivo = public_path('/Reportes/RecCompra.pdf');
-                                    if(File::exists($archivo)) unlink($archivo);
-                                    SnappyPdf::loadView('RecepcionCompra',['idorden'=>$idorden])
-                                        ->setOption("footer-right", "Pagina [page] de [topage]")
-                                        ->setOption('encoding', 'utf-8')
-                                        ->save($archivo);
-                                    $ruta = env('APP_URL').'/Reportes/RecCompra.pdf';
-                                    //dd($ruta);
+                                    $ruta = public_path('/Reportes/RecCompra.pdf');
+                                    if(File::exists($ruta)) unlink($ruta);
+                                    $data = ['idorden'=>$idorden];
+                                    $html = View::make('RecepcionCompra',$data)->render();
+                                    Browsershot::html($html)->format('Letter')
+                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                        ->noSandbox()
+                                        ->scale(0.8)->savePdf($ruta);
+                                    return response()->download($ruta);
                                 }
-                            })->form([
-                                PdfViewerField::make('archivo')
-                                ->fileUrl(env('APP_URL').'/Reportes/RecCompra.pdf')
-                            ])
+                            })
                     ])->visibleOn('view'),
                     ])->grow(false),
             ])->columnSpanFull(),
@@ -607,12 +606,21 @@ class ComprasResource extends Resource
                     }
                 }),
                 Tables\Actions\Action::make('Imprimir')->icon('fas-print')
-                    ->action(function($record,$livewire){
-                        $livewire->idorden = $record->id;
-                        $livewire->id_empresa = Filament::getTenant()->id;
-                        $livewire->getAction('Imprimir_Doc_E')->visible(true);
-                        $livewire->replaceMountedAction('Imprimir_Doc_E');
-                        $livewire->getAction('Imprimir_Doc_E')->visible(false);
+                    ->action(function($record){
+                        $idorden = $record->id;
+                        if($idorden != null)
+                        {
+                            $ruta = public_path('/Reportes/RecCompra.pdf');
+                            if(File::exists($ruta)) unlink($ruta);
+                            $data = ['idorden'=>$idorden];
+                            $html = View::make('RecepcionCompra',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
+                        }
                     }),
                 ])
             ],Tables\Enums\ActionsPosition::BeforeColumns)

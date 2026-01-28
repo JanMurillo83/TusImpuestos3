@@ -858,7 +858,12 @@ class FacturasResource extends Resource
         ->defaultPaginationPageOption(5)
         ->paginationPageOptions([5,'all'])
         ->striped()
-        ->defaultSort('fecha', 'desc')
+        ->defaultSort(function (Builder $query): Builder {
+            return $query
+                ->orderBy('fecha', 'desc')
+                ->orderBy('folio', 'desc');
+        })
+
         ->columns([
             Tables\Columns\TextColumn::make('serie')
                 ->label('Serie')

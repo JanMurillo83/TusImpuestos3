@@ -939,7 +939,7 @@ class cfdiri extends Page implements HasForms, HasTable
                             if($cuen != ''&&$cuen != null)
                             {
                                 $cta_con = $cuen;
-                                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre ?? '';
                             }
                             else
                             {

@@ -506,11 +506,11 @@ class cfdiei extends Page implements HasForms, HasTable
                         }
                         else
                         {
-                            $cuen = Clientes::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->first()->cuenta_contable;
+                            $cuen = Clientes::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Receptor_Rfc'])->first()->cuenta_contable ?? '';
                             if($cuen != ''&&$cuen != null)
                             {
                                 $cta_con = $cuen;
-                                $cta_nombres =CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                                $cta_nombres =CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre ?? '';
                             }
                             else
                             {

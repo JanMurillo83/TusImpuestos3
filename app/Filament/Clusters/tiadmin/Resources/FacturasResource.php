@@ -858,7 +858,7 @@ class FacturasResource extends Resource
         ->defaultPaginationPageOption(5)
         ->paginationPageOptions([5,'all'])
         ->striped()
-        ->defaultSort('created_at', 'desc')
+        ->defaultSort('fecha', 'desc')
         ->columns([
             Tables\Columns\TextColumn::make('serie')
                 ->label('Serie')

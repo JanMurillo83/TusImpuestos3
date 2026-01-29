@@ -284,6 +284,9 @@ class CotizacionesResource extends Resource
                             ])->columnSpanFull(),
                             TableRepeater::make('partidas')
                                 ->relationship()
+                                ->disabled(function (Get $get){
+                                    if($get('clie') == 0 || $get('clie') == null) return true;
+                                })
                                 ->addActionLabel('Agregar')
                                 ->headers([
                                     Header::make('Cantidad')->width('100px'),
@@ -1061,6 +1064,13 @@ class CotizacionesResource extends Resource
                     ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
+                    ->before(function($data){
+                        $partidas = $data['partidas'] ?? [];
+                        foreach($partidas as $par){
+                            if($par['clie'] == ''||$par['clie'] == null)$par['clie'] = $data['clie'];
+                        }
+                        return ['partidas'=>$partidas];
+                    })
                     ->after(function($record,$livewire){
                         $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();
                         foreach($partidas_pen as $par){

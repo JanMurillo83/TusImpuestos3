@@ -1027,6 +1027,13 @@ class CotizacionesResource extends Resource
                     ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
+                    ->before(function($data){
+                        $partidas = $data['partidas'] ?? [];
+                        foreach($partidas as $par){
+                            if($par['clie'] == ''||$par['clie'] == null)$par['clie'] = $data['clie'];
+                        }
+                        return ['partidas'=>$partidas];
+                    })
                     ->after(function($record,$livewire){
                         $idorden = $record->id;
                         $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();

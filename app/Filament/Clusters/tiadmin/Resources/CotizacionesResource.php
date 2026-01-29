@@ -103,6 +103,14 @@ class CotizacionesResource extends Resource
                                         $prov = $prov[0];
                                         $set('nombre',$prov->nombre);
                                     }
+                                    $partidas = $get('partidas') ?? [];
+                                    if (!empty($partidas)) {
+                                        $partidas = array_map(function ($partida) use ($get) {
+                                            $partida['clie'] = $get('clie');
+                                            return $partida;
+                                        }, $partidas);
+                                        $set('partidas', $partidas);
+                                    }
                                 })->disabledOn('edit'),
                             Forms\Components\DatePicker::make('fecha')
                                 ->required()

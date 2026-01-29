@@ -283,7 +283,7 @@ class cfdiei extends Page implements HasForms, HasTable
                             if($cuen != ''&&$cuen != null)
                             {
                                 $cta_con = $cuen;
-                                $cta_nombres =CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                                $cta_nombres =CatCuentas::where('nombre',$record['Receptor_Nombre'])->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre ?? '';
                             }
                             else
                             {

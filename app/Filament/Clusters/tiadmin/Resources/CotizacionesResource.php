@@ -417,11 +417,11 @@ class CotizacionesResource extends Resource
                                     TextInput::make('subtotal')
                                         ->numeric()
                                         ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
-                                    Hidden::make('iva'),
-                                    Hidden::make('retiva'),
-                                    Hidden::make('retisr'),
-                                    Hidden::make('ieps'),
-                                    Hidden::make('total'),
+                                    Hidden::make('iva')->default(0),
+                                    Hidden::make('retiva')->default(0),
+                                    Hidden::make('retisr')->default(0),
+                                    Hidden::make('ieps')->default(0),
+                                    Hidden::make('total')->default(0),
                                     Hidden::make('unidad'),
                                     Hidden::make('cvesat'),
                                     Hidden::make('clie'),

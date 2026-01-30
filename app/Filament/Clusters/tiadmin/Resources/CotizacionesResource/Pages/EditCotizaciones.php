@@ -20,6 +20,7 @@ class EditCotizaciones extends EditRecord
     protected function afterSave(): void
     {
         $this->record->refresh();
+        $this->record->syncClienteNombre();
         $this->record->recalculateTotalsFromPartidas();
     }
 }

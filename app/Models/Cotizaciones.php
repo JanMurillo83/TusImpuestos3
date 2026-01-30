@@ -29,6 +29,22 @@ class Cotizaciones extends Model
         return $this->belongsTo(DireccionesEntrega::class, 'direccion_entrega_id');
     }
 
+    public function syncClienteNombre(): void
+    {
+        if (!$this->clie) {
+            return;
+        }
+
+        $cliente = Clientes::find($this->clie);
+        if (!$cliente) {
+            return;
+        }
+
+        if ($this->nombre !== $cliente->nombre) {
+            $this->forceFill(['nombre' => $cliente->nombre])->save();
+        }
+    }
+
     public function recalculateTotalsFromPartidas(): void
     {
         $totals = $this->partidas()

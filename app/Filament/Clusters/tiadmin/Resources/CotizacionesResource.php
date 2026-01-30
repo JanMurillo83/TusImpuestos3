@@ -1091,6 +1091,10 @@ class CotizacionesResource extends Resource
                         Cotizaciones::where('id',$record->id)->update([
                             'nombre_elaboro'=>Filament::auth()->user()->name,
                         ]);
+                        $clien = Clientes::where('id',$record->clie)->first();
+                        Cotizaciones::where('id',$record->id)->update([
+                            'nombre'=>$clien->nombre,
+                        ]);
                         $id_empresa = Filament::getTenant()->id;
                         $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;

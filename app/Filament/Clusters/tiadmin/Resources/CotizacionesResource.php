@@ -280,6 +280,18 @@ class CotizacionesResource extends Resource
                                                 ->danger()
                                                 ->send();
                                         }
+                                    }),
+                                ActionsAction::make('ExportarPartidas')
+                                    ->label('Exportar Partidas')
+                                    ->badge()->tooltip('Exportar Partidas a Excel')
+                                    ->icon('fas-file-export')
+                                    ->visible(function (Get $get) {
+                                        $partidas = $get('partidas') ?? [];
+                                        return !empty($partidas);
+                                    })
+                                    ->action(function (Get $get) {
+                                        $partidas = $get('partidas') ?? [];
+                                        return static::exportPartidas($partidas);
                                     })
                             ])->columnSpanFull(),
                             TableRepeater::make('partidas')
@@ -679,6 +691,48 @@ class CotizacionesResource extends Resource
 
         $writer = new Xlsx($spreadsheet);
         $fileName = 'layout_partidas_cotizacion.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public static function exportPartidas(array $partidas)
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = [
+            'Cantidad',
+            'Clave',
+            'Descripcion',
+            'Precio Unitario',
+            'Observaciones',
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        $itemIds = collect($partidas)->pluck('item')->filter()->unique()->values();
+        $clavesPorItem = $itemIds->isEmpty()
+            ? collect()
+            : Inventario::whereIn('id', $itemIds)->pluck('clave', 'id');
+
+        $row = 2;
+        foreach ($partidas as $partida) {
+            $itemId = $partida['item'] ?? null;
+            $clave = $itemId ? ($clavesPorItem[$itemId] ?? '') : '';
+            $sheet->setCellValueByColumnAndRow(1, $row, $partida['cant'] ?? 0);
+            $sheet->setCellValueByColumnAndRow(2, $row, $clave);
+            $sheet->setCellValueByColumnAndRow(3, $row, $partida['descripcion'] ?? '');
+            $sheet->setCellValueByColumnAndRow(4, $row, $partida['precio'] ?? 0);
+            $sheet->setCellValueByColumnAndRow(5, $row, $partida['observa'] ?? '');
+            $row++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'partidas_cotizacion.xlsx';
         $tempFile = tempnam(sys_get_temp_dir(), $fileName);
         $writer->save($tempFile);
 

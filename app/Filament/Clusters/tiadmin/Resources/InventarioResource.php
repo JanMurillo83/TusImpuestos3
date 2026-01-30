@@ -148,7 +148,7 @@ class InventarioResource extends Resource
                 Forms\Components\Select::make('esquema')
                     ->label('Esquema de Impuestos')
                     ->required()
-                    ->options(DB::table('esquemasimps')->pluck('descripcion','id'))
+                    ->options(DB::table('esquemasimps')->where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
                     ->default(1),
                 Forms\Components\Select::make('unidad')
                     ->label('Unidad de Medida')

@@ -34,6 +34,7 @@ use App\Models\Team;
 use App\Models\Unidades;
 use App\Models\Usos;
 use App\Models\Xmlfiles;
+use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
@@ -247,19 +248,12 @@ class FacturasResource extends Resource
                                 $cost = floatval($get('precio'));
                                 $subt = $cost * $cant;
                                 $set('subtotal',$subt);
-                                $ivap = $get('../../esquema');
-                                $esq = Esquemasimp::where('id',$ivap)->get();
-                                $esq = $esq[0];
-                                $set('iva',$subt * (floatval($esq->iva)*0.01));
-                                $set('retiva',$subt * (floatval($esq->retiva)*0.01));
-                                $set('retisr',$subt * (floatval($esq->retisr)*0.01));
-                                $set('ieps',$subt * (floatval($esq->ieps)*0.01));
-                                $ivapar = $subt * ($esq->iva*0.01);
-                                $retivapar = $subt * ($esq->retiva*0.01);
-                                $retisrpar = $subt * ($esq->retisr*0.01);
-                                $iepspar = $subt * ($esq->ieps*0.01);
-                                $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                $set('total',$tot);
+                                $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                $set('iva',$taxes['iva']);
+                                $set('retiva',$taxes['retiva']);
+                                $set('retisr',$taxes['retisr']);
+                                $set('ieps',$taxes['ieps']);
+                                $set('total',$taxes['total']);
                                 $set('clie',$get('../../clie'));
                                 Self::updateTotals($get,$set);
                             }),
@@ -360,6 +354,19 @@ class FacturasResource extends Resource
                                 $prec = $precio * $desc;
                                 $precio = $precio - $prec;
                                 $set('precio',$precio);
+                                $cant = floatval($get('cant')) ?: 1;
+                                $subt = $precio * $cant;
+                                $set('subtotal',$subt);
+                                $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                $set('por_imp1',$taxes['por_imp1']);
+                                $set('por_imp2',$taxes['por_imp2']);
+                                $set('por_imp3',$taxes['por_imp3']);
+                                $set('por_imp4',$taxes['por_imp4']);
+                                $set('iva',$taxes['iva']);
+                                $set('retiva',$taxes['retiva']);
+                                $set('retisr',$taxes['retisr']);
+                                $set('ieps',$taxes['ieps']);
+                                $set('total',$taxes['total']);
                                 Self::updateTotals($get,$set);
                             }),
                             Hidden::make('descripcion'),
@@ -372,23 +379,16 @@ class FacturasResource extends Resource
                                     $cost = $get('precio');
                                     $subt = $cost * $cant;
                                     $set('subtotal',$subt);
-                                    $ivap = $get('../../esquema');
-                                    $esq = Esquemasimp::where('id',$ivap)->get();
-                                    $esq = $esq[0];
-                                    $set('por_imp1',$esq->iva);
-                                    $set('por_imp2',$esq->retiva);
-                                    $set('por_imp3',$esq->retisr);
-                                    $set('por_imp4',$esq->ieps);
-                                    $ivapar = $subt * ($esq->iva*0.01);
-                                    $retivapar = $subt * ($esq->retiva*0.01);
-                                    $retisrpar = $subt * ($esq->retisr*0.01);
-                                    $iepspar = $subt * ($esq->ieps*0.01);
-                                    $set('iva',$ivapar);
-                                    $set('retiva',$retivapar);
-                                    $set('retisr',$retisrpar);
-                                    $set('ieps',$iepspar);
-                                    $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                    $set('total',$tot);
+                                    $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                    $set('por_imp1',$taxes['por_imp1']);
+                                    $set('por_imp2',$taxes['por_imp2']);
+                                    $set('por_imp3',$taxes['por_imp3']);
+                                    $set('por_imp4',$taxes['por_imp4']);
+                                    $set('iva',$taxes['iva']);
+                                    $set('retiva',$taxes['retiva']);
+                                    $set('retisr',$taxes['retisr']);
+                                    $set('ieps',$taxes['ieps']);
+                                    $set('total',$taxes['total']);
                                     $set('clie',$get('../../clie'));
                                     Self::updateTotals($get,$set);
                                 }),
@@ -463,22 +463,11 @@ class FacturasResource extends Resource
                                             $prod = Inventario::where('clave',$item)->get();
                                             $prod = $prod[0];
                                             $subt = $cost * $cant;
-                                            $ivap = $get('esquema');
-                                            $esq = Esquemasimp::where('id',$ivap)->get();
-                                            $esq = $esq[0];
-                                            $set('por_imp1',$esq->iva);
-                                            $set('por_imp2',$esq->retiva);
-                                            $set('por_imp3',$esq->retisr);
-                                            $set('por_imp4',$esq->ieps);
-                                            $ivapar = $subt * ($esq->iva*0.01);
-                                            $retivapar = $subt * ($esq->retiva*0.01);
-                                            $retisrpar = $subt * ($esq->retisr*0.01);
-                                            $iepspar = $subt * ($esq->ieps*0.01);
-                                            $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
+                                            $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('esquema'));
                                             $data = ['cant'=>$cant,'item'=>$prod->id,'descripcion'=>$prod->descripcion,
-                                            'costo'=>$cost,'subtotal'=>$subt,'iva'=>$ivapar,
-                                            'retiva'=>$retivapar,'retisr'=>$retisrpar,
-                                            'ieps'=>$iepspar,'total'=>$tot,'prov'=>$get('prov')];
+                                            'costo'=>$cost,'subtotal'=>$subt,'iva'=>$taxes['iva'],
+                                            'retiva'=>$taxes['retiva'],'retisr'=>$taxes['retisr'],
+                                            'ieps'=>$taxes['ieps'],'total'=>$taxes['total'],'prov'=>$get('prov')];
                                             array_push($partidas,$data);
                                         }
                                         $r++;
@@ -1289,20 +1278,13 @@ class FacturasResource extends Resource
                         else return false;
                     })
                     ->after(function($record,$livewire){
+                        $record->refresh();
+                        $record->recalculatePartidasFromItemSchema();
+                        $record->recalculateTotalsFromPartidas();
                         $partidas = $record->partidas;
                         $nopar = 0;
-                        $esq = Esquemasimp::where('id',$record->esquema)->first();
-                        $imp1 = $esq->iva * 0.01;
-                        $imp2 = $esq->retiva * 0.01;
-                        $imp3 = $esq->retisr * 0.01;
-                        $imp4 = $esq->ieps * 0.01;
                         foreach($partidas as $partida)
                         {
-                            $partida->iva = $partida->subtotal * $imp1;
-                            $partida->retiva = $partida->subtotal * $imp2;
-                            $partida->retisr = $partida->subtotal * $imp3;
-                            $partida->ieps = $partida->subtotal * $imp4;
-                            $partida->save();
                             $arti = $partida->item;
                             $inve = Inventario::where('id',$arti)->get();
                             $inve = $inve[0];
@@ -1460,13 +1442,11 @@ class FacturasResource extends Resource
                     return $data;
                 })
                 ->after(function($record,$livewire){
+                    $record->refresh();
+                    $record->recalculatePartidasFromItemSchema();
+                    $record->recalculateTotalsFromPartidas();
                     $partidas = $record->partidas;
                     $nopar = 0;
-                    $esq = Esquemasimp::where('id',$record->esquema)->first();
-                    $imp1 = $esq->iva * 0.01;
-                    $imp2 = $esq->retiva * 0.01;
-                    $imp3 = $esq->retisr * 0.01;
-                    $imp4 = $esq->ieps * 0.01;
                     $cliente_d = Clientes::where('id',$record->clie)->first();
                     $record->pendiente_pago = $record->total;
                     $record->save();

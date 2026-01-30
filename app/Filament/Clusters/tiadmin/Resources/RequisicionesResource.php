@@ -10,6 +10,7 @@ use App\Models\Requisiciones;
 use App\Models\Proveedores;
 use App\Models\Proyectos;
 use App\Models\RequisicionesPartidas;
+use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -143,19 +144,12 @@ class RequisicionesResource extends Resource
                                     $cost = $get('costo');
                                     $subt = $cost * $cant;
                                     $set('subtotal',$subt);
-                                    $ivap = $get('../../esquema');
-                                    $esq = Esquemasimp::where('id',$ivap)->get();
-                                    $esq = $esq[0];
-                                    $set('iva',$subt * ($esq->iva*0.01));
-                                    $set('retiva',$subt * ($esq->retiva*0.01));
-                                    $set('retisr',$subt * ($esq->retisr*0.01));
-                                    $set('ieps',$subt * ($esq->ieps*0.01));
-                                    $ivapar = $subt * ($esq->iva*0.01);
-                                    $retivapar = $subt * ($esq->retiva*0.01);
-                                    $retisrpar = $subt * ($esq->retisr*0.01);
-                                    $iepspar = $subt * ($esq->ieps*0.01);
-                                    $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                    $set('total',$tot);
+                                    $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                    $set('iva',$taxes['iva']);
+                                    $set('retiva',$taxes['retiva']);
+                                    $set('retisr',$taxes['retisr']);
+                                    $set('ieps',$taxes['ieps']);
+                                    $set('total',$taxes['total']);
                                     $set('prov',$get('../../prov'));
                                     Self::updateTotals($get,$set);
                                 }),
@@ -164,12 +158,22 @@ class RequisicionesResource extends Resource
                                     ->live(onBlur:true)
                                     ->afterStateUpdated(function(Get $get, Set $set){
                                         $prod = Inventario::where('id',$get('item'))->get();
-                                        if(count($prod) > 0){
-                                            $prod = $prod[0];
-                                            $set('descripcion',$prod->descripcion);
-                                            $set('costo',$prod->u_costo);
-                                        }
-                                    })->suffixAction(
+                                    if(count($prod) > 0){
+                                        $prod = $prod[0];
+                                        $set('descripcion',$prod->descripcion);
+                                        $set('costo',$prod->u_costo);
+                                        $cant = floatval($get('cant')) ?: 1;
+                                        $subt = $prod->u_costo * $cant;
+                                        $set('subtotal',$subt);
+                                        $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                        $set('iva',$taxes['iva']);
+                                        $set('retiva',$taxes['retiva']);
+                                        $set('retisr',$taxes['retisr']);
+                                        $set('ieps',$taxes['ieps']);
+                                        $set('total',$taxes['total']);
+                                        Self::updateTotals($get,$set);
+                                    }
+                                })->suffixAction(
                                         Action::make('AbreItem')
                                         ->icon('fas-magnifying-glass')
                                         ->form([
@@ -190,19 +194,12 @@ class RequisicionesResource extends Resource
                                             $set('costo',$prod->u_costo);
                                             $subt = $prod->u_costo * $cant;
                                             $set('subtotal',$subt);
-                                            $ivap = $get('../../esquema');
-                                            $esq = Esquemasimp::where('id',$ivap)->get();
-                                            $esq = $esq[0];
-                                            $set('iva',$subt * ($esq->iva*0.01));
-                                            $set('retiva',$subt * ($esq->retiva*0.01));
-                                            $set('retisr',$subt * ($esq->retisr*0.01));
-                                            $set('ieps',$subt * ($esq->ieps*0.01));
-                                            $ivapar = $subt * ($esq->iva*0.01);
-                                            $retivapar = $subt * ($esq->retiva*0.01);
-                                            $retisrpar = $subt * ($esq->retisr*0.01);
-                                            $iepspar = $subt * ($esq->ieps*0.01);
-                                            $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                            $set('total',$tot);
+                                            $taxes = ImpuestosCalculator::fromInventario($item, $subt, $get('../../esquema'));
+                                            $set('iva',$taxes['iva']);
+                                            $set('retiva',$taxes['retiva']);
+                                            $set('retisr',$taxes['retisr']);
+                                            $set('ieps',$taxes['ieps']);
+                                            $set('total',$taxes['total']);
                                             $set('prov',$get('../../prov'));
                                             Self::updateTotals($get,$set);
                                         })
@@ -217,19 +214,12 @@ class RequisicionesResource extends Resource
                                         $cost = $get('costo');
                                         $subt = $cost * $cant;
                                         $set('subtotal',$subt);
-                                        $ivap = $get('../../esquema');
-                                        $esq = Esquemasimp::where('id',$ivap)->get();
-                                        $esq = $esq[0];
-                                        $ivapar = $subt * ($esq->iva*0.01);
-                                        $retivapar = $subt * ($esq->retiva*0.01);
-                                        $retisrpar = $subt * ($esq->retisr*0.01);
-                                        $iepspar = $subt * ($esq->ieps*0.01);
-                                        $set('iva',$ivapar);
-                                        $set('retiva',$retivapar);
-                                        $set('retisr',$retisrpar);
-                                        $set('ieps',$iepspar);
-                                        $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                        $set('total',$tot);
+                                        $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                        $set('iva',$taxes['iva']);
+                                        $set('retiva',$taxes['retiva']);
+                                        $set('retisr',$taxes['retisr']);
+                                        $set('ieps',$taxes['ieps']);
+                                        $set('total',$taxes['total']);
                                         $set('prov',$get('../../prov'));
                                         Self::updateTotals($get,$set);
                                     }),
@@ -303,18 +293,11 @@ class RequisicionesResource extends Resource
                                                 if(count($prod) > 0){
                                                     $prod = $prod[0];
                                                     $subt = $cost * $cant;
-                                                    $ivap = $get('esquema');
-                                                    $esq = Esquemasimp::where('id',$ivap)->get();
-                                                    $esq = $esq[0];
-                                                    $ivapar = $subt * ($esq->iva*0.01);
-                                                    $retivapar = $subt * ($esq->retiva*0.01);
-                                                    $retisrpar = $subt * ($esq->retisr*0.01);
-                                                    $iepspar = $subt * ($esq->ieps*0.01);
-                                                    $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
+                                                    $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('esquema'));
                                                     $data = ['cant'=>$cant,'item'=>$prod->id,'descripcion'=>$prod->descripcion,
-                                                    'costo'=>$cost,'subtotal'=>$subt,'iva'=>$ivapar,
-                                                    'retiva'=>$retivapar,'retisr'=>$retisrpar,
-                                                    'ieps'=>$iepspar,'total'=>$tot,'prov'=>$get('prov')];
+                                                    'costo'=>$cost,'subtotal'=>$subt,'iva'=>$taxes['iva'],
+                                                    'retiva'=>$taxes['retiva'],'retisr'=>$taxes['retisr'],
+                                                    'ieps'=>$taxes['ieps'],'total'=>$taxes['total'],'prov'=>$get('prov')];
                                                     array_push($partidas,$data);
                                                 }
                                             }
@@ -486,6 +469,11 @@ class RequisicionesResource extends Resource
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full')
+                ->after(function ($record) {
+                    $record->refresh();
+                    $record->recalculatePartidasFromItemSchema();
+                    $record->recalculateTotalsFromPartidas();
+                })
                 ->visible(function ($record) {
                     if($record->estado == 'Activa') return true;
                     else return false;
@@ -716,6 +704,9 @@ class RequisicionesResource extends Resource
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full')->button()
                 ->after(function ($record){
+                    $record->refresh();
+                    $record->recalculatePartidasFromItemSchema();
+                    $record->recalculateTotalsFromPartidas();
                     $partidas = RequisicionesPartidas::where('requisiciones_id',$record->id)->get();
                     foreach ($partidas as $p) {
                         $p->pendientes = $p->cant;

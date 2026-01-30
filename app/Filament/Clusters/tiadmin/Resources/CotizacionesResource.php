@@ -11,6 +11,7 @@ use App\Models\CotizacionesPartidas;
 use App\Models\Esquemasimp;
 use App\Models\Inventario;
 use App\Services\PrecioCalculator;
+use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Barryvdh\Snappy\Facades\SnappyPdf;
@@ -209,21 +210,9 @@ class CotizacionesResource extends Resource
                                                     continue;
                                                 }
 
-                                                // Calcular subtotal e impuestos
+                                                // Calcular subtotal e impuestos por esquema del producto
                                                 $subt = $precioUnitario * $cant;
-                                                $ivap = $get('esquema');
-                                                $esq = Esquemasimp::where('id', $ivap)->first();
-
-                                                if(!$esq) {
-                                                    $errores[] = "Esquema de impuestos no encontrado";
-                                                    break;
-                                                }
-
-                                                $ivapar = $subt * ($esq->iva * 0.01);
-                                                $retivapar = $subt * ($esq->retiva * 0.01);
-                                                $retisrpar = $subt * ($esq->retisr * 0.01);
-                                                $iepspar = $subt * ($esq->ieps * 0.01);
-                                                $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
+                                                $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('esquema'));
 
                                                 // Usar descripción del Excel si está disponible, sino la del inventario
                                                 $descFinal = !empty($descripcion) ? $descripcion : $prod->descripcion;
@@ -234,11 +223,11 @@ class CotizacionesResource extends Resource
                                                     'descripcion' => $descFinal,
                                                     'precio' => $precioUnitario,
                                                     'subtotal' => $subt,
-                                                    'iva' => $ivapar,
-                                                    'retiva' => $retivapar,
-                                                    'retisr' => $retisrpar,
-                                                    'ieps' => $iepspar,
-                                                    'total' => $tot,
+                                                    'iva' => $taxes['iva'],
+                                                    'retiva' => $taxes['retiva'],
+                                                    'retisr' => $taxes['retisr'],
+                                                    'ieps' => $taxes['ieps'],
+                                                    'total' => $taxes['total'],
                                                     'unidad' => $prod->unidad ?? 'H87',
                                                     'cvesat' => $prod->cvesat ?? '01010101',
                                                     'costo' => $prod->p_costo ?? 0,
@@ -336,19 +325,12 @@ class CotizacionesResource extends Resource
                                             $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
                                             $set('subtotal',$subt);
-                                            $ivap = $get('../../esquema');
-                                            $esq = Esquemasimp::where('id',$ivap)->get();
-                                            $esq = $esq[0];
-                                            $set('iva',$subt * ($esq->iva*0.01));
-                                            $set('retiva',$subt * ($esq->retiva*0.01));
-                                            $set('retisr',$subt * ($esq->retisr*0.01));
-                                            $set('ieps',$subt * ($esq->ieps*0.01));
-                                            $ivapar = $subt * ($esq->iva*0.01);
-                                            $retivapar = $subt * ($esq->retiva*0.01);
-                                            $retisrpar = $subt * ($esq->retisr*0.01);
-                                            $iepspar = $subt * ($esq->ieps*0.01);
-                                            $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                            $set('total',$tot);
+                                            $taxes = ImpuestosCalculator::fromInventario($itemId, $subt, $get('../../esquema'));
+                                            $set('iva', $taxes['iva']);
+                                            $set('retiva', $taxes['retiva']);
+                                            $set('retisr', $taxes['retisr']);
+                                            $set('ieps', $taxes['ieps']);
+                                            $set('total', $taxes['total']);
                                             $set('clie',$get('../../clie'));
                                             Self::updateTotals($get,$set);
                                         }),
@@ -382,6 +364,15 @@ class CotizacionesResource extends Resource
                                             }
 
                                             $set('precio',$precio);
+                                            $cant = floatval($get('cant')) ?: 1;
+                                            $subt = $precio * $cant;
+                                            $set('subtotal',$subt);
+                                            $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                            $set('iva', $taxes['iva']);
+                                            $set('retiva', $taxes['retiva']);
+                                            $set('retisr', $taxes['retisr']);
+                                            $set('ieps', $taxes['ieps']);
+                                            $set('total', $taxes['total']);
                                         }),
                                     TextInput::make('descripcion'),
                                     TextInput::make('precio')
@@ -421,19 +412,12 @@ class CotizacionesResource extends Resource
                                             $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
                                             $set('subtotal',$subt);
-                                            $ivap = $get('../../esquema');
-                                            $esq = Esquemasimp::where('id',$ivap)->get();
-                                            $esq = $esq[0];
-                                            $ivapar = $subt * ($esq->iva*0.01);
-                                            $retivapar = $subt * ($esq->retiva*0.01);
-                                            $retisrpar = $subt * ($esq->retisr*0.01);
-                                            $iepspar = $subt * ($esq->ieps*0.01);
-                                            $set('iva',$ivapar);
-                                            $set('retiva',$retivapar);
-                                            $set('retisr',$retisrpar);
-                                            $set('ieps',$iepspar);
-                                            $tot = $subt + $ivapar - $retivapar - $retisrpar + $iepspar;
-                                            $set('total',$tot);
+                                            $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                            $set('iva',$taxes['iva']);
+                                            $set('retiva',$taxes['retiva']);
+                                            $set('retisr',$taxes['retisr']);
+                                            $set('ieps',$taxes['ieps']);
+                                            $set('total',$taxes['total']);
                                             $set('clie',$get('../../clie'));
                                             Self::updateTotals($get,$set);
                                         }),
@@ -529,11 +513,20 @@ class CotizacionesResource extends Resource
                                 ->readOnly()
                                 ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\Hidden::make('Impuestos'),
-                            Forms\Components\Hidden::make('retiva'),
-                            Forms\Components\Hidden::make('retisr'),
-                            Forms\Components\Hidden::make('ieps'),
                             Forms\Components\TextInput::make('iva')
-                                ->label('Impuestos')
+                                ->label('IVA')
+                                ->readOnly()
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                            Forms\Components\TextInput::make('retiva')
+                                ->label('Ret IVA')
+                                ->readOnly()
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                            Forms\Components\TextInput::make('retisr')
+                                ->label('Ret ISR')
+                                ->readOnly()
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                            Forms\Components\TextInput::make('ieps')
+                                ->label('IEPS')
                                 ->readOnly()
                                 ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('total')
@@ -548,25 +541,31 @@ class CotizacionesResource extends Resource
                                         else return false;
                                     })->action(function(Get $get, Set $set){
                                         $partidas = $get('partidas');
+                                        $subtotal = 0;
+                                        $iva = 0;
+                                        $retiva = 0;
+                                        $retisr = 0;
+                                        $ieps = 0;
                                         $total = 0;
                                         foreach($partidas as $partida){
-                                            $cant = floatval($partida['cant']);
-                                            $prec = floatval($partida['precio']);
-                                            $total += $cant * $prec;
+                                            $cant = floatval($partida['cant'] ?? 0);
+                                            $prec = floatval($partida['precio'] ?? 0);
+                                            $lineSubtotal = $cant * $prec;
+                                            $taxes = ImpuestosCalculator::fromInventario($partida['item'] ?? null, $lineSubtotal, $get('esquema'));
+                                            $subtotal += $lineSubtotal;
+                                            $iva += $taxes['iva'];
+                                            $retiva += $taxes['retiva'];
+                                            $retisr += $taxes['retisr'];
+                                            $ieps += $taxes['ieps'];
+                                            $total += $taxes['total'];
                                         }
-                                        $set('subtotal',$total);
-                                        $esq = $get('esquema');
-                                        $esque = Esquemasimp::where('id',$esq)->first();
-                                        $iva = $total * (floatval($esque->iva)*0.01);
-                                        $ret_iva = $total * (floatval($esque->retiva)*0.01);
-                                        $ret_isr = $total * (floatval($esque->retisr)*0.01);
-                                        $ieps = $total * (floatval($esque->ieps)*0.01);
-
+                                        $set('subtotal',$subtotal);
                                         $set('iva',$iva);
-                                        $set('retiva',$ret_iva);
-                                        $set('retisr',$ret_isr);
+                                        $set('retiva',$retiva);
+                                        $set('retisr',$retisr);
                                         $set('ieps',$ieps);
-                                        $set('Impuestos',$iva-$ret_iva-$ret_isr+$ieps);
+                                        $set('Impuestos',$iva-$retiva-$retisr+$ieps);
+                                        $set('total',$total);
                                     })
                                 ]),
                             Actions::make([

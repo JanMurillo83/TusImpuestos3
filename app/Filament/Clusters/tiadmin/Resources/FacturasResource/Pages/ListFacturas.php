@@ -326,6 +326,7 @@ class ListFacturas extends ListRecords
                                     $factura->update([
                                         'subtotal' => $subtotal, 'iva' => $iva, 'retiva' => $retiva,
                                         'retisr' => $retisr, 'ieps' => $ieps, 'total' => $total,
+                                        'pendiente_pago' => $total,
                                     ]);
 
                                     $pendientesTotales = CotizacionesPartidas::where('cotizaciones_id', $cot->id)->sum('pendientes');

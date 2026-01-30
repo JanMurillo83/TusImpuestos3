@@ -16,4 +16,10 @@ class EditCotizaciones extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        $this->record->refresh();
+        $this->record->recalculateTotalsFromPartidas();
+    }
 }

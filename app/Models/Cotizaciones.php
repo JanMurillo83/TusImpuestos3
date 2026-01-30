@@ -28,4 +28,25 @@ class Cotizaciones extends Model
     {
         return $this->belongsTo(DireccionesEntrega::class, 'direccion_entrega_id');
     }
+
+    public function recalculateTotalsFromPartidas(): void
+    {
+        $totals = $this->partidas()
+            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
+            ->selectRaw('COALESCE(SUM(iva), 0) as iva')
+            ->selectRaw('COALESCE(SUM(retiva), 0) as retiva')
+            ->selectRaw('COALESCE(SUM(retisr), 0) as retisr')
+            ->selectRaw('COALESCE(SUM(ieps), 0) as ieps')
+            ->selectRaw('COALESCE(SUM(total), 0) as total')
+            ->first();
+
+        $this->forceFill([
+            'subtotal' => $totals->subtotal ?? 0,
+            'iva' => $totals->iva ?? 0,
+            'retiva' => $totals->retiva ?? 0,
+            'retisr' => $totals->retisr ?? 0,
+            'ieps' => $totals->ieps ?? 0,
+            'total' => $totals->total ?? 0,
+        ])->save();
+    }
 }

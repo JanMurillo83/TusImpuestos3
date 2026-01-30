@@ -13,6 +13,7 @@ class CreateCotizaciones extends CreateRecord
     protected function afterCreate(): void
     {
         $this->record->refresh();
+        $this->record->fixPartidasSubtotalFromCantidadPrecio();
         $this->record->recalculateTotalsFromPartidas();
     }
 }

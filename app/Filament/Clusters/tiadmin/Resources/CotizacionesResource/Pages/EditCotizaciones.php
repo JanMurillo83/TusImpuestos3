@@ -21,6 +21,7 @@ class EditCotizaciones extends EditRecord
     {
         $this->record->refresh();
         $this->record->syncClienteNombre();
+        $this->record->fixPartidasSubtotalFromCantidadPrecio();
         $this->record->recalculateTotalsFromPartidas();
     }
 }

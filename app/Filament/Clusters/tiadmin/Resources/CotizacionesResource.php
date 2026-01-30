@@ -1083,6 +1083,10 @@ class CotizacionesResource extends Resource
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
                     ->after(function($record,$livewire){
+                        $record->refresh();
+                        $record->syncClienteNombre();
+                        $record->fixPartidasSubtotalFromCantidadPrecio();
+                        $record->recalculateTotalsFromPartidas();
                         $idorden = $record->id;
                         $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();
                         foreach($partidas_pen as $par){
@@ -1124,6 +1128,10 @@ class CotizacionesResource extends Resource
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
                     ->after(function($record,$livewire){
+                        $record->refresh();
+                        $record->syncClienteNombre();
+                        $record->fixPartidasSubtotalFromCantidadPrecio();
+                        $record->recalculateTotalsFromPartidas();
                         $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();
                         foreach($partidas_pen as $par){
                             CotizacionesPartidas::where('id',$par->id)->update(['pendientes'=>$par->cant]);

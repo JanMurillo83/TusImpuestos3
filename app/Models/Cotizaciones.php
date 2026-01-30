@@ -45,6 +45,44 @@ class Cotizaciones extends Model
         }
     }
 
+    public function fixPartidasSubtotalFromCantidadPrecio(): void
+    {
+        if (!$this->esquema) {
+            return;
+        }
+
+        $esq = Esquemasimp::find($this->esquema);
+        if (!$esq) {
+            return;
+        }
+
+        $this->partidas()->get()->each(function (CotizacionesPartidas $partida) use ($esq): void {
+            $cant = (float) $partida->cant;
+            $precio = (float) $partida->precio;
+            $subtotalActual = (float) $partida->subtotal;
+
+            if ($cant <= 0 || $precio <= 0 || $subtotalActual > 0) {
+                return;
+            }
+
+            $subtotal = $cant * $precio;
+            $iva = $subtotal * ((float) $esq->iva * 0.01);
+            $retiva = $subtotal * ((float) $esq->retiva * 0.01);
+            $retisr = $subtotal * ((float) $esq->retisr * 0.01);
+            $ieps = $subtotal * ((float) $esq->ieps * 0.01);
+            $total = $subtotal + $iva - $retiva - $retisr + $ieps;
+
+            $partida->forceFill([
+                'subtotal' => $subtotal,
+                'iva' => $iva,
+                'retiva' => $retiva,
+                'retisr' => $retisr,
+                'ieps' => $ieps,
+                'total' => $total,
+            ])->save();
+        });
+    }
+
     public function recalculateTotalsFromPartidas(): void
     {
         $totals = $this->partidas()

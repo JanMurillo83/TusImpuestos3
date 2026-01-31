@@ -162,6 +162,9 @@ class Cobros extends Page implements HasForms
                                         return $alm->TipoCambio;
                                     })->numeric(decimalPlaces: 4, decimalSeparator: '.'),
                                 TextColumn::make('importe')->sortable()
+                                    ->searchable(query: function (Builder $query, string $search) {
+                                        $query->where('almacencfdis.Total', 'like', "%{$search}%");
+                                    })
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();
                                         return $alm->Total;
@@ -959,7 +962,7 @@ class Cobros extends Page implements HasForms
             if($cuen != ''&&$cuen != null)
             {
                 $cta_con = $cuen;
-                $cta_nombres =CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
+                $cta_nombres =CatCuentas::where('nombre',$record->Receptor_Nombre)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first()->nombre ?? '';
             }
             else
             {

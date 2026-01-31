@@ -160,7 +160,7 @@ class Pagos extends Page implements HasForms
                                         return $alm->TipoCambio;
                                     })->numeric(decimalPlaces: 6, decimalSeparator: '.')->prefix('$'),
                                 TextColumn::make('importe')->sortable()->searchable(query: function (Builder $query, string $search): Builder {
-                                    return $query->where('total', 'like', "%{$search}%");
+                                    return $query->where('almacencfdis.Total', 'like', "%{$search}%");
                                     })
                                     ->getStateUsing(function (IngresosEgresos $model){
                                         $alm = Almacencfdis::where('id',$model->xml_id)->first();

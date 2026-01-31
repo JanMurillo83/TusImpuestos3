@@ -267,17 +267,14 @@ class ListFacturas extends ListRecords
                                     foreach ($partidasSeleccionadas as $pData) {
                                         $parOriginal = CotizacionesPartidas::find($pData['partida_id']);
                                         if (!$parOriginal) continue;
-
                                         $cantFacturar = $pData['cantidad_a_facturar'];
                                         $factor = $parOriginal->cant > 0 ? ($cantFacturar / $parOriginal->cant) : 0;
-
                                         $lineSubtotal = $parOriginal->precio * $cantFacturar;
                                         $lineIva = $parOriginal->iva * $factor;
                                         $lineRetIva = $parOriginal->retiva * $factor;
                                         $lineRetIsr = $parOriginal->retisr * $factor;
                                         $lineIeps = $parOriginal->ieps * $factor;
                                         $lineTotal = $lineSubtotal + $lineIva - $lineRetIva - $lineRetIsr + $lineIeps;
-
                                         $part_n = FacturasPartidas::create([
                                             'facturas_id' => $factura->id,
                                             'item' => $parOriginal->item,
@@ -584,14 +581,12 @@ class ListFacturas extends ListRecords
 
                                         $cantFacturar = $pData['cantidad_a_facturar'];
                                         $factor = $parOriginal->cant > 0 ? ($cantFacturar / $parOriginal->cant) : 0;
-
                                         $lineSubtotal = $parOriginal->precio * $cantFacturar;
                                         $lineIva = $parOriginal->iva * $factor;
                                         $lineRetIva = $parOriginal->retiva * $factor;
                                         $lineRetIsr = $parOriginal->retisr * $factor;
                                         $lineIeps = $parOriginal->ieps * $factor;
                                         $lineTotal = $lineSubtotal + $lineIva - $lineRetIva - $lineRetIsr + $lineIeps;
-
                                         $part_n = FacturasPartidas::create([
                                             'facturas_id' => $factura->id,
                                             'item' => $parOriginal->item,
@@ -633,10 +628,8 @@ class ListFacturas extends ListRecords
                                         'subtotal' => $subtotal, 'iva' => $iva, 'retiva' => $retiva,
                                         'retisr' => $retisr, 'ieps' => $ieps, 'total' => $total,
                                     ]);
-
                                     $pendientesTotales = PedidosPartidas::where('pedidos_id', $cot->id)->sum('pendientes');
                                     $cot->update(['estado' => $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial']);
-
                                     DB::commit();
                                     // El folio ya fue incrementado al obtenerlo con obtenerSiguienteFolio()
                                     Notification::make()->title('Factura generada exitosamente')->success()->send();

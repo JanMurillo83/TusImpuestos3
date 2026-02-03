@@ -28,8 +28,8 @@ class SurtidoInveResource extends Resource
 
     protected static ?string $navigationIcon = 'fas-truck-loading';
 
-    protected static ?string $label = 'Surtido';
-    protected static ?string $pluralLabel = 'Surtidos';
+    protected static ?string $label = 'Salida';
+    protected static ?string $pluralLabel = 'Salidas';
 
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Inventario';

@@ -69,8 +69,8 @@ class ComprasResource extends Resource
         return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
     }
     protected static ?string $navigationIcon = 'fas-cart-plus';
-    protected static ?string $label = 'Recepción';
-    protected static ?string $pluralLabel = 'Recepciones';
+    protected static ?string $label = 'Entrada';
+    protected static ?string $pluralLabel = 'Entradas';
 
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Inventario';

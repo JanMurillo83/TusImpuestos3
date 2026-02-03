@@ -22,6 +22,11 @@ class Clientes extends Model
         return $this->hasMany(DireccionesEntrega::class, 'cliente_id');
     }
 
+    public function equivalenciasInventario(): HasMany
+    {
+        return $this->hasMany(EquivalenciaInventarioCliente::class, 'cliente_id');
+    }
+
     public function preciosVolumenClientes(): HasMany
     {
         return $this->hasMany(PrecioVolumenCliente::class, 'cliente_id');

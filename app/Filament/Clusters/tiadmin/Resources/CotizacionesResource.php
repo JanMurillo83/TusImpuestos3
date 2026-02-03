@@ -9,6 +9,7 @@ use App\Models\Clientes;
 use App\Models\Cotizaciones;
 use App\Models\CotizacionesPartidas;
 use App\Models\Esquemasimp;
+use App\Models\EquivalenciaInventarioCliente;
 use App\Models\Inventario;
 use App\Services\PrecioCalculator;
 use App\Services\ImpuestosCalculator;
@@ -291,6 +292,7 @@ class CotizacionesResource extends Resource
                                 ->addActionLabel('Agregar')
                                 ->headers([
                                     Header::make('Cantidad')->width('100px'),
+                                    Header::make('Clave Cliente')->width('140px'),
                                     Header::make('Item')->width('300px'),
                                     Header::make('Descripcion')->width('300px'),
                                     Header::make('Unitario'),
@@ -334,6 +336,83 @@ class CotizacionesResource extends Resource
                                             $set('clie',$get('../../clie'));
                                             Self::updateTotals($get,$set);
                                         }),
+                                    TextInput::make('clave_cliente')
+                                        ->label('Clave Cliente')
+                                        ->dehydrated(false)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function(Get $get, Set $set, $state){
+                                            $claveCliente = trim((string) $state);
+                                            if ($claveCliente === '') {
+                                                return;
+                                            }
+
+                                            $clienteId = $get('../../clie');
+                                            if (!$clienteId) {
+                                                Notification::make()
+                                                    ->title('Selecciona un cliente primero')
+                                                    ->warning()
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $equiv = EquivalenciaInventarioCliente::where('team_id', Filament::getTenant()->id)
+                                                ->where('cliente_id', $clienteId)
+                                                ->where('clave_cliente', $claveCliente)
+                                                ->first();
+
+                                            if (!$equiv) {
+                                                Notification::make()
+                                                    ->title('Clave cliente sin equivalencia')
+                                                    ->body("No existe equivalencia para la clave '{$claveCliente}'.")
+                                                    ->warning()
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $prod = Inventario::where('team_id', Filament::getTenant()->id)
+                                                ->where('clave', $equiv->clave_articulo)
+                                                ->first();
+
+                                            if (!$prod) {
+                                                Notification::make()
+                                                    ->title('Producto interno no encontrado')
+                                                    ->body("No existe inventario con clave '{$equiv->clave_articulo}'.")
+                                                    ->warning()
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $set('item', $prod->id);
+                                            $descripcionCliente = trim((string) $equiv->descripcion_cliente);
+                                            $descripcionArticulo = trim((string) $equiv->descripcion_articulo);
+                                            $set('descripcion', $descripcionCliente !== '' ? $descripcionCliente : ($descripcionArticulo !== '' ? $descripcionArticulo : ($prod->descripcion ?? '')));
+                                            $set('unidad', $prod->unidad ?? 'H87');
+                                            $set('cvesat', $prod->cvesat ?? '01010101');
+                                            $set('costo', $prod->p_costo ?? 0);
+
+                                            $cantidad = floatval($get('cant')) ?: 1;
+                                            $precio = floatval($equiv->precio_cliente);
+                                            if ($precio <= 0) {
+                                                $precio = PrecioCalculator::calcularPrecio(
+                                                    $prod->id,
+                                                    $clienteId,
+                                                    $cantidad,
+                                                    Filament::getTenant()->id
+                                                );
+                                            }
+
+                                            $set('precio', $precio);
+                                            $subt = $precio * $cantidad;
+                                            $set('subtotal', $subt);
+                                            $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('../../esquema'));
+                                            $set('iva', $taxes['iva']);
+                                            $set('retiva', $taxes['retiva']);
+                                            $set('retisr', $taxes['retisr']);
+                                            $set('ieps', $taxes['ieps']);
+                                            $set('total', $taxes['total']);
+                                            $set('clie', $clienteId);
+                                            Self::updateTotals($get,$set);
+                                        }),
                                     Select::make('item')
                                         ->searchable()
                                         ->options(Inventario::where('team_id',Filament::getTenant()->id)
@@ -345,7 +424,23 @@ class CotizacionesResource extends Resource
                                             $cli = $get('../../clie');
                                             $prod = Inventario::where('id',$get('item'))->first();
                                             if(!$prod) return;
-                                            $set('descripcion',$prod->descripcion ?? 'No se selecciono producto');
+                                            $equiv = null;
+                                            $claveCliente = trim((string) $get('clave_cliente'));
+                                            if ($claveCliente !== '' && $cli) {
+                                                $equiv = EquivalenciaInventarioCliente::where('team_id', Filament::getTenant()->id)
+                                                    ->where('cliente_id', $cli)
+                                                    ->where('clave_cliente', $claveCliente)
+                                                    ->first();
+                                            }
+
+                                            $usarEquiv = $equiv && $equiv->clave_articulo === $prod->clave;
+                                            if ($usarEquiv) {
+                                                $descripcionCliente = trim((string) $equiv->descripcion_cliente);
+                                                $descripcionArticulo = trim((string) $equiv->descripcion_articulo);
+                                                $set('descripcion', $descripcionCliente !== '' ? $descripcionCliente : ($descripcionArticulo !== '' ? $descripcionArticulo : ($prod->descripcion ?? '')));
+                                            } else {
+                                                $set('descripcion',$prod->descripcion ?? 'No se selecciono producto');
+                                            }
                                             $set('unidad',$prod->unidad ?? 'H87');
                                             $set('cvesat',$prod->cvesat ?? '01010101');
                                             $set('costo',$prod->p_costo ?? 0);
@@ -355,12 +450,16 @@ class CotizacionesResource extends Resource
 
                                             // Calcular precio usando el nuevo sistema de precios por volumen
                                             if($prod) {
-                                                $precio = PrecioCalculator::calcularPrecio(
-                                                    $prod->id,
-                                                    $cli,
-                                                    $cantidad,
-                                                    Filament::getTenant()->id
-                                                );
+                                                if ($usarEquiv && floatval($equiv->precio_cliente) > 0) {
+                                                    $precio = floatval($equiv->precio_cliente);
+                                                } else {
+                                                    $precio = PrecioCalculator::calcularPrecio(
+                                                        $prod->id,
+                                                        $cli,
+                                                        $cantidad,
+                                                        Filament::getTenant()->id
+                                                    );
+                                                }
                                             }
 
                                             $set('precio',$precio);

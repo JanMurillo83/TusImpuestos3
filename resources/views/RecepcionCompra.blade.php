@@ -1,7 +1,7 @@
 <?php
-    $orden = DB::table('ordenes')->where('id',$idorden)->get();
+    $orden = DB::table('compras')->where('id',$idorden)->get();
     $orden = $orden[0];
-    $partidas = DB::table('ordenes_partidas')->where('ordenes_id',$idorden)->get();
+    $partidas = DB::table('compras_partidas')->where('compras_id',$idorden)->get();
     $prove = DB::table('proveedores')->where('id',$orden->prov)->get();
     $prove = $prove[0];
 

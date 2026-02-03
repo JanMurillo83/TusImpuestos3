@@ -8,13 +8,18 @@ use App\Filament\Clusters\tiadmin\Resources\ClientesResource\RelationManagers;
 use App\Livewire\CuentasCobrarWidget;
 use App\Models\CatCuentas;
 use App\Models\Clientes;
+use App\Models\Inventario;
 use App\Models\Regimenes;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Colors\Color;
@@ -286,6 +291,78 @@ class ClientesResource extends Resource
                                             ]),
                                     ])
                                     ->defaultItems(0),
+                            ]),
+                        Forms\Components\Tabs\Tab::make('Equivalencias')
+                            ->icon('fas-link')
+                            ->schema([
+                                Forms\Components\Placeholder::make('equivalencias_info')
+                                    ->label('')
+                                    ->content('Relaciona la clave interna del inventario con la clave que usa el cliente.')
+                                    ->columnSpanFull(),
+                                TableRepeater::make('equivalenciasInventario')
+                                    ->relationship()
+                                    ->label('')
+                                    ->addActionLabel('Agregar Equivalencia')
+                                    ->headers([
+                                        Header::make('Clave Cliente')->width('140px'),
+                                        Header::make('Clave Interna')->width('220px'),
+                                        Header::make('Descripcion Cliente')->width('260px'),
+                                        Header::make('Descripcion Articulo')->width('260px'),
+                                        Header::make('Precio')->width('120px'),
+                                    ])
+                                    ->schema([
+                                        Forms\Components\TextInput::make('clave_cliente')
+                                            ->label('Clave Cliente')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\Select::make('clave_articulo')
+                                            ->label('Clave Interna')
+                                            ->searchable()
+                                            ->required()
+                                            ->options(
+                                                Inventario::where('team_id', Filament::getTenant()->id)
+                                                    ->select(DB::raw("CONCAT(clave,' - ',descripcion) as mostrar"), 'clave')
+                                                    ->orderBy('clave')
+                                                    ->pluck('mostrar', 'clave')
+                                            )
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                                $clave = trim((string) $state);
+                                                if ($clave === '') {
+                                                    return;
+                                                }
+
+                                                $prod = Inventario::where('team_id', Filament::getTenant()->id)
+                                                    ->where('clave', $clave)
+                                                    ->first();
+
+                                                if (!$prod) {
+                                                    return;
+                                                }
+
+                                                $set('descripcion_articulo', $prod->descripcion ?? '');
+                                                if (!$get('descripcion_cliente')) {
+                                                    $set('descripcion_cliente', $prod->descripcion ?? '');
+                                                }
+                                            }),
+                                        Forms\Components\TextInput::make('descripcion_cliente')
+                                            ->label('Descripcion Cliente')
+                                            ->required()
+                                            ->maxLength(1000),
+                                        Forms\Components\TextInput::make('descripcion_articulo')
+                                            ->label('Descripcion Articulo')
+                                            ->required()
+                                            ->maxLength(1000),
+                                        Forms\Components\TextInput::make('precio_cliente')
+                                            ->label('Precio Cliente')
+                                            ->numeric()
+                                            ->prefix('$')
+                                            ->default(0)
+                                            ->currencyMask(decimalSeparator:'.', precision:2),
+                                        Hidden::make('team_id')->default(Filament::getTenant()->id),
+                                    ])
+                                    ->defaultItems(0)
+                                    ->columnSpanFull(),
                             ]),
                     ])->columnSpanFull(),
             ]);

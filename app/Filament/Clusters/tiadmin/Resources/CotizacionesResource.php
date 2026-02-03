@@ -843,7 +843,11 @@ class CotizacionesResource extends Resource
             ->recordClasses('row_gral')
             ->defaultPaginationPageOption(5)
             ->paginationPageOptions([5,'all'])
-            ->defaultSort('fecha', 'desc')
+            ->defaultSort(function (Builder $query): Builder {
+                return $query
+                    ->orderBy('fecha', 'desc')
+                    ->orderBy('folio', 'desc');
+            })
             ->striped()
             ->columns([
                 Tables\Columns\TextColumn::make('docto')

@@ -8,6 +8,10 @@
     $hoy = \Carbon\Carbon::now()->format('d-m-Y');
     $vendedor = \Filament\Facades\Filament::auth()->user()->name;
 ?>
+<style>
+    .salto-pagina { page-break-after: always; }
+</style>
+
 <div class="bg-slate-100">
     <div class="max-w-3xl mx-auto my-8 bg-white p-8 rounded-xl shadow text-slate-800 text-base">
 
@@ -173,9 +177,9 @@
                 </p>
             </div>
         </section>
-
+        <div class="salto-pagina"></div>
         <!-- Observaciones -->
-        <section class="mb-4 text-[13px]" style="margin-top: 3rem !important;page-break-after: always;">
+        <section class="mb-4 text-[13px]" style="margin-top: 3rem !important;">
             <p class="text-[12px] font-semibold text-slate-600 mb-1">OBSERVACIONES</p>
             <p class="border border-slate-200 rounded-lg p-3 min-h-[60px] text-slate-600 leading-snug">
                 {{$docto->observa}}

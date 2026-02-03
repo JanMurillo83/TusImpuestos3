@@ -175,7 +175,7 @@
         </section>
 
         <!-- Observaciones -->
-        <section class="mb-4 text-[13px]" style="margin-top: 3rem !important;">
+        <section class="mb-4 text-[13px]" style="margin-top: 3rem !important;page-break-after: always;">
             <p class="text-[12px] font-semibold text-slate-600 mb-1">OBSERVACIONES</p>
             <p class="border border-slate-200 rounded-lg p-3 min-h-[60px] text-slate-600 leading-snug">
                 {{$docto->observa}}

@@ -301,8 +301,8 @@ class CotizacionesResource extends Resource
                                 })
                                 ->addActionLabel('Agregar')
                                 ->headers([
-                                    Header::make('Cantidad')->width('100px'),
-                                    Header::make('Clave Cliente')->width('140px'),
+                                    Header::make('Cantidad')->width('80px'),
+                                    Header::make('Clave Cliente')->width('80px'),
                                     Header::make('Item')->width('300px'),
                                     Header::make('Descripcion')->width('300px'),
                                     Header::make('Unitario'),
@@ -488,29 +488,6 @@ class CotizacionesResource extends Resource
                                         ->numeric()
                                         ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                         ->live(onBlur: true)
-                                        ->helperText(function (Get $get): ?string {
-                                            $cli = $get('../../clie');
-                                            $itemId = $get('item');
-                                            $cantidad = floatval($get('cant')) ?: 1;
-
-                                            if (!$cli || !$itemId) {
-                                                return null;
-                                            }
-
-                                            $info = PrecioCalculator::obtenerInfoPrecio(
-                                                $itemId,
-                                                $cli,
-                                                $cantidad,
-                                                Filament::getTenant()->id
-                                            );
-
-                                            return match($info['tipo']) {
-                                                'cliente_especial' => '🎯 ' . $info['descripcion'],
-                                                'volumen' => '📊 ' . $info['descripcion'],
-                                                'base' => '💰 ' . $info['descripcion'],
-                                                default => null
-                                            };
-                                        })
                                         ->afterStateUpdated(function(Get $get, Set $set, $state, $old){
                                             // Solo recalcular si el valor realmente cambió
                                             if ($state == $old) {

@@ -106,7 +106,10 @@
                             {{$count}}
                         </td>
                         <td class="py-1.5 px-2 font-mono text-slate-700">
-                            {{$par->item}}
+                            <?php
+                                $inv_par = \App\Models\Inventario::where('id',$par->item)->first()->clave;
+                            ?>
+                            {{$inv_par}}
                         </td>
                         <td class="py-1.5 px-2 text-slate-800">
                             {{$par->descripcion}}
@@ -172,7 +175,7 @@
         </section>
 
         <!-- Observaciones -->
-        <section class="mb-4 text-[13px]">
+        <section class="mb-4 text-[13px]" style="margin-top: 3rem !important;">
             <p class="text-[12px] font-semibold text-slate-600 mb-1">OBSERVACIONES</p>
             <p class="border border-slate-200 rounded-lg p-3 min-h-[60px] text-slate-600 leading-snug">
                 {{$docto->observa}}

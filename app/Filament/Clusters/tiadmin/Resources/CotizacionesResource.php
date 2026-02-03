@@ -82,15 +82,25 @@ class CotizacionesResource extends Resource
                             Forms\Components\Hidden::make('serie')->default('C'),
                             Forms\Components\Hidden::make('folio')
                                 ->default(function(){
-                                    return count(Cotizaciones::where('team_id',Filament::getTenant()->id)->get()) + 1;
+                                    $teamId = Filament::getTenant()->id;
+                                    $serie = 'C';
+                                    $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                                        ->where('serie', $serie)
+                                        ->max('folio');
+                                    return ((int) $ultimoFolio) + 1;
                                 }),
                             Forms\Components\TextInput::make('docto')
                                 ->label('Documento')
                                 ->required()
                                 ->readOnly()
                                 ->default(function(){
-                                    $fol = count(Cotizaciones::where('team_id',Filament::getTenant()->id)->get()) + 1;
-                                    return 'C'.$fol;
+                                    $teamId = Filament::getTenant()->id;
+                                    $serie = 'C';
+                                    $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                                        ->where('serie', $serie)
+                                        ->max('folio');
+                                    $nuevoFolio = ((int) $ultimoFolio) + 1;
+                                    return $serie.$nuevoFolio;
                                 }),
                             Forms\Components\Select::make('clie')
                                 ->searchable()
@@ -1097,11 +1107,13 @@ class CotizacionesResource extends Resource
                             $teamId = Filament::getTenant()->id;
 
                             // Obtener nuevo folio
-                            $ultimaCotizacion = Cotizaciones::where('team_id', $teamId)
-                                ->orderBy('folio', 'desc')
-                                ->first();
                             $serie = $record->serie ?? 'C';
-                            $nuevoFolio_ = ($ultimaCotizacion->folio ?? 0) + 1;
+                            $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                                ->where('serie', $serie)
+                                ->orderBy('folio', 'desc')
+                                ->lockForUpdate()
+                                ->value('folio');
+                            $nuevoFolio_ = ((int) $ultimoFolio) + 1;
                             $nuevoFolio = $serie.$nuevoFolio_;
 
                             // Crear encabezado de cotización copiada

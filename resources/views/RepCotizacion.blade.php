@@ -96,7 +96,7 @@ use Filament\Facades\Filament;
                 </table>
             </div>
             <!--Row1-->
-            <div class="row">
+            <div class="row" style="margin-top: 20px;">
                 <div class="border col-8">
                     <label>Observaciones: </label> <br>
                     <p>{{$orden->observa}}</p>

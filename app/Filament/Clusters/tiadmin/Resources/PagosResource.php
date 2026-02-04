@@ -537,7 +537,7 @@ class PagosResource extends Resource
                             $xml = Cleaner::staticClean($xml);
                             File::put($filexml,$xml);
                             $mailConf = Mailconfig::where('team_id',Filament::getTenant()->id)->first();
-                            $Cliente = Clientes::where('id',$record->clie)->first();
+                            $Cliente = Clientes::where('id',$record->cve_clie)->first();
                             $mail = new PHPMailer();
                             $mail->isSMTP();
                             //$mail->SMTPDebug = 2;

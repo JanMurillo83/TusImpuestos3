@@ -39,6 +39,13 @@ class ListMovbancos extends ListRecords
 
     public ?int $selected_tier;
 
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'movbancos-small-table',
+        ];
+    }
+
     /*protected function getTableHeading(): string
     {
         // Get the current tab from the request
@@ -408,9 +415,83 @@ class ListMovbancos extends ListRecords
                             ->send();
                     }
 
-                    return $collection;
-                })
+                                    return $collection;
+                }),
+            ActionsAction::make('exportarExcel')
+                ->label('Exportar')
+                ->icon('fas-file-excel')
+                ->color('success')
+                ->action(fn() => $this->exportarMovbancosExcel()),
         ];
+    }
+
+    public function exportarMovbancosExcel()
+    {
+        $query = Movbancos::query();
+        $tenant = Filament::getTenant();
+        if ($tenant) {
+            $query->where('team_id', $tenant->id);
+        }
+        if (!empty($this->activeTab)) {
+            $query->where('cuenta', $this->activeTab);
+        }
+
+        $movimientos = $query->orderBy('fecha')->orderBy('id')->get();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = [
+            'Fecha',
+            'Tipo',
+            'Tercero',
+            'Cuenta',
+            'Factura',
+            'Importe',
+            'Moneda',
+            'Concepto',
+            'Contabilizada',
+            'UUID',
+            'Ejercicio',
+            'Periodo',
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        $row = 2;
+        foreach ($movimientos as $movimiento) {
+            $cuenta = BancoCuentas::find($movimiento->cuenta);
+            $tipo = $movimiento->tipo === 'E' ? 'Ingreso' : 'Egreso';
+
+            $sheet->setCellValue('A' . $row, $movimiento->fecha?->format('Y-m-d'));
+            $sheet->setCellValue('B' . $row, $tipo);
+            $sheet->setCellValue('C' . $row, $movimiento->tercero);
+            $sheet->setCellValue('D' . $row, $cuenta?->banco ?? $movimiento->cuenta);
+            $sheet->setCellValue('E' . $row, $movimiento->factura);
+            $sheet->setCellValue('F' . $row, $movimiento->importe);
+            $sheet->setCellValue('G' . $row, $movimiento->moneda);
+            $sheet->setCellValue('H' . $row, $movimiento->concepto);
+            $sheet->setCellValue('I' . $row, $movimiento->contabilizada);
+            $sheet->setCellValue('J' . $row, $movimiento->uuid);
+            $sheet->setCellValue('K' . $row, $movimiento->ejercicio);
+            $sheet->setCellValue('L' . $row, $movimiento->periodo);
+
+            $row++;
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = 'movimientos_bancarios_' . date('Y-m-d_His') . '.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        Notification::make()
+            ->title('Movimientos exportados')
+            ->success()
+            ->send();
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
     public function getTabs(): array

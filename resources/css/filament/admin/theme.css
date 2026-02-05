@@ -5,6 +5,10 @@
 
 .fi-ta{
     margin-bottom: 2rem !important;
+    margin-top: -1rem !important;
+}
+.movbancos-small-table .fi-ta {
+    font-size: 0.75rem;
 }
 .fi-ta-table > tbody {
     @apply divide-none;
@@ -12,6 +16,10 @@
 
 .fi-ta-table > tbody {
     @apply divide-none;
+}
+
+.title{
+    margin-top: -1rem !important;
 }
 
 .fi-ta-text {

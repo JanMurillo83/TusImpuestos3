@@ -55,13 +55,18 @@ class AppServiceProvider extends ServiceProvider
         });
 
         FilamentView::registerRenderHook(
+            PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+            fn (): View => view('filament.topbar-user-period'),
+        );
+
+        /*FilamentView::registerRenderHook(
             PanelsRenderHook::FOOTER,
             fn (): View => view('customFooter'),
         );
         FilamentColor::register([
             'indigo' => Color::Indigo,
             'white' => Color::hex('#ffffff'),
-        ]);
+        ]);*/
 
     }
 }

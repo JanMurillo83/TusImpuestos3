@@ -112,9 +112,9 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarWidth('10rem')
             ->plugins([
                // ResizedColumnPlugin::make()->preserveOnDB(true),
-                StickyHeaderPlugin::make(),
+                //StickyHeaderPlugin::make(),
                 StickyTableHeaderPlugin::make(),
-                FilamentThemeInspectorPlugin::make()->toggle()->disabled(true),
+                //FilamentThemeInspectorPlugin::make()->toggle()->disabled(true),
 
             ]);
     }

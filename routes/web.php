@@ -11,6 +11,9 @@ Route::get('/reportes/contabilidad/balance', function () { return view('ContaRep
 Route::get('/reportes/contabilidad/estado', function () { return view('ContaRep/Estado');});
 Route::get('/mainview',[\App\Http\Controllers\MainChartsController::class,'mainview'])->name('mainviewns');
 Route::prefix('{tenantSlug}')->group(function () {
+    Route::get('/tiadmin', function (string $tenantSlug) {
+        return redirect("/{$tenantSlug}/tiadmin/inicio");
+    });
     Route::get('/contabilizar', [\App\Http\Controllers\ReportesController::class, 'ContabilizaReporte_ret'])->name('contabilizar');
     Route::get('/grafica1', [\App\Http\Controllers\ChartsController::class, 'showChart1'])->name('showChart1');
     Route::get('/grafica2', [\App\Http\Controllers\ChartsController::class, 'showChart2'])->name('showChart2');

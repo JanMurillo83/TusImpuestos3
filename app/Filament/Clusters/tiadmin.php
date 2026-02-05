@@ -15,11 +15,20 @@ class tiadmin extends Cluster
     {
         return [
             NavigationGroup::make('Ventas')->label('Ventas')
-            ->collapsible(true),
-            NavigationGroup::make('Compras')->label('Compras'),
-            NavigationGroup::make('Inventario')->label('Inventario'),
-            NavigationGroup::make('Reportes')->label('Reportes'),
-            NavigationGroup::make('Configuracion')->label('Configuracion'),
+            ->collapsible(true)
+            ->collapsed(),
+            NavigationGroup::make('Compras')->label('Compras')
+            ->collapsible(true)
+            ->collapsed(),
+            NavigationGroup::make('Inventario')->label('Inventario')
+            ->collapsible(true)
+            ->collapsed(),
+            NavigationGroup::make('Reportes')->label('Reportes')
+            ->collapsible(true)
+            ->collapsed(),
+            NavigationGroup::make('Configuracion')->label('Configuracion')
+            ->collapsible(true)
+            ->collapsed(),
         ];
     }
 }

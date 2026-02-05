@@ -248,7 +248,7 @@ class FacturasResource extends Resource
                                 $cost = floatval($get('precio'));
                                 $subt = $cost * $cant;
                                 $set('subtotal',$subt);
-                                $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                 $set('iva',$taxes['iva']);
                                 $set('retiva',$taxes['retiva']);
                                 $set('retisr',$taxes['retisr']);
@@ -357,7 +357,7 @@ class FacturasResource extends Resource
                                 $cant = floatval($get('cant')) ?: 1;
                                 $subt = $precio * $cant;
                                 $set('subtotal',$subt);
-                                $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                 $set('por_imp1',$taxes['por_imp1']);
                                 $set('por_imp2',$taxes['por_imp2']);
                                 $set('por_imp3',$taxes['por_imp3']);
@@ -379,7 +379,7 @@ class FacturasResource extends Resource
                                     $cost = $get('precio');
                                     $subt = $cost * $cant;
                                     $set('subtotal',$subt);
-                                    $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                    $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                     $set('por_imp1',$taxes['por_imp1']);
                                     $set('por_imp2',$taxes['por_imp2']);
                                     $set('por_imp3',$taxes['por_imp3']);
@@ -463,7 +463,7 @@ class FacturasResource extends Resource
                                             $prod = Inventario::where('clave',$item)->get();
                                             $prod = $prod[0];
                                             $subt = $cost * $cant;
-                                            $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('esquema'));
+                                            $taxes = ImpuestosCalculator::fromEsquema($get('esquema'), $subt);
                                             $data = ['cant'=>$cant,'item'=>$prod->id,'descripcion'=>$prod->descripcion,
                                             'costo'=>$cost,'subtotal'=>$subt,'iva'=>$taxes['iva'],
                                             'retiva'=>$taxes['retiva'],'retisr'=>$taxes['retisr'],

@@ -40,7 +40,7 @@ class Ordenes extends Model
             $cant = (float) $partida->cant;
             $costo = (float) $partida->costo;
             $subtotal = $cant * $costo;
-            $taxes = ImpuestosCalculator::fromInventario($partida->item, $subtotal, $this->esquema);
+            $taxes = ImpuestosCalculator::fromEsquema($this->esquema, $subtotal);
 
             $partida->forceFill([
                 'subtotal' => $subtotal,

@@ -223,7 +223,7 @@ class CotizacionesResource extends Resource
 
                                                 // Calcular subtotal e impuestos por esquema del producto
                                                 $subt = $precioUnitario * $cant;
-                                                $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('esquema'));
+                                                $taxes = ImpuestosCalculator::fromEsquema($get('esquema'), $subt);
 
                                                 // Usar descripción del Excel si está disponible, sino la del inventario
                                                 $descFinal = !empty($descripcion) ? $descripcion : $prod->descripcion;
@@ -337,7 +337,7 @@ class CotizacionesResource extends Resource
                                             $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
                                             $set('subtotal',$subt);
-                                            $taxes = ImpuestosCalculator::fromInventario($itemId, $subt, $get('../../esquema'));
+                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                             $set('iva', $taxes['iva']);
                                             $set('retiva', $taxes['retiva']);
                                             $set('retisr', $taxes['retisr']);
@@ -414,7 +414,7 @@ class CotizacionesResource extends Resource
                                             $set('precio', $precio);
                                             $subt = $precio * $cantidad;
                                             $set('subtotal', $subt);
-                                            $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('../../esquema'));
+                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                             $set('iva', $taxes['iva']);
                                             $set('retiva', $taxes['retiva']);
                                             $set('retisr', $taxes['retisr']);
@@ -476,7 +476,7 @@ class CotizacionesResource extends Resource
                                             $cant = floatval($get('cant')) ?: 1;
                                             $subt = $precio * $cant;
                                             $set('subtotal',$subt);
-                                            $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                             $set('iva', $taxes['iva']);
                                             $set('retiva', $taxes['retiva']);
                                             $set('retisr', $taxes['retisr']);
@@ -498,7 +498,7 @@ class CotizacionesResource extends Resource
                                             $cost = floatval($get('precio'));
                                             $subt = $cost * $cant;
                                             $set('subtotal',$subt);
-                                            $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                             $set('iva',$taxes['iva']);
                                             $set('retiva',$taxes['retiva']);
                                             $set('retisr',$taxes['retisr']);
@@ -637,7 +637,7 @@ class CotizacionesResource extends Resource
                                             $cant = floatval($partida['cant'] ?? 0);
                                             $prec = floatval($partida['precio'] ?? 0);
                                             $lineSubtotal = $cant * $prec;
-                                            $taxes = ImpuestosCalculator::fromInventario($partida['item'] ?? null, $lineSubtotal, $get('esquema'));
+                                            $taxes = ImpuestosCalculator::fromEsquema($get('esquema'), $lineSubtotal);
                                             $subtotal += $lineSubtotal;
                                             $iva += $taxes['iva'];
                                             $retiva += $taxes['retiva'];

@@ -19,6 +19,16 @@ class ImpuestosCalculator
             $esquemaId = $fallbackEsquemaId;
         }
 
+        return self::calculateFromEsquemaId($esquemaId, $subtotal);
+    }
+
+    public static function fromEsquema(?int $esquemaId, float $subtotal): array
+    {
+        return self::calculateFromEsquemaId($esquemaId, $subtotal);
+    }
+
+    private static function calculateFromEsquemaId(?int $esquemaId, float $subtotal): array
+    {
         $esquema = $esquemaId ? Esquemasimp::find($esquemaId) : null;
 
         if (!$esquema) {

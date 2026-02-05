@@ -52,7 +52,7 @@ class Cotizaciones extends Model
             $cant = (float) $partida->cant;
             $precio = (float) $partida->precio;
             $subtotal = $cant * $precio;
-            $taxes = ImpuestosCalculator::fromInventario($partida->item, $subtotal, $this->esquema);
+            $taxes = ImpuestosCalculator::fromEsquema($this->esquema, $subtotal);
 
             $partida->forceFill([
                 'subtotal' => $subtotal,

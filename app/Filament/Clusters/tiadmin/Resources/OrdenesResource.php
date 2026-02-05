@@ -149,7 +149,7 @@ class OrdenesResource extends Resource
                                     $cost = $get('costo');
                                     $subt = $cost * $cant;
                                     $set('subtotal',$subt);
-                                    $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                    $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                     $set('iva',$taxes['iva']);
                                     $set('retiva',$taxes['retiva']);
                                     $set('retisr',$taxes['retisr']);
@@ -168,7 +168,7 @@ class OrdenesResource extends Resource
                                         $cant = floatval($get('cant')) ?: 1;
                                         $subt = $prod->u_costo * $cant;
                                         $set('subtotal',$subt);
-                                        $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                        $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                         $set('iva',$taxes['iva']);
                                         $set('retiva',$taxes['retiva']);
                                         $set('retisr',$taxes['retisr']);
@@ -196,7 +196,7 @@ class OrdenesResource extends Resource
                                             $set('costo',$prod->u_costo);
                                             $subt = $prod->u_costo * $cant;
                                             $set('subtotal',$subt);
-                                            $taxes = ImpuestosCalculator::fromInventario($item, $subt, $get('../../esquema'));
+                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                             $set('iva',$taxes['iva']);
                                             $set('retiva',$taxes['retiva']);
                                             $set('retisr',$taxes['retisr']);
@@ -216,7 +216,7 @@ class OrdenesResource extends Resource
                                         $cost = $get('costo');
                                         $subt = $cost * $cant;
                                         $set('subtotal',$subt);
-                                        $taxes = ImpuestosCalculator::fromInventario($get('item'), $subt, $get('../../esquema'));
+                                        $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
                                         $set('iva',$taxes['iva']);
                                         $set('retiva',$taxes['retiva']);
                                         $set('retisr',$taxes['retisr']);
@@ -321,7 +321,7 @@ class OrdenesResource extends Resource
                                                 $prod = Inventario::where('clave',$item)->get();
                                                 $prod = $prod[0];
                                                 $subt = $cost * $cant;
-                                                $taxes = ImpuestosCalculator::fromInventario($prod->id, $subt, $get('esquema'));
+                                                $taxes = ImpuestosCalculator::fromEsquema($get('esquema'), $subt);
                                                 $data = ['cant'=>$cant,'item'=>$prod->id,'descripcion'=>$prod->descripcion,
                                                 'costo'=>$cost,'subtotal'=>$subt,'iva'=>$taxes['iva'],
                                                 'retiva'=>$taxes['retiva'],'retisr'=>$taxes['retisr'],

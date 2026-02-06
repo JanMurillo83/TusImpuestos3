@@ -162,11 +162,15 @@ class Tools extends Page implements HasForms, HasActions
                         try {
                             $cfdis = DB::table('almacencfdis')->where('xml_type', 'Recibidos')->where('TipoDeComprobante', 'I')->get();
                             foreach ($cfdis as $cfdi) {
-                                if (!DB::table('proveedores')->where('team_id', $cfdi->team_id)->where('rfc', $cfdi->Emisor_Rfc)->exists()) {
+                                $rfc = strtoupper(trim($cfdi->Emisor_Rfc));
+                                if ($rfc === '') {
+                                    continue;
+                                }
+                                if (!DB::table('proveedores')->where('team_id', $cfdi->team_id)->where(DB::raw('UPPER(rfc)'), $rfc)->exists()) {
                                     $clave = count(DB::table('proveedores')->where('team_id', $cfdi->team_id)->get()) + 1;
                                     DB::table('proveedores')->insert([
                                         'clave' => $clave,
-                                        'rfc' => $cfdi->Emisor_Rfc,
+                                        'rfc' => $rfc,
                                         'nombre' => $cfdi->Emisor_Nombre,
                                         'team_id' => $cfdi->team_id,
                                         'dias_credito' => 30
@@ -213,11 +217,15 @@ class Tools extends Page implements HasForms, HasActions
                         try {
                             $cfdis = DB::table('almacencfdis')->where('xml_type', 'Emitidos')->where('TipoDeComprobante', 'I')->get();
                             foreach ($cfdis as $cfdi) {
-                                if (!DB::table('clientes')->where('team_id', $cfdi->team_id)->where('rfc', $cfdi->Receptor_Rfc)->exists()) {
+                                $rfc = strtoupper(trim($cfdi->Receptor_Rfc));
+                                if ($rfc === '') {
+                                    continue;
+                                }
+                                if (!DB::table('clientes')->where('team_id', $cfdi->team_id)->where(DB::raw('UPPER(rfc)'), $rfc)->exists()) {
                                     $clave = count(DB::table('clientes')->where('team_id', $cfdi->team_id)->get()) + 1;
                                     DB::table('clientes')->insert([
                                         'clave' => $clave,
-                                        'rfc' => $cfdi->Receptor_Rfc,
+                                        'rfc' => $rfc,
                                         'nombre' => $cfdi->Receptor_Nombre,
                                         'team_id' => $cfdi->team_id,
                                         'dias_credito' => 30

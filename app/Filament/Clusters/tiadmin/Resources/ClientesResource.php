@@ -496,14 +496,26 @@ class ClientesResource extends Resource
                         $r = 0;
                         $clientes =Clientes::all();
                         $clave = count($clientes) + 1;
+                        $teamId = Filament::getTenant()->id;
+                        $seenRfcs = [];
                         foreach($rows as $row)
                         {
                             if($r > 0)
                             {
+                                $rfc = strtoupper(trim($row[1] ?? ''));
+                                if ($rfc === '' || isset($seenRfcs[$rfc])) {
+                                    $r++;
+                                    continue;
+                                }
+                                $seenRfcs[$rfc] = true;
+                                if (DB::table('clientes')->where('team_id', $teamId)->where(DB::raw('UPPER(rfc)'), $rfc)->exists()) {
+                                    $r++;
+                                    continue;
+                                }
                                 DB::table('clientes')->insert([
                                     'clave'=>$clave,
                                     'nombre'=>$row[0],
-                                    'rfc'=>$row[1],
+                                    'rfc'=>$rfc,
                                     'regimen'=>$row[2],
                                     'codigo'=>$row[3],
                                     'direccion'=>$row[7],
@@ -511,7 +523,8 @@ class ClientesResource extends Resource
                                     'correo'=>$row[5],
                                     'descuento'=>$row[8],
                                     'lista'=>$row[9],
-                                    'contacto'=>$row[6]
+                                    'contacto'=>$row[6],
+                                    'team_id'=>$teamId
                                 ]);
                             }
                             $r++;

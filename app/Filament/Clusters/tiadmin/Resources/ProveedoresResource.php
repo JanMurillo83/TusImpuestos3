@@ -205,18 +205,31 @@ class ProveedoresResource extends Resource
                     $r = 0;
                     $clientes =Proveedores::all();
                     $clave = count($clientes) + 1;
+                    $teamId = Filament::getTenant()->id;
+                    $seenRfcs = [];
                     foreach($rows as $row)
                     {
                         if($r > 0)
                         {
+                            $rfc = strtoupper(trim($row[1] ?? ''));
+                            if ($rfc === '' || isset($seenRfcs[$rfc])) {
+                                $r++;
+                                continue;
+                            }
+                            $seenRfcs[$rfc] = true;
+                            if (DB::table('proveedores')->where('team_id', $teamId)->where(DB::raw('UPPER(rfc)'), $rfc)->exists()) {
+                                $r++;
+                                continue;
+                            }
                             DB::table('proveedores')->insert([
                                'clave'=>$clave,
                                'nombre'=>$row[0],
-                               'rfc'=>$row[1],
+                               'rfc'=>$rfc,
                                'direccion'=>$row[2],
                                'telefono'=>$row[3],
                                'correo'=>$row[4],
-                               'contacto'=>$row[5]
+                               'contacto'=>$row[5],
+                               'team_id'=>$teamId
                             ]);
                         }
                         $r++;

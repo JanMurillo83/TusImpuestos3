@@ -58,7 +58,11 @@ class ProveedoresResource extends Resource
                     ->maxLength(255)->columnSpan(2),
                 Forms\Components\TextInput::make('rfc')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->unique(
+                        ignoreRecord: true,
+                        modifyRuleUsing: fn ($rule) => $rule->where('team_id', Filament::getTenant()->id)
+                    ),
                 Forms\Components\TextInput::make('contacto')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('dias_credito')

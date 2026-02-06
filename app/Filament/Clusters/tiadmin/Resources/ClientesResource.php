@@ -77,6 +77,10 @@ class ClientesResource extends Resource
                                         Forms\Components\TextInput::make('rfc')
                                             ->required()
                                             ->maxLength(255)
+                                            ->unique(
+                                                ignoreRecord: true,
+                                                modifyRuleUsing: fn ($rule) => $rule->where('team_id', Filament::getTenant()->id)
+                                            )
                                             ->default('XAXX010101000'),
                                         Forms\Components\Select::make('regimen')
                                             ->label('Regimen Fiscal')->required()

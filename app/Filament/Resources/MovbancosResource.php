@@ -903,7 +903,11 @@ class MovbancosResource extends Resource
                                     Select::make('Tercero')
                                     ->searchable()
                                     ->required(function(Get $get){
-                                        if($get('Movimiento')== 2||$get('Movimiento')== 4) return true;
+                                        if($get('Movimiento')== 2) return true;
+                                        else return false;
+                                    })
+                                    ->visible(function(Get $get){
+                                        if($get('Movimiento')== 2) return true;
                                         else return false;
                                     })
                                     ->options(Terceros::where('tipo','Acreedor')->where('team_id',Filament::getTenant()->id)->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
@@ -920,6 +924,81 @@ class MovbancosResource extends Resource
                                             Forms\Components\TextInput::make('tipo')
                                                 ->label('Tipo de Tercero')
                                                 ->default('Acreedor')
+                                                ->readOnly(),
+                                            Forms\Components\TextInput::make('cuenta')
+                                                ->required()
+                                                ->maxLength(255)
+                                                ->readOnly()
+                                                ->default(function(){
+                                                    $nuecta = 10701000;
+                                                    $rg = count(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','10700000')->get() ?? 0);
+                                                    if($rg > 0)
+                                                    $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','10700000')->max('codigo')) + 1000;
+                                                    return $nuecta;
+                                                }),
+                                            Forms\Components\TextInput::make('telefono')
+                                                ->tel()
+                                                ->required()
+                                                ->maxLength(255),
+                                            Forms\Components\TextInput::make('correo')
+                                                ->required()
+                                                ->maxLength(255),
+                                            Forms\Components\TextInput::make('contacto')
+                                                ->required()
+                                                ->maxLength(255),
+                                            Forms\Components\Select::make('regimen')
+                                                ->searchable()
+                                                ->label('Regimen Fiscal')
+                                                ->columnSpan(2)
+                                                ->options(Regimenes::all()->pluck('mostrar','clave')),
+                                            Forms\Components\Hidden::make('tax_id')
+                                                ->default(Filament::getTenant()->taxid),
+                                            Forms\Components\Hidden::make('team_id')
+                                                ->default(Filament::getTenant()->id),
+                                            Forms\Components\TextInput::make('codigopos')
+                                                ->label('Codigo Postal')
+                                                ->required()
+                                                ->maxLength(255),
+                                        ])->columns(4);
+                                    })
+                                    ->createOptionUsing(function(array $data){
+                                        $recor = DB::table('terceros')->insertGetId($data);
+                                        DB::table('cat_cuentas')->insert([
+                                            'nombre' =>  $data['nombre'],
+                                            'team_id' => Filament::getTenant()->id,
+                                            'codigo'=>$data['cuenta'],
+                                            'acumula'=>'10700000',
+                                            'tipo'=>'D',
+                                            'naturaleza'=>'D',
+                                        ]);
+                                        $rec = Terceros::where('id',$recor)->get()[0];
+                                        return $rec->nombre.'|'.$rec->cuenta;
+                                    })
+                                    ,
+                                    Select::make('TerceroPrestamo')
+                                    ->searchable()
+                                    ->required(function(Get $get){
+                                        if($get('Movimiento')== 4) return true;
+                                        else return false;
+                                    })
+                                    ->visible(function(Get $get){
+                                        if($get('Movimiento')== 4) return true;
+                                        else return false;
+                                    })
+                                    ->options(Terceros::where('tipo','Deudor')->where('team_id',Filament::getTenant()->id)->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                                    ->createOptionForm(function($form){
+                                        return $form
+                                        ->schema([
+                                            Forms\Components\TextInput::make('rfc')
+                                                ->required()
+                                                ->maxLength(255),
+                                            Forms\Components\TextInput::make('nombre')
+                                                ->required()
+                                                ->maxLength(255)
+                                                ->columnSpan(3),
+                                            Forms\Components\TextInput::make('tipo')
+                                                ->label('Tipo de Tercero')
+                                                ->default('Deudor')
                                                 ->readOnly(),
                                             Forms\Components\TextInput::make('cuenta')
                                                 ->required()
@@ -1319,7 +1398,7 @@ class MovbancosResource extends Resource
                                         if($get('Movimiento')== 3) return true;
                                         else return false;
                                     })
-                                    ->options(Terceros::where('team_id',Filament::getTenant()->id)->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
+                                    ->options(Terceros::where('tipo','Acreedor')->where('team_id',Filament::getTenant()->id)->select('nombre',DB::raw("concat(nombre,'|',cuenta) as cuenta"))->pluck('nombre','cuenta'))
                                     ->createOptionForm(function($form){
                                         return $form
                                         ->schema([
@@ -2683,12 +2762,12 @@ class MovbancosResource extends Resource
         }
         if($tmov == 4)
         {
-            $dater = explode('|',$data['Tercero']);
+            $dater = explode('|',$data['TerceroPrestamo']);
             $poliza = CatPolizas::create([
                 'tipo'=>'Eg',
                 'folio'=>$nopoliza,
                 'fecha'=>$record->fecha,
-                'concepto'=>$dater[0].'ACREEDOR',
+                'concepto'=>$dater[0].'DEUDOR',
                 'cargos'=>$record->importe*$record->tcambio,
                 'abonos'=>$record->importe*$record->tcambio,
                 'periodo'=>Filament::getTenant()->periodo,
@@ -2704,7 +2783,7 @@ class MovbancosResource extends Resource
                     'cat_polizas_id'=>$polno,
                     'codigo'=>$dater[1],
                     'cuenta'=>$dater[0],
-                    'concepto'=>$dater[0].'ACREEDOR',
+                    'concepto'=>$dater[0].'DEUDOR',
                     'cargo'=>$record->importe*$record->tcambio,
                     'abono'=>0,
                     'factura'=>'Prestamo',
@@ -2719,7 +2798,7 @@ class MovbancosResource extends Resource
                     'cat_polizas_id'=>$polno,
                     'codigo'=>$ban[0]->codigo,
                     'cuenta'=>$ban[0]->cuenta,
-                    'concepto'=>$dater[0].'ACREEDOR',
+                    'concepto'=>$dater[0].'DEUDOR',
                     'cargo'=>0,
                     'abono'=>$record->importe,
                     'factura'=>'Prestamo',
@@ -2737,7 +2816,7 @@ class MovbancosResource extends Resource
                         'cat_polizas_id'=>$polno,
                         'codigo'=>$cta_com?->codigo ?? $ban[0]->codigo,
                         'cuenta'=>$cta_com?->nombre ?? $ban[0]->cuenta,
-                        'concepto'=>$dater[0].'ACREEDOR',
+                        'concepto'=>$dater[0].'DEUDOR',
                         'cargo'=>0,
                         'abono'=>($record->importe*$record->tcambio)-$record->importe,
                         'factura'=>'Prestamo',
@@ -3101,4 +3180,3 @@ class MovbancosResource extends Resource
         ];
     }
 }
-

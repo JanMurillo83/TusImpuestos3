@@ -108,7 +108,8 @@ class CatCuentasResource extends Resource
                 ->icon('fas-edit'),
                 Tables\Actions\DeleteAction::make()
                 ->iconButton()->requiresConfirmation()
-                ->icon('fas-trash'),
+                ->icon('fas-trash')
+                ->visible(fn () => auth()->user()->hasRole(['administrador'])),
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->bulkActions([
 

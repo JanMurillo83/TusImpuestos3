@@ -411,6 +411,11 @@ class ClientesResource extends Resource
                             $record->rfc = strtoupper($record->rfc);
                             $record->save();
                         }),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Eliminar')
+                        ->icon('fas-trash')
+                        ->requiresConfirmation()
+                        ->visible(fn () => auth()->user()->hasRole(['administrador'])),
                     Action::make('CxC')->label('Cuentas x Cobrar')
                         ->icon('fas-money-bill-transfer')
                         ->form(function($record){ return [

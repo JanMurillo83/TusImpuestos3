@@ -236,6 +236,11 @@ class InventarioResource extends Resource
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Eliminar')
+                    ->icon('fas-trash')
+                    ->requiresConfirmation()
+                    ->visible(fn () => auth()->user()->hasRole(['administrador'])),
                 Tables\Actions\Action::make('Kardex')
                     ->icon('fas-history')
                     ->color('info')

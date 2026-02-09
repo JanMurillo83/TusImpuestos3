@@ -5,11 +5,13 @@ namespace App\Filament\Pages;
 use App\Http\Controllers\MainChartsController;
 use App\Http\Controllers\ReportesController;
 use App\Models\Auxiliares;
+use App\Models\BancoCuentas;
 use App\Models\DatosFiscales;
 use App\Models\EstadCXC;
 use App\Models\EstadCXC_F;
 use App\Models\EstadCXP_F;
 use App\Models\Inventario;
+use App\Models\Movbancos;
 use App\Models\SaldosReportes;
 use App\Models\User;
 use Carbon\Carbon;
@@ -61,6 +63,7 @@ class DashBoardIndicadores extends Page
             'importe_ret'=>$importes['importe_ret'],
             'mes_ventas_data'=>$importes['mes_ventas_data'],
             'anio_ventas_data'=>$importes['anio_ventas_data'],
+            'saldo_bancos'=>$importes['saldo_bancos'],
             'emp_correo'=>$fiscales?->correo ?? 'xxxxx@xxxxxx.com',
             'emp_telefono'=>$fiscales?->telefono ?? '0000000000'
         ];
@@ -122,8 +125,9 @@ class DashBoardIndicadores extends Page
         $utilidad_ejercicio = app(MainChartsController::class)->GetUtiPerEjer($team_id);
         $impuesto_estimado = floatval($utilidad_ejercicio) * 0.30;
         //------------------------------------------------------------------------------------------------------------------------------------------
-        $inven_data = Inventario::where('team_id',$team_id)->get();
-        $importe_inventario = floatval($inven_data->sum('p_costo')) * floatval($inven_data->sum('exist'));
+        $importe_inventario = (float) Inventario::where('team_id',$team_id)
+            ->selectRaw('COALESCE(SUM(p_costo * exist), 0) as importe')
+            ->value('importe');
         //------------------------------------------------------------------------------------------------------------------------------------------
         $fiscales = DatosFiscales::where('team_id',$team_id)->first();
         $coef = floatval($fiscales?->coeficiente ?? 0);
@@ -157,6 +161,20 @@ class DashBoardIndicadores extends Page
             ->take(3)
             ->get();
         //------------------------------------------------------------------------------------------------------------------------------------------
+        // Calcular saldo actual de bancos (suma de todas las cuentas bancarias)
+        $cuentas_bancarias = BancoCuentas::where('team_id',$team_id)->get();
+        $saldo_bancos_total = 0;
+        foreach ($cuentas_bancarias as $cuenta) {
+            $inicial_origen = floatval($cuenta->inicial);
+            $entradas_act = Movbancos::where('cuenta',$cuenta->id)->where('tipo','E')->where('ejercicio',$ejercicio)->where('periodo',$periodo)->sum('importe') ?? 0;
+            $salidas_act = Movbancos::where('cuenta',$cuenta->id)->where('tipo','S')->where('ejercicio',$ejercicio)->where('periodo',$periodo)->sum('importe') ?? 0;
+            $entradas_ant = Movbancos::where('cuenta',$cuenta->id)->where('tipo','E')->where('ejercicio',$ejercicio)->where('periodo','<',$periodo)->sum('importe') ?? 0;
+            $salidas_ant = Movbancos::where('cuenta',$cuenta->id)->where('tipo','S')->where('ejercicio',$ejercicio)->where('periodo','<',$periodo)->sum('importe') ?? 0;
+            $inicial = $inicial_origen + floatval($entradas_ant) - floatval($salidas_ant);
+            $actual = $inicial + $entradas_act - $salidas_act;
+            $saldo_bancos_total += $actual;
+        }
+        //------------------------------------------------------------------------------------------------------------------------------------------
         return ['ventas'=>$ventas,'ventas_pa'=>$ventas_pa,
             'ventas_dif'=>$ventas_dif,'ventas_anuales'=>$ventas_anuales,
             'cobrar_importe'=>$cobrar_importe,'cuentas_x_cobrar_top3'=>$cuentas_x_cobrar_top3,
@@ -165,6 +183,7 @@ class DashBoardIndicadores extends Page
             'impuesto_estimado'=>$impuesto_estimado,'importe_inventario'=>$importe_inventario,
             'impuesto_mensual'=>$impuesto_mensual,'importe_iva'=>$importe_iva,'importe_ret'=>$importe_ret,
             'mes_ventas_data'=>$mes_ventas_data,'anio_ventas_data'=>$ejercicio_ventas_data,
+            'saldo_bancos'=>$saldo_bancos_total,
 
         ];
     }

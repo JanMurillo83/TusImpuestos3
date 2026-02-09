@@ -71,11 +71,17 @@
             <!-- UTILIDAD / IMPUESTOS -->
             <section>
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm">
-                    <!-- Cuentas por pagar -->
+                    <!-- Inventario -->
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-xs text-blue-500">Inventario</p><br>
                         <p class="text-2xl font-bold text-amber-600 mt-1">{{'$'.number_format($importe_inventario,2)}}</p><br>
-                        <a href="#" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
+                        <a href="{{'/'.$team_id.'/inventario-detalle'}}" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
+                    </div>
+                    <!-- Saldo Actual de Bancos -->
+                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                        <p class="text-xs text-cyan-500">Saldo Actual de Bancos</p><br>
+                        <p class="text-2xl font-bold text-cyan-600 mt-1">{{'$'.number_format($saldo_bancos,2)}}</p><br>
+                        <a href="{{'/'.$team_id.'/movbancos'}}" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
                     </div>
                     <!-- Utilidad del periodo -->
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

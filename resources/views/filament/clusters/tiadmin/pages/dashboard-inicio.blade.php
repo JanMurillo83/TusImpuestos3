@@ -44,7 +44,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-xs text-indigo-500">Costo total del inventario</p><br>
-                        <p class="text-2xl font-bold text-amber-600">{{'$'.number_format($costo_inventario,2)}}</p>
+                        <p class="text-2xl font-bold text-amber-600">{{'$'.number_format($costo_inventario,2)}}</p><br>
+                        <a href="{{'/'.$team_id.'/inventario-detalle'}}" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
                     </div>
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-xs text-rose-500">Ordenes de compra pendientes</p><br>

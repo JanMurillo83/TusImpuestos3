@@ -1078,9 +1078,64 @@ class CotizacionesResource extends Resource
                 Action::make('Copiar')
                     ->icon('fas-copy')
                     ->label('Copiar Cotización')
-                    ->requiresConfirmation()
-                    ->action(function(Model $record){
-                        DB::transaction(function () use ($record) {
+                    ->modalCancelActionLabel('Cancelar')
+                    ->modalSubmitActionLabel('Copiar')
+                    ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
+                        $teamId = Filament::getTenant()->id;
+                        $serie = $record->serie ?? 'C';
+                        $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                            ->where('serie', $serie)
+                            ->max('folio');
+                        $nuevoFolio_ = ((int) $ultimoFolio) + 1;
+                        $nuevoFolio = $serie.$nuevoFolio_;
+
+                        $form->fill([
+                            'nuevo_folio' => $nuevoFolio,
+                            'clie' => $record->clie,
+                            'direccion_entrega_id' => $record->direccion_entrega_id,
+                        ]);
+                    })
+                    ->form([
+                        Forms\Components\Section::make('Información de Copia')
+                            ->schema([
+                                Forms\Components\Placeholder::make('nuevo_folio')
+                                    ->label('Nuevo Folio')
+                                    ->content(fn (Get $get) => $get('nuevo_folio'))
+                                    ->columnSpanFull(),
+                                Forms\Components\Select::make('clie')
+                                    ->label('Cliente')
+                                    ->searchable()
+                                    ->required()
+                                    ->live()
+                                    ->options(Clientes::all()->pluck('nombre','id'))
+                                    ->afterStateUpdated(function(Set $set){
+                                        $set('direccion_entrega_id', null);
+                                    })
+                                    ->columnSpanFull(),
+                                Forms\Components\Select::make('direccion_entrega_id')
+                                    ->label('Lugar de Entrega')
+                                    ->searchable()
+                                    ->options(function (Get $get) {
+                                        $clienteId = $get('clie');
+                                        if (!$clienteId) {
+                                            return [];
+                                        }
+                                        return \App\Models\DireccionesEntrega::where('cliente_id', $clienteId)
+                                            ->get()
+                                            ->mapWithKeys(function ($direccion) {
+                                                $label = $direccion->nombre_sucursal;
+                                                if ($direccion->calle) {
+                                                    $label .= ' - ' . $direccion->calle . ' ' . $direccion->no_exterior;
+                                                }
+                                                return [$direccion->id => $label];
+                                            });
+                                    })
+                                    ->helperText('Selecciona una dirección de entrega para la nueva cotización')
+                                    ->columnSpanFull(),
+                            ])
+                    ])
+                    ->action(function(Model $record, array $data){
+                        DB::transaction(function () use ($record, $data) {
                             $teamId = Filament::getTenant()->id;
 
                             // Obtener nuevo folio
@@ -1093,6 +1148,32 @@ class CotizacionesResource extends Resource
                             $nuevoFolio_ = ((int) $ultimoFolio) + 1;
                             $nuevoFolio = $serie.$nuevoFolio_;
 
+                            // Obtener información del nuevo cliente
+                            $nuevoCliente = Clientes::find($data['clie']);
+                            $nuevaDireccionEntrega = null;
+                            $entregaLugar = $record->entrega_lugar;
+                            $entregaDireccion = $record->entrega_direccion;
+                            $entregaContacto = $record->entrega_contacto;
+                            $entregaTelefono = $record->entrega_telefono;
+
+                            if (!empty($data['direccion_entrega_id'])) {
+                                $nuevaDireccionEntrega = \App\Models\DireccionesEntrega::find($data['direccion_entrega_id']);
+                                if ($nuevaDireccionEntrega) {
+                                    $entregaLugar = $nuevaDireccionEntrega->nombre_sucursal;
+                                    $entregaDireccion = collect([
+                                        $nuevaDireccionEntrega->calle,
+                                        $nuevaDireccionEntrega->no_exterior ? 'No. Ext. ' . $nuevaDireccionEntrega->no_exterior : null,
+                                        $nuevaDireccionEntrega->no_interior ? 'No. Int. ' . $nuevaDireccionEntrega->no_interior : null,
+                                        $nuevaDireccionEntrega->colonia,
+                                        $nuevaDireccionEntrega->municipio,
+                                        $nuevaDireccionEntrega->estado,
+                                        $nuevaDireccionEntrega->codigo_postal ? 'C.P. ' . $nuevaDireccionEntrega->codigo_postal : null,
+                                    ])->filter()->implode(', ');
+                                    $entregaContacto = $nuevaDireccionEntrega->contacto;
+                                    $entregaTelefono = $nuevaDireccionEntrega->telefono;
+                                }
+                            }
+
                             // Crear encabezado de cotización copiada
                             $nueva = new Cotizaciones();
                             $nueva->team_id = $teamId;
@@ -1100,9 +1181,9 @@ class CotizacionesResource extends Resource
                             $nueva->folio = $nuevoFolio_;
                             $nueva->docto = $nuevoFolio;
                             $nueva->fecha = Carbon::now();
-                            $nueva->clie = $record->clie;
-                            $nueva->direccion_entrega_id = $record->direccion_entrega_id;
-                            $nueva->nombre = $record->nombre;
+                            $nueva->clie = $data['clie'];
+                            $nueva->direccion_entrega_id = $data['direccion_entrega_id'];
+                            $nueva->nombre = $nuevoCliente ? $nuevoCliente->nombre : $record->nombre;
                             $nueva->esquema = $record->esquema;
                             $nueva->subtotal = $record->subtotal;
                             $nueva->iva = $record->iva;
@@ -1119,11 +1200,11 @@ class CotizacionesResource extends Resource
                             $nueva->vendedor = $record->vendedor;
                             $nueva->moneda = $record->moneda;
                             $nueva->tcambio = $record->tcambio;
-                            $nueva->entrega_lugar = $record->entrega_lugar;
-                            $nueva->entrega_direccion = $record->entrega_direccion;
+                            $nueva->entrega_lugar = $entregaLugar;
+                            $nueva->entrega_direccion = $entregaDireccion;
                             $nueva->entrega_horario = $record->entrega_horario;
-                            $nueva->entrega_contacto = $record->entrega_contacto;
-                            $nueva->entrega_telefono = $record->entrega_telefono;
+                            $nueva->entrega_contacto = $entregaContacto;
+                            $nueva->entrega_telefono = $entregaTelefono;
                             $nueva->condiciones_pago = $record->condiciones_pago;
                             $nueva->condiciones_entrega = $record->condiciones_entrega;
                             $nueva->oc_referencia_interna = $record->oc_referencia_interna;
@@ -1149,7 +1230,7 @@ class CotizacionesResource extends Resource
                                     'unidad' => $par->unidad,
                                     'cvesat' => $par->cvesat,
                                     'costo' => $par->costo,
-                                    'clie' => $par->clie,
+                                    'clie' => $data['clie'],
                                     'observa' => $par->observa,
                                     'pendientes' => $par->cant,
                                     'por_imp1' => $par->por_imp1,
@@ -1162,6 +1243,7 @@ class CotizacionesResource extends Resource
 
                             Notification::make()
                                 ->title('Cotización copiada correctamente: ' . $nueva->docto)
+                                ->body('Cliente: ' . $nueva->nombre)
                                 ->success()
                                 ->send();
                         });

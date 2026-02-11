@@ -394,6 +394,38 @@ class Tools extends Page implements HasForms, HasActions
                                     ->danger()
                                     ->send();
                             }
+                        }),
+                    Actions\Action::make('Consolidar Cuentas Duplicadas')
+                        ->icon('fas-object-group')
+                        ->requiresConfirmation()
+                        ->modalHeading('Consolidar Cuentas Duplicadas por Nombre')
+                        ->modalDescription('Este proceso consolidará las cuentas contables que tienen el mismo nombre. Los movimientos de las cuentas duplicadas se transferirán a la cuenta principal y las cuentas duplicadas serán eliminadas.')
+                        ->modalSubmitActionLabel('Consolidar')
+                        ->action(function (){
+                            try {
+                                $team = Filament::getTenant()->id;
+
+                                Artisan::call('cuentas:consolidar-duplicadas-nombre', [
+                                    '--team_id' => $team,
+                                    '--no-interaction' => true
+                                ]);
+
+                                $output = Artisan::output();
+
+                                // Mostrar el output completo en la notificación
+                                Notification::make()
+                                    ->title('Consolidación Completada')
+                                    ->body('El proceso de consolidación ha finalizado. Revisa los logs para más detalles.')
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         })
                 ])
             ]);

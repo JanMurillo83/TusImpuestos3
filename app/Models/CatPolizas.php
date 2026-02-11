@@ -23,7 +23,13 @@ class CatPolizas extends Model
     'tiposat',
     'team_id',
     'idcfdi',
-    'idmovb'];
+    'idmovb',
+    'es_cierre'];
+
+    protected $casts = [
+        'es_cierre' => 'boolean',
+        'fecha' => 'datetime',
+    ];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

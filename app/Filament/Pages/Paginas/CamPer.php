@@ -30,7 +30,7 @@ class CamPer extends Page
                     ->default(Filament::getTenant()->id)
                     ->searchable(),
                 TextInput::make('periodo')
-                    ->numeric()->minValue(1)->maxValue(12)
+                    ->numeric()->minValue(1)->maxValue(13)
                     ->default(Filament::getTenant()->periodo),
                 TextInput::make('ejercicio')
                     ->numeric()

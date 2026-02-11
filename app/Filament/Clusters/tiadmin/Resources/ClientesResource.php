@@ -79,7 +79,10 @@ class ClientesResource extends Resource
                                             ->maxLength(255)
                                             ->unique(
                                                 ignoreRecord: true,
-                                                modifyRuleUsing: fn ($rule) => $rule->where('team_id', Filament::getTenant()->id)
+                                                modifyRuleUsing: fn ($rule, $state) =>
+                                                    strtoupper($state ?? '') === 'XAXX010101000'
+                                                        ? $rule->where('team_id', -1) // Si es XAXX010101000, no validar duplicidad
+                                                        : $rule->where('team_id', Filament::getTenant()->id)
                                             )
                                             ->default('XAXX010101000'),
                                         Forms\Components\Select::make('regimen')

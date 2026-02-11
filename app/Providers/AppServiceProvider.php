@@ -15,6 +15,8 @@ use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\View\View;
+use App\Models\CatPolizas;
+use App\Observers\CatPolizasObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+         // Registrar observer para auditoría de pólizas
+         CatPolizas::observe(CatPolizasObserver::class);
+
          Filament::serving(function () {
             Filament::registerNavigationGroups([
                 NavigationGroup::make()

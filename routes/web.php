@@ -9,6 +9,26 @@ use Illuminate\Support\Facades\Route;
 Route::get('/reportes/contabilidad/balanza', function () { return view('ContaRep/Balanza');});
 Route::get('/reportes/contabilidad/balance', function () { return view('ContaRep/Balance');});
 Route::get('/reportes/contabilidad/estado', function () { return view('ContaRep/Estado');});
+
+// Reportes NIF (Normas de Información Financiera)
+Route::get('/reportes/nif/balanza-comprobacion', [\App\Http\Controllers\ReportesNIFController::class, 'balanzaComprobacion'])->name('reportes.nif.balanza');
+Route::get('/reportes/nif/balanza-comprobacion-excel', [\App\Http\Controllers\ReportesNIFController::class, 'balanzaComprobacionExcel'])->name('reportes.nif.balanza.excel');
+Route::get('/reportes/nif/libro-mayor', [\App\Http\Controllers\ReportesNIFController::class, 'libroMayor'])->name('reportes.nif.libro-mayor');
+Route::get('/reportes/nif/auxiliares', [\App\Http\Controllers\ReportesNIFController::class, 'auxiliaresReporte'])->name('reportes.nif.auxiliares');
+Route::get('/reportes/nif/diario-general', [\App\Http\Controllers\ReportesNIFController::class, 'diarioGeneral'])->name('reportes.nif.diario');
+Route::get('/reportes/nif/polizas-descuadradas', [\App\Http\Controllers\ReportesNIFController::class, 'polizasDescuadradas'])->name('reportes.nif.descuadradas');
+Route::get('/reportes/nif/balance-comparativo', [\App\Http\Controllers\ReportesNIFController::class, 'balanceGeneralComparativo'])->name('reportes.nif.balance-comparativo');
+Route::get('/reportes/nif/estado-resultados-comparativo', [\App\Http\Controllers\ReportesNIFController::class, 'estadoResultadosComparativo'])->name('reportes.nif.resultados-comparativo');
+Route::get('/reportes/nif/antiguedad-saldos', [\App\Http\Controllers\ReportesNIFController::class, 'antiguedadSaldos'])->name('reportes.nif.antiguedad');
+Route::get('/reportes/nif/razones-financieras', [\App\Http\Controllers\ReportesNIFController::class, 'razonesFinancieras'])->name('reportes.nif.razones');
+Route::get('/reportes/nif/reporte-iva', [\App\Http\Controllers\ReportesNIFController::class, 'reporteIVA'])->name('reportes.nif.iva');
+Route::get('/reportes/nif/reporte-diot', [\App\Http\Controllers\ReportesNIFController::class, 'reporteDIOT'])->name('reportes.nif.diot');
+Route::get('/reportes/nif/reporte-retenciones', [\App\Http\Controllers\ReportesNIFController::class, 'reporteRetenciones'])->name('reportes.nif.retenciones');
+Route::get('/reportes/nif/balance-general', [\App\Http\Controllers\ReportesNIFController::class, 'balanceGeneralNIF'])->name('reportes.nif.balance');
+Route::get('/reportes/nif/estado-resultados', [\App\Http\Controllers\ReportesNIFController::class, 'estadoResultadosNIF'])->name('reportes.nif.resultados');
+Route::get('/reportes/nif/cambios-capital', [\App\Http\Controllers\ReportesNIFController::class, 'estadoCambiosCapitalNIF'])->name('reportes.nif.capital');
+Route::get('/reportes/nif/flujo-efectivo', [\App\Http\Controllers\ReportesNIFController::class, 'estadoFlujoEfectivoNIF'])->name('reportes.nif.flujo');
+Route::get('/reportes/nif/exportar-todos-excel', [\App\Http\Controllers\ReportesNIFController::class, 'exportarTodosExcel'])->name('reportes.nif.todos.excel');
 Route::get('/mainview',[\App\Http\Controllers\MainChartsController::class,'mainview'])->name('mainviewns');
 Route::prefix('{tenantSlug}')->group(function () {
     Route::get('/tiadmin', function (string $tenantSlug) {

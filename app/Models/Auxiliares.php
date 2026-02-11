@@ -9,14 +9,17 @@ class Auxiliares extends Model
 {
     use HasFactory;
     protected $fillable = ['cat_polizas_id',
-    'codigo',
-    'cuenta',
-    'concepto',
-    'cargo',
-    'abono',
-    'factura',
-    'nopartida',
-    'uuid',
-    'team_id',
-    'igeg_id'];
+        'codigo',
+        'cuenta',
+        'concepto',
+        'cargo',
+        'abono',
+        'factura',
+        'nopartida',
+        'uuid',
+        'team_id',
+        'igeg_id',
+        'a_periodo',
+        'a_ejercicio'
+    ];
 }

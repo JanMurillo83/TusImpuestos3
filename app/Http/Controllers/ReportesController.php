@@ -522,8 +522,19 @@ class ReportesController extends Controller
             ->where('a_ejercicio',$ejercicio)
             ->where('team_id',$team_id)
             ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
-            $montos_ant = Auxiliares::where('codigo',$cuenta->codigo)->where('a_periodo','<',$periodo)
+
+            // Para TODAS las cuentas: sumar todo el histórico anterior al periodo actual
+            // Incluye: (ejercicios anteriores completos) + (periodos anteriores del ejercicio actual)
+            // Esto permite que las cuentas de resultados muestren saldo inicial si no se hizo póliza de cierre
+            $montos_ant = Auxiliares::where('codigo',$cuenta->codigo)
                 ->where('team_id',$team_id)
+                ->where(function($query) use ($ejercicio, $periodo) {
+                    $query->where('a_ejercicio', '<', $ejercicio)
+                          ->orWhere(function($q) use ($ejercicio, $periodo) {
+                              $q->where('a_ejercicio', '=', $ejercicio)
+                                ->where('a_periodo', '<', $periodo);
+                          });
+                })
                 ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
             $inicial = 0;
             $final = 0;

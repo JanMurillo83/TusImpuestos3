@@ -19,6 +19,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
@@ -349,6 +350,50 @@ class Tools extends Page implements HasForms, HasActions
                                 }
                                 Notification::make()->title('Proceso Completado')->success()->send();
                             dd($resultado,$errores);
+                        }),
+                    Actions\Action::make('Validar Naturalezas')
+                        ->icon('fas-check-circle')
+                        ->requiresConfirmation()
+                        ->modalHeading('Validar y Corregir Naturalezas de Cuentas')
+                        ->modalDescription('Este proceso validará y corregirá las naturalezas de las cuentas contables según las reglas estándar (Activo=D, Pasivo=A, Capital=A, Ingresos=A, Costos=D, Gastos=D). Las pólizas NO serán modificadas.')
+                        ->modalSubmitActionLabel('Validar y Corregir')
+                        ->action(function (){
+                            try {
+                                $team = Filament::getTenant()->id;
+
+                                Artisan::call('cuentas:validar-naturalezas', [
+                                    '--team_id' => $team,
+                                    '--corregir' => true,
+                                    '--no-interaction' => true
+                                ]);
+
+                                $output = Artisan::output();
+
+                                // Extraer información del output
+                                preg_match('/Cuentas con naturaleza incorrecta: (\d+)/', $output, $matches);
+                                $incorrectas = $matches[1] ?? 0;
+
+                                if ($incorrectas > 0) {
+                                    Notification::make()
+                                        ->title('Naturalezas Corregidas')
+                                        ->body("Se corrigieron {$incorrectas} cuentas exitosamente")
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('Validación Completada')
+                                        ->body('Todas las cuentas tienen la naturaleza correcta')
+                                        ->success()
+                                        ->send();
+                                }
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         })
                 ])
             ]);

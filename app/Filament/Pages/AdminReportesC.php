@@ -108,10 +108,10 @@ class AdminReportesC extends Page implements HasForms
             Fieldset::make('Filtro de Periodo')
                 ->schema([
                     Select::make('periodo_ini')->inlineLabel()
-                        ->label('Periodo Inicial')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12'])
+                        ->label('Periodo Inicial')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12','13'=>'13'])
                         ->default(Filament::getTenant()->periodo),
                     Select::make('periodo_fin')->inlineLabel()
-                        ->label('Periodo Final')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12'])
+                        ->label('Periodo Final')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12','13'=>'13'])
                         ->default(Filament::getTenant()->periodo),
                 ])->columns(2)
                 ->visible(function (Get $get) use ($idAux) {
@@ -122,7 +122,7 @@ class AdminReportesC extends Page implements HasForms
             Fieldset::make('Filtro de Periodo')
                 ->schema([
                     Select::make('periodo_ini')->inlineLabel()
-                        ->label('Periodo')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12'])
+                        ->label('Periodo')->options(['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12','13'=>'13'])
                         ->default(Filament::getTenant()->periodo),
                 ])->columns(2)
                 ->visible(function (Get $get) use ($idAux) {

@@ -914,14 +914,12 @@ class FacturasResource extends Resource
                     // Solo verificar si la forma de pago NO es PUE
                     if ($record->forma === 'PUE') {
                         return null; // No mostrar icono para PUE
+                    }else {
+                        $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->id)
+                            ->where('team_id', $record->team_id)
+                            ->exists();
+                        return $tieneComplemento;
                     }
-
-                    // Verificar si existe al menos un registro en par_pagos con este UUID
-                    $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->id)
-                        ->where('team_id', $record->team_id)
-                        ->exists();
-
-                    return $tieneComplemento;
                 })
                 ->tooltip(function ($record) {
                     if ($record->forma === 'PUE') {

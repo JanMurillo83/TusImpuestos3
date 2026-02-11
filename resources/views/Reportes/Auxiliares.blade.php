@@ -131,6 +131,43 @@
             background-color: #e74c3c;
         }
 
+        .totales-cuenta {
+            background-color: #95a5a6;
+            color: white;
+            font-weight: bold;
+            padding: 8px;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        .totales-cuenta td {
+            padding: 8px;
+            border: 1px solid #7f8c8d;
+            font-weight: bold;
+        }
+
+        .totales-globales {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            margin-top: 30px;
+            font-weight: bold;
+            font-size: 11pt;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+
+        .totales-globales table {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .totales-globales td {
+            padding: 10px;
+            font-size: 10pt;
+            border: 1px solid #34495e;
+        }
+
         .cuenta-section {
             page-break-inside: avoid;
             margin-bottom: 20px;
@@ -198,6 +235,11 @@
         </div>
     </div>
 
+    @php
+        $total_global_cargo = 0;
+        $total_global_abono = 0;
+    @endphp
+
     @foreach($cuentas ?? [] as $cuenta)
         <div class="cuenta-section">
             <div class="cuenta-header">
@@ -222,12 +264,17 @@
                 <tbody>
                     @php
                         $saldo_acumulado = $cuenta->saldo_inicial ?? 0;
+                        $total_cuenta_cargo = 0;
+                        $total_cuenta_abono = 0;
                     @endphp
 
                     @foreach($cuenta->movimientos ?? [] as $movimiento)
                         @php
                             $cargo = $movimiento->cargo ?? 0;
                             $abono = $movimiento->abono ?? 0;
+
+                            $total_cuenta_cargo += $cargo;
+                            $total_cuenta_abono += $abono;
 
                             // Apply naturaleza when accumulating saldo
                             if (($cuenta->naturaleza ?? 'D') == 'A') {
@@ -245,6 +292,19 @@
                             <td class="numero">{{ number_format($saldo_acumulado, 2) }}</td>
                         </tr>
                     @endforeach
+
+                    @php
+                        $total_global_cargo += $total_cuenta_cargo;
+                        $total_global_abono += $total_cuenta_abono;
+                    @endphp
+
+                    <!-- Totales por cuenta -->
+                    <tr class="totales-cuenta">
+                        <td colspan="3" style="text-align: right;">TOTAL CUENTA {{ $cuenta->codigo }}:</td>
+                        <td class="numero">${{ number_format($total_cuenta_cargo, 2) }}</td>
+                        <td class="numero">${{ number_format($total_cuenta_abono, 2) }}</td>
+                        <td></td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -257,6 +317,23 @@
             <div class="page-break"></div>
         @endif
     @endforeach
+
+    <!-- Totales globales al final del reporte -->
+    <div class="totales-globales">
+        <div>RESUMEN GENERAL DEL REPORTE</div>
+        <table>
+            <tr>
+                <td style="text-align: center; width: 50%;">
+                    <strong>TOTAL CARGOS:</strong><br>
+                    ${{ number_format($total_global_cargo, 2) }}
+                </td>
+                <td style="text-align: center; width: 50%;">
+                    <strong>TOTAL ABONOS:</strong><br>
+                    ${{ number_format($total_global_abono, 2) }}
+                </td>
+            </tr>
+        </table>
+    </div>
 
 </body>
 </html>

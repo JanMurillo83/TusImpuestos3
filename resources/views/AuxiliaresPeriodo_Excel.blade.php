@@ -63,6 +63,9 @@ $movimientos = DB::table('auxiliares as a')
 
 // Agrupar por cuenta contable (codigo + cuenta)
 $agrupado = [];
+$totalGlobalCargos = 0.0;
+$totalGlobalAbonos = 0.0;
+
 foreach ($movimientos as $m) {
     $key = $m->codigo.'|'.$m->cuenta;
     if (!isset($agrupado[$key])) {
@@ -79,6 +82,9 @@ foreach ($movimientos as $m) {
     $agrupado[$key]['items'][] = $m;
     $agrupado[$key]['total_cargos'] += (float)$m->cargo;
     $agrupado[$key]['total_abonos'] += (float)$m->abono;
+
+    $totalGlobalCargos += (float)$m->cargo;
+    $totalGlobalAbonos += (float)$m->abono;
 }
 ?>
     <!DOCTYPE html>
@@ -194,6 +200,35 @@ foreach ($movimientos as $m) {
         </div>
     </div>
     <?php endforeach; ?>
+
+    <!-- Totales globales del reporte -->
+    <?php if (!empty($agrupado)): ?>
+    <div class="row mt-5">
+        <div class="col-12">
+            <table class="table table-sm table-bordered" style="background-color: #2c3e50; color: white; font-weight: bold; font-size: 12px;">
+                <thead>
+                <tr>
+                    <th colspan="3" class="text-center" style="padding: 15px; background-color: #2c3e50; color: white;">
+                        RESUMEN GENERAL DEL REPORTE
+                    </th>
+                </tr>
+                <tr style="background-color: #34495e; color: white;">
+                    <th class="text-center" style="padding: 12px;">CONCEPTO</th>
+                    <th class="text-center" style="padding: 12px;">TOTAL CARGOS</th>
+                    <th class="text-center" style="padding: 12px;">TOTAL ABONOS</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr style="background-color: #2c3e50; color: white;">
+                    <td class="text-center" style="padding: 12px;">Totales del periodo</td>
+                    <td class="text-end" style="padding: 12px;">{{ '$'.number_format($totalGlobalCargos,2) }}</td>
+                    <td class="text-end" style="padding: 12px;">{{ '$'.number_format($totalGlobalAbonos,2) }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 </body>
 </html>

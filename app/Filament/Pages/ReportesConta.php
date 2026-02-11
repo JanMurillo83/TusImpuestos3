@@ -12,7 +12,6 @@ use App\Http\Controllers\ReportesController;
 use App\Services\DiotService;
 use App\Services\DiotTxtGenerator;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Fieldset;

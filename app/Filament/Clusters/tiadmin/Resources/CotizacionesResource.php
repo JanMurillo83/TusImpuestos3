@@ -15,7 +15,6 @@ use App\Services\PrecioCalculator;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;

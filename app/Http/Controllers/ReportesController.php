@@ -13,11 +13,13 @@ use App\Models\CuentasPagarTable;
 use App\Models\Movbancos;
 use App\Models\Saldosbanco;
 use App\Models\SaldosReportes;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\File;
+use Spatie\Browsershot\Browsershot;
 
 class ReportesController extends Controller
 {
@@ -58,12 +60,22 @@ class ReportesController extends Controller
             'totfinal'=>$totales[0]->final,
             ];
 
-            $pdf = SnappyPdf::loadView('/Reportes/balanza',$data)->setOption("footer-right", "Pagina [page] de [topage]");
             $nombre = public_path('Reportes/balanza_'.Filament::getTenant()->id.'_'.$periodo.'_'.$ejercicio.'.pdf');
 
             if(file_exists($nombre)) unlink($nombre);
-            $pdf->setOption('encoding', 'utf-8');
-            if(!$pdf->save($nombre)) return 'Error';
+
+            $html = View::make('/Reportes/balanza', $data)->render();
+            Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
+
             $archivo = DB::table('archivos_pdfs')->insertGetId([
                 'archivo'=>$nombre,'empresa'=>$tax_id,'fecha'=>Carbon::now()
             ]);
@@ -125,12 +137,22 @@ class ReportesController extends Controller
         'ejercicio'=>$ejercicio,
         'periodo'=>$periodo,
         ];
-        $pdf = SnappyPdf::loadView('Reportes/balancegral',$data);
         $nombre = public_path('Reportes/balance_'.Filament::getTenant()->id.'_'.$periodo.'_'.$ejercicio.'.pdf');
 
             if(file_exists($nombre)) unlink($nombre);
-            $pdf->setOption('encoding', 'utf-8');
-            if(!$pdf->save($nombre)) return 'Error';
+
+            $html = View::make('Reportes/balancegral', $data)->render();
+            Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
+
             $archivo = DB::table('archivos_pdfs')->insertGetId([
                 'archivo'=>$nombre,'empresa'=>$tax_id,'fecha'=>Carbon::now()
             ]);
@@ -202,12 +224,22 @@ class ReportesController extends Controller
         'utilidadgral'=>$utilidadgasto,
         'resultado'=>$saldores,
         ];
-        $pdf = SnappyPdf::loadView('Reportes/edores',$data);
         $nombre = public_path('Reportes/edore_'.Filament::getTenant()->id.'_'.$periodo.'_'.$ejercicio.'.pdf');
 
             if(file_exists($nombre)) unlink($nombre);
-            $pdf->setOption('encoding', 'utf-8');
-            if(!$pdf->save($nombre)) return 'Error';
+
+            $html = View::make('Reportes/edores', $data)->render();
+            Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
+
             $archivo = DB::table('archivos_pdfs')->insertGetId([
                 'archivo'=>$nombre,'empresa'=>$tax_id,'fecha'=>Carbon::now()
             ]);

@@ -13,7 +13,6 @@ use App\Models\Pedidos;
 use App\Models\PedidosPartidas;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;
@@ -44,6 +43,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
+use Spatie\Browsershot\Browsershot;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
@@ -367,10 +368,17 @@ class PedidosResource extends Resource
                                         {
                                             $archivo = public_path('/Reportes/Cotizacion.pdf');
                                             if(File::exists($archivo)) unlink($archivo);
-                                            SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
-                                                ->setOption('encoding', 'utf-8')
-                                                ->setOption("enable-local-file-access",true)
-                                                ->save($archivo);
+                                            $html = View::make('RepCotizacion', ['idorden'=>$idorden])->render();
+                                            Browsershot::html($html)
+                                                ->format('Letter')
+                                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                                ->setEnvironmentOptions([
+                                                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                                                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                                                ])
+                                                ->noSandbox()
+                                                ->scale(0.8)
+                                                ->savePdf($archivo);
                                         }
                                     })->form([
                                         PdfViewerField::make('archivo')
@@ -760,10 +768,17 @@ class PedidosResource extends Resource
                         {
                             $archivo = public_path('/Reportes/Cotizacion.pdf');
                             if(File::exists($archivo)) unlink($archivo);
-                            SnappyPdf::loadView('RepCotizacion',['idorden'=>$idorden])
-                                ->setOption("enable-local-file-access",true)
-                                ->setOption('encoding', 'utf-8')
-                                ->save($archivo);
+                            $html = View::make('RepCotizacion', ['idorden'=>$idorden])->render();
+                            Browsershot::html($html)
+                                ->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions([
+                                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                                ])
+                                ->noSandbox()
+                                ->scale(0.8)
+                                ->savePdf($archivo);
                             $ruta = env('APP_URL').'/Reportes/Cotizacion.pdf';
                             //dd($ruta);
                         }

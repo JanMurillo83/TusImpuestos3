@@ -22,7 +22,6 @@ use App\Models\Terceros;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
 use Filament\Facades\Filament;

@@ -6,11 +6,13 @@ use App\Models\Almacencfdis;
 use App\Models\Auxiliares;
 use App\Models\CatPolizas;
 use App\Models\SaldosReportes;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\File;
+use Spatie\Browsershot\Browsershot;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -116,14 +118,20 @@ class ReportesNIFController extends Controller
             'balance_cuadrado' => $balance_cuadrado,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/BalanceGeneralNIF', $data);
+        $html = View::make('Reportes/BalanceGeneralNIF', $data)->render();
         $nombre = public_path('TMPCFDI/BalanceGeneralNIF_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->setOption('margin-top', '10mm');
-        $pdf->setOption('margin-bottom', '10mm');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/BalanceGeneralNIF_' . $team_id . '.pdf';
     }
@@ -174,13 +182,20 @@ class ReportesNIFController extends Controller
             'cuentas' => $cuentas,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/BalanzaComprobacion', $data);
+        $html = View::make('Reportes/BalanzaComprobacion', $data)->render();
         $nombre = public_path('TMPCFDI/BalanzaComprobacion_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->setOrientation('landscape');
-        $pdf->save($nombre);
+        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/BalanzaComprobacion_' . $team_id . '.pdf';
     }
@@ -231,12 +246,20 @@ class ReportesNIFController extends Controller
             'cuentas' => $cuentas,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/BalanzaSimplificada', $data);
+        $html = View::make('Reportes/BalanzaSimplificada', $data)->render();
         $nombre = public_path('TMPCFDI/BalanzaSimplificada_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/BalanzaSimplificada_' . $team_id . '.pdf';
     }
@@ -332,12 +355,20 @@ class ReportesNIFController extends Controller
             'cuentas' => $cuentas_data,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/LibroMayor', $data);
+        $html = View::make('Reportes/LibroMayor', $data)->render();
         $nombre = public_path('TMPCFDI/LibroMayor_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/LibroMayor_' . $team_id . '.pdf';
     }
@@ -398,13 +429,20 @@ class ReportesNIFController extends Controller
             'cuentas' => $cuentas_comparativo,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/BalanceComparativo', $data);
+        $html = View::make('Reportes/BalanceComparativo', $data)->render();
         $nombre = public_path('TMPCFDI/BalanceComparativo_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->setOrientation('landscape');
-        $pdf->save($nombre);
+        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/BalanceComparativo_' . $team_id . '.pdf';
     }
@@ -466,12 +504,20 @@ class ReportesNIFController extends Controller
             ]
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/RazonesFinancieras', $data);
+        $html = View::make('Reportes/RazonesFinancieras', $data)->render();
         $nombre = public_path('TMPCFDI/RazonesFinancieras_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/RazonesFinancieras_' . $team_id . '.pdf';
     }
@@ -564,12 +610,20 @@ class ReportesNIFController extends Controller
             'polizas' => $polizas_data,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/DiarioGeneral', $data);
+        $html = View::make('Reportes/DiarioGeneral', $data)->render();
         $nombre = public_path('TMPCFDI/DiarioGeneral_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/DiarioGeneral_' . $team_id . '.pdf';
     }
@@ -627,12 +681,20 @@ class ReportesNIFController extends Controller
             'total_descuadradas' => count($polizas_descuadradas),
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/PolizasDescuadradas', $data);
+        $html = View::make('Reportes/PolizasDescuadradas', $data)->render();
         $nombre = public_path('TMPCFDI/PólizasDescuadradas_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/PólizasDescuadradas_' . $team_id . '.pdf';
     }
@@ -700,13 +762,20 @@ class ReportesNIFController extends Controller
             'cuentas' => $cuentas_comparativo,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/EstadoResultadosComparativo', $data);
+        $html = View::make('Reportes/EstadoResultadosComparativo', $data)->render();
         $nombre = public_path('TMPCFDI/EstadoResultadosComparativo_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->setOrientation('landscape');
-        $pdf->save($nombre);
+        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/EstadoResultadosComparativo_' . $team_id . '.pdf';
     }
@@ -804,14 +873,21 @@ class ReportesNIFController extends Controller
             'cuentas' => $cuentas_antigüedad,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/AntiguedadSaldos', $data);
+        $html = View::make('Reportes/AntiguedadSaldos', $data)->render();
         $tipo_nombre = $tipo == 'cobrar' ? 'CuentasPorCobrar' : 'CuentasPorPagar';
         $nombre = public_path('TMPCFDI/AntiguedadSaldos_' . $tipo_nombre . '_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->setOrientation('landscape');
-        $pdf->save($nombre);
+        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/AntiguedadSaldos_' . $tipo_nombre . '_' . $team_id . '.pdf';
     }
@@ -883,12 +959,20 @@ class ReportesNIFController extends Controller
             'total_cfdis_recibidos' => count($cfdis_recibidos),
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/ReporteIVA', $data);
+        $html = View::make('Reportes/ReporteIVA', $data)->render();
         $nombre = public_path('TMPCFDI/ReporteIVA_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/ReporteIVA_' . $team_id . '.pdf';
     }
@@ -957,13 +1041,20 @@ class ReportesNIFController extends Controller
             'total_ret_isr' => array_sum(array_column($proveedores, 'isr_retenido')),
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/ReporteDIOT', $data);
+        $html = View::make('Reportes/ReporteDIOT', $data)->render();
         $nombre = public_path('TMPCFDI/DIOT_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->setOrientation('landscape');
-        $pdf->save($nombre);
+        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/DIOT_' . $team_id . '.pdf';
     }
@@ -1036,13 +1127,20 @@ class ReportesNIFController extends Controller
             'total_ret_hicimos' => array_sum(array_column($ret_que_hicimos, 'importe')),
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/ReporteRetenciones', $data);
+        $html = View::make('Reportes/ReporteRetenciones', $data)->render();
         $nombre = public_path('TMPCFDI/Retenciones_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->setOrientation('landscape');
-        $pdf->save($nombre);
+        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/Retenciones_' . $team_id . '.pdf';
     }
@@ -1108,12 +1206,20 @@ class ReportesNIFController extends Controller
             'cuentas' => $cuentas_data,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/Auxiliares', $data);
+        $html = View::make('Reportes/Auxiliares', $data)->render();
         $nombre = public_path('TMPCFDI/Auxiliares_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/Auxiliares_' . $team_id . '.pdf';
     }
@@ -1291,12 +1397,20 @@ class ReportesNIFController extends Controller
             'utilidad_neta_acumulado' => $utilidad_neta_acumulado,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/EstadoResultadosNIF', $data);
+        $html = View::make('Reportes/EstadoResultadosNIF', $data)->render();
         $nombre = public_path('TMPCFDI/EstadoResultadosNIF_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/EstadoResultadosNIF_' . $team_id . '.pdf';
     }
@@ -1378,12 +1492,20 @@ class ReportesNIFController extends Controller
             'total_capital_final' => $total_capital_final,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/EstadoCambiosCapitalNIF', $data);
+        $html = View::make('Reportes/EstadoCambiosCapitalNIF', $data)->render();
         $nombre = public_path('TMPCFDI/EstadoCambiosCapitalNIF_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/EstadoCambiosCapitalNIF_' . $team_id . '.pdf';
     }
@@ -1472,12 +1594,20 @@ class ReportesNIFController extends Controller
             'efectivo_final' => $efectivo_final,
         ];
 
-        $pdf = SnappyPdf::loadView('Reportes/EstadoFlujoEfectivoNIF', $data);
+        $html = View::make('Reportes/EstadoFlujoEfectivoNIF', $data)->render();
         $nombre = public_path('TMPCFDI/EstadoFlujoEfectivoNIF_' . $team_id . '.pdf');
 
         if (file_exists($nombre)) unlink($nombre);
-        $pdf->setOption('encoding', 'utf-8');
-        $pdf->save($nombre);
+        Browsershot::html($html)
+                ->format('Letter')
+                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                ->setEnvironmentOptions([
+                    "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
+                    "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"
+                ])
+                ->noSandbox()
+                ->scale(0.8)
+                ->savePdf($nombre);
 
         return env('APP_URL') . '/TMPCFDI/EstadoFlujoEfectivoNIF_' . $team_id . '.pdf';
     }

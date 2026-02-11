@@ -37,7 +37,6 @@ use App\Models\Xmlfiles;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
 use CfdiUtils\Cfdi;
 use CfdiUtils\Cleaner\Cleaner;

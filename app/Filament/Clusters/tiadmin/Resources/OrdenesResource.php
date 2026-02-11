@@ -17,7 +17,6 @@ use App\Models\RequisicionesPartidas;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
-use Barryvdh\Snappy\Facades\SnappyPdf;
 use Carbon\Carbon;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;

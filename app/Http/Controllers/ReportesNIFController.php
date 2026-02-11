@@ -185,9 +185,9 @@ class ReportesNIFController extends Controller
         $html = View::make('Reportes/BalanzaComprobacion', $data)->render();
         $nombre = public_path('TMPCFDI/BalanzaComprobacion_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
-                ->format('Letter')
+                ->landscape()
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                 ->setEnvironmentOptions([
                     "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
@@ -251,7 +251,7 @@ class ReportesNIFController extends Controller
 
         if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
-                ->format('Letter')
+                ->landscape()
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                 ->setEnvironmentOptions([
                     "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
@@ -360,7 +360,7 @@ class ReportesNIFController extends Controller
 
         if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
-                ->format('Letter')
+                ->landscape()
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                 ->setEnvironmentOptions([
                     "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
@@ -432,7 +432,7 @@ class ReportesNIFController extends Controller
         $html = View::make('Reportes/BalanceComparativo', $data)->render();
         $nombre = public_path('TMPCFDI/BalanceComparativo_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
                 ->format('Letter')
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
@@ -615,7 +615,7 @@ class ReportesNIFController extends Controller
 
         if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
-                ->format('Letter')
+                ->landscape()
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                 ->setEnvironmentOptions([
                     "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
@@ -765,7 +765,7 @@ class ReportesNIFController extends Controller
         $html = View::make('Reportes/EstadoResultadosComparativo', $data)->render();
         $nombre = public_path('TMPCFDI/EstadoResultadosComparativo_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
                 ->format('Letter')
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
@@ -877,7 +877,7 @@ class ReportesNIFController extends Controller
         $tipo_nombre = $tipo == 'cobrar' ? 'CuentasPorCobrar' : 'CuentasPorPagar';
         $nombre = public_path('TMPCFDI/AntiguedadSaldos_' . $tipo_nombre . '_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
                 ->format('Letter')
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
@@ -1044,9 +1044,9 @@ class ReportesNIFController extends Controller
         $html = View::make('Reportes/ReporteDIOT', $data)->render();
         $nombre = public_path('TMPCFDI/DIOT_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
-                ->format('Letter')
+                ->landscape()
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                 ->setEnvironmentOptions([
                     "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",
@@ -1130,7 +1130,7 @@ class ReportesNIFController extends Controller
         $html = View::make('Reportes/ReporteRetenciones', $data)->render();
         $nombre = public_path('TMPCFDI/Retenciones_' . $team_id . '.pdf');
 
-        if (file_exists($nombre)) unlink($nombre);        $pdf->setOrientation('landscape');
+        if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
                 ->format('Letter')
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
@@ -1211,7 +1211,7 @@ class ReportesNIFController extends Controller
 
         if (file_exists($nombre)) unlink($nombre);
         Browsershot::html($html)
-                ->format('Letter')
+                ->landscape()
                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                 ->setEnvironmentOptions([
                     "XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing",

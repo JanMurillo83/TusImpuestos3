@@ -355,14 +355,12 @@ class Tools extends Page implements HasForms, HasActions
                         ->icon('fas-check-circle')
                         ->requiresConfirmation()
                         ->modalHeading('Validar y Corregir Naturalezas de Cuentas')
-                        ->modalDescription('Este proceso validará y corregirá las naturalezas de las cuentas contables según las reglas estándar (Activo=D, Pasivo=A, Capital=A, Ingresos=A, Costos=D, Gastos=D). Las pólizas NO serán modificadas.')
-                        ->modalSubmitActionLabel('Validar y Corregir')
+                        ->modalDescription('Este proceso validará y corregirá las naturalezas de las cuentas contables de TODOS LOS EQUIPOS según las reglas estándar (Activo=D, Pasivo=A, Capital=A, Ingresos=A, Costos=D, Gastos=D). Las pólizas NO serán modificadas.')
+                        ->modalSubmitActionLabel('Validar y Corregir Todos')
                         ->action(function (){
                             try {
-                                $team = Filament::getTenant()->id;
-
+                                // Ejecutar para todos los teams (sin parámetro --team_id)
                                 Artisan::call('cuentas:validar-naturalezas', [
-                                    '--team_id' => $team,
                                     '--corregir' => true,
                                     '--no-interaction' => true
                                 ]);
@@ -376,13 +374,13 @@ class Tools extends Page implements HasForms, HasActions
                                 if ($incorrectas > 0) {
                                     Notification::make()
                                         ->title('Naturalezas Corregidas')
-                                        ->body("Se corrigieron {$incorrectas} cuentas exitosamente")
+                                        ->body("Se corrigieron {$incorrectas} cuentas exitosamente en todos los equipos")
                                         ->success()
                                         ->send();
                                 } else {
                                     Notification::make()
                                         ->title('Validación Completada')
-                                        ->body('Todas las cuentas tienen la naturaleza correcta')
+                                        ->body('Todas las cuentas tienen la naturaleza correcta en todos los equipos')
                                         ->success()
                                         ->send();
                                 }
@@ -399,23 +397,19 @@ class Tools extends Page implements HasForms, HasActions
                         ->icon('fas-object-group')
                         ->requiresConfirmation()
                         ->modalHeading('Consolidar Cuentas Duplicadas por Nombre')
-                        ->modalDescription('Este proceso consolidará las cuentas contables que tienen el mismo nombre. Los movimientos de las cuentas duplicadas se transferirán a la cuenta principal y las cuentas duplicadas serán eliminadas.')
-                        ->modalSubmitActionLabel('Consolidar')
+                        ->modalDescription('Este proceso consolidará las cuentas contables de TODOS LOS EQUIPOS que tienen el mismo nombre (deudores/acreedores). Los movimientos de las cuentas duplicadas se transferirán a la cuenta principal y las cuentas duplicadas serán eliminadas.')
+                        ->modalSubmitActionLabel('Consolidar Todos')
                         ->action(function (){
                             try {
-                                $team = Filament::getTenant()->id;
-
-                                Artisan::call('cuentas:consolidar-duplicadas-nombre', [
-                                    '--team_id' => $team,
-                                    '--no-interaction' => true
-                                ]);
+                                // Ejecutar para todos los teams (sin parámetro --team-id)
+                                Artisan::call('cuentas:consolidar-duplicadas-nombre');
 
                                 $output = Artisan::output();
 
                                 // Mostrar el output completo en la notificación
                                 Notification::make()
                                     ->title('Consolidación Completada')
-                                    ->body('El proceso de consolidación ha finalizado. Revisa los logs para más detalles.')
+                                    ->body('El proceso de consolidación ha finalizado para todos los equipos. Revisa los logs para más detalles.')
                                     ->success()
                                     ->send();
 

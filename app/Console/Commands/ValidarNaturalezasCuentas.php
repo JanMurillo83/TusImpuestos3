@@ -90,7 +90,7 @@ class ValidarNaturalezasCuentas extends Command
             );
 
             if ($corregir) {
-                if ($this->confirm('¿Desea corregir estas ' . count($errores) . ' cuentas?')) {
+                if ($this->option('no-interaction') || $this->confirm('¿Desea corregir estas ' . count($errores) . ' cuentas?')) {
                     $this->corregirNaturalezas($errores);
                 } else {
                     $this->info('Corrección cancelada.');

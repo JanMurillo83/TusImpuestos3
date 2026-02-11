@@ -80,7 +80,7 @@ class ConsolidarCuentasDuplicadasPorNombre extends Command
         $this->warn('⚠️  Probablemente sea el mismo cliente/proveedor registrado múltiples veces');
         $this->newLine();
 
-        if (!$dryRun && !$this->confirm('¿Está SEGURO de que desea consolidar estas cuentas?', false)) {
+        if (!$dryRun && !$this->option('no-interaction') && !$this->confirm('¿Está SEGURO de que desea consolidar estas cuentas?', false)) {
             $this->info('Operación cancelada.');
             return 0;
         }

@@ -402,7 +402,9 @@ class Tools extends Page implements HasForms, HasActions
                         ->action(function (){
                             try {
                                 // Ejecutar para todos los teams (sin parámetro --team-id)
-                                Artisan::call('cuentas:consolidar-duplicadas-nombre');
+                                Artisan::call('cuentas:consolidar-duplicadas-nombre', [
+                                    '--no-interaction' => true
+                                ]);
 
                                 $output = Artisan::output();
 

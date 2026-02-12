@@ -857,17 +857,179 @@ class FacturasResource extends Resource
         $set('total',$total);
     }
 
+    /**
+     * Determina el color de fondo del registro basado en su estado
+     */
+    protected static function getRecordColorClass($record): string
+    {
+        // Si no está timbrada, color por defecto
+        if ($record->estado !== 'Timbrada') {
+            return 'row_gral';
+        }
+
+        // Verificar si tiene póliza
+        $tienePoliza = self::tienePoliza($record);
+
+        // Verificar si está cobrada
+        $estaCobrada = self::estaCobrada($record);
+
+        // Verificar complemento de pago para PPD
+        $tieneComplemento = self::tieneComplemento($record);
+
+        // Prioridad 1: PPD sin complemento (Rojo tenue)
+        if ($record->forma === 'PPD' && !$tieneComplemento) {
+            return 'bg-red-50 hover:bg-red-100';
+        }
+
+        // Prioridad 2: Factura completa - Tiene póliza Y cobro registrado (Verde tenue)
+        if ($tienePoliza && $estaCobrada) {
+            return 'bg-green-50 hover:bg-green-100';
+        }
+
+        // Prioridad 3: Tiene póliza pero sin cobro (Amarillo tenue)
+        if ($tienePoliza && !$estaCobrada) {
+            return 'bg-amber-50 hover:bg-amber-100';
+        }
+
+        // Prioridad 4: Timbrada sin póliza (Azul tenue)
+        if (!$tienePoliza) {
+            return 'bg-blue-50 hover:bg-blue-100';
+        }
+
+        return 'row_gral';
+    }
+
+    /**
+     * Verifica si la factura tiene una póliza contable asociada
+     * Usa datos precargados del JOIN cuando están disponibles
+     */
+    protected static function tienePoliza($record): bool
+    {
+        if (!$record->uuid) return false;
+
+        // Usar datos precargados si están disponibles
+        if (isset($record->poliza_tipo) && isset($record->poliza_folio)) {
+            return true;
+        }
+
+        // Fallback a consulta directa si no hay datos precargados
+        return DB::table('almacencfdis')
+            ->join('cat_polizas', 'almacencfdis.id', '=', 'cat_polizas.idcfdi')
+            ->where('almacencfdis.UUID', $record->uuid)
+            ->where('almacencfdis.team_id', $record->team_id)
+            ->exists();
+    }
+
+    /**
+     * Verifica si la factura está completamente cobrada
+     * Usa datos precargados del JOIN cuando están disponibles
+     */
+    protected static function estaCobrada($record): bool
+    {
+        if (!$record->uuid) return false;
+
+        // Usar datos precargados si están disponibles
+        if (isset($record->pendientemxn)) {
+            return floatval($record->pendientemxn) <= 0.10;
+        }
+
+        // Fallback a consulta directa si no hay datos precargados
+        $ingEgr = DB::table('almacencfdis')
+            ->join('ingresos_egresos', 'almacencfdis.id', '=', 'ingresos_egresos.xml_id')
+            ->where('almacencfdis.UUID', $record->uuid)
+            ->where('almacencfdis.team_id', $record->team_id)
+            ->select('ingresos_egresos.pendientemxn')
+            ->first();
+
+        return $ingEgr && floatval($ingEgr->pendientemxn) <= 0.10;
+    }
+
+    /**
+     * Verifica si la factura tiene complemento de pago
+     */
+    protected static function tieneComplemento($record): bool
+    {
+        if (!$record->uuid) return false;
+
+        return \App\Models\ParPagos::where('uuidrel', $record->uuid)
+            ->where('team_id', $record->team_id)
+            ->exists();
+    }
+
     public static function table(Table $table): Table
     {
         return $table
-            ->recordClasses('row_gral')
+            ->recordClasses(fn ($record) => self::getRecordColorClass($record))
         ->defaultPaginationPageOption(5)
         ->paginationPageOptions([5,'all'])
         ->striped()
+        ->modifyQueryUsing(function (Builder $query) {
+            // Precargar datos relacionados para optimizar rendimiento
+            // Usar MAX() para evitar problemas con ONLY_FULL_GROUP_BY
+            $query->leftJoin('almacencfdis', function($join) {
+                $join->on('facturas.uuid', '=', 'almacencfdis.UUID')
+                     ->on('facturas.team_id', '=', 'almacencfdis.team_id');
+            })
+            ->leftJoin('cat_polizas', 'almacencfdis.id', '=', 'cat_polizas.idcfdi')
+            ->leftJoin('ingresos_egresos', 'almacencfdis.id', '=', 'ingresos_egresos.xml_id')
+            ->selectRaw(
+                'facturas.*,
+                MAX(cat_polizas.tipo) as poliza_tipo,
+                MAX(cat_polizas.folio) as poliza_folio,
+                MAX(ingresos_egresos.pendientemxn) as pendientemxn,
+                MAX(ingresos_egresos.totalmxn) as totalmxn'
+            )
+            ->groupBy(
+                'facturas.id',
+                'facturas.serie',
+                'facturas.folio',
+                'facturas.docto',
+                'facturas.fecha',
+                'facturas.clie',
+                'facturas.nombre',
+                'facturas.rfc_mostr',
+                'facturas.nombre_mostr',
+                'facturas.esquema',
+                'facturas.subtotal',
+                'facturas.iva',
+                'facturas.retiva',
+                'facturas.retisr',
+                'facturas.ieps',
+                'facturas.total',
+                'facturas.observa',
+                'facturas.estado',
+                'facturas.metodo',
+                'facturas.forma',
+                'facturas.uso',
+                'facturas.uuid',
+                'facturas.remision_id',
+                'facturas.pedido_id',
+                'facturas.cotizacion_id',
+                'facturas.condiciones',
+                'facturas.vendedor',
+                'facturas.anterior',
+                'facturas.timbrado',
+                'facturas.xml',
+                'facturas.fecha_tim',
+                'facturas.moneda',
+                'facturas.tcambio',
+                'facturas.fecha_cancela',
+                'facturas.motivo',
+                'facturas.sustituye',
+                'facturas.xml_cancela',
+                'facturas.pendiente_pago',
+                'facturas.team_id',
+                'facturas.error_timbrado',
+                'facturas.docto_rela',
+                'facturas.tipo_rela',
+                'facturas.created_at',
+                'facturas.updated_at'
+            );
+        })
         ->defaultSort(function (Builder $query): Builder {
             return $query
-                ->orderBy('fecha', 'desc')
-                ->orderBy('folio', 'desc');
+                ->orderBy('facturas.fecha', 'desc')
+                ->orderBy('facturas.folio', 'desc');
         })
 
         ->columns([
@@ -903,34 +1065,87 @@ class FacturasResource extends Resource
                 if($record->estado == 'Activa') return new HtmlString('<span class="badge badge-error">No Timbrada</span>');
                 else return $record->estado;
             }),
-            Tables\Columns\IconColumn::make('tiene_complemento')
-                ->label('Comp. Pago')
-                ->boolean()
-                ->trueIcon('heroicon-o-check-circle')
-                ->falseIcon('heroicon-o-x-circle')
-                ->trueColor('success')
-                ->falseColor('danger')
+            Tables\Columns\TextColumn::make('poliza')
+                ->label('Póliza')
                 ->getStateUsing(function ($record) {
-                    // Solo verificar si la forma de pago NO es PUE
-                    if ($record->forma === 'PUE') {
-                        return null; // No mostrar icono para PUE
-                    }else {
-                        $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->id)
-                            ->where('team_id', $record->team_id)
-                            ->exists();
-                        return $tieneComplemento;
-                    }
-                })
-                ->tooltip(function ($record) {
-                    if ($record->forma === 'PUE') {
-                        return 'Pago en una sola exhibición';
+                    if ($record->estado !== 'Timbrada' || !$record->uuid) {
+                        return 'N/A';
                     }
 
+                    // Usar datos precargados del JOIN
+                    if (isset($record->poliza_tipo) && isset($record->poliza_folio)) {
+                        return $record->poliza_tipo . '-' . $record->poliza_folio;
+                    }
+
+                    return 'Sin póliza';
+                })
+                ->badge()
+                ->color(fn ($state) => match($state) {
+                    'N/A' => 'gray',
+                    'Sin póliza' => 'warning',
+                    default => 'success',
+                })
+                ->sortable(false),
+            Tables\Columns\TextColumn::make('estado_cobro')
+                ->label('Estado Cobro')
+                ->getStateUsing(function ($record) {
+                    if ($record->estado !== 'Timbrada' || !$record->uuid) {
+                        return 'N/A';
+                    }
+
+                    // Usar datos precargados del JOIN
+                    if (!isset($record->pendientemxn) || !isset($record->totalmxn)) {
+                        return 'Sin registro';
+                    }
+
+                    $pendiente = floatval($record->pendientemxn);
+                    $total = floatval($record->totalmxn);
+
+                    if ($pendiente <= 0.10) return 'Pagado';
+                    if ($pendiente < $total) return 'Parcial';
+                    return 'Pendiente';
+                })
+                ->badge()
+                ->color(fn ($state) => match($state) {
+                    'Pagado' => 'success',
+                    'Parcial' => 'warning',
+                    'Pendiente' => 'danger',
+                    default => 'gray',
+                })
+                ->sortable(false),
+            Tables\Columns\TextColumn::make('complemento_pago')
+                ->label('Comp. Pago')
+                ->getStateUsing(function ($record) {
+                    // Si la factura no está timbrada, no aplica
+                    if ($record->estado !== 'Timbrada') {
+                        return 'N/A';
+                    }
+
+                    // Si es método de pago PUE (Pago en Una Exhibición)
+                    if ($record->forma === 'PUE') {
+                        return 'PUE';
+                    }
+
+                    // Si es PPD, verificar si tiene complemento de pago
                     $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->uuid)
                         ->where('team_id', $record->team_id)
                         ->exists();
 
-                    return $tieneComplemento ? 'Tiene complemento(s) de pago' : 'Sin complemento de pago';
+                    return $tieneComplemento ? 'Aplicado' : 'Pendiente';
+                })
+                ->badge()
+                ->color(fn ($state) => match($state) {
+                    'Aplicado' => 'success',
+                    'Pendiente' => 'danger',
+                    'PUE' => 'info',
+                    default => 'gray',
+                })
+                ->tooltip(fn ($state) => match($state) {
+                    'Aplicado' => 'Tiene complemento(s) de pago aplicado',
+                    'Pendiente' => 'Requiere complemento de pago (PPD)',
+                    'PUE' => 'Pago en una sola exhibición - No requiere complemento',
+                    'N/A' => 'Factura no timbrada',
+                    default => '',
                 })
                 ->sortable(false),
             ])
@@ -1083,7 +1298,8 @@ class FacturasResource extends Resource
                                 $facturamodel->xml = $resultado->cfdi;
                                 $facturamodel->fecha_tim = $date;
                                 $facturamodel->save();
-                                $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
+                                // Grabar automáticamente en almacén de CFDIs
+                                $res2 = app(TimbradoController::class)->grabar_almacen_cfdi($factura, $receptor, $resultado->cfdi);
                                 $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
                                 $cliente_d = Clientes::where('id',$record->clie)->first();
                                 $dias_cr = intval($cliente_d?->dias_credito ?? 0);
@@ -1364,7 +1580,8 @@ class FacturasResource extends Resource
                                 $facturamodel->xml = $resultado->cfdi;
                                 $facturamodel->fecha_tim = $date;
                                 $facturamodel->save();
-                                $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
+                                // Grabar automáticamente en almacén de CFDIs
+                                $res2 = app(TimbradoController::class)->grabar_almacen_cfdi($factura, $receptor, $resultado->cfdi);
                                 $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
                                 $dias_cr = intval($cliente_d?->dias_credito ?? 0);
                                 CuentasCobrar::create([
@@ -1522,7 +1739,8 @@ class FacturasResource extends Resource
                                 $facturamodel->xml = $resultado->cfdi;
                                 $facturamodel->fecha_tim = $date;
                                 $facturamodel->save();
-                                $res2 = app(TimbradoController::class)->actualiza_fac_tim($factura, $resultado->cfdi, "F");
+                                // Grabar automáticamente en almacén de CFDIs
+                                $res2 = app(TimbradoController::class)->grabar_almacen_cfdi($factura, $receptor, $resultado->cfdi);
                                 $mensaje_graba = 'Factura Timbrada Se genero el CFDI UUID: ' . $res2;
                                 $dias_cr = intval($cliente_d?->dias_credito ?? 0);
                                 $emp = Team::where('id',Filament::getTenant()->id)->first();

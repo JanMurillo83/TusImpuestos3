@@ -8,3 +8,43 @@
             'Segoe UI Symbol', 'Noto Color Emoji';
     }
 }
+
+/* Colores tenues para estados de facturas */
+@layer components {
+    /* Verde tenue - Factura completa (póliza + cobro) */
+    .bg-green-50 {
+        background-color: #f0fdf4 !important;
+    }
+    .hover\:bg-green-100:hover {
+        background-color: #dcfce7 !important;
+    }
+
+    /* Amarillo tenue - Tiene póliza sin cobro */
+    .bg-amber-50 {
+        background-color: #fffbeb !important;
+    }
+    .hover\:bg-amber-100:hover {
+        background-color: #fef3c7 !important;
+    }
+
+    /* Azul tenue - Timbrada sin póliza */
+    .bg-blue-50 {
+        background-color: #eff6ff !important;
+    }
+    .hover\:bg-blue-100:hover {
+        background-color: #dbeafe !important;
+    }
+
+    /* Rojo tenue - PPD sin complemento */
+    .bg-red-50 {
+        background-color: #fef2f2 !important;
+    }
+    .hover\:bg-red-100:hover {
+        background-color: #fee2e2 !important;
+    }
+
+    /* Asegurar que el texto sea legible en fondos claros */
+    .bg-green-50, .bg-amber-50, .bg-blue-50, .bg-red-50 {
+        color: #1f2937 !important;
+    }
+}

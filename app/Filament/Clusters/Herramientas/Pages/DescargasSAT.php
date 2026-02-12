@@ -781,6 +781,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 list($fechacom, $horacom) = explode('T', $fech);
                 list($aniocom, $mescom, $diacom) = explode('-', $fechacom);
                 $uuid_val = strtoupper($tfd['UUID']);
+                // Verificar si ya existe en almacencfdis (puede venir del timbrado automático)
                 $uuid_v = DB::table('almacencfdis')->where(DB::raw("UPPER(UUID)"),$uuid_val)
                     ->where('team_id',$team)
                     ->where('xml_type','Emitidos')->exists();

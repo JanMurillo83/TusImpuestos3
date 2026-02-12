@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Almacencfdis;
 use App\Models\DoctosRelacionados;
 use App\Models\Facturas;
 use Carbon\Carbon;
@@ -11,6 +12,7 @@ use DateTimeZone;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TimbradoController extends Controller
 {
@@ -790,6 +792,117 @@ class TimbradoController extends Controller
         }
         return $uuid;
     }
+
+    /**
+     * Graba automáticamente la factura timbrada en el almacén de CFDIs
+     *
+     * @param int $factura ID de la factura
+     * @param int $receptor ID del cliente receptor
+     * @param string $cfdi_xml Contenido XML del CFDI timbrado
+     * @return string UUID del CFDI
+     */
+    public function grabar_almacen_cfdi($factura, $receptor, $cfdi_xml): string
+    {
+        try {
+            // Obtener datos de la factura
+            $facdata = DB::table('facturas')->where('id', $factura)->first();
+            $emidata = DB::table('datos_fiscales')->where('team_id', Filament::getTenant()->id)->first();
+            $recdata = DB::table('clientes')->where('id', $receptor)->first();
+
+            // Parsear XML para obtener UUID y datos del comprobante
+            $cfdi = \CfdiUtils\Cfdi::newFromString($cfdi_xml);
+            $complemento = $cfdi->getNode();
+            $comprobante = $complemento->attributes();
+            $tfd = $complemento->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+
+            if (null === $tfd) {
+                Log::error('No existe el timbre fiscal digital en el XML', ['factura_id' => $factura]);
+                return '';
+            }
+
+            $uuid = $tfd['UUID'];
+
+            // Actualizar UUID en tabla facturas
+            DB::table('facturas')->where('id', $factura)->update([
+                'uuid' => $uuid,
+                'estado' => 'Timbrada'
+            ]);
+
+            // Obtener periodo y ejercicio de la fecha
+            $fecha = $facdata->fecha;
+            $ejercicio = Carbon::parse($fecha)->year;
+            $periodo = Carbon::parse($fecha)->month;
+
+            // Calcular impuestos
+            $traslados = floatval($facdata->iva ?? 0);
+            $retenciones = floatval($facdata->retiva ?? 0) + floatval($facdata->retisr ?? 0);
+
+            // Verificar si ya existe (por UUID)
+            $existe = DB::table('almacencfdis')
+                ->where(DB::raw("UPPER(UUID)"), strtoupper($uuid))
+                ->where('team_id', Filament::getTenant()->id)
+                ->where('xml_type', 'Emitidos')
+                ->exists();
+
+            if (!$existe) {
+                // Obtener fecha con hora del comprobante
+                $fechaCompleta = $comprobante['Fecha'] ?? $fecha . 'T00:00:00';
+
+                Almacencfdis::create([
+                    'Serie' => $facdata->serie ?? 'A',
+                    'Folio' => $facdata->folio,
+                    'Version' => '4.0',
+                    'Fecha' => $fechaCompleta,
+                    'Moneda' => $facdata->moneda ?? 'MXN',
+                    'TipoDeComprobante' => 'I',
+                    'MetodoPago' => $comprobante['MetodoPago'] ?? $facdata->forma,
+                    'FormaPago' => $comprobante['FormaPago'] ?? $facdata->metodo,
+                    'Emisor_Rfc' => $emidata->rfc,
+                    'Emisor_Nombre' => $emidata->nombre,
+                    'Emisor_RegimenFiscal' => $emidata->regimen,
+                    'Receptor_Rfc' => $recdata->rfc,
+                    'Receptor_Nombre' => $recdata->nombre,
+                    'Receptor_RegimenFiscal' => $recdata->regimen ?? '601',
+                    'UUID' => $uuid,
+                    'Total' => floatval($facdata->total),
+                    'SubTotal' => floatval($facdata->subtotal),
+                    'Descuento' => 0,
+                    'TipoCambio' => floatval($facdata->tcambio ?? 1.0),
+                    'TotalImpuestosTrasladados' => $traslados,
+                    'TotalImpuestosRetenidos' => $retenciones,
+                    'content' => $cfdi_xml,
+                    'user_tax' => $emidata->rfc,
+                    'used' => 'NO',
+                    'xml_type' => 'Emitidos',
+                    'periodo' => $periodo,
+                    'ejercicio' => $ejercicio,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+
+                Log::info('Factura grabada en almacencfdis', [
+                    'factura_id' => $factura,
+                    'uuid' => $uuid,
+                    'team_id' => Filament::getTenant()->id
+                ]);
+            } else {
+                Log::info('Factura ya existe en almacencfdis, no se duplica', [
+                    'factura_id' => $factura,
+                    'uuid' => $uuid
+                ]);
+            }
+
+            return $uuid;
+
+        } catch (\Exception $e) {
+            Log::error('Error al grabar factura en almacencfdis', [
+                'factura_id' => $factura,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
     public function actualiza_pag_tim($factura,$cfdi_con):string
     {
         $tipodoc = 'P';

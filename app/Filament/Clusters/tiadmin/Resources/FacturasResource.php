@@ -1307,6 +1307,12 @@ class FacturasResource extends Resource
                                 $facturamodel->timbrado = 'SI';
                                 $facturamodel->xml = $resultado->cfdi;
                                 $facturamodel->fecha_tim = $date;
+
+                                // Si es PPD, llenar pendiente_pago con el total
+                                if ($facturamodel->forma === 'PPD') {
+                                    $facturamodel->pendiente_pago = $facturamodel->total * ($facturamodel->tcambio ?? 1);
+                                }
+
                                 $facturamodel->save();
                                 // Grabar automáticamente en almacén de CFDIs
                                 $res2 = app(TimbradoController::class)->grabar_almacen_cfdi($factura, $receptor, $resultado->cfdi);
@@ -1589,6 +1595,12 @@ class FacturasResource extends Resource
                                 $facturamodel->timbrado = 'SI';
                                 $facturamodel->xml = $resultado->cfdi;
                                 $facturamodel->fecha_tim = $date;
+
+                                // Si es PPD, llenar pendiente_pago con el total
+                                if ($facturamodel->forma === 'PPD') {
+                                    $facturamodel->pendiente_pago = $facturamodel->total * ($facturamodel->tcambio ?? 1);
+                                }
+
                                 $facturamodel->save();
                                 // Grabar automáticamente en almacén de CFDIs
                                 $res2 = app(TimbradoController::class)->grabar_almacen_cfdi($factura, $receptor, $resultado->cfdi);
@@ -1748,6 +1760,12 @@ class FacturasResource extends Resource
                                 $facturamodel->timbrado = 'SI';
                                 $facturamodel->xml = $resultado->cfdi;
                                 $facturamodel->fecha_tim = $date;
+
+                                // Si es PPD, llenar pendiente_pago con el total
+                                if ($facturamodel->forma === 'PPD') {
+                                    $facturamodel->pendiente_pago = $facturamodel->total * ($facturamodel->tcambio ?? 1);
+                                }
+
                                 $facturamodel->save();
                                 // Grabar automáticamente en almacén de CFDIs
                                 $res2 = app(TimbradoController::class)->grabar_almacen_cfdi($factura, $receptor, $resultado->cfdi);

@@ -85,6 +85,7 @@ class PagosResource extends Resource
                             Forms\Components\Hidden::make('clave_doc'),
                             Forms\Components\Select::make('cve_clie')
                                 ->label('Cliente')
+                                ->searchable()
                                 ->required()
                                 ->columnspan(2)
                                 ->live()

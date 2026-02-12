@@ -422,6 +422,53 @@ class Tools extends Page implements HasForms, HasActions
                                     ->danger()
                                     ->send();
                             }
+                        }),
+                    Actions\Action::make('Corregir Pendiente Pago PPD')
+                        ->icon('fas-money-bill-wave')
+                        ->requiresConfirmation()
+                        ->modalHeading('Corregir campo pendiente_pago en facturas PPD')
+                        ->modalDescription('Esta acción actualizará el campo pendiente_pago en todas las facturas PPD timbradas que no tengan complemento de pago aplicado. El campo se llenará con el total de la factura (aplicable solo al team actual).')
+                        ->modalSubmitActionLabel('Corregir Pendientes')
+                        ->action(function(){
+                            // Buscar facturas PPD timbradas sin complemento o con pendiente_pago incorrecto
+                            $facturas = \App\Models\Facturas::where('estado', 'Timbrada')
+                                ->where('forma', 'PPD')
+                                ->where('team_id', Filament::getTenant()->id)
+                                ->get();
+
+                            $corregidas = 0;
+                            $yaCorrectas = 0;
+
+                            foreach ($facturas as $factura) {
+                                // Verificar si tiene complemento de pago
+                                $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $factura->uuid)
+                                    ->where('team_id', $factura->team_id)
+                                    ->exists();
+
+                                // Si NO tiene complemento y pendiente_pago no es igual al total
+                                if (!$tieneComplemento) {
+                                    $totalFactura = floatval($factura->total) * floatval($factura->tcambio ?? 1);
+                                    $pendienteActual = floatval($factura->pendiente_pago ?? 0);
+
+                                    // Si el pendiente no coincide con el total (con tolerancia de 0.10)
+                                    if (abs($pendienteActual - $totalFactura) > 0.10) {
+                                        $factura->pendiente_pago = $totalFactura;
+                                        $factura->save();
+                                        $corregidas++;
+                                    } else {
+                                        $yaCorrectas++;
+                                    }
+                                } else {
+                                    $yaCorrectas++;
+                                }
+                            }
+
+                            Notification::make()
+                                ->title('Proceso Completado')
+                                ->body("{$corregidas} facturas corregidas | {$yaCorrectas} facturas ya estaban correctas")
+                                ->success()
+                                ->duration(5000)
+                                ->send();
                         })
                 ])
             ]);

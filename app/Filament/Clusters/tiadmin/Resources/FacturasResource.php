@@ -1036,16 +1036,24 @@ class FacturasResource extends Resource
             Tables\Columns\TextColumn::make('serie')
                 ->label('Serie')
                 ->numeric()
-                ->sortable()->width('20%')->searchable(),
+                ->sortable()->width('20%')
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->where('facturas.serie', 'like', "%{$search}%");
+                }),
             Tables\Columns\TextColumn::make('folio')
                 ->label('Folio')
                 ->numeric(thousandsSeparator: '',decimalPlaces: 0)
-                ->sortable()->width('20%')->searchable(),
+                ->sortable()->width('20%')
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->where('facturas.folio', 'like', "%{$search}%");
+                }),
             Tables\Columns\TextColumn::make('fecha')
                 ->date('d-m-Y')
                 ->sortable()->width('20%'),
             Tables\Columns\TextColumn::make('nombre')
-                ->searchable()
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->where('facturas.nombre', 'like', "%{$search}%");
+                })
                 ->label('Cliente')->width('30%'),
             Tables\Columns\TextColumn::make('subtotal')
                 ->numeric()
@@ -1060,7 +1068,9 @@ class FacturasResource extends Resource
                 ->sortable()
                 ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('estado')
-                ->searchable()
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->where('facturas.estado', 'like', "%{$search}%");
+                })
             ->formatStateUsing(function ($record){
                 if($record->estado == 'Activa') return new HtmlString('<span class="badge badge-error">No Timbrada</span>');
                 else return $record->estado;

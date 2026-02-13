@@ -32,34 +32,8 @@ class ListCatPolizas extends ListRecords
     }
     public function mount(): void
     {
-        Auxiliares::where('team_id',Filament::getTenant()->id)->where('codigo','like','Sueldos%')
-            ->update(['codigo'=>'50102000','cuenta'=>'Sueldos y salarios']);
-        $this->SetTotales();
         if (blank($this->activeTab)) {
             $this->activeTab = 'Todas';
-        }
-    }
-
-    public function SetTotales()
-    {
-        $polizas = CatPolizas::where('team_id',Filament::getTenant()->id)
-            ->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->get();
-        foreach ($polizas as $poliza) {
-            $cargos = 0;
-            $abonos = 0;
-            $auxiliar = Auxiliares::where('cat_polizas_id',$poliza->id)->get();
-            foreach ($auxiliar as $auxiliar) {
-                if($auxiliar->codigo == '10201000'&&$auxiliar->cuenta == '10201000'){
-                    $cta = CatCuentas::where('codigo','10201000')->where('team_id',Filament::getTenant()->id)->first();
-                    $auxiliar->cuenta = $cta->nombre;
-                    $auxiliar->save();
-                }
-                $cargos += $auxiliar->cargo;
-                $abonos += $auxiliar->abono;
-            }
-            $poliza->cargos = $cargos;
-            $poliza->abonos = $abonos;
-            $poliza->save();
         }
     }
     protected function getHeaderActions(): array

@@ -25,6 +25,33 @@ class CatPolizasObserver
     }
 
     /**
+     * Handle the CatPolizas "saving" event.
+     * Recalcula totales antes de guardar
+     */
+    public function saving(CatPolizas $catPolizas): void
+    {
+        $this->recalcularTotales($catPolizas);
+    }
+
+    /**
+     * Recalcula los totales de cargos y abonos desde las partidas
+     */
+    private function recalcularTotales(CatPolizas $catPolizas): void
+    {
+        // Solo recalcular si la póliza ya existe (tiene id)
+        if ($catPolizas->exists) {
+            $totales = \App\Models\Auxiliares::where('cat_polizas_id', $catPolizas->id)
+                ->selectRaw('COALESCE(SUM(cargo), 0) as total_cargos, COALESCE(SUM(abono), 0) as total_abonos')
+                ->first();
+
+            if ($totales) {
+                $catPolizas->cargos = round($totales->total_cargos, 2);
+                $catPolizas->abonos = round($totales->total_abonos, 2);
+            }
+        }
+    }
+
+    /**
      * Registra la auditoría de una póliza
      */
     private function registrarAuditoria(CatPolizas $catPolizas, string $accion, ?array $datosAnteriores = null): void

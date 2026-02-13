@@ -9,6 +9,7 @@ use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\ContaPeriodos;
 use App\Models\Movbancos;
+use App\Models\Proveedores;
 use App\Models\RegTraspasos;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -59,6 +60,7 @@ class CatPolizasResource extends Resource
     {
         return $form
             ->schema([
+                Hidden::make('id'),
                 Section::make()
                 ->columns([
                     'default' => 5,
@@ -99,6 +101,7 @@ class CatPolizasResource extends Resource
                         'Eg'=>'Eg',
                         'PV'=>'PV',
                         'PG'=>'PG',
+                        'CG'=>'CG',
                     ])->afterStateUpdated(function(Get $get,Set $set){
                         $nopoliza = intval(DB::table('cat_polizas')
                         ->where('team_id',Filament::getTenant()->id)
@@ -137,92 +140,459 @@ class CatPolizasResource extends Resource
                     ->default(Filament::getTenant()->id)
                     ->required(),
                 ]),
-                Section::make()
-                ->columns([
-                    'default' => 5,
-                    'sm' => 5,
-                    'md' => 5,
-                    'lg' => 5,
-                    'xl' => 5,
-                    '2xl' => 5,
-                ])->schema([
-                    TableRepeater::make('detalle')
-                    ->relationship('partidas')
-                    ->headers([
-                        Header::make('codigo')->width('250px'),
-                        Header::make('cargo')->width('100px'),
-                        Header::make('abono')->width('100px'),
-                        Header::make('factura')->width('100px')
-                        ->label('Referencia'),
-                        Header::make('concepto')->width('300px'),
-                    ])
+                Forms\Components\Tabs::make('tabs_poliza')
+                ->columnSpanFull()
+                ->tabs([
+                    Forms\Components\Tabs\Tab::make('Movimientos')
                     ->schema([
-                        Select::make('codigo')
-                        ->options(
-                            DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
-                            ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
-                        )
-                        ->searchable()
-                        ->columnSpan(2)
-                        ->live()
-                        ->afterStateUpdated(function(Get $get,Set $set){
-                            $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
-                            $nom = $cuenta[0]->nombre;
-                            $set('cuenta',$nom);
-                            $set('concepto',$get('../../concepto'));
-                        }),
-                        TextInput::make('cargo')
-                            ->numeric()
-                            ->currencyMask(decimalSeparator: '.',precision: 2)
-                            ->default(0)
-                            ->live(onBlur:true)
-                            ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
-                                $cargo = $get('cargo');
-                                if($cargo === ''||$cargo === null) $set('cargo',0);
-                                self::TotalizarCA($get,$set);
-                            }),
-                        TextInput::make('abono')
-                            ->numeric()
-                            ->currencyMask(decimalSeparator: '.',precision: 2)
-                            ->default(0)
-                            ->live(onBlur:true)
-                            ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
-                                $abono = $get('abono');
-                                if($abono === ''||$abono === null) $set('abono',0);
-                                self::TotalizarCA($get,$set);
-                            }),
-                        TextInput::make('factura')
-                        ->label('Referencia')
-                        ->prefix('F-'),
-                        TextInput::make('concepto'),
-                        Hidden::make('team_id')->default(Filament::getTenant()->id),
-                        Hidden::make('cuenta'),
-                        Hidden::make('cat_polizas_id')
-                        ->default(0),
-                        Hidden::make('nopartida')
-                        ->default(0),
-                    ])->columnSpan('full')->streamlined()
-                    ]),
-                    Forms\Components\Group::make([
-                        Forms\Components\Placeholder::make('Totales')
-                            ->label('Total de Cargos y Abonos')->columnSpan(2),
-                        TextInput::make('total_cargos')->hiddenLabel()->prefix('$')->readOnly()
-                        ->formatStateUsing(function (Get $get){
-                            $partidas = $get('detalle');
-                            $columna = array_column($partidas,'cargo');
-                            $suma = array_sum($columna);
-                            return floatval($suma);
-                        })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)->columnSpan(2),
-                        TextInput::make('total_abonos')->hiddenLabel()->prefix('$')->readOnly()
+                        Section::make()
+                        ->columns([
+                            'default' => 5,
+                            'sm' => 5,
+                            'md' => 5,
+                            'lg' => 5,
+                            'xl' => 5,
+                            '2xl' => 5,
+                        ])->schema([
+                            TableRepeater::make('detalle')
+                            ->relationship('partidas')
+                            ->headers([
+                                Header::make('codigo')->width('250px'),
+                                Header::make('cargo')->width('100px'),
+                                Header::make('abono')->width('100px'),
+                                Header::make('factura')->width('100px')
+                                ->label('Referencia'),
+                                Header::make('concepto')->width('300px'),
+                            ])
+                            ->schema([
+                                Select::make('codigo')
+                                ->options(
+                                    DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)
+                                    ->select(DB::raw("concat(codigo,'-',nombre) as mostrar"),'codigo')->where('tipo','D')->orderBy('codigo')->pluck('mostrar','codigo')
+                                )
+                                ->searchable()
+                                ->columnSpan(2)
+                                ->live()
+                                ->afterStateUpdated(function(Get $get,Set $set){
+                                    $cuenta = CatCuentas::where('team_id',Filament::getTenant()->id)->where('codigo',$get('codigo'))->get();
+                                    $nom = $cuenta[0]->nombre;
+                                    $set('cuenta',$nom);
+                                    $set('concepto',$get('../../concepto'));
+                                }),
+                                TextInput::make('cargo')
+                                    ->numeric()
+                                    ->currencyMask(decimalSeparator: '.',precision: 2)
+                                    ->default(0)
+                                    ->live(onBlur:true)
+                                    ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
+                                        $cargo = $get('cargo');
+                                        if($cargo === ''||$cargo === null) $set('cargo',0);
+                                        self::TotalizarCA($get,$set);
+                                    }),
+                                TextInput::make('abono')
+                                    ->numeric()
+                                    ->currencyMask(decimalSeparator: '.',precision: 2)
+                                    ->default(0)
+                                    ->live(onBlur:true)
+                                    ->prefix('$')->afterStateUpdated(function(Get $get,Set $set){
+                                        $abono = $get('abono');
+                                        if($abono === ''||$abono === null) $set('abono',0);
+                                        self::TotalizarCA($get,$set);
+                                    }),
+                                TextInput::make('factura')
+                                ->label('Referencia')
+                                ->prefix('F-'),
+                                TextInput::make('concepto'),
+                                Hidden::make('team_id')->default(Filament::getTenant()->id),
+                                Hidden::make('cuenta'),
+                                Hidden::make('cat_polizas_id')
+                                ->default(0),
+                                Hidden::make('nopartida')
+                                ->default(0),
+                                Hidden::make('uuid')->default(''),
+                                Hidden::make('id'),
+                            ])->columnSpan('full')->streamlined()
+                        ]),
+                        Forms\Components\Group::make([
+                            Forms\Components\Placeholder::make('Totales')
+                                ->label('Total de Cargos y Abonos')->columnSpan(2),
+                            TextInput::make('total_cargos')->hiddenLabel()->prefix('$')->readOnly()
                             ->formatStateUsing(function (Get $get){
                                 $partidas = $get('detalle');
-                                $columna = array_column($partidas,'abono');
+                                $columna = array_column($partidas,'cargo');
                                 $suma = array_sum($columna);
                                 return floatval($suma);
-                            })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)->columnSpan(2)
-                    ])->columnSpan('full')->columns(7)
+                            })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)->columnSpan(2),
+                            TextInput::make('total_abonos')->hiddenLabel()->prefix('$')->readOnly()
+                                ->formatStateUsing(function (Get $get){
+                                    $partidas = $get('detalle');
+                                    $columna = array_column($partidas,'abono');
+                                    $suma = array_sum($columna);
+                                    return floatval($suma);
+                                })->numeric()->currencyMask(decimalSeparator: '.',precision: 2)->columnSpan(2)
+                        ])->columnSpan('full')->columns(7)
+                    ]),
+                    Forms\Components\Tabs\Tab::make('Datos IVA')
+                    ->schema([
+                        Section::make()
+                        ->description('Datos fiscales de IVA por cada partida de la póliza')
+                        ->schema([
+                            Forms\Components\Placeholder::make('info_iva')
+                                ->label('')
+                                ->content('Capture los datos fiscales de IVA correspondientes a las partidas de esta póliza.')
+                                ->columnSpanFull(),
+                            Forms\Components\Repeater::make('datos_iva_repeater')
+                            ->label('Registros de IVA')
+                            ->defaultItems(0)
+                            ->addActionLabel('Agregar registro IVA')
+                            ->statePath('datos_iva_repeater')
+                            ->dehydrated(true)
+                            ->schema([
+                                Select::make('auxiliares_id')
+                                    ->label('Partida Relacionada')
+                                    ->required()
+                                    ->options(function (Get $get) {
+                                        $polizaId = $record?->id ?? $get('../../id') ?? null;
+                                        $partidas = Auxiliares::where('cat_polizas_id', $polizaId)
+                                            ->where('team_id', Filament::getTenant()->id)
+                                            ->where('codigo','like','118%')
+                                            ->orderBy('nopartida')
+                                            ->get()
+                                            ->mapWithKeys(function ($aux) {
+                                                return [$aux->id => $aux->codigo . ' - ' . $aux->cuenta . ' - $' . number_format($aux->cargo + $aux->abono, 2)];
+                                            });
+                                        return $partidas;
+                                    })
+                                    ->searchable()
+                                    ->columnSpanFull()
+                                    ->helperText('Seleccione la partida a la que corresponden estos datos de IVA')
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Get $get, Set $set) {
+                                        $aux = Auxiliares::where('id', $get('auxiliares_id'))
+                                            ->first();
+                                        $imp_iva = floatval($aux->cargo + $aux->abono);
+                                        $base = $imp_iva * 100 / 16;
+                                        $set('base_gravable',$base);
+                                        $set('tasa_iva',16);
+                                        $set('importe_iva', number_format($imp_iva,2));
+                                        if($get('../../tipo') == 'Eg') {
+                                            $set('tipo_operacion', 'acreditable');
+                                            $set('tipo_comprobante', 'Egreso');
+                                        }else{
+                                            $set('tipo_operacion', 'acreditable');
+                                            $set('tipo_comprobante', 'Ingreso');
+                                        }
+                                        $set('metodo_pago', 'PUE');
+                                        $set('folio_fiscal', $get('../../tipo').$get('../../folio'));
+                                    }),
+                                Grid::make(4)->schema([
+                                    TextInput::make('base_gravable')
+                                        ->label('Base Gravable')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set) {
+                                            $base = floatval($get('base_gravable') ?? 0);
+                                            $tasa = floatval($get('tasa_iva') ?? 16);
+                                            $importe = round($base * ($tasa / 100), 2);
+                                            $set('importe_iva', $importe);
+                                        }),
+                                    TextInput::make('tasa_iva')
+                                        ->label('Tasa IVA (%)')
+                                        ->numeric()
+                                        ->suffix('%')
+                                        ->default(16)
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set) {
+                                            $base = floatval($get('base_gravable') ?? 0);
+                                            $tasa = floatval($get('tasa_iva') ?? 16);
+                                            $importe = round($base * ($tasa / 100), 2);
+                                            $set('importe_iva', $importe);
+                                        }),
+                                    TextInput::make('importe_iva')
+                                        ->label('Importe IVA')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0)
+                                        ->readOnly()
+                                        ->helperText('Se calcula automáticamente'),
+                                    Select::make('tipo_operacion')
+                                        ->label('Tipo Operación')
+                                        ->options([
+                                            'acreditable' => 'Acreditable',
+                                            'no_acreditable' => 'No Acreditable',
+                                            'importacion' => 'Importación',
+                                            'pendiente' => 'Pendiente',
+                                        ])
+                                        ->default('acreditable'),
+                                ]),
+                                Grid::make(4)->schema([
+                                    TextInput::make('retencion_iva')
+                                        ->label('Retención IVA')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('retencion_isr')
+                                        ->label('Retención ISR')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('ieps')
+                                        ->label('IEPS')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    Hidden::make('tipo_comprobante'),
+                                ]),
+                                Hidden::make('metodo_pago'),
+                                Hidden::make('uuid'),
+                                Hidden::make('folio_fiscal'),
+                                Hidden::make('auxiliares_id'),
+                                Hidden::make('team_id')->default(Filament::getTenant()->id),
+                            ])
+                            ->collapsed()
+                            ->itemLabel(fn ($state) => "IVA - Base: $" . ($state['base_gravable'] ?? '0.00'))
+                            ->columnSpanFull()
+                        ])
+                    ]),
+                    Forms\Components\Tabs\Tab::make('Datos DIOT')
+                    ->hidden(fn (Get $get) => $get('tipo') !== 'Eg')
+                    ->schema([
+                        Section::make()
+                        ->description('Datos para la Declaración Informativa de Operaciones con Terceros')
+                        ->schema([
+                            Forms\Components\Placeholder::make('info_diot')
+                                ->label('')
+                                ->content(function ($record) {
+                                    if (!$record || !$record->id) {
+                                        return '⚠️ Los datos DIOT se pueden capturar después de guardar la póliza por primera vez. Guarde la póliza y luego podrá agregar los datos DIOT.';
+                                    }
+                                    return 'Capture los datos para la DIOT correspondientes a las partidas de esta póliza. Al seleccionar una partida con UUID, los datos se cargarán automáticamente desde el almacén de CFDIs.';
+                                })
+                                ->columnSpanFull(),
+                            Forms\Components\Repeater::make('datos_diot_repeater')
+                            ->label('Registros DIOT')
+                            ->defaultItems(0)
+                            ->addActionLabel('Agregar registro DIOT')
+                            ->statePath('datos_diot_repeater')
+                            ->dehydrated(true)
+                            ->schema([
+                                Grid::make(2)->schema([
+                                    Select::make('auxiliares_id')
+                                        ->label('Partida Relacionada')
+                                        ->required()
+                                        ->live(onBlur: true)
+                                        ->options(function (Get $get, $record) {
+                                            // Si estamos editando y hay un record, buscar auxiliares guardados
+                                            $polizaId = $record?->id ?? $get('../../id') ?? null;
 
-                    ]);
+                                            if ($polizaId) {
+                                                // Modo edición: Obtener auxiliares guardados de la BD
+                                                $partidas = Auxiliares::where('cat_polizas_id', $polizaId)
+                                                    ->where('team_id', Filament::getTenant()->id)
+                                                    ->where('codigo','like','201%')
+                                                    ->orderBy('nopartida')
+                                                    ->get()
+                                                    ->mapWithKeys(function ($aux) {
+                                                        return [$aux->id => $aux->codigo . ' - ' . $aux->cuenta . ' - $' . number_format($aux->cargo + $aux->abono, 2)];
+                                                    });
+                                                return $partidas;
+                                            }
+
+                                            // Modo creación: No hay partidas guardadas aún
+                                            return [];
+                                        })
+                                        ->searchable()
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            $teamId = Filament::getTenant()->id;
+                                            $aux = Auxiliares::where('id', $get('auxiliares_id'))->first();
+                                            //dd($aux);
+                                            $uuid = $aux->uuid ?? 'NOEX';
+                                            if($uuid !== 'NOEX') {
+                                                $cfdi = \App\Models\Almacencfdis::where('team_id', $teamId)
+                                                    ->where('UUID', $uuid)
+                                                    ->first();
+                                                if ($cfdi) {
+                                                    // Autocompletar datos desde CFDI
+                                                    $set('rfc_proveedor', $cfdi->Emisor_Rfc);
+                                                    $set('nombre_proveedor', $cfdi->Emisor_Nombre);
+                                                    $set('numero_operacion', $cfdi->Folio);
+                                                    $set('fecha_operacion', $cfdi->Fecha);
+
+                                                    // Calcular montos según tasa de IVA
+                                                    $subtotal = floatval($cfdi->SubTotal ?? 0);
+                                                    $iva_trasladado = floatval($cfdi->TotalImpuestosTrasladados ?? 0);
+                                                    $iva_retenido = floatval($cfdi->TotalImpuestosRetenidos ?? 0);
+
+                                                    // Determinar tasa de IVA
+                                                    if ($iva_trasladado > 0 && $subtotal > 0) {
+                                                        $tasa = round(($iva_trasladado / $subtotal) * 100);
+
+                                                        if ($tasa >= 15 && $tasa <= 17) {
+                                                            $set('importe_pagado_16', $subtotal);
+                                                            $set('iva_pagado_16', $iva_trasladado);
+                                                        } elseif ($tasa >= 7 && $tasa <= 9) {
+                                                            $set('importe_pagado_8', $subtotal);
+                                                            $set('iva_pagado_8', $iva_trasladado);
+                                                        } else {
+                                                            $set('importe_pagado_0', $subtotal);
+                                                        }
+                                                    } else {
+                                                        $set('importe_exento', $subtotal);
+                                                    }
+
+                                                    $set('iva_retenido', $iva_retenido);
+
+                                                    // Determinar tipo de operación basado en proveedor
+                                                    // Esto es un ejemplo, puede ajustarse según lógica de negocio
+                                                    $set('tipo_operacion', '04'); // 04 - Otros por defecto
+                                                    $set('tipo_tercero', '04'); // 04 - Proveedor por defecto
+
+                                                    Notification::make()
+                                                        ->title('Datos DIOT cargados desde CFDI')
+                                                        ->success()
+                                                        ->body('UUID: ' . $uuid . ' - ' . $cfdi->Emisor_Nombre)
+                                                        ->send();
+                                                }
+                                            }else{
+                                                $prov = Proveedores::where('cuenta_contable',$aux->codigo)
+                                                    ->where('team_id',$teamId)
+                                                    ->first();
+                                                if($prov){
+                                                    $set('rfc_proveedor',$prov->rfc);
+                                                    $set('nombre_proveedor',$prov->nombre);
+                                                    $set('tipo_operacion', '04');
+                                                    $set('tipo_tercero', '04');
+                                                    $set('importe_pagado_16', number_format($aux->cargo + $aux->abono,2));
+                                                    $set('iva_pagado_16', number_format((($aux->cargo + $aux->abono) / 1.16) * 0.16,2));
+                                                    $set('importe_pagado_8', 0);
+                                                    $set('iva_pagado_8', 0);
+                                                    $set('importe_pagado_0', 0);
+                                                    $set('importe_exento', 0);
+                                                    $set('numero_operacion', $aux->factura);
+                                                    $set('fecha_operacion', $get('../../fecha'));
+                                                }
+                                            }
+
+                                        })
+                                        ->helperText('Seleccione la partida. Si tiene UUID, se buscarán los datos automáticamente en el almacén CFDI'),
+                                ])->columnSpanFull(),
+                                Grid::make(3)->schema([
+                                    TextInput::make('rfc_proveedor')
+                                        ->label('RFC Proveedor')
+                                        ->maxLength(13)
+                                        ->nullable(),
+                                    TextInput::make('nombre_proveedor')
+                                        ->label('Nombre Proveedor')
+                                        ->maxLength(255)
+                                        ->nullable(),
+                                    TextInput::make('pais_residencia')
+                                        ->label('País Residencia')
+                                        ->maxLength(3)
+                                        ->default('MEX'),
+                                ]),
+                                Grid::make(2)->schema([
+                                    Select::make('tipo_operacion')
+                                        ->label('Tipo Operación')
+                                        ->options([
+                                            '03' => '03 - Arrendamiento',
+                                            '04' => '04 - Otros',
+                                            '05' => '05 - Honorarios',
+                                            '06' => '06 - Fletes',
+                                        ])
+                                        ->nullable(),
+                                    Select::make('tipo_tercero')
+                                        ->label('Tipo Tercero')
+                                        ->options([
+                                            '04' => '04 - Proveedor',
+                                            '05' => '05 - Arrendador',
+                                            '15' => '15 - Extranjero',
+                                        ])
+                                        ->nullable(),
+                                ]),
+                                Grid::make(4)->schema([
+                                    TextInput::make('importe_pagado_16')
+                                        ->label('Importe IVA 16%')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('iva_pagado_16')
+                                        ->label('IVA 16%')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('importe_pagado_8')
+                                        ->label('Importe IVA 8%')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('iva_pagado_8')
+                                        ->label('IVA 8%')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                ]),
+                                Grid::make(4)->schema([
+                                    TextInput::make('importe_pagado_0')
+                                        ->label('Importe Tasa 0%')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('importe_exento')
+                                        ->label('Importe Exento')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('iva_retenido')
+                                        ->label('IVA Retenido')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                    TextInput::make('isr_retenido')
+                                        ->label('ISR Retenido')
+                                        ->numeric()
+                                        ->currencyMask(decimalSeparator: '.',precision: 2)
+                                        ->prefix('$')
+                                        ->default(0),
+                                ]),
+                                Grid::make(2)->schema([
+                                    TextInput::make('numero_operacion')
+                                        ->label('Número de Operación')
+                                        ->maxLength(255)
+                                        ->nullable()
+                                        ->helperText('Número de pedimento, escritura pública, etc'),
+                                    Forms\Components\DatePicker::make('fecha_operacion')
+                                        ->label('Fecha Operación')
+                                        ->nullable(),
+                                ]),
+                                Forms\Components\Toggle::make('incluir_en_diot')
+                                    ->label('Incluir en DIOT')
+                                    ->default(true),
+                                Hidden::make('auxiliares_id'),
+                                Hidden::make('team_id')->default(Filament::getTenant()->id),
+                            ])
+                            ->collapsed()
+                            ->itemLabel(fn ($state) => "DIOT - " . ($state['rfc_proveedor'] ?? 'Sin RFC'))
+                            ->columnSpanFull()
+                        ])
+                    ]),
+                ])
+            ]);
             /*->columns([
                 'sm' => 1,
                 'xl' => 5,
@@ -332,6 +702,60 @@ class CatPolizasResource extends Resource
                     ->icon(null)
                     ->modalSubmitAction(false)
                     ->modalWidth('7xl')
+                    ->mutateFormDataUsing(function (array $data, $record): array {
+                        // Cargar datos IVA existentes
+                        $datos_iva = [];
+                        foreach ($record->partidas as $partida) {
+                            if ($partida->iva) {
+                                $datos_iva[] = [
+                                    'auxiliares_id' => $partida->id,
+                                    'base_gravable' => $partida->iva->base_gravable,
+                                    'tasa_iva' => $partida->iva->tasa_iva,
+                                    'importe_iva' => $partida->iva->importe_iva,
+                                    'retencion_iva' => $partida->iva->retencion_iva,
+                                    'retencion_isr' => $partida->iva->retencion_isr,
+                                    'ieps' => $partida->iva->ieps,
+                                    'tipo_operacion' => $partida->iva->tipo_operacion,
+                                    'tipo_comprobante' => $partida->iva->tipo_comprobante,
+                                    'metodo_pago' => $partida->iva->metodo_pago,
+                                    'uuid' => $partida->iva->uuid,
+                                    'folio_fiscal' => $partida->iva->folio_fiscal,
+                                    'team_id' => $partida->iva->team_id,
+                                ];
+                            }
+                        }
+                        $data['datos_iva_repeater'] = $datos_iva;
+
+                        // Cargar datos DIOT existentes
+                        $datos_diot = [];
+                        foreach ($record->partidas as $partida) {
+                            if ($partida->diot) {
+                                $datos_diot[] = [
+                                    'auxiliares_id' => $partida->id,
+                                    'rfc_proveedor' => $partida->diot->rfc_proveedor,
+                                    'nombre_proveedor' => $partida->diot->nombre_proveedor,
+                                    'pais_residencia' => $partida->diot->pais_residencia,
+                                    'tipo_operacion' => $partida->diot->tipo_operacion,
+                                    'tipo_tercero' => $partida->diot->tipo_tercero,
+                                    'importe_pagado_16' => $partida->diot->importe_pagado_16,
+                                    'iva_pagado_16' => $partida->diot->iva_pagado_16,
+                                    'importe_pagado_8' => $partida->diot->importe_pagado_8,
+                                    'iva_pagado_8' => $partida->diot->iva_pagado_8,
+                                    'importe_pagado_0' => $partida->diot->importe_pagado_0,
+                                    'importe_exento' => $partida->diot->importe_exento,
+                                    'iva_retenido' => $partida->diot->iva_retenido,
+                                    'isr_retenido' => $partida->diot->isr_retenido,
+                                    'numero_operacion' => $partida->diot->numero_operacion,
+                                    'fecha_operacion' => $partida->diot->fecha_operacion,
+                                    'incluir_en_diot' => $partida->diot->incluir_en_diot,
+                                    'team_id' => $partida->diot->team_id,
+                                ];
+                            }
+                        }
+                        $data['datos_diot_repeater'] = $datos_diot;
+
+                        return $data;
+                    })
                     ->visible(function(){
                         $team = Filament::getTenant()->id;
                         $periodo = Filament::getTenant()->periodo;
@@ -349,6 +773,60 @@ class CatPolizasResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->icon('fas-eye')
                     ->iconButton()
+                    ->mutateFormDataUsing(function (array $data, $record): array {
+                        // Cargar datos IVA existentes
+                        $datos_iva = [];
+                        foreach ($record->partidas as $partida) {
+                            if ($partida->iva) {
+                                $datos_iva[] = [
+                                    'auxiliares_id' => $partida->id,
+                                    'base_gravable' => $partida->iva->base_gravable,
+                                    'tasa_iva' => $partida->iva->tasa_iva,
+                                    'importe_iva' => $partida->iva->importe_iva,
+                                    'retencion_iva' => $partida->iva->retencion_iva,
+                                    'retencion_isr' => $partida->iva->retencion_isr,
+                                    'ieps' => $partida->iva->ieps,
+                                    'tipo_operacion' => $partida->iva->tipo_operacion,
+                                    'tipo_comprobante' => $partida->iva->tipo_comprobante,
+                                    'metodo_pago' => $partida->iva->metodo_pago,
+                                    'uuid' => $partida->iva->uuid,
+                                    'folio_fiscal' => $partida->iva->folio_fiscal,
+                                    'team_id' => $partida->iva->team_id,
+                                ];
+                            }
+                        }
+                        $data['datos_iva_repeater'] = $datos_iva;
+
+                        // Cargar datos DIOT existentes
+                        $datos_diot = [];
+                        foreach ($record->partidas as $partida) {
+                            if ($partida->diot) {
+                                $datos_diot[] = [
+                                    'auxiliares_id' => $partida->id,
+                                    'rfc_proveedor' => $partida->diot->rfc_proveedor,
+                                    'nombre_proveedor' => $partida->diot->nombre_proveedor,
+                                    'pais_residencia' => $partida->diot->pais_residencia,
+                                    'tipo_operacion' => $partida->diot->tipo_operacion,
+                                    'tipo_tercero' => $partida->diot->tipo_tercero,
+                                    'importe_pagado_16' => $partida->diot->importe_pagado_16,
+                                    'iva_pagado_16' => $partida->diot->iva_pagado_16,
+                                    'importe_pagado_8' => $partida->diot->importe_pagado_8,
+                                    'iva_pagado_8' => $partida->diot->iva_pagado_8,
+                                    'importe_pagado_0' => $partida->diot->importe_pagado_0,
+                                    'importe_exento' => $partida->diot->importe_exento,
+                                    'iva_retenido' => $partida->diot->iva_retenido,
+                                    'isr_retenido' => $partida->diot->isr_retenido,
+                                    'numero_operacion' => $partida->diot->numero_operacion,
+                                    'fecha_operacion' => $partida->diot->fecha_operacion,
+                                    'incluir_en_diot' => $partida->diot->incluir_en_diot,
+                                    'team_id' => $partida->diot->team_id,
+                                ];
+                            }
+                        }
+                        $data['datos_diot_repeater'] = $datos_diot;
+
+                        return $data;
+                    })
                     ->visible(function ($record){
                         if($record->periodo == Filament::getTenant()->periodo && $record->ejercicio == Filament::getTenant()->ejercicio) return false;
                         else return true;
@@ -362,6 +840,63 @@ class CatPolizasResource extends Resource
                 })
                 ->modalSubmitActionLabel('Grabar')
                 ->modalWidth('7xl')
+                    ->fillForm(function ($record): array {
+                        // Obtener datos base del record
+                        $data = $record->toArray();
+
+                        // Cargar datos IVA existentes
+                        $datos_iva = [];
+                        foreach ($record->partidas as $partida) {
+                            if ($partida->iva) {
+                                $datos_iva[] = [
+                                    'auxiliares_id' => $partida->id,
+                                    'base_gravable' => $partida->iva->base_gravable,
+                                    'tasa_iva' => $partida->iva->tasa_iva,
+                                    'importe_iva' => $partida->iva->importe_iva,
+                                    'retencion_iva' => $partida->iva->retencion_iva,
+                                    'retencion_isr' => $partida->iva->retencion_isr,
+                                    'ieps' => $partida->iva->ieps,
+                                    'tipo_operacion' => $partida->iva->tipo_operacion,
+                                    'tipo_comprobante' => $partida->iva->tipo_comprobante,
+                                    'metodo_pago' => $partida->iva->metodo_pago,
+                                    'uuid' => $partida->iva->uuid,
+                                    'folio_fiscal' => $partida->iva->folio_fiscal,
+                                    'team_id' => $partida->iva->team_id,
+                                ];
+                            }
+                        }
+                        $data['datos_iva_repeater'] = $datos_iva;
+
+                        // Cargar datos DIOT existentes
+                        $datos_diot = [];
+                        foreach ($record->partidas as $partida) {
+                            if ($partida->diot) {
+                                $datos_diot[] = [
+                                    'auxiliares_id' => $partida->id,
+                                    'rfc_proveedor' => $partida->diot->rfc_proveedor,
+                                    'nombre_proveedor' => $partida->diot->nombre_proveedor,
+                                    'pais_residencia' => $partida->diot->pais_residencia,
+                                    'tipo_operacion' => $partida->diot->tipo_operacion,
+                                    'tipo_tercero' => $partida->diot->tipo_tercero,
+                                    'importe_pagado_16' => $partida->diot->importe_pagado_16,
+                                    'iva_pagado_16' => $partida->diot->iva_pagado_16,
+                                    'importe_pagado_8' => $partida->diot->importe_pagado_8,
+                                    'iva_pagado_8' => $partida->diot->iva_pagado_8,
+                                    'importe_pagado_0' => $partida->diot->importe_pagado_0,
+                                    'importe_exento' => $partida->diot->importe_exento,
+                                    'iva_retenido' => $partida->diot->iva_retenido,
+                                    'isr_retenido' => $partida->diot->isr_retenido,
+                                    'numero_operacion' => $partida->diot->numero_operacion,
+                                    'fecha_operacion' => $partida->diot->fecha_operacion,
+                                    'incluir_en_diot' => $partida->diot->incluir_en_diot,
+                                    'team_id' => $partida->diot->team_id,
+                                ];
+                            }
+                        }
+                        $data['datos_diot_repeater'] = $datos_diot;
+
+                        return $data;
+                    })
                     ->before(function ($data,$action){
                         $cargos = round($data['total_cargos'],3);
                         $abonos = round($data['total_abonos'],3);
@@ -370,8 +905,17 @@ class CatPolizasResource extends Resource
                             $action->halt();
                         }
                     })
-                ->after(function ($record){
+                ->after(function ($record, $data){
                     $id = $record->id;
+
+                    // Log para ver todos los datos del formulario
+                    \Log::info('EditAction after() - Datos completos', [
+                        'poliza_id' => $id,
+                        'tiene_datos_iva' => isset($data['datos_iva_repeater']),
+                        'tiene_datos_diot' => isset($data['datos_diot_repeater']),
+                        'keys_data' => array_keys($data)
+                    ]);
+
                     //DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->delete();
                     $cat_aux = DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->get();
                     $nopar = 1;
@@ -388,6 +932,109 @@ class CatPolizasResource extends Resource
                         'cargos'=>$cargos,
                         'abonos'=>$abonos,
                     ]);
+
+                    // Persistir datos IVA
+                    if (isset($data['datos_iva_repeater']) && is_array($data['datos_iva_repeater'])) {
+                        // Obtener todos los auxiliares de esta póliza para mapear
+                        $auxiliares = \App\Models\Auxiliares::where('cat_polizas_id', $id)->get();
+
+                        foreach ($data['datos_iva_repeater'] as $iva_data) {
+                            if (isset($iva_data['auxiliares_id']) && $iva_data['auxiliares_id']) {
+                                // Buscar el auxiliar real por el índice o ID
+                                $auxiliar = $auxiliares->get($iva_data['auxiliares_id']) ?? $auxiliares->firstWhere('id', $iva_data['auxiliares_id']);
+
+                                if (!$auxiliar) {
+                                    continue; // Skip si no se encuentra el auxiliar
+                                }
+
+                                // Actualizar o crear registro IVA
+                                \App\Models\AuxiliaresIva::updateOrCreate(
+                                    ['auxiliares_id' => $auxiliar->id],
+                                    [
+                                        'team_id' => Filament::getTenant()->id,
+                                        'base_gravable' => $iva_data['base_gravable'] ?? 0,
+                                        'tasa_iva' => $iva_data['tasa_iva'] ?? 16,
+                                        'importe_iva' => $iva_data['importe_iva'] ?? 0,
+                                        'retencion_iva' => $iva_data['retencion_iva'] ?? 0,
+                                        'retencion_isr' => $iva_data['retencion_isr'] ?? 0,
+                                        'ieps' => $iva_data['ieps'] ?? 0,
+                                        'tipo_operacion' => $iva_data['tipo_operacion'] ?? 'acreditable',
+                                        'tipo_comprobante' => $iva_data['tipo_comprobante'] ?? null,
+                                        'metodo_pago' => $iva_data['metodo_pago'] ?? null,
+                                        'uuid' => $iva_data['uuid'] ?? null,
+                                        'folio_fiscal' => $iva_data['folio_fiscal'] ?? null,
+                                    ]
+                                );
+                            }
+                        }
+                    }
+
+                    // Persistir datos DIOT
+                    \Log::info('Verificando datos_diot_repeater', [
+                        'existe' => isset($data['datos_diot_repeater']),
+                        'tipo' => gettype($data['datos_diot_repeater'] ?? 'undefined'),
+                        'contenido' => $data['datos_diot_repeater'] ?? 'no existe',
+                        'count' => isset($data['datos_diot_repeater']) && is_array($data['datos_diot_repeater']) ? count($data['datos_diot_repeater']) : 'N/A'
+                    ]);
+
+                    if (isset($data['datos_diot_repeater']) && is_array($data['datos_diot_repeater']) && count($data['datos_diot_repeater']) > 0) {
+                        // Log para ver qué datos llegan
+                        \Log::info('Guardando datos DIOT EditAction', [
+                            'poliza_id' => $id,
+                            'cantidad_registros' => count($data['datos_diot_repeater']),
+                            'datos' => $data['datos_diot_repeater']
+                        ]);
+
+                        // Obtener todos los auxiliares de esta póliza para mapear
+                        $auxiliares = \App\Models\Auxiliares::where('cat_polizas_id', $id)->get();
+
+                        foreach ($data['datos_diot_repeater'] as $diot_data) {
+                            if (isset($diot_data['auxiliares_id']) && $diot_data['auxiliares_id']) {
+                                // Buscar el auxiliar real por ID
+                                $auxiliar = $auxiliares->firstWhere('id', $diot_data['auxiliares_id']);
+
+                                if (!$auxiliar) {
+                                    // Log para debugging
+                                    \Log::warning('Auxiliar DIOT no encontrado', [
+                                        'auxiliares_id' => $diot_data['auxiliares_id'],
+                                        'poliza_id' => $id,
+                                        'auxiliares_disponibles' => $auxiliares->pluck('id')->toArray()
+                                    ]);
+                                    continue; // Skip si no se encuentra el auxiliar
+                                }
+
+                                // Actualizar o crear registro DIOT
+                                $diotRecord = \App\Models\AuxiliaresDiot::updateOrCreate(
+                                    ['auxiliares_id' => $auxiliar->id],
+                                    [
+                                        'team_id' => Filament::getTenant()->id,
+                                        'rfc_proveedor' => $diot_data['rfc_proveedor'] ?? null,
+                                        'nombre_proveedor' => $diot_data['nombre_proveedor'] ?? null,
+                                        'pais_residencia' => $diot_data['pais_residencia'] ?? 'MEX',
+                                        'tipo_operacion' => $diot_data['tipo_operacion'] ?? null,
+                                        'tipo_tercero' => $diot_data['tipo_tercero'] ?? null,
+                                        'importe_pagado_16' => $diot_data['importe_pagado_16'] ?? 0,
+                                        'iva_pagado_16' => $diot_data['iva_pagado_16'] ?? 0,
+                                        'importe_pagado_8' => $diot_data['importe_pagado_8'] ?? 0,
+                                        'iva_pagado_8' => $diot_data['iva_pagado_8'] ?? 0,
+                                        'importe_pagado_0' => $diot_data['importe_pagado_0'] ?? 0,
+                                        'importe_exento' => $diot_data['importe_exento'] ?? 0,
+                                        'iva_retenido' => $diot_data['iva_retenido'] ?? 0,
+                                        'isr_retenido' => $diot_data['isr_retenido'] ?? 0,
+                                        'numero_operacion' => $diot_data['numero_operacion'] ?? null,
+                                        'fecha_operacion' => $diot_data['fecha_operacion'] ?? null,
+                                        'incluir_en_diot' => $diot_data['incluir_en_diot'] ?? true,
+                                    ]
+                                );
+
+                                \Log::info('Registro DIOT guardado exitosamente', [
+                                    'auxiliares_id' => $auxiliar->id,
+                                    'diot_id' => $diotRecord->id,
+                                    'rfc_proveedor' => $diotRecord->rfc_proveedor
+                                ]);
+                            }
+                        }
+                    }
                 })->visible(function(){
                         $team = Filament::getTenant()->id;
                         $periodo = Filament::getTenant()->periodo;
@@ -566,7 +1213,7 @@ class CatPolizasResource extends Resource
                             $action->halt();
                         }
                     })
-                    ->after(function ($record){
+                    ->after(function ($record, $data){
                         $id = $record->id;
                         //DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->delete();
                         $cat_aux = DB::table('auxiliares_cat_polizas')->where('cat_polizas_id',$id)->get();
@@ -584,6 +1231,91 @@ class CatPolizasResource extends Resource
                             'cargos'=>$cargos,
                             'abonos'=>$abonos,
                         ]);
+
+                        // Persistir datos IVA
+                        if (isset($data['datos_iva_repeater']) && is_array($data['datos_iva_repeater'])) {
+                            // Obtener todos los auxiliares de esta póliza para mapear
+                            $auxiliares = \App\Models\Auxiliares::where('cat_polizas_id', $id)->get();
+
+                            foreach ($data['datos_iva_repeater'] as $iva_data) {
+                                if (isset($iva_data['auxiliares_id']) && $iva_data['auxiliares_id']) {
+                                    // Buscar el auxiliar real por ID
+                                    $auxiliar = $auxiliares->firstWhere('id', $iva_data['auxiliares_id']);
+
+                                    if (!$auxiliar) {
+                                        // Log para debugging
+                                        \Log::warning('Auxiliar IVA no encontrado', [
+                                            'auxiliares_id' => $iva_data['auxiliares_id'],
+                                            'poliza_id' => $id,
+                                            'auxiliares_disponibles' => $auxiliares->pluck('id')->toArray()
+                                        ]);
+                                        continue; // Skip si no se encuentra el auxiliar
+                                    }
+
+                                    // Crear registro IVA
+                                    \App\Models\AuxiliaresIva::create([
+                                        'auxiliares_id' => $auxiliar->id,
+                                        'team_id' => Filament::getTenant()->id,
+                                        'base_gravable' => $iva_data['base_gravable'] ?? 0,
+                                        'tasa_iva' => $iva_data['tasa_iva'] ?? 16,
+                                        'importe_iva' => $iva_data['importe_iva'] ?? 0,
+                                        'retencion_iva' => $iva_data['retencion_iva'] ?? 0,
+                                        'retencion_isr' => $iva_data['retencion_isr'] ?? 0,
+                                        'ieps' => $iva_data['ieps'] ?? 0,
+                                        'tipo_operacion' => $iva_data['tipo_operacion'] ?? 'acreditable',
+                                        'tipo_comprobante' => $iva_data['tipo_comprobante'] ?? null,
+                                        'metodo_pago' => $iva_data['metodo_pago'] ?? null,
+                                        'uuid' => $iva_data['uuid'] ?? null,
+                                        'folio_fiscal' => $iva_data['folio_fiscal'] ?? null,
+                                    ]);
+                                }
+                            }
+                        }
+
+                        // Persistir datos DIOT
+                        if (isset($data['datos_diot_repeater']) && is_array($data['datos_diot_repeater'])) {
+                            // Obtener todos los auxiliares de esta póliza para mapear
+                            $auxiliares = \App\Models\Auxiliares::where('cat_polizas_id', $id)->get();
+
+                            foreach ($data['datos_diot_repeater'] as $diot_data) {
+                                if (isset($diot_data['auxiliares_id']) && $diot_data['auxiliares_id']) {
+                                    // Buscar el auxiliar real por ID
+                                    $auxiliar = $auxiliares->firstWhere('id', $diot_data['auxiliares_id']);
+
+                                    if (!$auxiliar) {
+                                        // Log para debugging
+                                        \Log::warning('Auxiliar DIOT no encontrado en Create', [
+                                            'auxiliares_id' => $diot_data['auxiliares_id'],
+                                            'poliza_id' => $id,
+                                            'auxiliares_disponibles' => $auxiliares->pluck('id')->toArray()
+                                        ]);
+                                        continue; // Skip si no se encuentra el auxiliar
+                                    }
+
+                                    // Crear registro DIOT
+                                    \App\Models\AuxiliaresDiot::create([
+                                        'auxiliares_id' => $auxiliar->id,
+                                        'team_id' => Filament::getTenant()->id,
+                                        'rfc_proveedor' => $diot_data['rfc_proveedor'] ?? null,
+                                        'nombre_proveedor' => $diot_data['nombre_proveedor'] ?? null,
+                                        'pais_residencia' => $diot_data['pais_residencia'] ?? 'MEX',
+                                        'tipo_operacion' => $diot_data['tipo_operacion'] ?? null,
+                                        'tipo_tercero' => $diot_data['tipo_tercero'] ?? null,
+                                        'importe_pagado_16' => $diot_data['importe_pagado_16'] ?? 0,
+                                        'iva_pagado_16' => $diot_data['iva_pagado_16'] ?? 0,
+                                        'importe_pagado_8' => $diot_data['importe_pagado_8'] ?? 0,
+                                        'iva_pagado_8' => $diot_data['iva_pagado_8'] ?? 0,
+                                        'importe_pagado_0' => $diot_data['importe_pagado_0'] ?? 0,
+                                        'importe_exento' => $diot_data['importe_exento'] ?? 0,
+                                        'iva_retenido' => $diot_data['iva_retenido'] ?? 0,
+                                        'isr_retenido' => $diot_data['isr_retenido'] ?? 0,
+                                        'numero_operacion' => $diot_data['numero_operacion'] ?? null,
+                                        'fecha_operacion' => $diot_data['fecha_operacion'] ?? null,
+                                        'incluir_en_diot' => $diot_data['incluir_en_diot'] ?? true,
+                                    ]);
+                                }
+                            }
+                        }
                     })->visible(function(){
                         $team = Filament::getTenant()->id;
                         $periodo = Filament::getTenant()->periodo;

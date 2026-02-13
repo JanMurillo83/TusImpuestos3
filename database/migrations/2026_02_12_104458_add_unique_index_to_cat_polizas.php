@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // Verificar si existen duplicados
-        $duplicados = DB::select("
+        /*$duplicados = DB::select("
             SELECT
                 team_id,
                 tipo,
@@ -58,7 +58,7 @@ return new class extends Migration
             $table->unique(['team_id', 'tipo', 'folio', 'periodo', 'ejercicio'], 'unique_poliza_folio');
         });
 
-        echo "\n✓ Índice único creado exitosamente. No se encontraron duplicados.\n\n";
+        echo "\n✓ Índice único creado exitosamente. No se encontraron duplicados.\n\n";*/
     }
 
     /**

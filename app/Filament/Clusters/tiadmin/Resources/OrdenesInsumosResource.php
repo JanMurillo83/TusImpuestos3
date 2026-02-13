@@ -16,6 +16,9 @@ use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
+use Spatie\Browsershot\Browsershot;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Fieldset;
@@ -404,6 +407,27 @@ class OrdenesInsumosResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                ActionsAction::make('Imprimir')
+                    ->icon('fas-print')
+                    ->label('Imprimir Orden')
+                    ->color(Color::Cyan)
+                    ->action(function(Model $record){
+                        $idorden = $record->id;
+                        $id_empresa = Filament::getTenant()->id;
+                        $archivo_pdf = 'ORDEN_INSUMOS_'.$record->folio.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                        if(File::exists($ruta)) File::delete($ruta);
+                        $data = ['idorden'=>$idorden,'id_empresa'=>$id_empresa];
+                        $html = View::make('OrdenCompraInsumos',$data)->render();
+                        Browsershot::html($html)
+                            ->format('Letter')
+                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                            ->noSandbox()
+                            ->scale(0.8)
+                            ->savePdf($ruta);
+                        return response()->download($ruta);
+                    }),
                 ActionsAction::make('Copiar')
                     ->icon('fas-copy')
                     ->label('Copiar Orden Insumos')

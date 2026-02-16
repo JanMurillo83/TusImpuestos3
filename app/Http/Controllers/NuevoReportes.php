@@ -78,6 +78,10 @@ class NuevoReportes extends Controller
                 }
             }
         }
+
+        // FASE 1: Invalidar caché después de contabilizar
+        \App\Services\SaldosCache::invalidate($empresa);
+
         return $vals;
     }
     public function emite($reporte,$empresa,$periodo,$ejercicio)

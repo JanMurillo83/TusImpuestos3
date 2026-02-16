@@ -22,8 +22,30 @@
             </div>
         </header>
 
-        <!-- Botones de envío (WhatsApp y correo) -->
+        <!-- Botones de exportación y envío -->
         <section class="mt-4 flex justify-end gap-2 text-xs print:hidden">
+            <!-- Exportar a PDF -->
+            <button
+                wire:click="exportarPDF"
+                class="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span>Exportar a PDF</span>
+            </button>
+
+            <!-- Exportar a Excel -->
+            <button
+                wire:click="exportarExcel"
+                class="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Exportar a Excel</span>
+            </button>
+
             <!-- WhatsApp: reemplaza TU_NUMERO y la URL del reporte de cartera -->
             <a
                 href="https://wa.me/TU_NUMERO?text=Te%20comparto%20el%20reporte%20de%20saldos%20de%20clientes%20correspondiente%20al%20periodo%2001/11/2025%20-%2030/11/2025.%20Puedes%20consultarlo%20en%3A%20https%3A%2F%2Ftu-sistema.com%2Freporte%2Fcartera-clientes-2025-11"

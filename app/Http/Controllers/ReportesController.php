@@ -550,34 +550,71 @@ class ReportesController extends Controller
             $n3 = intval($n3);
             if($n2 > 0) $nivel++;
             if($n3 > 0) $nivel++;
-            $montos = Auxiliares::where('codigo',$cuenta->codigo)->where('a_periodo',$periodo)
-            ->where('a_ejercicio',$ejercicio)
-            ->where('team_id',$team_id)
-            ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+            // CORREGIDO: Para cuentas de BALANCE (activo/pasivo), calcular saldo acumulado total
+            // Para cuentas de RESULTADOS (ingresos/gastos/costos), solo del ejercicio actual
+            $es_cuenta_balance = in_array(substr($cuenta->codigo, 0, 1), ['1', '2', '3']); // Activo, Pasivo, Capital
 
-            // Para TODAS las cuentas: sumar todo el histórico anterior al periodo actual
-            // Incluye: (ejercicios anteriores completos) + (periodos anteriores del ejercicio actual)
-            // Esto permite que las cuentas de resultados muestren saldo inicial si no se hizo póliza de cierre
-            $montos_ant = Auxiliares::where('codigo',$cuenta->codigo)
-                ->where('team_id',$team_id)
-                ->where(function($query) use ($ejercicio, $periodo) {
-                    $query->where('a_ejercicio', '<', $ejercicio)
-                          ->orWhere(function($q) use ($ejercicio, $periodo) {
-                              $q->where('a_ejercicio', '=', $ejercicio)
-                                ->where('a_periodo', '<', $periodo);
-                          });
-                })
-                ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+            if ($es_cuenta_balance) {
+                // Cuentas de BALANCE: Sumar TODO el histórico hasta el periodo actual
+                $montos_historico = Auxiliares::where('codigo',$cuenta->codigo)
+                    ->where('team_id',$team_id)
+                    ->where(function($query) use ($ejercicio, $periodo) {
+                        $query->where('a_ejercicio', '<', $ejercicio)
+                              ->orWhere(function($q) use ($ejercicio, $periodo) {
+                                  $q->where('a_ejercicio', '=', $ejercicio)
+                                    ->where('a_periodo', '<=', $periodo);
+                              });
+                    })
+                    ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+
+                $montos = Auxiliares::where('codigo',$cuenta->codigo)
+                    ->where('a_periodo',$periodo)
+                    ->where('a_ejercicio',$ejercicio)
+                    ->where('team_id',$team_id)
+                    ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+
+                $montos_ant = Auxiliares::where('codigo',$cuenta->codigo)
+                    ->where('team_id',$team_id)
+                    ->where(function($query) use ($ejercicio, $periodo) {
+                        $query->where('a_ejercicio', '<', $ejercicio)
+                              ->orWhere(function($q) use ($ejercicio, $periodo) {
+                                  $q->where('a_ejercicio', '=', $ejercicio)
+                                    ->where('a_periodo', '<', $periodo);
+                              });
+                    })
+                    ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+            } else {
+                // Cuentas de RESULTADOS: Solo del ejercicio actual
+                $montos = Auxiliares::where('codigo',$cuenta->codigo)->where('a_periodo',$periodo)
+                    ->where('a_ejercicio',$ejercicio)
+                    ->where('team_id',$team_id)
+                    ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+
+                $montos_ant = Auxiliares::where('codigo',$cuenta->codigo)
+                    ->where('team_id',$team_id)
+                    ->where(function($query) use ($ejercicio, $periodo) {
+                        $query->where('a_ejercicio', '=', $ejercicio)
+                              ->where('a_periodo', '<', $periodo);
+                    })
+                    ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos' ))->first();
+
+                $montos_historico = $montos_ant; // Para resultados, histórico = anterior del ejercicio
+            }
+
             $inicial = 0;
             $final = 0;
             if($cuenta->naturaleza == 'D')
             {
                 $inicial = $montos_ant->cargos - $montos_ant->abonos;
-                $final = $montos->cargos - $montos->abonos;
+                $final = $es_cuenta_balance
+                    ? ($montos_historico->cargos - $montos_historico->abonos) // Balance: acumulado total
+                    : ($inicial + $montos->cargos - $montos->abonos); // Resultados: del periodo
             }
             else{
                 $inicial = $montos_ant->abonos - $montos_ant->cargos;
-                $final = $montos->abonos - $montos->cargos;
+                $final = $es_cuenta_balance
+                    ? ($montos_historico->abonos - $montos_historico->cargos) // Balance: acumulado total
+                    : ($inicial + $montos->abonos - $montos->cargos); // Resultados: del periodo
             }
             SaldosReportes::insert([
                 'codigo' => $cuenta->codigo,
@@ -612,6 +649,9 @@ class ReportesController extends Controller
         }
         DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id");
         DB::statement("UPDATE saldos_reportes SET final = (anterior + abonos - cargos) WHERE naturaleza = 'A' AND team_id = $team_id");
+
+        // FASE 1: Invalidar caché después de regenerar saldos
+        \App\Services\SaldosCache::invalidate($team_id);
     }
 
     public function SaldosBancos($team_id)

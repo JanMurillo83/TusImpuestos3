@@ -16,7 +16,9 @@ use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\View\View;
 use App\Models\CatPolizas;
+use App\Models\Auxiliares;
 use App\Observers\CatPolizasObserver;
+use App\Observers\AuxiliaresObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -35,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
     {
          // Registrar observer para auditoría de pólizas
          CatPolizas::observe(CatPolizasObserver::class);
+
+         // FASE 2: Registrar observer para actualización automática de saldos
+         Auxiliares::observe(AuxiliaresObserver::class);
 
          Filament::serving(function () {
             Filament::registerNavigationGroups([

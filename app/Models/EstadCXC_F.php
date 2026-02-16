@@ -55,6 +55,26 @@ class EstadCXC_F extends Model
                     }
                 }
             }
+
+            // IMPORTANTE: Incluir TODOS los movimientos sin relación (cargos y abonos sin factura)
+            // Estos movimientos afectan el saldo pero no están ligados a ninguna factura específica
+            // Ejemplos: anticipos, notas de crédito/débito, pagos sin aplicar, etc.
+            $movimientos_sin_relacion = EstadCXC::where('clave', $data->clave)
+                ->where(function($q) {
+                    $q->whereNull('factura')
+                      ->orWhere('factura', '')
+                      ->orWhere('factura', 'Sin Relacion');
+                })
+                ->get();
+
+            // En CXC: Saldo = Cargos - Abonos
+            // Cargos sin relación AUMENTAN el saldo, Abonos sin relación DISMINUYEN el saldo
+            $saldo_sin_relacion = $movimientos_sin_relacion->sum('cargos') - $movimientos_sin_relacion->sum('abonos');
+            $saldo_cliente += $saldo_sin_relacion;
+
+            // Los movimientos sin relación se consideran como "corriente" (no vencidos)
+            $saldo_corriente += $saldo_sin_relacion;
+
             $claves[] = ['clave'=>$data->clave,'cliente'=>$cliente?->nombre??'No encontrado','saldo'=>$saldo_cliente,'vencido'=>$saldo_vencido,'corriente'=>$saldo_corriente,'facturas'=>json_encode($facturas)];
         }
         return $claves;

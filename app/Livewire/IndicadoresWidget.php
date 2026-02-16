@@ -10,6 +10,7 @@ use Filament\Facades\Filament;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class IndicadoresWidget extends BaseWidget
@@ -30,11 +31,25 @@ class IndicadoresWidget extends BaseWidget
     public function mount(): void
     {
         $team_id = Filament::getTenant()->id;
-        $this->ventas_abonos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->abonos ?? 0);
-        $this->ventas_cargos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->cargos ?? 0);
-        $this->ventas_final = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->final ?? 0);
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
 
-        $cuentas = DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = $team_id AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ");
+        // FASE 1: Cachear cálculos de indicadores
+        $cache_key = "indicadores_widget:{$team_id}:{$ejercicio}:{$periodo}";
+        $datos = Cache::remember($cache_key, 300, function() use ($team_id) {
+            $ventas_abonos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->abonos ?? 0);
+            $ventas_cargos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->cargos ?? 0);
+            $ventas_final = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->final ?? 0);
+
+            $cuentas = DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = $team_id AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ");
+
+            return compact('ventas_abonos', 'ventas_cargos', 'ventas_final', 'cuentas');
+        });
+
+        $this->ventas_abonos = $datos['ventas_abonos'];
+        $this->ventas_cargos = $datos['ventas_cargos'];
+        $this->ventas_final = $datos['ventas_final'];
+        $cuentas = $datos['cuentas'];
         $saldo_v = 0;
         $saldo_g = 0;
         $saldo_v_a = 0;

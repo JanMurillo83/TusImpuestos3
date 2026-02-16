@@ -11,6 +11,7 @@ use Filament\Facades\Filament;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class Indicadores2Widget extends BaseWidget
@@ -34,11 +35,24 @@ class Indicadores2Widget extends BaseWidget
     public function mount(): void
     {
         $team_id = Filament::getTenant()->id;
-        $this->ventas_final = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->final ?? 0);
-        $this->saldo_cxp = floatval(CuentasPagar::where('team_id',$team_id)->where('vencimiento','<',Carbon::now())->sum('saldo') ?? 0);
-        $imp_favor = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','11801000')->first()->final ?? 0);
-        $imp_contra = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','20801000')->first()->final ?? 0);
-        $impuesto = $imp_favor - $imp_contra;
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
+
+        // FASE 1: Cachear cálculos de indicadores2
+        $cache_key = "indicadores2_widget:{$team_id}:{$ejercicio}:{$periodo}";
+        $datos_base = Cache::remember($cache_key, 300, function() use ($team_id) {
+            $ventas_final = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->final ?? 0);
+            $saldo_cxp = floatval(CuentasPagar::where('team_id',$team_id)->where('vencimiento','<',Carbon::now())->sum('saldo') ?? 0);
+            $imp_favor = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','11801000')->first()->final ?? 0);
+            $imp_contra = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','20801000')->first()->final ?? 0);
+            $cuentas = DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = $team_id AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ");
+
+            return compact('ventas_final', 'saldo_cxp', 'imp_favor', 'imp_contra', 'cuentas');
+        });
+
+        $this->ventas_final = $datos_base['ventas_final'];
+        $this->saldo_cxp = $datos_base['saldo_cxp'];
+        $impuesto = $datos_base['imp_favor'] - $datos_base['imp_contra'];
         if($impuesto < 0) {
             $this->impuesto = $impuesto * -1;
             $this->impuesto_lab = 'Impuesto a Pagar';
@@ -48,7 +62,7 @@ class Indicadores2Widget extends BaseWidget
             $this->impuesto_lab = 'Impuesto a Favor';
             $this->impuesto_color = Color::Green;
         }
-        $cuentas = DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = $team_id AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ");
+        $cuentas = $datos_base['cuentas'];
         $saldo_v = 0;
         $saldo_g = 0;
         $saldo_v_a = 0;

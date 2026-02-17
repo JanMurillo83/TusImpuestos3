@@ -176,6 +176,24 @@ class CfdiSatScraperService
             $fielSessionManager = FielSessionManager::create($credential);
             $this->scraper = new SatScraper($fielSessionManager, $gateway);
 
+            // Forzar login al portal para establecer la sesión
+            try {
+                if (!$fielSessionManager->hasLogin()) {
+                    $fielSessionManager->login();
+
+                    Log::info('Sesión iniciada correctamente en el portal SAT', [
+                        'team_id' => $this->team->id,
+                        'rfc' => $this->config['rfc']
+                    ]);
+                }
+            } catch (\Exception $loginError) {
+                Log::warning('No se pudo hacer login previo, se intentará en la primera consulta', [
+                    'team_id' => $this->team->id,
+                    'rfc' => $this->config['rfc'],
+                    'error' => $loginError->getMessage()
+                ]);
+            }
+
             Log::info('SatScraper inicializado correctamente', [
                 'team_id' => $this->team->id,
                 'rfc' => $this->config['rfc']
@@ -200,62 +218,92 @@ class CfdiSatScraperService
      */
     public function listByPeriod(string $fechaInicial, string $fechaFinal, string $tipo = 'emitidos', bool $soloVigentes = true): array
     {
-        try {
-            if (!$this->scraper) {
-                $init = $this->initializeScraper();
-                if (!$init['valid']) {
-                    return ['success' => false, 'error' => $init['error'], 'list' => []];
+        $maxRetries = 2;
+        $attempt = 0;
+
+        while ($attempt < $maxRetries) {
+            try {
+                if (!$this->scraper) {
+                    $init = $this->initializeScraper();
+                    if (!$init['valid']) {
+                        return ['success' => false, 'error' => $init['error'], 'list' => []];
+                    }
                 }
+
+                $query = new QueryByFilters(
+                    new \DateTimeImmutable($fechaInicial),
+                    new \DateTimeImmutable($fechaFinal)
+                );
+
+                $downloadType = $tipo === 'emitidos' ? DownloadType::emitidos() : DownloadType::recibidos();
+                $query->setDownloadType($downloadType);
+
+                if ($soloVigentes) {
+                    $query->setStateVoucher(StatesVoucherOption::vigentes());
+                }
+
+                Log::info('Consultando CFDIs por período', [
+                    'team_id' => $this->team->id,
+                    'rfc' => $this->config['rfc'],
+                    'fecha_inicial' => $fechaInicial,
+                    'fecha_final' => $fechaFinal,
+                    'tipo' => $tipo,
+                    'solo_vigentes' => $soloVigentes,
+                    'intento' => $attempt + 1
+                ]);
+
+                $list = $this->scraper->listByPeriod($query);
+
+                Log::info('Consulta de CFDIs completada', [
+                    'team_id' => $this->team->id,
+                    'rfc' => $this->config['rfc'],
+                    'tipo' => $tipo,
+                    'count' => $list->count()
+                ]);
+
+                return [
+                    'success' => true,
+                    'list' => $list,
+                    'count' => $list->count()
+                ];
+
+            } catch (\Exception $e) {
+                $attempt++;
+
+                // Verificar si es un error de sesión
+                $isSessionError = strpos($e->getMessage(), 'session registered') !== false ||
+                                  strpos($e->getMessage(), 'portal home page') !== false;
+
+                if ($isSessionError && $attempt < $maxRetries) {
+                    Log::warning('Error de sesión detectado, reintentando...', [
+                        'team_id' => $this->team->id,
+                        'rfc' => $this->config['rfc'],
+                        'intento' => $attempt,
+                        'error' => $e->getMessage()
+                    ]);
+
+                    // Limpiar scraper y cookies para forzar nueva sesión
+                    $this->scraper = null;
+                    $this->cleanCookie();
+                    sleep(2); // Esperar 2 segundos antes de reintentar
+                    continue;
+                }
+
+                Log::error('Error consultando CFDIs por período', [
+                    'team_id' => $this->team->id,
+                    'rfc' => $this->config['rfc'],
+                    'fecha_inicial' => $fechaInicial,
+                    'fecha_final' => $fechaFinal,
+                    'tipo' => $tipo,
+                    'error' => $e->getMessage(),
+                    'intentos_realizados' => $attempt
+                ]);
+
+                return ['success' => false, 'error' => $e->getMessage(), 'list' => []];
             }
-
-            $query = new QueryByFilters(
-                new \DateTimeImmutable($fechaInicial),
-                new \DateTimeImmutable($fechaFinal)
-            );
-
-            $downloadType = $tipo === 'emitidos' ? DownloadType::emitidos() : DownloadType::recibidos();
-            $query->setDownloadType($downloadType);
-
-            if ($soloVigentes) {
-                $query->setStateVoucher(StatesVoucherOption::vigentes());
-            }
-
-            Log::info('Consultando CFDIs por período', [
-                'team_id' => $this->team->id,
-                'rfc' => $this->config['rfc'],
-                'fecha_inicial' => $fechaInicial,
-                'fecha_final' => $fechaFinal,
-                'tipo' => $tipo,
-                'solo_vigentes' => $soloVigentes
-            ]);
-
-            $list = $this->scraper->listByPeriod($query);
-
-            Log::info('Consulta de CFDIs completada', [
-                'team_id' => $this->team->id,
-                'rfc' => $this->config['rfc'],
-                'tipo' => $tipo,
-                'count' => $list->count()
-            ]);
-
-            return [
-                'success' => true,
-                'list' => $list,
-                'count' => $list->count()
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Error consultando CFDIs por período', [
-                'team_id' => $this->team->id,
-                'rfc' => $this->config['rfc'],
-                'fecha_inicial' => $fechaInicial,
-                'fecha_final' => $fechaFinal,
-                'tipo' => $tipo,
-                'error' => $e->getMessage()
-            ]);
-
-            return ['success' => false, 'error' => $e->getMessage(), 'list' => []];
         }
+
+        return ['success' => false, 'error' => 'Se excedió el número máximo de reintentos', 'list' => []];
     }
 
     /**
@@ -263,41 +311,71 @@ class CfdiSatScraperService
      */
     public function listByUuids(array $uuids, string $tipo = 'emitidos'): array
     {
-        try {
-            if (!$this->scraper) {
-                $init = $this->initializeScraper();
-                if (!$init['valid']) {
-                    return ['success' => false, 'error' => $init['error'], 'list' => []];
+        $maxRetries = 2;
+        $attempt = 0;
+
+        while ($attempt < $maxRetries) {
+            try {
+                if (!$this->scraper) {
+                    $init = $this->initializeScraper();
+                    if (!$init['valid']) {
+                        return ['success' => false, 'error' => $init['error'], 'list' => []];
+                    }
                 }
+
+                $downloadType = $tipo === 'emitidos' ? DownloadType::emitidos() : DownloadType::recibidos();
+
+                Log::info('Consultando CFDIs por UUIDs', [
+                    'team_id' => $this->team->id,
+                    'rfc' => $this->config['rfc'],
+                    'tipo' => $tipo,
+                    'uuids_count' => count($uuids),
+                    'intento' => $attempt + 1
+                ]);
+
+                $list = $this->scraper->listByUuids($uuids, $downloadType);
+
+                return [
+                    'success' => true,
+                    'list' => $list,
+                    'count' => $list->count()
+                ];
+
+            } catch (\Exception $e) {
+                $attempt++;
+
+                // Verificar si es un error de sesión
+                $isSessionError = strpos($e->getMessage(), 'session registered') !== false ||
+                                  strpos($e->getMessage(), 'portal home page') !== false;
+
+                if ($isSessionError && $attempt < $maxRetries) {
+                    Log::warning('Error de sesión detectado en listByUuids, reintentando...', [
+                        'team_id' => $this->team->id,
+                        'rfc' => $this->config['rfc'],
+                        'intento' => $attempt,
+                        'error' => $e->getMessage()
+                    ]);
+
+                    // Limpiar scraper y cookies para forzar nueva sesión
+                    $this->scraper = null;
+                    $this->cleanCookie();
+                    sleep(2); // Esperar 2 segundos antes de reintentar
+                    continue;
+                }
+
+                Log::error('Error consultando CFDIs por UUIDs', [
+                    'team_id' => $this->team->id,
+                    'rfc' => $this->config['rfc'],
+                    'tipo' => $tipo,
+                    'error' => $e->getMessage(),
+                    'intentos_realizados' => $attempt
+                ]);
+
+                return ['success' => false, 'error' => $e->getMessage(), 'list' => []];
             }
-
-            $downloadType = $tipo === 'emitidos' ? DownloadType::emitidos() : DownloadType::recibidos();
-
-            Log::info('Consultando CFDIs por UUIDs', [
-                'team_id' => $this->team->id,
-                'rfc' => $this->config['rfc'],
-                'tipo' => $tipo,
-                'uuids_count' => count($uuids)
-            ]);
-
-            $list = $this->scraper->listByUuids($uuids, $downloadType);
-
-            return [
-                'success' => true,
-                'list' => $list,
-                'count' => $list->count()
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Error consultando CFDIs por UUIDs', [
-                'team_id' => $this->team->id,
-                'rfc' => $this->config['rfc'],
-                'tipo' => $tipo,
-                'error' => $e->getMessage()
-            ]);
-
-            return ['success' => false, 'error' => $e->getMessage(), 'list' => []];
         }
+
+        return ['success' => false, 'error' => 'Se excedió el número máximo de reintentos', 'list' => []];
     }
 
     /**

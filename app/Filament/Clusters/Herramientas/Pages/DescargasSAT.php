@@ -69,6 +69,8 @@ use PhpCfdi\SatWsDescargaMasiva\WebClient\GuzzleWebClient;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 use PhpCfdi\CfdiSatScraper\SatHttpGateway;
+use App\Services\CfdiSatScraperService;
+use App\Services\XmlProcessorService;
 
 
 
@@ -361,55 +363,83 @@ class DescargasSAT extends Page implements HasTable,HasForms
                             }
                         })
                         ->action(function($record,$data) {
-                            $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
-                            $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
-                            $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
-                            $rfc = $record->taxid;
-                            $claveCiec = $record->claveciec;
-                            $fielcer = storage_path().'/app/public/'.$record->archivocer;
-                            $fielkey = storage_path().'/app/public/'.$record->archivokey;
-                            $fielpass = $record->fielpass;
-                            $cookieJarPath = storage_path().'/app/public/cookies/';
-                            $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
-                            if(File::exists($cookieJarFile)) unlink($cookieJarFile);
-                            $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
-                            $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
-                            $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
-                            if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
-                            if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
-                            if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
-                            if(file_exists($cookieJarFile)) unlink($cookieJarFile);
-                            if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
-                            $client = new Client([
-                                'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
-                            ]);
-                            $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                            $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
-                            $fielSessionManager = FielSessionManager::create($credential);
-                            $satScraper = new SatScraper($fielSessionManager, $gateway);
-                            $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                            $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
-                            $list = $satScraper->listByPeriod($query);
-                            $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath_EMI, true, 0777);
-                            $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
-                            $this->ProcesaEmitidos($downloadsPath_EMI,$record->id);
-                            $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                            $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
-                            $list2 = $satScraper->listByPeriod($query2);
-                            $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath_REC, true, 0777);
-                            $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
-                            $this->ProcesaRecibidos($downloadsPath_REC,$record->id);
-                            $this->ProcesaPDF($downloadsPath2,$record->id);
-                            ValidaDescargas::create([
-                                'fecha'=>Carbon::now(),
-                                'inicio'=>$fecha_inicial,
-                                'fin'=>$fecha_final,
-                                'recibidos'=>$list2->count(),
-                                'emitidos'=>$list->count(),
-                                'estado'=>'Completado',
-                                'team_id'=>$record->id
-                            ]);
-                            Notification::make()->title('Proceso Completado')->success()->send();
+                            try {
+                                $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
+                                $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
+
+                                // Inicializar servicios
+                                $scraperService = new CfdiSatScraperService($record);
+                                $xmlProcessor = new XmlProcessorService();
+
+                                // Inicializar scraper
+                                $init = $scraperService->initializeScraper();
+                                if (!$init['valid']) {
+                                    Notification::make()
+                                        ->title('Error')
+                                        ->body($init['error'])
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
+
+                                // Consultar y descargar emitidos
+                                $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', true);
+                                if (!$emitidosResult['success']) {
+                                    throw new \Exception('Error consultando emitidos: ' . $emitidosResult['error']);
+                                }
+
+                                $scraperService->downloadResources($emitidosResult['list'], 'xml', 'emitidos', 50);
+                                $scraperService->downloadResources($emitidosResult['list'], 'pdf', 'emitidos', 50);
+
+                                // Consultar y descargar recibidos
+                                $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', true);
+                                if (!$recibidosResult['success']) {
+                                    throw new \Exception('Error consultando recibidos: ' . $recibidosResult['error']);
+                                }
+
+                                $scraperService->downloadResources($recibidosResult['list'], 'xml', 'recibidos', 50);
+                                $scraperService->downloadResources($recibidosResult['list'], 'pdf', 'recibidos', 50);
+
+                                // Procesar archivos XML
+                                $config = $scraperService->getConfig();
+                                $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
+                                $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
+                                $xmlProcessor->processPdfDirectory($config['downloadsPath']['pdf'], $record->id);
+
+                                // Registrar descarga exitosa
+                                ValidaDescargas::create([
+                                    'fecha' => Carbon::now(),
+                                    'inicio' => $fecha_inicial,
+                                    'fin' => $fecha_final,
+                                    'recibidos' => $recibidosResult['count'],
+                                    'emitidos' => $emitidosResult['count'],
+                                    'estado' => 'Completado',
+                                    'team_id' => $record->id
+                                ]);
+
+                                Notification::make()
+                                    ->title('Proceso Completado')
+                                    ->body("Emitidos: {$emitidosResult['count']}, Recibidos: {$recibidosResult['count']}")
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                ValidaDescargas::create([
+                                    'fecha' => Carbon::now(),
+                                    'inicio' => $fecha_inicial ?? null,
+                                    'fin' => $fecha_final ?? null,
+                                    'recibidos' => 0,
+                                    'emitidos' => 0,
+                                    'estado' => $e->getMessage(),
+                                    'team_id' => $record->id
+                                ]);
+
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         }),
                     Action::make('Importar XML')
                         ->label('Importar XML')
@@ -454,83 +484,83 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         ->label('Fecha Final')->default(Carbon::now()->subDays(1)->format('Y-m-d')),
                 ])
                 ->action(function($data){
-                    $teams = Team::all();
+                    $teams = Team::where('descarga_cfdi', 'SI')->get();
                     $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
                     $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
-                    $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
+
+                    $exitosos = 0;
+                    $fallidos = 0;
+
                     foreach ($teams as $record) {
-                        if($record->descarga_cfdi == 'SI') {
-                            $rfc = $record->taxid;
-                            $fielcer = storage_path().'/app/public/'.$record->archivocer;
-                            $fielkey = storage_path().'/app/public/'.$record->archivokey;
-                            $fielpass = $record->fielpass;
-                            if(file_exists($fielcer) && file_exists($fielkey) && $fielpass != '') {
-                                try {
-                                    $cookieJarPath = storage_path() . '/app/public/cookies/';
-                                    $cookieJarFile = storage_path() . '/app/public/cookies/' . $rfc . '.json';
-                                    if(File::exists($cookieJarFile)) unlink($cookieJarFile);
-                                    $downloadsPath_REC = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/RECIBIDOS/';
-                                    $downloadsPath_EMI = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/EMITIDOS/';
-                                    $downloadsPath2 = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';
-                                    if (!is_dir($cookieJarPath)) {
-                                        mkdir($cookieJarPath, 0777, true);
-                                    }
-                                    if (!is_dir($downloadsPath_REC)) {
-                                        mkdir($downloadsPath_REC, 0777, true);
-                                    }
-                                    if (!is_dir($downloadsPath_EMI)) {
-                                        mkdir($downloadsPath_EMI, 0777, true);
-                                    }
-                                    if(file_exists($cookieJarFile)) unlink($cookieJarFile);
-                                    if (!file_exists($cookieJarFile)) {
-                                        fopen($cookieJarFile, 'w');
-                                    }
-                                    $client = new Client([
-                                        'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
-                                    ]);
-                                    $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                                    $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
-                                    $fielSessionManager = FielSessionManager::create($credential);
-                                    if($credential->isFiel()&&$credential->certificate()->validOn()) {
-                                        $satScraper = new SatScraper($fielSessionManager, $gateway);
-                                        $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                                        $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos())->setStateVoucher(StatesVoucherOption::vigentes());
-                                        $list = $satScraper->listByPeriod($query);
-                                        $satScraper->resourceDownloader(ResourceType::xml(), $list, 50)->saveTo($downloadsPath_EMI, true, 0777);
-                                        $satScraper->resourceDownloader(ResourceType::pdf(), $list, 50)->saveTo($downloadsPath2, true, 0777);
-                                        $this->ProcesaEmitidos($downloadsPath_EMI, $record->id);
-                                        $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                                        $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos())->setStateVoucher(StatesVoucherOption::vigentes());
-                                        $list2 = $satScraper->listByPeriod($query2);
-                                        $satScraper->resourceDownloader(ResourceType::xml(), $list2, 50)->saveTo($downloadsPath_REC, true, 0777);
-                                        $satScraper->resourceDownloader(ResourceType::pdf(), $list2, 50)->saveTo($downloadsPath2, true, 0777);
-                                        $this->ProcesaRecibidos($downloadsPath_REC, $record->id);
-                                        $this->ProcesaPDF($downloadsPath2, $record->id);
-                                        ValidaDescargas::create([
-                                            'fecha' => Carbon::now(),
-                                            'inicio' => $fecha_inicial,
-                                            'fin' => $fecha_final,
-                                            'recibidos' => $list2->count(),
-                                            'emitidos' => $list->count(),
-                                            'estado' => 'Completado',
-                                            'team_id' => $record->id
-                                        ]);
-                                    }
-                                } catch (\Exception $e) {
-                                    ValidaDescargas::create([
-                                        'fecha' => Carbon::now(),
-                                        'inicio' => $fecha_inicial,
-                                        'fin' => $fecha_final,
-                                        'recibidos' => 0,
-                                        'emitidos' => 0,
-                                        'estado' => $e->getMessage(),
-                                        'team_id' => $record->id
-                                    ]);
-                                }
+                        try {
+                            $scraperService = new CfdiSatScraperService($record);
+                            $xmlProcessor = new XmlProcessorService();
+
+                            // Validar archivos FIEL
+                            $validation = $scraperService->validateFielFiles();
+                            if (!$validation['valid']) {
+                                throw new \Exception($validation['error']);
                             }
+
+                            // Inicializar scraper
+                            $init = $scraperService->initializeScraper();
+                            if (!$init['valid']) {
+                                throw new \Exception($init['error']);
+                            }
+
+                            // Consultar y descargar emitidos
+                            $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', true);
+                            if ($emitidosResult['success']) {
+                                $scraperService->downloadResources($emitidosResult['list'], 'xml', 'emitidos', 50);
+                                $scraperService->downloadResources($emitidosResult['list'], 'pdf', 'emitidos', 50);
+                            }
+
+                            // Consultar y descargar recibidos
+                            $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', true);
+                            if ($recibidosResult['success']) {
+                                $scraperService->downloadResources($recibidosResult['list'], 'xml', 'recibidos', 50);
+                                $scraperService->downloadResources($recibidosResult['list'], 'pdf', 'recibidos', 50);
+                            }
+
+                            // Procesar archivos
+                            $config = $scraperService->getConfig();
+                            $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
+                            $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
+                            $xmlProcessor->processPdfDirectory($config['downloadsPath']['pdf'], $record->id);
+
+                            // Registrar éxito
+                            ValidaDescargas::create([
+                                'fecha' => Carbon::now(),
+                                'inicio' => $fecha_inicial,
+                                'fin' => $fecha_final,
+                                'recibidos' => $recibidosResult['count'] ?? 0,
+                                'emitidos' => $emitidosResult['count'] ?? 0,
+                                'estado' => 'Completado',
+                                'team_id' => $record->id
+                            ]);
+
+                            $exitosos++;
+
+                        } catch (\Exception $e) {
+                            ValidaDescargas::create([
+                                'fecha' => Carbon::now(),
+                                'inicio' => $fecha_inicial,
+                                'fin' => $fecha_final,
+                                'recibidos' => 0,
+                                'emitidos' => 0,
+                                'estado' => $e->getMessage(),
+                                'team_id' => $record->id
+                            ]);
+
+                            $fallidos++;
                         }
                     }
-                    Notification::make()->title('Proceso Completado')->success()->send();
+
+                    Notification::make()
+                        ->title('Proceso Completado')
+                        ->body("Exitosos: {$exitosos}, Fallidos: {$fallidos}")
+                        ->success()
+                        ->send();
                 }),
                 Action::make('Limpiar DB')
                 ->icon('fas-trash')

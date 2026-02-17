@@ -282,6 +282,8 @@ class ReembolsosResource extends Resource
                             'abono'=>0,
                             'factura'=>$factura->Serie.$factura->Folio,
                             'nopartida'=>$no_partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -298,6 +300,8 @@ class ReembolsosResource extends Resource
                             'abono'=>0,
                             'factura'=>$factura->Serie.$factura->Folio,
                             'nopartida'=>$no_partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -314,6 +318,8 @@ class ReembolsosResource extends Resource
                             'abono'=>$factura->Total,
                             'factura'=>$factura->Serie.$factura->Folio,
                             'nopartida'=>$no_partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -330,6 +336,8 @@ class ReembolsosResource extends Resource
                             'abono'=>0,
                             'factura'=>$factura->Serie.$factura->Folio,
                             'nopartida'=>$no_partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -346,6 +354,8 @@ class ReembolsosResource extends Resource
                             'abono'=>$factura->Total,
                             'factura'=>$factura->Serie.$factura->Folio,
                             'nopartida'=>$no_partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -384,6 +394,8 @@ class ReembolsosResource extends Resource
                         'abono'=>0,
                         'factura'=>'',
                         'nopartida'=>1,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -399,6 +411,8 @@ class ReembolsosResource extends Resource
                         'abono'=>round(floatval($record->importe_comp),2),
                         'factura'=>'',
                         'nopartida'=>2,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([

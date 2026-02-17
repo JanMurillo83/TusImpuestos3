@@ -370,6 +370,8 @@ class AlmacencfdisResource extends Resource
                 'abono'=>0,
                 'factura'=>$serie.$folio,
                 'nopartida'=>1,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -385,6 +387,8 @@ class AlmacencfdisResource extends Resource
                 'abono'=>$iva,
                 'factura'=>$serie.$folio,
                 'nopartida'=>2,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -400,6 +404,8 @@ class AlmacencfdisResource extends Resource
                 'abono'=>$subtotal,
                 'factura'=>$serie.$folio,
                 'nopartida'=>3,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -495,6 +501,8 @@ class AlmacencfdisResource extends Resource
                 'abono'=>$total,
                 'factura'=>$serie.$folio,
                 'nopartida'=>1,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -510,6 +518,8 @@ class AlmacencfdisResource extends Resource
                 'abono'=>0,
                 'factura'=>$serie.$folio,
                 'nopartida'=>2,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -525,6 +535,8 @@ class AlmacencfdisResource extends Resource
                 'abono'=>0,
                 'factura'=>$serie.$folio,
                 'nopartida'=>3,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([

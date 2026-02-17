@@ -90,6 +90,8 @@ class PolizaCierreService
                         'cargo' => $movimiento['cargo'],
                         'abono' => $movimiento['abono'],
                         'nopartida' => $nopartida++,
+                        'a_ejercicio'=>$ejercicio,
+                        'a_periodo'=>$periodo,
                         'team_id' => $team_id,
                     ]);
 
@@ -118,6 +120,8 @@ class PolizaCierreService
                 'cargo' => $utilidad < 0 ? abs($utilidad) : 0, // Si hay pérdida, se carga la cuenta de capital
                 'abono' => $utilidad > 0 ? $utilidad : 0, // Si hay utilidad, se abona la cuenta de capital
                 'nopartida' => $nopartida,
+                'a_ejercicio'=>$ejercicio,
+                'a_periodo'=>$periodo,
                 'team_id' => $team_id,
             ]);
 

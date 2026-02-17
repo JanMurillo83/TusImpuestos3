@@ -52,6 +52,8 @@ class ListActivosfijos extends ListRecords
                             'abono'=>0,
                             'factura'=>'S/F',
                             'nopartida'=>1,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -67,6 +69,8 @@ class ListActivosfijos extends ListRecords
                             'abono'=> 0,
                             'factura'=>'S/F',
                             'nopartida'=>2,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -83,6 +87,8 @@ class ListActivosfijos extends ListRecords
                             'abono'=>$record->importe,
                             'factura'=>'S/F',
                             'nopartida'=>3,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([

@@ -492,6 +492,8 @@ class BancoCuentasResource extends Resource
                             'abono'=>0,
                             'factura'=>'Traspaso',
                             'nopartida'=>$aux_indx,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -509,6 +511,8 @@ class BancoCuentasResource extends Resource
                         'abono'=>0,
                         'factura'=>'Traspaso',
                         'nopartida'=>$aux_indx,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -528,6 +532,8 @@ class BancoCuentasResource extends Resource
                             'abono'=>$comple,
                             'factura'=>'Traspaso',
                             'nopartida'=>$aux_indx,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -545,6 +551,8 @@ class BancoCuentasResource extends Resource
                         'abono'=>$data['importe'] - $comple,
                         'factura'=>'Traspaso',
                         'nopartida'=>$aux_indx,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([

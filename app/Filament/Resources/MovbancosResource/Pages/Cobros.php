@@ -382,6 +382,8 @@ class Cobros extends Page implements HasForms
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id,
                         ]);
@@ -405,6 +407,8 @@ class Cobros extends Page implements HasForms
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -421,6 +425,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $monto_par / 1.16 * 0.16,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -437,6 +443,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $monto_par,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -491,6 +499,8 @@ class Cobros extends Page implements HasForms
                             'abono' => 0,
                             'factura' => $fss->Serie . $fss->Folio,
                             'nopartida' => $partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
                         ]);
@@ -514,6 +524,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $dolares,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -530,6 +542,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $complemento,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -546,6 +560,8 @@ class Cobros extends Page implements HasForms
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -562,6 +578,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $iva_1,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' =>$partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -578,6 +596,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $imp_uti_a,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -636,6 +656,8 @@ class Cobros extends Page implements HasForms
                             'abono' => 0,
                             'factura' => $this->fact_nombres,
                             'nopartida' => $partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
                         ]);
@@ -654,6 +676,8 @@ class Cobros extends Page implements HasForms
                             'abono' => 0,
                             'factura' => $this->fact_nombres,
                             'nopartida' => $partida,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id' => Filament::getTenant()->id,
                             'igeg_id' => $igeg->id
                         ]);
@@ -679,6 +703,8 @@ class Cobros extends Page implements HasForms
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -695,6 +721,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $iva_1,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' =>$partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -711,6 +739,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $dolares,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -727,6 +757,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $complemento,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -743,6 +775,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $imp_uti_a,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -800,6 +834,8 @@ class Cobros extends Page implements HasForms
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id,
                         'igeg_id' => $igeg->id
                     ]);
@@ -817,6 +853,8 @@ class Cobros extends Page implements HasForms
                         'abono' => 0,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -833,6 +871,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $iva_2,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -849,6 +889,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $dolares,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -865,6 +907,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $complemento,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -881,6 +925,8 @@ class Cobros extends Page implements HasForms
                         'abono' => $imp_uti_a,
                         'factura' => $fss->Serie . $fss->Folio,
                         'nopartida' => $partida,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -1030,6 +1076,8 @@ class Cobros extends Page implements HasForms
                 'abono'=>$data['USD a Pagar'],
                 'factura'=>$fss->Serie . $fss->Folio,
                 'nopartida'=>$cnt_par,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id,
                 'igeg_id'=>$data['igeg_id_id']
             ]);
@@ -1047,6 +1095,8 @@ class Cobros extends Page implements HasForms
                 'abono'=>0,
                 'factura'=>$fss->Serie . $fss->Folio,
                 'nopartida'=>$cnt_par,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -1063,6 +1113,8 @@ class Cobros extends Page implements HasForms
                 'abono'=>(floatval($data['USD a Pagar']) / 1.16) * 0.16,
                 'factura'=>$fss->Serie . $fss->Folio,
                 'nopartida'=>$cnt_par,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -1084,6 +1136,8 @@ class Cobros extends Page implements HasForms
             'abono'=>0,
             'factura'=>'Cobros a Facturas',
             'nopartida'=>$cnt_par,
+            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+            'a_periodo'=>Filament::getTenant()->periodo,
             'team_id'=>Filament::getTenant()->id
         ]);
         DB::table('auxiliares_cat_polizas')->insert([

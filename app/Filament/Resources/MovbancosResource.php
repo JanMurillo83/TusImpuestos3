@@ -854,6 +854,8 @@ class MovbancosResource extends Resource
                                                 'abono'=>0,
                                                 'factura'=>'S/F',
                                                 'nopartida'=>1,
+                                                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                                'a_periodo'=>Filament::getTenant()->periodo,
                                                 'team_id'=>Filament::getTenant()->id
                                             ]);
                                             DB::table('auxiliares_cat_polizas')->insert([
@@ -869,6 +871,8 @@ class MovbancosResource extends Resource
                                                 'abono'=> 0,
                                                 'factura'=>'S/F',
                                                 'nopartida'=>2,
+                                                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                                'a_periodo'=>Filament::getTenant()->periodo,
                                                 'team_id'=>Filament::getTenant()->id
                                             ]);
                                             DB::table('auxiliares_cat_polizas')->insert([
@@ -885,6 +889,8 @@ class MovbancosResource extends Resource
                                                 'abono'=>$data['importe'],
                                                 'factura'=>'S/F',
                                                 'nopartida'=>3,
+                                                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                                'a_periodo'=>Filament::getTenant()->periodo,
                                                 'team_id'=>Filament::getTenant()->id
                                             ]);
                                             DB::table('auxiliares_cat_polizas')->insert([
@@ -1864,6 +1870,8 @@ class MovbancosResource extends Resource
                                 'abono' => $detalle['Abono'],
                                 'factura' => $detalle['Referencia'],
                                 'nopartida' => $partida,
+                                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                'a_periodo'=>Filament::getTenant()->periodo,
                                 'team_id' => Filament::getTenant()->id,
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
@@ -2032,6 +2040,8 @@ class MovbancosResource extends Resource
                     'abono'=>$record->importe,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>1,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2047,6 +2057,8 @@ class MovbancosResource extends Resource
                     'abono'=>($record->importe /1.16) * 0.16,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>2,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2062,6 +2074,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>3,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2077,6 +2091,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>4,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2111,6 +2127,8 @@ class MovbancosResource extends Resource
                         'abono'=>$record->importe,
                         'factura'=>'N/I',
                         'nopartida'=>1,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2126,6 +2144,8 @@ class MovbancosResource extends Resource
                         'abono'=>($record->importe /1.16) * 0.16,
                         'factura'=>'N/I',
                         'nopartida'=>2,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2141,6 +2161,8 @@ class MovbancosResource extends Resource
                         'abono'=>0,
                         'factura'=>'N/I',
                         'nopartida'=>3,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2156,6 +2178,8 @@ class MovbancosResource extends Resource
                         'abono'=>0,
                         'factura'=>'N/I',
                         'nopartida'=>4,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2203,6 +2227,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>'Prestamo',
                     'nopartida'=>$parno,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2221,6 +2247,8 @@ class MovbancosResource extends Resource
                         'abono'=>0,
                         'factura'=>'Prestamo',
                         'nopartida'=>$parno,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2238,6 +2266,8 @@ class MovbancosResource extends Resource
                         'abono'=>$pesos,
                         'factura'=>'Prestamo',
                         'nopartida'=>$parno,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2274,6 +2304,8 @@ class MovbancosResource extends Resource
                             'abono'=>$record->importe,
                             'factura'=>'Otros Ingresos',
                             'nopartida'=>1,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -2289,6 +2321,8 @@ class MovbancosResource extends Resource
                             'abono'=>0,
                             'factura'=>'Otros Ingresos',
                             'nopartida'=>2,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -2332,6 +2366,8 @@ class MovbancosResource extends Resource
                                 'abono' => $detalle['abono'],
                                 'factura' => $detalle['factura'],
                                 'nopartida' => $nopar,
+                                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                'a_periodo'=>Filament::getTenant()->periodo,
                                 'team_id' => Filament::getTenant()->id
                             ]);
                             DB::table('auxiliares_cat_polizas')->insert([
@@ -2442,6 +2478,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2458,6 +2496,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2474,6 +2514,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2490,6 +2532,8 @@ class MovbancosResource extends Resource
                     'abono'=>$iva_por_pag,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2507,6 +2551,8 @@ class MovbancosResource extends Resource
                         'abono' => 0,
                         'factura' => $facts[0]['desfactura'],
                         'nopartida' => $par_num,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2526,6 +2572,8 @@ class MovbancosResource extends Resource
                         'abono' => $diferencia_cam * -1,
                         'factura' => $facts[0]['desfactura'],
                         'nopartida' => $par_num,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id' => Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2544,6 +2592,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2560,6 +2610,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2576,6 +2628,8 @@ class MovbancosResource extends Resource
                     'abono'=>(($record->importe) /1.16) * 0.16,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2592,6 +2646,8 @@ class MovbancosResource extends Resource
                     'abono'=>$record->importe,
                     'factura'=>$facts[0]['desfactura'],
                     'nopartida'=>$par_num,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2629,6 +2685,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>1,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2644,6 +2702,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>2,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2659,6 +2719,8 @@ class MovbancosResource extends Resource
                 'abono'=>($record->importe /1.16) * 0.16,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>3,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2674,6 +2736,8 @@ class MovbancosResource extends Resource
                 'abono'=>$record->importe,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>4,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2708,6 +2772,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>1,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2723,6 +2789,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>2,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2738,6 +2806,8 @@ class MovbancosResource extends Resource
                 'abono'=>($record->importe /1.16) * 0.16,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>3,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2753,6 +2823,8 @@ class MovbancosResource extends Resource
                 'abono'=>$record->importe,
                 'factura'=>$facts[0]['desfactura'],
                 'nopartida'=>4,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2788,6 +2860,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>'Prestamo',
                     'nopartida'=>1,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2803,6 +2877,8 @@ class MovbancosResource extends Resource
                     'abono'=>$record->importe,
                     'factura'=>'Prestamo',
                     'nopartida'=>2,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2821,6 +2897,8 @@ class MovbancosResource extends Resource
                         'abono'=>($record->importe*$record->tcambio)-$record->importe,
                         'factura'=>'Prestamo',
                         'nopartida'=>3,
+                        'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                        'a_periodo'=>Filament::getTenant()->periodo,
                         'team_id'=>Filament::getTenant()->id
                     ]);
                     DB::table('auxiliares_cat_polizas')->insert([
@@ -2856,6 +2934,8 @@ class MovbancosResource extends Resource
                     'abono'=>0,
                     'factura'=>'Gasto no Deducible',
                     'nopartida'=>1,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2871,6 +2951,8 @@ class MovbancosResource extends Resource
                     'abono'=>$record->importe,
                     'factura'=>'Gasto no Deducible',
                     'nopartida'=>2,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id'=>Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([
@@ -2905,6 +2987,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Pago de Nomina',
                 'nopartida'=>1,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2920,6 +3004,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Pago de Nomina',
                 'nopartida'=>2,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2935,6 +3021,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Pago de Nomina',
                 'nopartida'=>3,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2950,6 +3038,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Pago de Nomina',
                 'nopartida'=>4,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2965,6 +3055,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Pago de Nomina',
                 'nopartida'=>5,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -2980,6 +3072,8 @@ class MovbancosResource extends Resource
                 'abono'=>$record->importe,
                 'factura'=>'Pago de Nomina',
                 'nopartida'=>6,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3014,6 +3108,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Anticipo gastos adunales',
                 'nopartida'=>1,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3029,6 +3125,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Anticipo gastos adunales',
                 'nopartida'=>2,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3044,6 +3142,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Anticipo gastos adunales',
                 'nopartida'=>3,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3059,6 +3159,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Anticipo gastos adunales',
                 'nopartida'=>4,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3074,6 +3176,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Anticipo gastos adunales',
                 'nopartida'=>5,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3089,6 +3193,8 @@ class MovbancosResource extends Resource
                 'abono'=>0,
                 'factura'=>'Anticipo gastos adunales',
                 'nopartida'=>6,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3104,6 +3210,8 @@ class MovbancosResource extends Resource
                 'abono'=>$record->importe,
                 'factura'=>'Anticipo gastos adunales',
                 'nopartida'=>7,
+                'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                'a_periodo'=>Filament::getTenant()->periodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -3147,6 +3255,8 @@ class MovbancosResource extends Resource
                     'abono' => $detalle['abono'],
                     'factura' => $detalle['factura'],
                     'nopartida' => $nopar,
+                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                    'a_periodo'=>Filament::getTenant()->periodo,
                     'team_id' => Filament::getTenant()->id
                 ]);
                 DB::table('auxiliares_cat_polizas')->insert([

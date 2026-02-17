@@ -160,6 +160,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>0,
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -176,6 +178,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval($imp_o),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -199,6 +203,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>0,
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -215,6 +221,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>0,
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -231,6 +239,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval($imp_o),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -247,6 +257,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval(($imp_o*$tc_o)-$imp_o),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -294,6 +306,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>0,
                                     'factura'=>'F',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -312,6 +326,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval($imp_o),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -330,6 +346,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval($mon_comple),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -348,6 +366,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval($gan_per_a),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -393,6 +413,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>0,
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -411,6 +433,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>0,
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -429,6 +453,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval($imp_o),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([
@@ -447,6 +473,8 @@ class TraspasoBanco extends Widget implements HasForms
                                     'abono'=>round(floatval($gan_per_a),2),
                                     'factura'=>'F-',
                                     'nopartida'=>$par_num,
+                                    'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                                    'a_periodo'=>Filament::getTenant()->periodo,
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                                 DB::table('auxiliares_cat_polizas')->insert([

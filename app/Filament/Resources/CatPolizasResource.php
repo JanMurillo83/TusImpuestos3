@@ -1171,6 +1171,8 @@ class CatPolizasResource extends Resource
                             'abono'=>$aux->abono,
                             'factura'=>$aux->factura,
                             'nopartida'=>$aux->nopartida,
+                            'a_ejercicio'=>$anio_pol,
+                            'a_periodo'=>$mes_pol,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([
@@ -1607,6 +1609,8 @@ class CatPolizasResource extends Resource
                             'abono'=>round(floatval($dato['abono']),2),
                             'factura'=>'F-',
                             'nopartida'=>$par_num,
+                            'a_ejercicio'=>Filament::getTenant()->ejercicio,
+                            'a_periodo'=>Filament::getTenant()->periodo,
                             'team_id'=>Filament::getTenant()->id
                         ]);
                         DB::table('auxiliares_cat_polizas')->insert([

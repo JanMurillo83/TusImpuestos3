@@ -95,6 +95,7 @@ class ConsultaCFDISAT extends Page implements HasForms,HasActions
                                 if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
                                 if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
                                 if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
+                                if(file_exists($cookieJarFile)) unlink($cookieJarFile);
                                 if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
                                 $client = new Client([
                                     'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
@@ -280,12 +281,14 @@ class ConsultaCFDISAT extends Page implements HasForms,HasActions
         $fielpass = $record->fielpass;
         $cookieJarPath = storage_path().'/app/public/cookies/';
         $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
+        if(File::exists($cookieJarFile)) unlink($cookieJarFile);
         $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
         $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
         $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
         if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
         if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
         if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
+        if(file_exists($cookieJarFile)) unlink($cookieJarFile);
         if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
         $client = new Client([
             'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],

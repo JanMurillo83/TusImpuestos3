@@ -27,6 +27,7 @@ use Filament\Pages\Page;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\FileCookieJar;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use PhpCfdi\CfdiSatScraper\QueryByFilters;
 use PhpCfdi\CfdiSatScraper\ResourceType;
 use PhpCfdi\CfdiSatScraper\SatHttpGateway;
@@ -87,6 +88,7 @@ class ConsultaCFDISAT extends Page implements HasForms,HasActions
                                 //dd($fecha_inicial,$fecha_final,$rfc,$fielcer,$fielkey,$fielpass);
                                 $cookieJarPath = storage_path().'/app/public/cookies/';
                                 $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
+                                if(File::exists($cookieJarFile)) unlink($cookieJarFile);
                                 $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
                                 $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
                                 $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';

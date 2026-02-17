@@ -662,6 +662,8 @@ class cfdiei extends Page implements HasForms, HasTable
                 'factura'=>$serie.$folio,
                 'nopartida'=>1,
                 'uuid'=>$uuid,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -678,6 +680,8 @@ class cfdiei extends Page implements HasForms, HasTable
                 'factura'=>$serie.$folio,
                 'nopartida'=>2,
                 'uuid'=>$uuid,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
             DB::table('auxiliares_cat_polizas')->insert([
@@ -694,6 +698,8 @@ class cfdiei extends Page implements HasForms, HasTable
                 'factura'=>$serie.$folio,
                 'nopartida'=>3,
                 'uuid'=>$uuid,
+                'a_ejercicio'=>$cfejercicio,
+                'a_periodo'=>$cfperiodo,
                 'team_id'=>Filament::getTenant()->id
             ]);
 

@@ -717,6 +717,9 @@
                 </sl-card>
             </div>
         </sl-dialog>
+
+    <!-- Prevención de doble envío de formularios -->
+    <script src="{{asset('js/prevent-double-submit.js')}}"></script>
     </body>
 </html>
 

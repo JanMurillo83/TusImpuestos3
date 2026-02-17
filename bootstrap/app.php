@@ -12,7 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Registrar middleware para prevenir envíos duplicados
+        $middleware->alias([
+            'prevent.duplicate' => \App\Http\Middleware\PreventDuplicateSubmissions::class,
+        ]);
+
+        // Aplicar globalmente a rutas web (opcional - comentar si prefieres aplicar solo en rutas específicas)
+        $middleware->web(append: [
+            \App\Http\Middleware\PreventDuplicateSubmissions::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -111,7 +111,7 @@
                         </td>
                         <td class="py-1.5 px-2 font-mono text-slate-700">
                             <?php
-                                $inv_par = \App\Models\Inventario::where('id',$par->item)->first()->clave;
+                                $inv_par = \App\Models\Inventario::where('id',$par->item)->first()->clave ?? '';
                             ?>
                             {{$inv_par}}
                         </td>

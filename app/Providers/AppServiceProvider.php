@@ -41,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
          // FASE 2: Registrar observer para actualización automática de saldos
          Auxiliares::observe(AuxiliaresObserver::class);
 
+         // Registrar script para prevención de doble envío de formularios
+         FilamentAsset::register([
+             Js::make('prevent-double-submit', asset('js/prevent-double-submit.js')),
+         ]);
+
          Filament::serving(function () {
             Filament::registerNavigationGroups([
                 NavigationGroup::make()

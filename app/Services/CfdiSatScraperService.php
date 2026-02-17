@@ -158,11 +158,36 @@ class CfdiSatScraperService
             // Limpiar cookie existente
             $this->cleanCookie();
 
-            // Configurar cliente HTTP con SSL personalizado
+            // Configurar cliente HTTP con opciones robustas para conexión al SAT
+            // NOTA: @SECLEVEL=0 es necesario para OpenSSL 3.0+ debido a que el SAT usa claves DH débiles
             $client = new Client([
-                'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
-                'timeout' => 120,
-                'connect_timeout' => 30,
+                'curl' => [
+                    CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=0',  // Nivel 0 para permitir claves DH pequeñas del SAT
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TCP_KEEPALIVE => 1,
+                    CURLOPT_TCP_KEEPIDLE => 120,
+                    CURLOPT_TCP_KEEPINTVL => 60,
+                ],
+                'timeout' => 180,
+                'connect_timeout' => 60,
+                'http_errors' => true,
+                'allow_redirects' => [
+                    'max' => 10,
+                    'strict' => true,
+                    'referer' => true,
+                    'protocols' => ['https'],
+                ],
+                'verify' => true,
+                'headers' => [
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language' => 'es-MX,es;q=0.9',
+                    'Accept-Encoding' => 'gzip, deflate, br',
+                    'Connection' => 'keep-alive',
+                ],
             ]);
 
             $gateway = new SatHttpGateway($client, new FileCookieJar($this->cookieJarFile, true));
@@ -173,26 +198,12 @@ class CfdiSatScraperService
                 $this->config['fielpass']
             );
 
+            // Crear session manager y scraper
             $fielSessionManager = FielSessionManager::create($credential);
             $this->scraper = new SatScraper($fielSessionManager, $gateway);
 
-            // Forzar login al portal para establecer la sesión
-            try {
-                if (!$fielSessionManager->hasLogin()) {
-                    $fielSessionManager->login();
-
-                    Log::info('Sesión iniciada correctamente en el portal SAT', [
-                        'team_id' => $this->team->id,
-                        'rfc' => $this->config['rfc']
-                    ]);
-                }
-            } catch (\Exception $loginError) {
-                Log::warning('No se pudo hacer login previo, se intentará en la primera consulta', [
-                    'team_id' => $this->team->id,
-                    'rfc' => $this->config['rfc'],
-                    'error' => $loginError->getMessage()
-                ]);
-            }
+            // El login se hace automáticamente en la primera llamada, no necesitamos forzarlo aquí
+            // Si hay problemas, se manejarán con los reintentos en listByPeriod y listByUuids
 
             Log::info('SatScraper inicializado correctamente', [
                 'team_id' => $this->team->id,

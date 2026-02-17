@@ -26,19 +26,23 @@ class AuxiliaresObserver
         // FASE 2: Feature flag para habilitar actualización automática
         // Por defecto está DESHABILITADO para permitir testing gradual
         if (config('saldos.auto_update_enabled', false)) {
+            // Si a_ejercicio o a_periodo son nulos, obtener del tenant actual
+            $ejercicio = $auxiliares->a_ejercicio ?? \Filament\Facades\Filament::getTenant()->ejercicio;
+            $periodo = $auxiliares->a_periodo ?? \Filament\Facades\Filament::getTenant()->periodo;
+
             // Disparar job async para actualizar saldos incrementalmente
             ActualizarSaldosCuentaJob::dispatch(
                 $auxiliares->team_id,
                 $auxiliares->codigo,
-                $auxiliares->a_ejercicio,
-                $auxiliares->a_periodo
+                $ejercicio,
+                $periodo
             )->onQueue('saldos');
 
             // Invalidar caché inmediatamente para este periodo
             SaldosCache::invalidatePeriodo(
                 $auxiliares->team_id,
-                $auxiliares->a_ejercicio,
-                $auxiliares->a_periodo
+                $ejercicio,
+                $periodo
             );
         }
     }
@@ -55,14 +59,21 @@ class AuxiliaresObserver
         if (config('saldos.auto_update_enabled', false)) {
             // Detectar si cambió información relevante para saldos
             if ($auxiliares->isDirty(['cargo', 'abono', 'codigo', 'a_ejercicio', 'a_periodo'])) {
+                // Si a_ejercicio o a_periodo son nulos, obtener del tenant actual
+                $ejercicio = $auxiliares->a_ejercicio ?? \Filament\Facades\Filament::getTenant()->ejercicio;
+                $periodo = $auxiliares->a_periodo ?? \Filament\Facades\Filament::getTenant()->periodo;
+
                 // Si cambió de cuenta, actualizar la cuenta anterior también
                 if ($auxiliares->isDirty('codigo')) {
                     $codigo_anterior = $auxiliares->getOriginal('codigo');
+                    $ejercicio_anterior = $auxiliares->getOriginal('a_ejercicio') ?? \Filament\Facades\Filament::getTenant()->ejercicio;
+                    $periodo_anterior = $auxiliares->getOriginal('a_periodo') ?? \Filament\Facades\Filament::getTenant()->periodo;
+
                     ActualizarSaldosCuentaJob::dispatch(
                         $auxiliares->team_id,
                         $codigo_anterior,
-                        $auxiliares->getOriginal('a_ejercicio'),
-                        $auxiliares->getOriginal('a_periodo')
+                        $ejercicio_anterior,
+                        $periodo_anterior
                     )->onQueue('saldos');
                 }
 
@@ -70,15 +81,15 @@ class AuxiliaresObserver
                 ActualizarSaldosCuentaJob::dispatch(
                     $auxiliares->team_id,
                     $auxiliares->codigo,
-                    $auxiliares->a_ejercicio,
-                    $auxiliares->a_periodo
+                    $ejercicio,
+                    $periodo
                 )->onQueue('saldos');
 
                 // Invalidar caché
                 SaldosCache::invalidatePeriodo(
                     $auxiliares->team_id,
-                    $auxiliares->a_ejercicio,
-                    $auxiliares->a_periodo
+                    $ejercicio,
+                    $periodo
                 );
             }
         }
@@ -94,19 +105,23 @@ class AuxiliaresObserver
     public function deleted(Auxiliares $auxiliares): void
     {
         if (config('saldos.auto_update_enabled', false)) {
+            // Si a_ejercicio o a_periodo son nulos, obtener del tenant actual
+            $ejercicio = $auxiliares->a_ejercicio ?? \Filament\Facades\Filament::getTenant()->ejercicio;
+            $periodo = $auxiliares->a_periodo ?? \Filament\Facades\Filament::getTenant()->periodo;
+
             // Recalcular saldos al eliminar movimiento
             ActualizarSaldosCuentaJob::dispatch(
                 $auxiliares->team_id,
                 $auxiliares->codigo,
-                $auxiliares->a_ejercicio,
-                $auxiliares->a_periodo
+                $ejercicio,
+                $periodo
             )->onQueue('saldos');
 
             // Invalidar caché
             SaldosCache::invalidatePeriodo(
                 $auxiliares->team_id,
-                $auxiliares->a_ejercicio,
-                $auxiliares->a_periodo
+                $ejercicio,
+                $periodo
             );
         }
     }

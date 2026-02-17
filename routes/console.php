@@ -15,3 +15,9 @@ Schedule::command('facturas:modelos:emitir-debidas')->dailyAt('06:00');
 Schedule::command('reports:send-weekly')
     ->weeklyOn(1, env('WEEKLY_REPORTS_TIME', '08:00'))
     ->withoutOverlapping();
+
+// Descarga automática de CFDIs del SAT cada día a las 07:00
+Schedule::command('sat:descargar-automatico')
+    ->dailyAt('07:00')
+    ->withoutOverlapping()
+    ->onOneServer();

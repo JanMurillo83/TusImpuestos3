@@ -146,6 +146,8 @@ class TempCfdisResource extends Resource
                         $no_recibidos = $resultado['recibidos'];
                         $data_emitidos = $resultado['data_emitidos'];
                         $data_recibidos = $resultado['data_recibidos'];
+                        $metodo = $resultado['metodo'] ?? 'Scraper';
+
                         if($no_emitidos==0 && $no_recibidos==0) {
                             Notification::make()
                                 ->title('Proceso Terminado')
@@ -155,39 +157,43 @@ class TempCfdisResource extends Resource
                         }
                         $all_data = [];
                         foreach ($data_emitidos as $data) {
-                            /** @var \PhpCfdi\CfdiSatScraper\Metadata $data */
+                            // Compatible con ambos métodos (Scraper retorna objeto con método uuid(), Descarga Masiva retorna objeto con propiedad uuid)
+                            $uuid = is_callable([$data, 'uuid']) ? $data->uuid() : $data->uuid;
+
                             $all_data[] = [
-                                "UUID" => $data->uuid(),
-                                "RfcEmisor" => $data->rfcEmisor,
-                                "NombreEmisor" => $data->nombreEmisor,
-                                "RfcReceptor" => $data->rfcReceptor,
-                                "NombreReceptor" => $data->nombreReceptor,
-                                "RfcPac" => $data->pacCertifico,
-                                "FechaEmision" => $data->fechaEmision,
-                                "FechaCertificacionSat" => $data->fechaCertificacion,
-                                "Monto" => floatval(str_replace([',','$'],['',''],$data->total)),
-                                "EfectoComprobante" => $data->efectoComprobante,
-                                "Estatus" => $data->estadoComprobante,
-                                "FechaCancelacion" => $data->fechaDeCancelacion,
+                                "UUID" => $uuid,
+                                "RfcEmisor" => $data->rfcEmisor ?? '',
+                                "NombreEmisor" => $data->nombreEmisor ?? '',
+                                "RfcReceptor" => $data->rfcReceptor ?? '',
+                                "NombreReceptor" => $data->nombreReceptor ?? '',
+                                "RfcPac" => $data->pacCertifico ?? '',
+                                "FechaEmision" => $data->fechaEmision ?? '',
+                                "FechaCertificacionSat" => $data->fechaCertificacion ?? '',
+                                "Monto" => floatval(str_replace([',','$'],['',''],$data->total ?? '0')),
+                                "EfectoComprobante" => $data->efectoComprobante ?? '',
+                                "Estatus" => $data->estadoComprobante ?? '',
+                                "FechaCancelacion" => $data->fechaDeCancelacion ?? null,
                                 "Tipo" => 'Emitidos',
                                 "team_id" => Filament::getTenant()->id
                             ];
                         }
                         foreach ($data_recibidos as $data) {
-                            /** @var \PhpCfdi\CfdiSatScraper\Metadata $data */
+                            // Compatible con ambos métodos
+                            $uuid = is_callable([$data, 'uuid']) ? $data->uuid() : $data->uuid;
+
                             $all_data[]=[
-                                "UUID" => $data->uuid(),
-                                "RfcEmisor" => $data->rfcEmisor,
-                                "NombreEmisor" => $data->nombreEmisor,
-                                "RfcReceptor" => $data->rfcReceptor,
-                                "NombreReceptor" => $data->nombreReceptor,
-                                "RfcPac" => $data->pacCertifico,
-                                "FechaEmision" => $data->fechaEmision,
-                                "FechaCertificacionSat" => $data->fechaCertificacion,
-                                "Monto" => floatval(str_replace([',','$'],['',''],$data->total)),
-                                "EfectoComprobante" => $data->efectoComprobante,
-                                "Estatus" => $data->estadoComprobante,
-                                "FechaCancelacion" => $data->fechaDeCancelacion,
+                                "UUID" => $uuid,
+                                "RfcEmisor" => $data->rfcEmisor ?? '',
+                                "NombreEmisor" => $data->nombreEmisor ?? '',
+                                "RfcReceptor" => $data->rfcReceptor ?? '',
+                                "NombreReceptor" => $data->nombreReceptor ?? '',
+                                "RfcPac" => $data->pacCertifico ?? '',
+                                "FechaEmision" => $data->fechaEmision ?? '',
+                                "FechaCertificacionSat" => $data->fechaCertificacion ?? '',
+                                "Monto" => floatval(str_replace([',','$'],['',''],$data->total ?? '0')),
+                                "EfectoComprobante" => $data->efectoComprobante ?? '',
+                                "Estatus" => $data->estadoComprobante ?? '',
+                                "FechaCancelacion" => $data->fechaDeCancelacion ?? null,
                                 "Tipo" => 'Recibidos',
                                 "team_id" => Filament::getTenant()->id
                             ];
@@ -196,7 +202,7 @@ class TempCfdisResource extends Resource
                         $regs = app(NewCFDI::class)->graba($all_data);
                         Notification::make()
                             ->title('Proceso Terminado')
-                            ->body('Se han procesado '.$regs.'Registros Totales - '.$no_emitidos.' emitidos y '.$no_recibidos.' recibidos')
+                            ->body("Método: {$metodo} | Registros: {$regs} | Emitidos: {$no_emitidos} | Recibidos: {$no_recibidos}")
                             ->success()->send();
                     }),
                 Action::make('Mostrar')

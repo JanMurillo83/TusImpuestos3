@@ -27,6 +27,7 @@ use PhpCfdi\CfdiSatScraper\Sessions\Fiel\FielSessionManager;
 use PhpCfdi\Credentials\Credential;
 use Psr\Http\Message\ResponseInterface;
 use App\Services\CfdiSatScraperService;
+use App\Services\SatDescargaMasivaService;
 use App\Services\XmlProcessorService;
 
 class NewCFDI extends Controller
@@ -49,43 +50,153 @@ class NewCFDI extends Controller
         $fecha_inicial = Carbon::create($fecha_i)->format('Y-m-d');
         $fecha_final = Carbon::create($fecha_f)->format('Y-m-d');
 
-        try {
-            $scraperService = new CfdiSatScraperService($record);
+        // Calcular días y decidir estrategia
+        $dias = SatDescargaMasivaService::calcularDias($fecha_inicial, $fecha_final);
+        $usarDescargaMasiva = $dias > 30;
 
-            // Validar archivos FIEL
-            $validation = $scraperService->validateFielFiles();
-            if (!$validation['valid']) {
-                throw new \Exception($validation['error']);
+        // ESTRATEGIA HÍBRIDA CON FALLBACK
+        if ($usarDescargaMasiva) {
+            // INTENTO 1: Descarga Masiva para consulta rápida
+            try {
+                return $this->consultarConDescargaMasiva($record, $fecha_inicial, $fecha_final);
+            } catch (\Exception $e) {
+                // FALLBACK: Si falla descarga masiva, usar scraper
+                return $this->consultarConScraper($record, $fecha_inicial, $fecha_final);
             }
-
-            // Inicializar scraper
-            $init = $scraperService->initializeScraper();
-            if (!$init['valid']) {
-                throw new \Exception($init['error']);
+        } else {
+            // INTENTO 1: Scraper (método tradicional)
+            try {
+                return $this->consultarConScraper($record, $fecha_inicial, $fecha_final);
+            } catch (\Exception $e) {
+                // FALLBACK: Si falla scraper, usar descarga masiva
+                return $this->consultarConDescargaMasiva($record, $fecha_inicial, $fecha_final);
             }
-
-            // Consultar emitidos (sin filtro de vigentes para mostrar todos)
-            $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', false);
-            if (!$emitidosResult['success']) {
-                throw new \Exception($emitidosResult['error']);
-            }
-
-            // Consultar recibidos (sin filtro de vigentes para mostrar todos)
-            $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', false);
-            if (!$recibidosResult['success']) {
-                throw new \Exception($recibidosResult['error']);
-            }
-
-            return [
-                'recibidos' => $recibidosResult['count'],
-                'emitidos' => $emitidosResult['count'],
-                'data_emitidos' => $emitidosResult['list'],
-                'data_recibidos' => $recibidosResult['list']
-            ];
-
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
         }
+    }
+
+    /**
+     * Consulta CFDIs usando el scraper tradicional
+     */
+    private function consultarConScraper($record, $fecha_inicial, $fecha_final): array
+    {
+        $scraperService = new CfdiSatScraperService($record);
+
+        // Validar archivos FIEL
+        $validation = $scraperService->validateFielFiles();
+        if (!$validation['valid']) {
+            throw new \Exception($validation['error']);
+        }
+
+        // Inicializar scraper
+        $init = $scraperService->initializeScraper();
+        if (!$init['valid']) {
+            throw new \Exception($init['error']);
+        }
+
+        // Consultar emitidos (sin filtro de vigentes para mostrar todos)
+        $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', false);
+        if (!$emitidosResult['success']) {
+            throw new \Exception($emitidosResult['error']);
+        }
+
+        // Consultar recibidos (sin filtro de vigentes para mostrar todos)
+        $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', false);
+        if (!$recibidosResult['success']) {
+            throw new \Exception($recibidosResult['error']);
+        }
+
+        return [
+            'recibidos' => $recibidosResult['count'],
+            'emitidos' => $emitidosResult['count'],
+            'data_emitidos' => $emitidosResult['list'],
+            'data_recibidos' => $recibidosResult['list'],
+            'metodo' => 'Scraper'
+        ];
+    }
+
+    /**
+     * Consulta CFDIs usando descarga masiva (solo obtiene metadata de los XMLs)
+     */
+    private function consultarConDescargaMasiva($record, $fecha_inicial, $fecha_final): array
+    {
+        $masivaService = new SatDescargaMasivaService($record);
+
+        // Solicitar y descargar emitidos
+        $emitidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'emitidos');
+        if (!$emitidosResult['success']) {
+            throw new \Exception('Error en descarga masiva de emitidos: ' . ($emitidosResult['error'] ?? 'Error desconocido'));
+        }
+
+        // Solicitar y descargar recibidos
+        $recibidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'recibidos');
+        if (!$recibidosResult['success']) {
+            throw new \Exception('Error en descarga masiva de recibidos: ' . ($recibidosResult['error'] ?? 'Error desconocido'));
+        }
+
+        // Procesar los XMLs descargados para extraer metadata
+        $config = $masivaService->getConfig();
+        $emitidosMetadata = $this->extractMetadataFromXmls($config['downloadsPath']['xml_emitidos'], 'emitidos');
+        $recibidosMetadata = $this->extractMetadataFromXmls($config['downloadsPath']['xml_recibidos'], 'recibidos');
+
+        return [
+            'recibidos' => count($recibidosMetadata),
+            'emitidos' => count($emitidosMetadata),
+            'data_emitidos' => $emitidosMetadata,
+            'data_recibidos' => $recibidosMetadata,
+            'metodo' => 'Descarga Masiva'
+        ];
+    }
+
+    /**
+     * Extrae metadata de archivos XML (similar a lo que regresa el scraper)
+     */
+    private function extractMetadataFromXmls(string $directorio, string $tipo): array
+    {
+        $metadata = [];
+
+        if (!is_dir($directorio)) {
+            return $metadata;
+        }
+
+        $files = array_diff(scandir($directorio), array('.', '..'));
+
+        foreach ($files as $file) {
+            if (pathinfo($file, PATHINFO_EXTENSION) !== 'xml') {
+                continue;
+            }
+
+            try {
+                $filePath = $directorio . $file;
+                $xmlContents = file_get_contents($filePath);
+                $cfdi = Cfdi::newFromString($xmlContents);
+                $comprobante = $cfdi->getNode();
+                $emisor = $comprobante->searchNode('cfdi:Emisor');
+                $receptor = $comprobante->searchNode('cfdi:Receptor');
+                $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+
+                // Crear objeto compatible con el formato de scraper
+                $metadata[] = (object) [
+                    'uuid' => $tfd['UUID'] ?? '',
+                    'rfcEmisor' => $emisor['Rfc'] ?? '',
+                    'nombreEmisor' => $emisor['Nombre'] ?? '',
+                    'rfcReceptor' => $receptor['Rfc'] ?? '',
+                    'nombreReceptor' => $receptor['Nombre'] ?? '',
+                    'pacCertifico' => $tfd['RfcProvCertif'] ?? '',
+                    'fechaEmision' => $comprobante['Fecha'] ?? '',
+                    'fechaCertificacion' => $tfd['FechaTimbrado'] ?? '',
+                    'total' => '$' . number_format(floatval($comprobante['Total'] ?? 0), 2),
+                    'efectoComprobante' => $comprobante['TipoDeComprobante'] ?? '',
+                    'estadoComprobante' => 'Vigente', // Asumimos vigente ya que viene de descarga activa
+                    'fechaDeCancelacion' => null,
+                ];
+
+            } catch (\Exception $e) {
+                // Si hay error procesando un XML, continuar con el siguiente
+                continue;
+            }
+        }
+
+        return $metadata;
     }
 
     public function Descarga($team_id,$uuids) : array

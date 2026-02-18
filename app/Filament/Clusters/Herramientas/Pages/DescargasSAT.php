@@ -70,6 +70,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 use PhpCfdi\CfdiSatScraper\SatHttpGateway;
 use App\Services\CfdiSatScraperService;
+use App\Services\SatDescargaMasivaService;
 use App\Services\XmlProcessorService;
 
 
@@ -367,59 +368,107 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
                                 $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
 
-                                // Inicializar servicios
-                                $scraperService = new CfdiSatScraperService($record);
+                                // Calcular días y decidir estrategia
+                                $dias = SatDescargaMasivaService::calcularDias($fecha_inicial, $fecha_final);
+                                $usarDescargaMasiva = $dias > 30; // Si es más de 30 días, usar descarga masiva
+
+                                $metodoUsado = '';
+                                $emitidosCount = 0;
+                                $recibidosCount = 0;
                                 $xmlProcessor = new XmlProcessorService();
 
-                                // Inicializar scraper
-                                $init = $scraperService->initializeScraper();
-                                if (!$init['valid']) {
-                                    Notification::make()
-                                        ->title('Error')
-                                        ->body($init['error'])
-                                        ->danger()
-                                        ->send();
-                                    return;
+                                // ESTRATEGIA HÍBRIDA CON FALLBACK
+                                if ($usarDescargaMasiva) {
+                                    // INTENTO 1: Descarga Masiva (método principal para períodos largos)
+                                    try {
+                                        $masivaService = new SatDescargaMasivaService($record);
+
+                                        // Descargar emitidos
+                                        $emitidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'emitidos');
+                                        if ($emitidosResult['success']) {
+                                            $emitidosCount = $emitidosResult['paquetes_count'] ?? 0;
+                                        }
+
+                                        // Descargar recibidos
+                                        $recibidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'recibidos');
+                                        if ($recibidosResult['success']) {
+                                            $recibidosCount = $recibidosResult['paquetes_count'] ?? 0;
+                                        }
+
+                                        // Procesar archivos XML
+                                        $config = $masivaService->getConfig();
+                                        $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
+                                        $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
+
+                                        $metodoUsado = 'Descarga Masiva';
+
+                                        // TODO: Aquí se pueden descargar PDFs con scraper si es necesario
+                                        // usando los UUIDs extraídos de los XMLs
+
+                                    } catch (\Exception $e) {
+                                        // FALLBACK: Si falla descarga masiva, usar scraper
+                                        Notification::make()
+                                            ->title('Advertencia')
+                                            ->body('Descarga masiva falló, intentando con método alterno...')
+                                            ->warning()
+                                            ->send();
+
+                                        $scraperResult = self::descargarConScraper($record, $fecha_inicial, $fecha_final, $xmlProcessor);
+                                        $emitidosCount = $scraperResult['emitidos'];
+                                        $recibidosCount = $scraperResult['recibidos'];
+                                        $metodoUsado = 'Scraper (Fallback)';
+                                    }
+
+                                } else {
+                                    // INTENTO 1: Scraper (método principal para períodos cortos)
+                                    try {
+                                        $scraperResult = self::descargarConScraper($record, $fecha_inicial, $fecha_final, $xmlProcessor);
+                                        $emitidosCount = $scraperResult['emitidos'];
+                                        $recibidosCount = $scraperResult['recibidos'];
+                                        $metodoUsado = 'Scraper';
+
+                                    } catch (\Exception $e) {
+                                        // FALLBACK: Si falla scraper, usar descarga masiva
+                                        Notification::make()
+                                            ->title('Advertencia')
+                                            ->body('Scraper falló, intentando con descarga masiva...')
+                                            ->warning()
+                                            ->send();
+
+                                        $masivaService = new SatDescargaMasivaService($record);
+
+                                        $emitidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'emitidos');
+                                        if ($emitidosResult['success']) {
+                                            $emitidosCount = $emitidosResult['paquetes_count'] ?? 0;
+                                        }
+
+                                        $recibidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'recibidos');
+                                        if ($recibidosResult['success']) {
+                                            $recibidosCount = $recibidosResult['paquetes_count'] ?? 0;
+                                        }
+
+                                        $config = $masivaService->getConfig();
+                                        $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
+                                        $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
+
+                                        $metodoUsado = 'Descarga Masiva (Fallback)';
+                                    }
                                 }
-
-                                // Consultar y descargar emitidos
-                                $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', true);
-                                if (!$emitidosResult['success']) {
-                                    throw new \Exception('Error consultando emitidos: ' . $emitidosResult['error']);
-                                }
-
-                                $scraperService->downloadResources($emitidosResult['list'], 'xml', 'emitidos', 50);
-                                $scraperService->downloadResources($emitidosResult['list'], 'pdf', 'emitidos', 50);
-
-                                // Consultar y descargar recibidos
-                                $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', true);
-                                if (!$recibidosResult['success']) {
-                                    throw new \Exception('Error consultando recibidos: ' . $recibidosResult['error']);
-                                }
-
-                                $scraperService->downloadResources($recibidosResult['list'], 'xml', 'recibidos', 50);
-                                $scraperService->downloadResources($recibidosResult['list'], 'pdf', 'recibidos', 50);
-
-                                // Procesar archivos XML
-                                $config = $scraperService->getConfig();
-                                $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
-                                $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
-                                $xmlProcessor->processPdfDirectory($config['downloadsPath']['pdf'], $record->id);
 
                                 // Registrar descarga exitosa
                                 ValidaDescargas::create([
                                     'fecha' => Carbon::now(),
                                     'inicio' => $fecha_inicial,
                                     'fin' => $fecha_final,
-                                    'recibidos' => $recibidosResult['count'],
-                                    'emitidos' => $emitidosResult['count'],
-                                    'estado' => 'Completado',
+                                    'recibidos' => $recibidosCount,
+                                    'emitidos' => $emitidosCount,
+                                    'estado' => 'Completado - ' . $metodoUsado,
                                     'team_id' => $record->id
                                 ]);
 
                                 Notification::make()
                                     ->title('Proceso Completado')
-                                    ->body("Emitidos: {$emitidosResult['count']}, Recibidos: {$recibidosResult['count']}")
+                                    ->body("Método: {$metodoUsado} | Emitidos: {$emitidosCount}, Recibidos: {$recibidosCount}")
                                     ->success()
                                     ->send();
 
@@ -430,7 +479,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                     'fin' => $fecha_final ?? null,
                                     'recibidos' => 0,
                                     'emitidos' => 0,
-                                    'estado' => $e->getMessage(),
+                                    'estado' => 'Error: ' . $e->getMessage(),
                                     'team_id' => $record->id
                                 ]);
 
@@ -488,54 +537,73 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     $fecha_inicial = Carbon::create($data['fecha_inicial'])->format('Y-m-d');
                     $fecha_final = Carbon::create($data['fecha_final'])->format('Y-m-d');
 
+                    // Calcular días y decidir estrategia
+                    $dias = SatDescargaMasivaService::calcularDias($fecha_inicial, $fecha_final);
+                    $usarDescargaMasiva = $dias > 30;
+
                     $exitosos = 0;
                     $fallidos = 0;
 
                     foreach ($teams as $record) {
                         try {
-                            $scraperService = new CfdiSatScraperService($record);
                             $xmlProcessor = new XmlProcessorService();
+                            $metodoUsado = '';
+                            $emitidosCount = 0;
+                            $recibidosCount = 0;
 
-                            // Validar archivos FIEL
-                            $validation = $scraperService->validateFielFiles();
-                            if (!$validation['valid']) {
-                                throw new \Exception($validation['error']);
+                            // ESTRATEGIA HÍBRIDA CON FALLBACK (igual que el action individual)
+                            if ($usarDescargaMasiva) {
+                                try {
+                                    $masivaService = new SatDescargaMasivaService($record);
+                                    $emitidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'emitidos');
+                                    if ($emitidosResult['success']) {
+                                        $emitidosCount = $emitidosResult['paquetes_count'] ?? 0;
+                                    }
+                                    $recibidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'recibidos');
+                                    if ($recibidosResult['success']) {
+                                        $recibidosCount = $recibidosResult['paquetes_count'] ?? 0;
+                                    }
+                                    $config = $masivaService->getConfig();
+                                    $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
+                                    $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
+                                    $metodoUsado = 'Descarga Masiva';
+                                } catch (\Exception $e) {
+                                    $scraperResult = self::descargarConScraper($record, $fecha_inicial, $fecha_final, $xmlProcessor);
+                                    $emitidosCount = $scraperResult['emitidos'];
+                                    $recibidosCount = $scraperResult['recibidos'];
+                                    $metodoUsado = 'Scraper (Fallback)';
+                                }
+                            } else {
+                                try {
+                                    $scraperResult = self::descargarConScraper($record, $fecha_inicial, $fecha_final, $xmlProcessor);
+                                    $emitidosCount = $scraperResult['emitidos'];
+                                    $recibidosCount = $scraperResult['recibidos'];
+                                    $metodoUsado = 'Scraper';
+                                } catch (\Exception $e) {
+                                    $masivaService = new SatDescargaMasivaService($record);
+                                    $emitidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'emitidos');
+                                    if ($emitidosResult['success']) {
+                                        $emitidosCount = $emitidosResult['paquetes_count'] ?? 0;
+                                    }
+                                    $recibidosResult = $masivaService->descargarCompleto($fecha_inicial, $fecha_final, 'recibidos');
+                                    if ($recibidosResult['success']) {
+                                        $recibidosCount = $recibidosResult['paquetes_count'] ?? 0;
+                                    }
+                                    $config = $masivaService->getConfig();
+                                    $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
+                                    $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
+                                    $metodoUsado = 'Descarga Masiva (Fallback)';
+                                }
                             }
-
-                            // Inicializar scraper
-                            $init = $scraperService->initializeScraper();
-                            if (!$init['valid']) {
-                                throw new \Exception($init['error']);
-                            }
-
-                            // Consultar y descargar emitidos
-                            $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', true);
-                            if ($emitidosResult['success']) {
-                                $scraperService->downloadResources($emitidosResult['list'], 'xml', 'emitidos', 50);
-                                $scraperService->downloadResources($emitidosResult['list'], 'pdf', 'emitidos', 50);
-                            }
-
-                            // Consultar y descargar recibidos
-                            $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', true);
-                            if ($recibidosResult['success']) {
-                                $scraperService->downloadResources($recibidosResult['list'], 'xml', 'recibidos', 50);
-                                $scraperService->downloadResources($recibidosResult['list'], 'pdf', 'recibidos', 50);
-                            }
-
-                            // Procesar archivos
-                            $config = $scraperService->getConfig();
-                            $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
-                            $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
-                            $xmlProcessor->processPdfDirectory($config['downloadsPath']['pdf'], $record->id);
 
                             // Registrar éxito
                             ValidaDescargas::create([
                                 'fecha' => Carbon::now(),
                                 'inicio' => $fecha_inicial,
                                 'fin' => $fecha_final,
-                                'recibidos' => $recibidosResult['count'] ?? 0,
-                                'emitidos' => $emitidosResult['count'] ?? 0,
-                                'estado' => 'Completado',
+                                'recibidos' => $recibidosCount,
+                                'emitidos' => $emitidosCount,
+                                'estado' => 'Completado - ' . $metodoUsado,
                                 'team_id' => $record->id
                             ]);
 
@@ -548,7 +616,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                 'fin' => $fecha_final,
                                 'recibidos' => 0,
                                 'emitidos' => 0,
-                                'estado' => $e->getMessage(),
+                                'estado' => 'Error: ' . $e->getMessage(),
                                 'team_id' => $record->id
                             ]);
 
@@ -651,6 +719,49 @@ class DescargasSAT extends Page implements HasTable,HasForms
                     Notification::make()->title('Proceso Completado')->success()->send();
                 })
             ]);
+    }
+
+    /**
+     * Método helper para descargar con scraper
+     */
+    private static function descargarConScraper($record, $fecha_inicial, $fecha_final, $xmlProcessor): array
+    {
+        $scraperService = new CfdiSatScraperService($record);
+
+        // Inicializar scraper
+        $init = $scraperService->initializeScraper();
+        if (!$init['valid']) {
+            throw new \Exception($init['error']);
+        }
+
+        // Consultar y descargar emitidos
+        $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', true);
+        if (!$emitidosResult['success']) {
+            throw new \Exception('Error consultando emitidos: ' . $emitidosResult['error']);
+        }
+
+        $scraperService->downloadResources($emitidosResult['list'], 'xml', 'emitidos', 50);
+        $scraperService->downloadResources($emitidosResult['list'], 'pdf', 'emitidos', 50);
+
+        // Consultar y descargar recibidos
+        $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', true);
+        if (!$recibidosResult['success']) {
+            throw new \Exception('Error consultando recibidos: ' . $recibidosResult['error']);
+        }
+
+        $scraperService->downloadResources($recibidosResult['list'], 'xml', 'recibidos', 50);
+        $scraperService->downloadResources($recibidosResult['list'], 'pdf', 'recibidos', 50);
+
+        // Procesar archivos XML
+        $config = $scraperService->getConfig();
+        $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $record->id, 'Emitidos');
+        $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $record->id, 'Recibidos');
+        $xmlProcessor->processPdfDirectory($config['downloadsPath']['pdf'], $record->id);
+
+        return [
+            'emitidos' => $emitidosResult['count'],
+            'recibidos' => $recibidosResult['count']
+        ];
     }
 
     public function ProcesaRecibidos($archivo,$team): void

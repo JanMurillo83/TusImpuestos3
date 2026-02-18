@@ -278,35 +278,19 @@ class FacturasResource extends Resource
                                         TextInput::make('descripcion')->columnSpan(3)->required(),
                                         TextInput::make('precio')->required()->default(0)
                                         ->currencyMask(decimalSeparator:'.',precision:4),
-                                        Forms\Components\TextInput::make('cvesat')
+                                        Forms\Components\Select::make('cvesat')
                                             ->label('Clave SAT')
-                                            ->default('01010101')
-                                            ->required()
-                                            ->suffixAction(
-                                                \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat')
-                                                    ->label('Buscador')
-                                                    ->icon('fas-circle-question')
-                                                    ->form([
-                                                        Forms\Components\Select::make('CatCveSat')
-                                                            ->default(function(Get $get): string{
-                                                                if($get('cvesat'))
-                                                                    $val = $get('cvesat');
-                                                                else
-                                                                    $val = '01010101';
-                                                                return $val;
-                                                            })
-                                                            ->label('Claves SAT')
-                                                            ->searchable()
-                                                            ->searchDebounce(100)
-                                                            ->getSearchResultsUsing(fn (string $search): array => Claves::where('mostrar', 'like', "%{$search}%")->limit(50)->pluck('mostrar', 'clave')->toArray())
-                                                    ])
-                                                    ->modalCancelAction(false)
-                                                    ->modalSubmitActionLabel('Seleccionar')
-                                                    ->modalWidth('sm')
-                                                    ->action(function(Set $set,$data){
-                                                        $set('cvesat',$data['CatCveSat']);
-                                                    })
-                                            ),
+                                            ->default(function(Get $get): string{
+                                                if($get('cvesat'))
+                                                    $val = $get('cvesat');
+                                                else
+                                                    $val = '01010101';
+                                                return $val;
+                                            })
+                                            ->searchable()
+                                            ->searchDebounce(500)
+                                            ->getSearchResultsUsing(fn (string $search): array => Claves::getCachedOptions($search, 25))
+                                            ->getOptionLabelUsing(fn ($value): ?string => Claves::getByClave($value)?->mostrar),
                                         Select::make('unidad')
                                             ->label('Unidad de Medida')
                                             ->searchable()

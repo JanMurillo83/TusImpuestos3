@@ -198,11 +198,10 @@ class InventarioResource extends Resource
                                 $val = '01010101';
                             return $val;
                         })
-                        ->preload()
-                        ->options(Claves::all()->pluck('mostrar','clave'))
                         ->searchable()
-                        ->searchDebounce(100)
-                        //->getSearchResultsUsing(fn (string $search): array => Claves::where('mostrar', 'like', "%{$search}%")->limit(50)->pluck('mostrar', 'clave')->toArray())
+                        ->searchDebounce(500)
+                        ->getSearchResultsUsing(fn (string $search): array => Claves::getCachedOptions($search, 25))
+                        ->getOptionLabelUsing(fn ($value): ?string => Claves::getByClave($value)?->mostrar)
                 ]),
 
             ]);

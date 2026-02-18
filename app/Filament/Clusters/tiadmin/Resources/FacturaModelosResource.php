@@ -199,7 +199,7 @@ class FacturaModelosResource extends Resource
                                                                         ->label('Claves SAT')
                                                                         ->searchable()
                                                                         ->searchDebounce(100)
-                                                                        ->getSearchResultsUsing(fn (string $search): array => Claves::where('mostrar', 'like', "%{$search}%")->limit(50)->pluck('mostrar', 'clave')->toArray())
+                                                                        ->getSearchResultsUsing(fn (string $search): array => Claves::getCachedOptions($search, 25))
                                                                 ])
                                                                 ->modalCancelAction(false)
                                                                 ->modalSubmitActionLabel('Seleccionar')

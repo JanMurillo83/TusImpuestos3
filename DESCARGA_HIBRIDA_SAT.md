@@ -201,13 +201,33 @@ $usarDescargaMasiva = $dias > 30;
 Para cambiar el umbral, modificar la línea 373 y 542 de `DescargasSAT.php`.
 
 ### Reintentos de Verificación
-La descarga masiva intenta verificar el estado **3 veces** con **10 segundos** de espera:
+La descarga masiva intenta verificar el estado **10 veces** con **30 segundos** de espera:
 
 ```php
-$descarga = $this->verificarYDescargar($requestId, $tipo, 3, 10);
+$descarga = $this->verificarYDescargar($requestId, $tipo, 10, 30);
 ```
 
-Para ajustar, modificar los parámetros en `SatDescargaMasivaService.php` línea 281.
+Esto permite esperar hasta **5 minutos** para que el SAT procese la solicitud.
+
+Para ajustar, modificar los parámetros en `SatDescargaMasivaService.php` línea 504.
+
+### Consideraciones de Timeout
+
+**Para Consultas Web (TempCfdis):**
+- La descarga masiva puede tardar varios minutos
+- Si el período es muy grande (>90 días), puede exceder el timeout del navegador
+- El sistema automáticamente hará fallback al scraper si falla
+- Recomendado: períodos de hasta 60 días para consultas web
+
+**Para Descargas Automáticas (Comando Artisan):**
+- No hay límite de timeout
+- Puede procesar períodos de meses sin problema
+- Ideal para descargas nocturnas programadas
+
+**Para Descargas Manuales (DescargasSAT):**
+- El usuario espera conscientemente el proceso
+- Apropiado para cualquier período de tiempo
+- Muestra notificaciones de progreso
 
 ## Uso del Comando Artisan
 
@@ -305,8 +325,29 @@ Cuando se complete una descarga masiva o falle después del fallback.
 
 ## Soporte y Troubleshooting
 
-### Error: "Solicitud aún en proceso"
-El SAT puede tardar en procesar solicitudes grandes. Aumentar intentos o tiempo de espera.
+### Error: "Solicitud aún en proceso, intente más tarde"
+
+**Causa:** El SAT está procesando la solicitud y aún no tiene los paquetes listos para descargar.
+
+**Solución:**
+1. **Es normal**: La descarga masiva es asíncrona, el SAT puede tardar varios minutos
+2. **El sistema maneja esto automáticamente**:
+   - Espera hasta 5 minutos (10 intentos × 30 segundos)
+   - Si falla, hace fallback automático al scraper
+3. **Si persiste**:
+   - El período consultado puede ser muy grande
+   - El sistema usará scraper automáticamente como fallback
+   - Para consultas web, considere períodos menores a 60 días
+
+**Ejemplo de comportamiento esperado:**
+```
+Usuario consulta 90 días en TempCfdis
+  → Intenta Descarga Masiva
+  → SAT procesa solicitud (puede tardar 5+ minutos)
+  → Error: "Solicitud aún en proceso"
+  → Fallback automático a Scraper
+  → ✓ Consulta completada con Scraper
+```
 
 ### Error: "FIEL expirada"
 Verificar vigencia con el action "Validacion FIEL" en la interfaz.
@@ -314,10 +355,28 @@ Verificar vigencia con el action "Validacion FIEL" en la interfaz.
 ### Error: "No se pudo abrir el archivo ZIP"
 Verificar permisos en `/storage/app/public/zipdescargas/`.
 
+### Timeout del Navegador en Consultas Web
+
+**Síntoma:** La página se queda cargando y no responde.
+
+**Causa:** Períodos muy grandes (>90 días) pueden exceder el timeout del servidor PHP o navegador.
+
+**Solución:**
+1. Usar períodos más cortos (≤60 días) para consultas web
+2. Para períodos largos, usar:
+   - Herramientas → Descargas SAT (interfaz preparada para esperas largas)
+   - Comando artisan (sin límite de tiempo)
+
 ### Logs Detallados
 ```bash
+# Ver logs de descarga masiva
 tail -f storage/logs/laravel.log | grep "SatDescargaMasiva"
+
+# Ver logs de scraper
 tail -f storage/logs/laravel.log | grep "SatScraper"
+
+# Ver todos los logs relacionados con SAT
+tail -f storage/logs/laravel.log | grep -E "(SatDescargaMasiva|SatScraper)"
 ```
 
 ## Licencias y Dependencias

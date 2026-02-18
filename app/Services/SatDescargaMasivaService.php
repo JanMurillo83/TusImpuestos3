@@ -499,8 +499,9 @@ class SatDescargaMasivaService
 
             $requestId = $solicitud['request_id'];
 
-            // Paso 2: Esperar y descargar (3 intentos, 10 segundos entre cada uno)
-            $descarga = $this->verificarYDescargar($requestId, $tipo, 3, 10);
+            // Paso 2: Esperar y descargar (10 intentos, 30 segundos entre cada uno = 5 minutos máximo)
+            // El SAT puede tardar varios minutos en procesar solicitudes grandes
+            $descarga = $this->verificarYDescargar($requestId, $tipo, 10, 30);
 
             return $descarga;
 

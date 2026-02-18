@@ -403,22 +403,9 @@ class ListFacturas extends ListRecords
                                     Notification::make()->title('Factura generada exitosamente')->success()->send();
                                     $action->close();
                                     $livewire->dispatch('close-modal', ['id' => $action->getName()]);
-                                }catch (\Exception $e){
-                                    Notification::make()->title('Factura NO generada')
-                                        ->body($e->getMessage())
-                                        ->danger()->send();
-                                    $action->close();
-                                    $livewire->dispatch('close-modal', ['id' => $action->getName()]);
-                                    $can_par = FacturasPartidas::where('facturas_id', $record->id)->get();
-                                    foreach ($can_par as $can_p) {
-                                        CotizacionesPartidas::where('id',$can_p->cotizacion_partida_id)
-                                            ->increment('pendientes',$can_p->cant);
-                                    }
-                                    Cotizaciones::where('id',$record->cotizacion_id)
-                                        ->update(['estado'=>'Activa']);
-                                    FacturasPartidas::where('facturas_id', $record->id)->delete();
-                                    Facturas::where('id',$record->id)->delete();
-                                    SurtidoInve::where('factura_id',$record->id)->delete();
+                                } catch (\Exception $e) {
+                                    DB::rollBack();
+                                    Notification::make()->title('Error al generar factura: ' . $e->getMessage())->danger()->send();
                                 }
 
                             }),

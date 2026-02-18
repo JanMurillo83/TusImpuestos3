@@ -50,27 +50,18 @@ class NewCFDI extends Controller
         $fecha_inicial = Carbon::create($fecha_i)->format('Y-m-d');
         $fecha_final = Carbon::create($fecha_f)->format('Y-m-d');
 
-        // Calcular días y decidir estrategia
-        $dias = SatDescargaMasivaService::calcularDias($fecha_inicial, $fecha_final);
-        $usarDescargaMasiva = $dias > 30;
+        // Para consultas web (TempCfdis), SIEMPRE usar scraper primero
+        // La descarga masiva es muy lenta para consultas interactivas
+        // y puede causar timeouts en el navegador
+        // Solo usar descarga masiva como fallback si scraper falla
 
-        // ESTRATEGIA HÍBRIDA CON FALLBACK
-        if ($usarDescargaMasiva) {
-            // INTENTO 1: Descarga Masiva para consulta rápida
-            try {
-                return $this->consultarConDescargaMasiva($record, $fecha_inicial, $fecha_final);
-            } catch (\Exception $e) {
-                // FALLBACK: Si falla descarga masiva, usar scraper
-                return $this->consultarConScraper($record, $fecha_inicial, $fecha_final);
-            }
-        } else {
-            // INTENTO 1: Scraper (método tradicional)
-            try {
-                return $this->consultarConScraper($record, $fecha_inicial, $fecha_final);
-            } catch (\Exception $e) {
-                // FALLBACK: Si falla scraper, usar descarga masiva
-                return $this->consultarConDescargaMasiva($record, $fecha_inicial, $fecha_final);
-            }
+        try {
+            // INTENTO 1: Scraper (óptimo para consultas web interactivas)
+            return $this->consultarConScraper($record, $fecha_inicial, $fecha_final);
+        } catch (\Exception $e) {
+            // FALLBACK: Solo si scraper falla, intentar descarga masiva
+            // Esto es raro pero proporciona redundancia
+            return $this->consultarConDescargaMasiva($record, $fecha_inicial, $fecha_final);
         }
     }
 

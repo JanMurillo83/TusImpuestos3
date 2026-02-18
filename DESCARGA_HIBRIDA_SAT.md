@@ -28,6 +28,20 @@ Se ha implementado un sistema híbrido inteligente que combina **dos métodos** 
 
 ## Estrategia Híbrida con Fallback
 
+### Diferencias por Tipo de Operación
+
+El sistema usa **diferentes estrategias** dependiendo del contexto:
+
+| Operación | Método Principal | Criterio | Razón |
+|-----------|-----------------|----------|-------|
+| **Consulta Web (TempCfdis)** | Scraper | Siempre | Respuesta inmediata, sin esperas |
+| **Descarga Manual (DescargasSAT)** | Según días | >30 días = Masiva | Usuario espera conscientemente |
+| **Descarga Automática (Artisan)** | Según días | >30 días = Masiva | Sin límite de tiempo |
+
+**¿Por qué esta diferencia?**
+- **Consultas web**: Usuario espera respuesta rápida → Scraper es inmediato
+- **Descargas**: Usuario acepta esperar → Descarga Masiva es más eficiente para volúmenes grandes
+
 ### Lógica de Decisión
 
 ```
@@ -85,18 +99,19 @@ Se ha implementado un sistema híbrido inteligente que combina **dos métodos** 
 
 #### Action "Consultar" (línea 123-207)
 - Consulta CFDIs del SAT para mostrar en tabla temporal
-- Usa estrategia híbrida para consulta rápida
-- **>30 días**: Descarga masiva (descarga XMLs y extrae metadata)
-- **≤30 días**: Scraper (consulta directa sin descargar)
+- **SIEMPRE usa Scraper primero** (óptimo para consultas interactivas)
+- Fallback a Descarga Masiva solo si Scraper falla
 - Muestra método usado en notificación
 - Permite marcar faltantes y descargar selectivamente
 
 **Archivo**: `app/Http/Controllers/NewCFDI.php`
 
-#### Método `Scraper()` (línea 47-200)
+#### Método `Scraper()` (línea 47-66)
 - Backend de la funcionalidad "Consultar"
-- Estrategia híbrida con fallback automático
+- **Método principal**: Scraper (rápido, sin esperas)
+- **Fallback**: Descarga Masiva (solo si scraper falla)
 - Retorna metadata compatible con ambos métodos
+- Optimizado para respuesta rápida en interfaz web
 - `consultarConScraper()`: Usa scraper tradicional (solo consulta)
 - `consultarConDescargaMasiva()`: Descarga y extrae metadata de XMLs
 - `extractMetadataFromXmls()`: Parsea XMLs para crear objetos compatibles

@@ -156,7 +156,7 @@ class InventarioResource extends Resource
                     ->required()
                     ->options(Unidades::all()->pluck('mostrar','clave'))
                     ->default('H87'),
-                Forms\Components\TextInput::make('cvesat')
+                /*Forms\Components\TextInput::make('cvesat')
                     ->label('Clave SAT')
                     ->default('01010101')
                     ->required()
@@ -184,9 +184,23 @@ class InventarioResource extends Resource
                         ->action(function(Set $set,$data){
                             $set('cvesat',$data['CatCveSat']);
                         })
-                    ),
-
+                    ),*/
+                    Forms\Components\Select::make('cvesat')
+                        ->label('Clave SAT')
+                        ->default(function(Get $get): string{
+                            if($get('cvesat'))
+                                $val = $get('cvesat');
+                            else
+                                $val = '01010101';
+                            return $val;
+                        })
+                        ->preload()
+                        ->options(Claves::all()->pluck('mostrar','clave'))
+                        ->searchable()
+                        ->searchDebounce(100)
+                        //->getSearchResultsUsing(fn (string $search): array => Claves::where('mostrar', 'like', "%{$search}%")->limit(50)->pluck('mostrar', 'clave')->toArray())
                 ]),
+
             ]);
     }
 
@@ -446,7 +460,9 @@ class InventarioResource extends Resource
                     ->modalCancelActionLabel('Cerrar')
                     ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                     ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                    ->modalFooterActionsAlignment(Alignment::Left),
+                    ->modalFooterActionsAlignment(Alignment::Left)
+                    ->closeModalByClickingAway(false)
+                    ->closeModalByEscaping(false),
                 ActionsAction::make('ImpProd')
                 ->label('Importar')
                 ->icon('fas-file-excel')->badge()

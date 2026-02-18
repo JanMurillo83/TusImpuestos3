@@ -1662,6 +1662,8 @@ class FacturasResource extends Resource
                 ->createAnother(false)
                 ->tooltip('Nueva Factura')
                 ->label('Agregar')->icon('fas-circle-plus')
+                ->closeModalByEscaping(false)
+                ->closeModalByClickingAway(false)
                 ->modalSubmitActionLabel('Grabar')
                 ->modalCancelActionLabel('Cerrar')
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))

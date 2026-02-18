@@ -145,11 +145,15 @@ class InventarioResource extends Resource
                     ->prefix('$')
                     ->numeric()
                     ->default(0.00000000),
-                Forms\Components\Select::make('esquema')
+                /*Forms\Components\Select::make('esquema')
                     ->label('Esquema de Impuestos')
                     ->required()
                     ->options(DB::table('esquemasimps')->where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
-                    ->default(1),
+                    ->default(1),*/
+                Hidden::make('esquema')->default(function (){
+                    $esquema = DB::table('esquemasimps')->where('team_id',Filament::getTenant()->id)->first();
+                    return $esquema->id ?? 0;
+                }),
                 Forms\Components\Select::make('unidad')
                     ->label('Unidad de Medida')
                     ->searchable()

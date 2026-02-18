@@ -199,6 +199,37 @@ class AdmRepoPage extends Page implements HasForms
                           $this->replaceMountedAction('CostoInventarioAction');
                           $this->getAction('CostoInventarioAction')->visible(false);
                       }),
+                  Action::make('Reporte Cotizaciones')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio'),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin'),
+                      Select::make('cliente_id')
+                          ->label('Cliente')
+                          ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
+                      Select::make('estado')
+                          ->label('Estado')
+                          ->options([
+                              'todas' => 'Todas',
+                              'facturadas' => 'Facturadas',
+                              'no_facturadas' => 'No Facturadas'
+                          ])
+                          ->default('todas')
+                          ->required(),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->cliente_id = $data['cliente_id'] ?? null;
+                          $this->estado_cotizacion = $data['estado'] ?? 'todas';
+                          $this->getAction('CotizacionesAction')->visible(true);
+                          $this->replaceMountedAction('CotizacionesAction');
+                          $this->getAction('CotizacionesAction')->visible(false);
+                      }),
                ]),
                 View::make('ReportesAdmin.your-pdf-viewer')
                     ->columnSpanFull()
@@ -218,6 +249,7 @@ class AdmRepoPage extends Page implements HasForms
     public $proveedor_id;
     public $producto_id;
     public $serie;
+    public $estado_cotizacion;
     public function getActions(): array
     {
         return [
@@ -334,6 +366,20 @@ class AdmRepoPage extends Page implements HasForms
                     'producto_id' => $this->producto_id,
                     'fecha_inicio' => $this->fecha_inicio,
                     'fecha_fin' => $this->fecha_fin,
+                ]))
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('CotizacionesAction')
+                ->visible(false)
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Reporte de Cotizaciones')
+                ->content(fn() => view('ReporteCotizaciones',[
+                    'team' => $this->team_id,
+                    'fecha_inicio' => $this->fecha_inicio,
+                    'fecha_fin' => $this->fecha_fin,
+                    'cliente_id' => $this->cliente_id,
+                    'estado' => $this->estado_cotizacion,
                 ]))
                 ->modalWidth('7xl')
         ];

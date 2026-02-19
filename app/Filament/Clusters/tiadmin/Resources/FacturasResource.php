@@ -290,7 +290,14 @@ class FacturasResource extends Resource
                                             ->searchable()
                                             ->searchDebounce(500)
                                             ->getSearchResultsUsing(fn (string $search): array => Claves::getCachedOptions($search, 25))
-                                            ->getOptionLabelUsing(fn ($value): ?string => Claves::getByClave($value)?->mostrar),
+                                            ->getOptionLabelUsing(function ($value): ?string {
+                                                // Evita errores de tipo cuando el valor aún es null/vacío
+                                                if (empty($value)) {
+                                                    return null;
+                                                }
+                                                $clave = (string) $value;
+                                                return Claves::getByClave($clave)?->mostrar;
+                                            }),
                                         Select::make('unidad')
                                             ->label('Unidad de Medida')
                                             ->searchable()

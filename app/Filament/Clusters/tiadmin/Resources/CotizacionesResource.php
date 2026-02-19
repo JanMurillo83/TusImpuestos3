@@ -1299,6 +1299,33 @@ class CotizacionesResource extends Resource
                     ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
+                    ->mutateFormDataUsing(function (array $data): array {
+                        // Obtener siguiente folio de forma segura con lock para evitar duplicados
+                        $teamId = Filament::getTenant()->id;
+                        $serie = $data['serie'] ?? 'C';
+
+                        $folioData = DB::transaction(function () use ($teamId, $serie) {
+                            // Lock en la tabla para evitar condiciones de carrera
+                            $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                                ->where('serie', $serie)
+                                ->lockForUpdate()
+                                ->max('folio');
+
+                            $nuevoFolio = ((int) $ultimoFolio) + 1;
+
+                            return [
+                                'serie' => $serie,
+                                'folio' => $nuevoFolio,
+                                'docto' => $serie . $nuevoFolio,
+                            ];
+                        });
+
+                        $data['serie'] = $folioData['serie'];
+                        $data['folio'] = $folioData['folio'];
+                        $data['docto'] = $folioData['docto'];
+
+                        return $data;
+                    })
                     ->after(function($record,$livewire){
                         $record->refresh();
                         $record->syncClienteNombre();

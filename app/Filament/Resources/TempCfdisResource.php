@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TempCfdisResource\Pages;
 use App\Filament\Resources\TempCfdisResource\RelationManagers;
 use App\Http\Controllers\NewCFDI;
+use App\Http\Controllers\TempCfdisController;
 use App\Models\Almacencfdis;
 use App\Models\Team;
 use App\Models\TempCfdis;
@@ -12,6 +13,7 @@ use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -124,86 +126,106 @@ class TempCfdisResource extends Resource
                     ->icon('fas-magnifying-glass')
                     ->form(function (Form $form){
                         return $form->schema([
-                            Section::make('Filtro')
+                            Section::make('Consulta de Metadatos SAT')
+                                ->description('Ingresa el período para consultar los CFDIs en el portal del SAT. Los datos de FIEL se obtienen automáticamente.')
+                                ->icon('fas-satellite-dish')
                                 ->schema([
                                     DatePicker::make('fecha_inicial')
                                         ->label('Fecha Inicial')
-                                        ->default(Carbon::now()->format('Y-m-d')),
+                                        ->required()
+                                        ->default(Carbon::now()->subDays(1)->format('Y-m-d')),
                                     DatePicker::make('fecha_final')
                                         ->label('Fecha Final')
-                                        ->default(Carbon::now()->format('Y-m-d')),
-                                ])
+                                        ->required()
+                                        ->default(Carbon::now()->subDays(1)->format('Y-m-d')),
+                                    Placeholder::make('info_fiel')
+                                        ->label('')
+                                        ->content(function () {
+                                            $team = Team::find(Filament::getTenant()->id);
+                                            if (!$team) return '⚠️ No se encontró el equipo.';
+                                            $estado = $team->estado_fiel ?? 'NO CONFIGURADA';
+                                            $vigencia = $team->vigencia_fiel ? Carbon::parse($team->vigencia_fiel)->format('d/m/Y') : 'N/A';
+                                            $icon = $estado === 'VALIDA' ? '✅' : '❌';
+                                            return new \Illuminate\Support\HtmlString(
+                                                "<div class='text-sm space-y-1'>"
+                                                . "<div><strong>RFC:</strong> {$team->taxid}</div>"
+                                                . "<div><strong>FIEL:</strong> {$icon} {$estado}</div>"
+                                                . "<div><strong>Vigencia:</strong> {$vigencia}</div>"
+                                                . "</div>"
+                                            );
+                                        }),
+                                ]),
                         ]);
                     })
-                    ->modalWidth('sm')
-                    ->modalSubmitActionLabel('Consultar')
+                    ->modalWidth('md')
+                    ->modalSubmitActionLabel('Consultar SAT')
+                    ->modalIcon('fas-satellite-dish')
                     ->action(function (array $data){
-                        app(NewCFDI::class)->borrar(Filament::getTenant()->id);
+                        set_time_limit(600);
+                        $teamId = Filament::getTenant()->id;
                         $inicial = Carbon::parse($data['fecha_inicial'])->format('Y-m-d');
                         $final = Carbon::parse($data['fecha_final'])->format('Y-m-d');
-                        $resultado = app(NewCFDI::class)->Scraper(Filament::getTenant()->id,$inicial,$final);
-                        $no_emitidos = $resultado['emitidos'];
-                        $no_recibidos = $resultado['recibidos'];
-                        $data_emitidos = $resultado['data_emitidos'];
-                        $data_recibidos = $resultado['data_recibidos'];
-                        $metodo = $resultado['metodo'] ?? 'Scraper';
 
-                        if($no_emitidos==0 && $no_recibidos==0) {
+                        // Validar que FIEL esté configurada
+                        $team = Team::find($teamId);
+                        if (!$team || $team->estado_fiel !== 'VALIDA') {
                             Notification::make()
-                                ->title('Proceso Terminado')
-                                ->body('NO se encontraron registros para la fecha seleccionada')
-                                ->danger()->send();
+                                ->title('FIEL no válida')
+                                ->body('La FIEL no está configurada o no es válida. Verifique en Descargas SAT.')
+                                ->danger()
+                                ->persistent()
+                                ->send();
                             return;
                         }
-                        $all_data = [];
-                        foreach ($data_emitidos as $data) {
-                            // Compatible con ambos métodos (Scraper retorna objeto con método uuid(), Descarga Masiva retorna objeto con propiedad uuid)
-                            $uuid = is_callable([$data, 'uuid']) ? $data->uuid() : $data->uuid;
 
-                            $all_data[] = [
-                                "UUID" => $uuid,
-                                "RfcEmisor" => $data->rfcEmisor ?? '',
-                                "NombreEmisor" => $data->nombreEmisor ?? '',
-                                "RfcReceptor" => $data->rfcReceptor ?? '',
-                                "NombreReceptor" => $data->nombreReceptor ?? '',
-                                "RfcPac" => $data->pacCertifico ?? '',
-                                "FechaEmision" => $data->fechaEmision ?? '',
-                                "FechaCertificacionSat" => $data->fechaCertificacion ?? '',
-                                "Monto" => floatval(str_replace([',','$'],['',''],$data->total ?? '0')),
-                                "EfectoComprobante" => $data->efectoComprobante ?? '',
-                                "Estatus" => $data->estadoComprobante ?? '',
-                                "FechaCancelacion" => $data->fechaDeCancelacion ?? null,
-                                "Tipo" => 'Emitidos',
-                                "team_id" => Filament::getTenant()->id
-                            ];
-                        }
-                        foreach ($data_recibidos as $data) {
-                            // Compatible con ambos métodos
-                            $uuid = is_callable([$data, 'uuid']) ? $data->uuid() : $data->uuid;
-
-                            $all_data[]=[
-                                "UUID" => $uuid,
-                                "RfcEmisor" => $data->rfcEmisor ?? '',
-                                "NombreEmisor" => $data->nombreEmisor ?? '',
-                                "RfcReceptor" => $data->rfcReceptor ?? '',
-                                "NombreReceptor" => $data->nombreReceptor ?? '',
-                                "RfcPac" => $data->pacCertifico ?? '',
-                                "FechaEmision" => $data->fechaEmision ?? '',
-                                "FechaCertificacionSat" => $data->fechaCertificacion ?? '',
-                                "Monto" => floatval(str_replace([',','$'],['',''],$data->total ?? '0')),
-                                "EfectoComprobante" => $data->efectoComprobante ?? '',
-                                "Estatus" => $data->estadoComprobante ?? '',
-                                "FechaCancelacion" => $data->fechaDeCancelacion ?? null,
-                                "Tipo" => 'Recibidos',
-                                "team_id" => Filament::getTenant()->id
-                            ];
-                        }
-
-                        $regs = app(NewCFDI::class)->graba($all_data);
+                        // Notificación de inicio
                         Notification::make()
-                            ->title('Proceso Terminado')
-                            ->body("Método: {$metodo} | Registros: {$regs} | Emitidos: {$no_emitidos} | Recibidos: {$no_recibidos}")
-                            ->success()->send();
+                            ->title('🔄 Conectando con el SAT (Descarga Masiva)...')
+                            ->body("Solicitando metadatos del {$inicial} al {$final}. El SAT puede tardar varios minutos en procesar la solicitud.")
+                            ->info()
+                            ->send();
+
+                        try {
+                            $resultado = app(TempCfdisController::class)->consultarMetadatos($teamId, $inicial, $final);
+
+                            if (!$resultado['success']) {
+                                Notification::make()
+                                    ->title('❌ Error en ' . $resultado['fase'])
+                                    ->body($resultado['error'])
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+                                return;
+                            }
+
+                            if ($resultado['total'] === 0) {
+                                Notification::make()
+                                    ->title('Consulta Completada')
+                                    ->body('No se encontraron CFDIs para el período seleccionado.')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            Notification::make()
+                                ->title('✅ Consulta Completada')
+                                ->body(
+                                    "📄 Total: {$resultado['total']} registros\n"
+                                    . "📤 Emitidos: {$resultado['emitidos']}\n"
+                                    . "📥 Recibidos: {$resultado['recibidos']}"
+                                )
+                                ->success()
+                                ->persistent()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('❌ Error inesperado')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
                     }),
                 Action::make('Mostrar')
             ->label('Mostrar Faltantes')
@@ -223,6 +245,7 @@ class TempCfdisResource extends Resource
                 Tables\Actions\BulkAction::make('Descargar')
                 ->icon('fas-download')
                 ->action(function ($records){
+                    set_time_limit(600);
                     $uuids = [];
                     foreach ($records as $record) {
                         if(!Almacencfdis::where('UUID',$record->UUID)->where('team_id',Filament::getTenant()->id)->exists()) {
@@ -230,18 +253,34 @@ class TempCfdisResource extends Resource
                         }
                     }
                     if(count($uuids)>0) {
-                        $regs = app(NewCFDI::class)->Descarga(Filament::getTenant()->id,$uuids);
                         Notification::make()
-                            ->title('Proceso Terminado')
-                            ->body('Se han descargado '.$regs['data_emitidos'].' registros Emitidos y '.$regs['data_recibidos'].' Recibidos')
-                            ->success()
-                            ->send()->persistent();
+                            ->title('🔄 Descargando XMLs (Descarga Masiva)...')
+                            ->body('Descargando '.count($uuids).' CFDIs del SAT. Este proceso puede tardar varios minutos.')
+                            ->info()
+                            ->send();
+
+                        try {
+                            $regs = app(NewCFDI::class)->Descarga(Filament::getTenant()->id, $uuids);
+                            Notification::make()
+                                ->title('✅ Descarga Completada')
+                                ->body('Emitidos: '.$regs['data_emitidos'].' | Recibidos: '.$regs['data_recibidos'])
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('❌ Error en Descarga')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
                     }else{
                         Notification::make()
                             ->title('Proceso Terminado')
                             ->body('No se encontraron registros nuevos para descargar')
-                            ->success()
-                            ->send()->persistent();
+                            ->warning()
+                            ->send();
                     }
                 })
             ]);

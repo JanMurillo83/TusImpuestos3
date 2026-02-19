@@ -161,102 +161,99 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                     ->icon('fas-search')
                                     ->label('Consulta')
                                     ->action(function($record,Set $set,Get $get){
-                                        $fecha_inicial = Carbon::create($get('fecha_inicial'))->format('Y-m-d');
-                                        $fecha_final = Carbon::create($get('fecha_final'))->format('Y-m-d');
-                                        $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
-                                        $rfc = $record->taxid;
-                                        $fielcer = storage_path().'/app/public/'.$record->archivocer;
-                                        $fielkey = storage_path().'/app/public/'.$record->archivokey;
-                                        $fielpass = $record->fielpass;
-                                        $cookieJarPath = storage_path().'/app/public/cookies/';
-                                        $cookieJarFile = storage_path().'/app/public/cookies/'.$rfc.'.json';
-                                        if(File::exists($cookieJarFile)) unlink($cookieJarFile);
-                                        $downloadsPath_REC = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/RECIBIDOS/';
-                                        $downloadsPath_EMI = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/XML/EMITIDOS/';
-                                        $downloadsPath2 = storage_path().'/app/public/cfdis/'.$rfc.'/'.$hoy.'/PDF/';
-                                        if (!is_dir($cookieJarPath)) {mkdir($cookieJarPath, 0777, true);}
-                                        if (!is_dir($downloadsPath_REC)) {mkdir($downloadsPath_REC, 0777, true);}
-                                        if (!is_dir($downloadsPath_EMI)) {mkdir($downloadsPath_EMI, 0777, true);}
-                                        if(file_exists($cookieJarFile)) unlink($cookieJarFile);
-                                        if (!file_exists($cookieJarFile)) {fopen($cookieJarFile, 'w');}
-                                        $client = new Client([
-                                            'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
-                                        ]);
-                                        $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                                        $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
-                                        $fielSessionManager = FielSessionManager::create($credential);
-                                        $satScraper = new SatScraper($fielSessionManager, $gateway);
-                                        $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                                        $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos());
-                                        $list = $satScraper->listByPeriod($query);
-                                        $emitidos = [];
-                                        foreach ($list as $cfdi) {
-                                            $UU = $cfdi->uuid();
-                                            $uuids = [$UU];
-                                            $file_path = storage_path().'/app/public/TEMP_'.$record->taxid;
-                                            $xml_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.xml';
-                                            $pdf_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.pdf';
-                                            $list_f = $satScraper->listByUuids($uuids,\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos());
-                                            $satScraper->resourceDownloader(ResourceType::xml(), $list_f, 50)->saveTo($file_path, true, 0777);
-                                            $satScraper->resourceDownloader(ResourceType::pdf(), $list_f, 50)->saveTo($file_path, true, 0777);
-                                            //dd($archivo_xml,$archivo_pdf);
-                                            $alm_ = 'NO';
-                                            $asociado = 'N/A';
-                                            if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
-                                                $alm_cfdi = DB::table('almacencfdis')->where('team_id', $record->id)->where('UUID', $UU)->first();
-                                                $alm_ = 'SI';
-                                                $asociado = $alm_cfdi->used;
+                                        try {
+                                            $fecha_inicial = Carbon::create($get('fecha_inicial'))->format('Y-m-d');
+                                            $fecha_final = Carbon::create($get('fecha_final'))->format('Y-m-d');
+
+                                            // Usar el servicio centralizado
+                                            $scraperService = new CfdiSatScraperService($record);
+
+                                            $init = $scraperService->initializeScraper();
+                                            if (!$init['valid']) {
+                                                Notification::make()->title('Error')->body($init['error'])->danger()->send();
+                                                return;
                                             }
-                                            $emitidos[] = [
-                                                'rfc_receptor'=>$cfdi->get('rfcReceptor'),
-                                                'nombre'=>$cfdi->get('nombreReceptor'),
-                                                'fecha'=>$cfdi->get('fechaEmision'),
-                                                'tipo'=>$cfdi->get('efectoComprobante'),
-                                                'total'=>$cfdi->get('total'),
-                                                'estado'=>$cfdi->get('estadoComprobante'),
-                                                'uuid'=>$cfdi->uuid(),
-                                                'en_sistema'=>$alm_,
-                                                'asociado'=>$asociado,
-                                                'archivo_xml'=>$xml_file,
-                                                'archivo_pdf'=>$pdf_file
-                                            ];
-                                        }
-                                        $set('emitidos', $emitidos);
-                                        $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                                        $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos());
-                                        $list2 = $satScraper->listByPeriod($query2);
-                                        $recibidos = [];
-                                        foreach ($list2 as $cfdi) {
-                                            $UU = $cfdi->uuid();
-                                            $uuids = [$UU];
-                                            $file_path = storage_path().'/app/public/TEMP_'.$record->taxid;
-                                            $xml_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.xml';
-                                            $pdf_file = storage_path().'/app/public/TEMP_'.$record->taxid.'/'.$UU.'.pdf';
-                                            $list_f = $satScraper->listByUuids($uuids,\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos());
-                                            $satScraper->resourceDownloader(ResourceType::xml(), $list_f, 50)->saveTo($file_path, true, 0777);
-                                            $satScraper->resourceDownloader(ResourceType::pdf(), $list_f, 50)->saveTo($file_path, true, 0777);
-                                            $alm_ = 'NO';
-                                            $asociado = 'N/A';
-                                            if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
-                                                $alm_cfdi = DB::table('almacencfdis')->where('team_id', $record->id)->where('UUID', $UU)->first();
-                                                $alm_ = 'SI';
-                                                $asociado = $alm_cfdi->used;
+
+                                            // Consultar emitidos (solo metadatos, sin descargar archivos)
+                                            $emitidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'emitidos', false);
+                                            if (!$emitidosResult['success']) {
+                                                Notification::make()->title('Error Emitidos')->body($emitidosResult['error'])->danger()->send();
+                                                return;
                                             }
-                                            $recibidos[] = [
-                                                'rfc_receptor'=>$cfdi->get('rfcEmisor'),
-                                                'nombre'=>$cfdi->get('nombreEmisor'),
-                                                'fecha'=>$cfdi->get('fechaEmision'),
-                                                'tipo'=>$cfdi->get('efectoComprobante'),
-                                                'total'=>$cfdi->get('total'),
-                                                'estado'=>$cfdi->get('estadoComprobante'),
-                                                'uuid'=>$cfdi->uuid(),
-                                                'en_sistema'=>$alm_,
-                                                'asociado'=>$asociado,
-                                                'archivo_xml'=>$xml_file,
-                                                'archivo_pdf'=>$pdf_file
-                                            ];
+
+                                            $emitidos = [];
+                                            $config = $scraperService->getConfig();
+                                            foreach ($emitidosResult['list'] as $cfdi) {
+                                                $UU = $cfdi->uuid();
+                                                $alm_ = 'NO';
+                                                $asociado = 'N/A';
+                                                if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
+                                                    $alm_cfdi = DB::table('almacencfdis')->where('team_id', $record->id)->where('UUID', $UU)->first();
+                                                    $alm_ = 'SI';
+                                                    $asociado = $alm_cfdi->used;
+                                                }
+                                                $emitidos[] = [
+                                                    'rfc_receptor'=>$cfdi->get('rfcReceptor'),
+                                                    'nombre'=>$cfdi->get('nombreReceptor'),
+                                                    'fecha'=>$cfdi->get('fechaEmision'),
+                                                    'tipo'=>$cfdi->get('efectoComprobante'),
+                                                    'total'=>$cfdi->get('total'),
+                                                    'estado'=>$cfdi->get('estadoComprobante'),
+                                                    'uuid'=>$cfdi->uuid(),
+                                                    'en_sistema'=>$alm_,
+                                                    'asociado'=>$asociado,
+                                                    'archivo_xml'=>$config['tempPath'] . $UU . '.xml',
+                                                    'archivo_pdf'=>$config['tempPath'] . $UU . '.pdf',
+                                                    'tipo_cfdi'=>'emitidos',
+                                                    'team_id'=>$record->id
+                                                ];
+                                            }
+                                            $set('emitidos', $emitidos);
+
+                                            // Consultar recibidos (solo metadatos, sin descargar archivos)
+                                            $recibidosResult = $scraperService->listByPeriod($fecha_inicial, $fecha_final, 'recibidos', false);
+                                            if (!$recibidosResult['success']) {
+                                                Notification::make()->title('Error Recibidos')->body($recibidosResult['error'])->danger()->send();
+                                                return;
+                                            }
+
+                                            $recibidos = [];
+                                            foreach ($recibidosResult['list'] as $cfdi) {
+                                                $UU = $cfdi->uuid();
+                                                $alm_ = 'NO';
+                                                $asociado = 'N/A';
+                                                if(DB::table('almacencfdis')->where('team_id',$record->id)->where('UUID',$UU)->exists()) {
+                                                    $alm_cfdi = DB::table('almacencfdis')->where('team_id', $record->id)->where('UUID', $UU)->first();
+                                                    $alm_ = 'SI';
+                                                    $asociado = $alm_cfdi->used;
+                                                }
+                                                $recibidos[] = [
+                                                    'rfc_receptor'=>$cfdi->get('rfcEmisor'),
+                                                    'nombre'=>$cfdi->get('nombreEmisor'),
+                                                    'fecha'=>$cfdi->get('fechaEmision'),
+                                                    'tipo'=>$cfdi->get('efectoComprobante'),
+                                                    'total'=>$cfdi->get('total'),
+                                                    'estado'=>$cfdi->get('estadoComprobante'),
+                                                    'uuid'=>$cfdi->uuid(),
+                                                    'en_sistema'=>$alm_,
+                                                    'asociado'=>$asociado,
+                                                    'archivo_xml'=>$config['tempPath'] . $UU . '.xml',
+                                                    'archivo_pdf'=>$config['tempPath'] . $UU . '.pdf',
+                                                    'tipo_cfdi'=>'recibidos',
+                                                    'team_id'=>$record->id
+                                                ];
+                                            }
+                                            $set('recibidos', $recibidos);
+
+                                            Notification::make()
+                                                ->title('Consulta Completada')
+                                                ->body("Emitidos: {$emitidosResult['count']}, Recibidos: {$recibidosResult['count']}")
+                                                ->success()
+                                                ->send();
+
+                                        } catch (\Exception $e) {
+                                            Notification::make()->title('Error en la Consulta')->body($e->getMessage())->danger()->send();
                                         }
-                                        $set('recibidos', $recibidos);
                                     }),
                                 ]),
                                     TableRepeater::make('emitidos')
@@ -289,16 +286,46 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                         TextInput::make('asociado')->readOnly(),
                                         Hidden::make('archivo_xml'),
                                         Hidden::make('archivo_pdf'),
+                                        Hidden::make('tipo_cfdi'),
+                                        Hidden::make('team_id'),
                                         Actions::make([
                                             Actions\Action::make('XML')
                                                 ->icon('fas-file')->iconButton()
                                                 ->action(function(Get $get){
-                                                    return response()->download($get('archivo_xml'));
+                                                    $uuid = $get('uuid');
+                                                    $tipo = $get('tipo_cfdi') ?? 'emitidos';
+                                                    $teamId = $get('team_id');
+                                                    $record = Team::find($teamId);
+                                                    if (!$record) return;
+                                                    try {
+                                                        $scraperService = new CfdiSatScraperService($record);
+                                                        $result = $scraperService->downloadByUuid($uuid, $tipo);
+                                                        if ($result['success'] && file_exists($result['xml_file'])) {
+                                                            return response()->download($result['xml_file']);
+                                                        }
+                                                        Notification::make()->title('Error')->body($result['error'] ?? 'Archivo XML no encontrado')->danger()->send();
+                                                    } catch (\Exception $e) {
+                                                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                                                    }
                                                 }),
                                             Actions\Action::make('PDF')
                                                 ->icon('fas-file-pdf')->iconButton()
                                                 ->action(function(Get $get){
-                                                    return response()->download($get('archivo_pdf'));
+                                                    $uuid = $get('uuid');
+                                                    $tipo = $get('tipo_cfdi') ?? 'emitidos';
+                                                    $teamId = $get('team_id');
+                                                    $record = Team::find($teamId);
+                                                    if (!$record) return;
+                                                    try {
+                                                        $scraperService = new CfdiSatScraperService($record);
+                                                        $result = $scraperService->downloadByUuid($uuid, $tipo);
+                                                        if ($result['success'] && file_exists($result['pdf_file'])) {
+                                                            return response()->download($result['pdf_file']);
+                                                        }
+                                                        Notification::make()->title('Error')->body($result['error'] ?? 'Archivo PDF no encontrado')->danger()->send();
+                                                    } catch (\Exception $e) {
+                                                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                                                    }
                                                 }),
                                         ])
                                     ])->columnSpanFull(),
@@ -332,16 +359,46 @@ class DescargasSAT extends Page implements HasTable,HasForms
                                             TextInput::make('asociado')->readOnly(),
                                             Hidden::make('archivo_xml'),
                                             Hidden::make('archivo_pdf'),
+                                            Hidden::make('tipo_cfdi'),
+                                            Hidden::make('team_id'),
                                             Actions::make([
                                                 Actions\Action::make('XML')
                                                 ->icon('fas-file')->iconButton()
                                                 ->action(function(Get $get){
-                                                    return response()->download($get('archivo_xml'));
+                                                    $uuid = $get('uuid');
+                                                    $tipo = $get('tipo_cfdi') ?? 'recibidos';
+                                                    $teamId = $get('team_id');
+                                                    $record = Team::find($teamId);
+                                                    if (!$record) return;
+                                                    try {
+                                                        $scraperService = new CfdiSatScraperService($record);
+                                                        $result = $scraperService->downloadByUuid($uuid, $tipo);
+                                                        if ($result['success'] && file_exists($result['xml_file'])) {
+                                                            return response()->download($result['xml_file']);
+                                                        }
+                                                        Notification::make()->title('Error')->body($result['error'] ?? 'Archivo XML no encontrado')->danger()->send();
+                                                    } catch (\Exception $e) {
+                                                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                                                    }
                                                 }),
                                                 Actions\Action::make('PDF')
                                                 ->icon('fas-file-pdf')->iconButton()
                                                     ->action(function(Get $get){
-                                                        return response()->download($get('archivo_pdf'));
+                                                        $uuid = $get('uuid');
+                                                        $tipo = $get('tipo_cfdi') ?? 'recibidos';
+                                                        $teamId = $get('team_id');
+                                                        $record = Team::find($teamId);
+                                                        if (!$record) return;
+                                                        try {
+                                                            $scraperService = new CfdiSatScraperService($record);
+                                                            $result = $scraperService->downloadByUuid($uuid, $tipo);
+                                                            if ($result['success'] && file_exists($result['pdf_file'])) {
+                                                                return response()->download($result['pdf_file']);
+                                                            }
+                                                            Notification::make()->title('Error')->body($result['error'] ?? 'Archivo PDF no encontrado')->danger()->send();
+                                                        } catch (\Exception $e) {
+                                                            Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                                                        }
                                                     }),
                                             ])
                                         ])->columnSpanFull()

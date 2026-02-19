@@ -15,7 +15,9 @@ use PhpCfdi\SatWsDescargaMasiva\Shared\DocumentStatus;
 use PhpCfdi\SatWsDescargaMasiva\Shared\DownloadType;
 use PhpCfdi\SatWsDescargaMasiva\Shared\RequestType;
 use PhpCfdi\SatWsDescargaMasiva\WebClient\GuzzleWebClient;
+use PhpCfdi\SatWsDescargaMasiva\PackageReader\MetadataPackageReader;
 use PhpCfdi\Credentials\Credential;
+use App\Services\XmlProcessorService;
 use ZipArchive;
 
 /**
@@ -158,8 +160,16 @@ class SatDescargaMasivaService
                 $this->config['fielpass']
             );
 
-            // Crear servicio
-            $webClient = new GuzzleWebClient();
+            // Crear servicio con SECLEVEL=0 para OpenSSL 3.0+
+            $guzzleClient = new \GuzzleHttp\Client([
+                'curl' => [
+                    CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=0',
+                ],
+                'timeout' => 120,
+                'connect_timeout' => 30,
+                'verify' => true,
+            ]);
+            $webClient = new GuzzleWebClient($guzzleClient);
             $requestBuilder = new FielRequestBuilder($fiel);
             $this->service = new Service($requestBuilder, $webClient);
 
@@ -517,6 +527,279 @@ class SatDescargaMasivaService
 
             return ['success' => false, 'error' => 'Error en descarga masiva: ' . $e->getMessage()];
         }
+    }
+
+    /**
+     * Consulta metadatos de CFDIs del SAT (sin descargar XMLs)
+     * Usa RequestType::metadata() para obtener CSV con información de los CFDIs
+     *
+     * @param string $fechaInicial formato Y-m-d
+     * @param string $fechaFinal formato Y-m-d
+     * @param string $tipo 'emitidos' o 'recibidos'
+     * @param int $maxIntentos máximo de intentos de verificación
+     * @param int $esperaSegundos segundos entre cada verificación
+     * @return array ['success' => bool, 'metadata' => array, 'count' => int, 'error' => string|null]
+     */
+    public function consultarMetadatos(string $fechaInicial, string $fechaFinal, string $tipo = 'emitidos', int $maxIntentos = 10, int $esperaSegundos = 20): array
+    {
+        try {
+            if (!$this->service) {
+                $init = $this->initializeService();
+                if (!$init['valid']) {
+                    return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => $init['error']];
+                }
+            }
+
+            $fechaInicioCompleta = $fechaInicial . ' 00:00:00';
+            $fechaFinalCompleta = $fechaFinal . ' 23:59:59';
+
+            $downloadType = $tipo === 'emitidos' ? DownloadType::issued() : DownloadType::received();
+
+            $query = QueryParameters::create()
+                ->withPeriod(DateTimePeriod::createFromValues($fechaInicioCompleta, $fechaFinalCompleta))
+                ->withRequestType(RequestType::metadata())
+                ->withDocumentStatus(DocumentStatus::active())
+                ->withDownloadType($downloadType);
+
+            Log::info('Solicitando metadatos al SAT (descarga masiva)', [
+                'team_id' => $this->team->id,
+                'rfc' => $this->config['rfc'],
+                'fecha_inicial' => $fechaInicial,
+                'fecha_final' => $fechaFinal,
+                'tipo' => $tipo
+            ]);
+
+            // Paso 1: Solicitar
+            $queryResult = $this->service->query($query);
+
+            if (!$queryResult->getStatus()->isAccepted()) {
+                $errorMsg = $queryResult->getStatus()->getMessage();
+                return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => 'Solicitud rechazada: ' . $errorMsg];
+            }
+
+            $requestId = $queryResult->getRequestId();
+
+            Log::info('Solicitud de metadatos aceptada', [
+                'team_id' => $this->team->id,
+                'rfc' => $this->config['rfc'],
+                'request_id' => $requestId,
+                'tipo' => $tipo
+            ]);
+
+            // Paso 2: Verificar y esperar (con delay inicial para dar tiempo al SAT)
+            sleep(10); // Espera inicial antes de primera verificación
+
+            $intento = 0;
+            $verify = null;
+            while ($intento < $maxIntentos) {
+                $intento++;
+
+                try {
+                    $verify = $this->service->verify($requestId);
+                } catch (\Exception $verifyException) {
+                    Log::warning('Error al verificar solicitud de metadatos, reintentando...', [
+                        'team_id' => $this->team->id,
+                        'request_id' => $requestId,
+                        'intento' => $intento,
+                        'error' => $verifyException->getMessage()
+                    ]);
+
+                    if ($intento >= $maxIntentos) {
+                        return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => 'Error verificando solicitud: ' . $verifyException->getMessage()];
+                    }
+                    sleep($esperaSegundos);
+                    continue;
+                }
+
+                // Si el SAT responde con error no controlado o status no aceptado, reintentar
+                if (!$verify->getStatus()->isAccepted()) {
+                    Log::info('Verificación no aceptada aún, reintentando...', [
+                        'team_id' => $this->team->id,
+                        'request_id' => $requestId,
+                        'intento' => $intento,
+                        'status_code' => $verify->getStatus()->getCode(),
+                        'message' => $verify->getStatus()->getMessage()
+                    ]);
+
+                    if ($intento >= $maxIntentos) {
+                        return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => 'Verificación no aceptada: ' . $verify->getStatus()->getMessage()];
+                    }
+                    sleep($esperaSegundos);
+                    continue;
+                }
+
+                if (!$verify->getCodeRequest()->isAccepted()) {
+                    return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => 'Código de solicitud inválido: ' . $verify->getCodeRequest()->getMessage()];
+                }
+
+                $statusRequest = $verify->getStatusRequest();
+
+                if ($statusRequest->isExpired() || $statusRequest->isFailure() || $statusRequest->isRejected()) {
+                    $errorMsg = 'Solicitud ' . ($statusRequest->isExpired() ? 'expirada' : ($statusRequest->isFailure() ? 'fallida' : 'rechazada'));
+                    return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => $errorMsg];
+                }
+
+                if ($statusRequest->isFinished()) {
+                    break;
+                }
+
+                // Aún en proceso
+                if ($intento >= $maxIntentos) {
+                    return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => 'Solicitud aún en proceso después de ' . $maxIntentos . ' intentos. Intente más tarde.'];
+                }
+
+                Log::info('Metadatos aún en proceso, esperando...', [
+                    'team_id' => $this->team->id,
+                    'request_id' => $requestId,
+                    'intento' => $intento,
+                    'esperando' => $esperaSegundos . 's'
+                ]);
+
+                sleep($esperaSegundos);
+            }
+
+            if (!$verify) {
+                return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => 'No se pudo verificar la solicitud'];
+            }
+
+            // Paso 3: Descargar paquetes y parsear metadatos
+            $packageIds = $verify->getPackagesIds();
+            $allMetadata = [];
+
+            foreach ($packageIds as $packageId) {
+                $download = $this->service->download($packageId);
+
+                if (!$download->getStatus()->isAccepted()) {
+                    Log::warning('Paquete de metadatos no disponible', [
+                        'package_id' => $packageId,
+                        'status' => $download->getStatus()->getMessage()
+                    ]);
+                    continue;
+                }
+
+                // Parsear el contenido del paquete (ZIP con CSV de metadatos)
+                $metadataReader = MetadataPackageReader::createFromContents($download->getPackageContent());
+
+                foreach ($metadataReader->metadata() as $uuid => $item) {
+                    $allMetadata[] = $item;
+                }
+            }
+
+            Log::info('Consulta de metadatos completada', [
+                'team_id' => $this->team->id,
+                'rfc' => $this->config['rfc'],
+                'tipo' => $tipo,
+                'count' => count($allMetadata)
+            ]);
+
+            return [
+                'success' => true,
+                'metadata' => $allMetadata,
+                'count' => count($allMetadata),
+                'error' => null
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error consultando metadatos por descarga masiva', [
+                'team_id' => $this->team->id,
+                'rfc' => $this->config['rfc'],
+                'tipo' => $tipo,
+                'error' => $e->getMessage()
+            ]);
+
+            return ['success' => false, 'metadata' => [], 'count' => 0, 'error' => 'Error consultando metadatos: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Descarga XMLs por período y filtra solo los UUIDs indicados
+     * Usa descargarCompleto() para obtener todos los XMLs del período,
+     * luego procesa solo los que coinciden con los UUIDs solicitados.
+     *
+     * @param array $uuids Lista de UUIDs a descargar
+     * @param int $teamId ID del equipo
+     * @param string $fechaInicial formato Y-m-d
+     * @param string $fechaFinal formato Y-m-d
+     * @return array ['success' => bool, 'emitidos' => int, 'recibidos' => int, 'error' => string|null]
+     */
+    public function descargarXmlsPorUuids(array $uuids, int $teamId, string $fechaInicial, string $fechaFinal): array
+    {
+        try {
+            $xmlProcessor = new XmlProcessorService();
+            $uuidsUpper = array_map('strtoupper', $uuids);
+            $emitidosCount = 0;
+            $recibidosCount = 0;
+
+            // Descargar emitidos del período
+            $emitidosResult = $this->descargarCompleto($fechaInicial, $fechaFinal, 'emitidos');
+            if ($emitidosResult['success']) {
+                $dir = $this->config['downloadsPath']['xml_emitidos'];
+                $emitidosCount = $this->procesarXmlsFiltrados($dir, $teamId, 'Emitidos', $uuidsUpper, $xmlProcessor);
+            }
+
+            // Descargar recibidos del período
+            $recibidosResult = $this->descargarCompleto($fechaInicial, $fechaFinal, 'recibidos');
+            if ($recibidosResult['success']) {
+                $dir = $this->config['downloadsPath']['xml_recibidos'];
+                $recibidosCount = $this->procesarXmlsFiltrados($dir, $teamId, 'Recibidos', $uuidsUpper, $xmlProcessor);
+            }
+
+            Log::info('Descarga de XMLs por UUIDs completada (Descarga Masiva)', [
+                'team_id' => $teamId,
+                'uuids_solicitados' => count($uuids),
+                'emitidos_procesados' => $emitidosCount,
+                'recibidos_procesados' => $recibidosCount
+            ]);
+
+            return [
+                'success' => true,
+                'emitidos' => $emitidosCount,
+                'recibidos' => $recibidosCount,
+                'error' => null
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error descargando XMLs por UUIDs (Descarga Masiva)', [
+                'team_id' => $teamId,
+                'error' => $e->getMessage()
+            ]);
+
+            return ['success' => false, 'emitidos' => 0, 'recibidos' => 0, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Procesa XMLs de un directorio filtrando solo los UUIDs indicados
+     */
+    private function procesarXmlsFiltrados(string $directory, int $teamId, string $xmlType, array $uuidsUpper, XmlProcessorService $xmlProcessor): int
+    {
+        if (!is_dir($directory)) {
+            return 0;
+        }
+
+        $count = 0;
+        $files = array_diff(scandir($directory), ['.', '..']);
+
+        foreach ($files as $file) {
+            if (pathinfo($file, PATHINFO_EXTENSION) !== 'xml') {
+                continue;
+            }
+
+            // Filtrar por UUID: el nombre del archivo es el UUID
+            $fileUuid = strtoupper(pathinfo($file, PATHINFO_FILENAME));
+            if (!in_array($fileUuid, $uuidsUpper)) {
+                continue;
+            }
+
+            $filePath = $directory . $file;
+            $result = $xmlProcessor->processXmlFile($filePath, $teamId, $xmlType);
+
+            if ($result['success']) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /**

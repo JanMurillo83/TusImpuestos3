@@ -14,6 +14,7 @@ use PhpCfdi\CfdiSatScraper\QueryByFilters;
 use PhpCfdi\CfdiSatScraper\ResourceType;
 use PhpCfdi\CfdiSatScraper\SatHttpGateway;
 use PhpCfdi\CfdiSatScraper\SatScraper;
+use App\Services\SatHttpGatewayFixed;
 use PhpCfdi\CfdiSatScraper\Sessions\Fiel\FielSessionManager;
 use PhpCfdi\Credentials\Credential;
 
@@ -158,39 +159,21 @@ class CfdiSatScraperService
             // Limpiar cookie existente
             $this->cleanCookie();
 
-            // Configurar cliente HTTP con opciones robustas para conexión al SAT
+            // Configurar cliente HTTP con opciones mínimas para conexión al SAT
             // NOTA: @SECLEVEL=0 es necesario para OpenSSL 3.0+ debido a que el SAT usa claves DH débiles
+            // IMPORTANTE: No agregar allow_redirects, headers custom, ni CURLOPT_FOLLOWLOCATION
+            // ya que la librería SatHttpGateway maneja sus propios headers y redirects por request.
+            // Opciones extra del client interfieren con el flujo de login FIEL del SAT.
             $client = new Client([
                 'curl' => [
-                    CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=0',  // Nivel 0 para permitir claves DH pequeñas del SAT
-                    CURLOPT_SSL_VERIFYHOST => 2,
-                    CURLOPT_SSL_VERIFYPEER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TCP_KEEPALIVE => 1,
-                    CURLOPT_TCP_KEEPIDLE => 120,
-                    CURLOPT_TCP_KEEPINTVL => 60,
+                    CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=0',
                 ],
-                'timeout' => 180,
-                'connect_timeout' => 60,
-                'http_errors' => true,
-                'allow_redirects' => [
-                    'max' => 10,
-                    'strict' => true,
-                    'referer' => true,
-                    'protocols' => ['https'],
-                ],
+                'timeout' => 120,
+                'connect_timeout' => 30,
                 'verify' => true,
-                'headers' => [
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language' => 'es-MX,es;q=0.9',
-                    'Accept-Encoding' => 'gzip, deflate, br',
-                    'Connection' => 'keep-alive',
-                ],
             ]);
 
-            $gateway = new SatHttpGateway($client, new FileCookieJar($this->cookieJarFile, true));
+            $gateway = new SatHttpGatewayFixed($client, new FileCookieJar($this->cookieJarFile, true));
 
             $credential = Credential::openFiles(
                 $this->config['fielcer'],
@@ -229,7 +212,7 @@ class CfdiSatScraperService
      */
     public function listByPeriod(string $fechaInicial, string $fechaFinal, string $tipo = 'emitidos', bool $soloVigentes = true): array
     {
-        $maxRetries = 2;
+        $maxRetries = 3;
         $attempt = 0;
 
         while ($attempt < $maxRetries) {
@@ -281,25 +264,29 @@ class CfdiSatScraperService
             } catch (\Exception $e) {
                 $attempt++;
 
-                // Verificar si es un error de sesión
-                $isSessionError = strpos($e->getMessage(), 'session registered') !== false ||
-                                  strpos($e->getMessage(), 'portal home page') !== false;
+                // Verificar si es un error reintentable (sesión o conexión)
+                $isRetryableError = $this->isRetryableError($e);
 
-                if ($isSessionError && $attempt < $maxRetries) {
-                    Log::warning('Error de sesión detectado, reintentando...', [
+                if ($isRetryableError && $attempt < $maxRetries) {
+                    $previousError = $e->getPrevious() ? $e->getPrevious()->getMessage() : 'N/A';
+                    Log::warning('Error de conexión/sesión detectado, reintentando...', [
                         'team_id' => $this->team->id,
                         'rfc' => $this->config['rfc'],
                         'intento' => $attempt,
-                        'error' => $e->getMessage()
+                        'max_reintentos' => $maxRetries,
+                        'error' => $e->getMessage(),
+                        'error_previo' => $previousError
                     ]);
 
                     // Limpiar scraper y cookies para forzar nueva sesión
                     $this->scraper = null;
                     $this->cleanCookie();
-                    sleep(2); // Esperar 2 segundos antes de reintentar
+                    sleep($attempt * 3 + 2); // Espera progresiva: 2s, 5s, 8s
                     continue;
                 }
 
+                $previousError = $e->getPrevious() ? $e->getPrevious()->getMessage() : 'N/A';
+                $rootCause = $e->getPrevious() && $e->getPrevious()->getPrevious() ? $e->getPrevious()->getPrevious()->getMessage() : 'N/A';
                 Log::error('Error consultando CFDIs por período', [
                     'team_id' => $this->team->id,
                     'rfc' => $this->config['rfc'],
@@ -307,6 +294,8 @@ class CfdiSatScraperService
                     'fecha_final' => $fechaFinal,
                     'tipo' => $tipo,
                     'error' => $e->getMessage(),
+                    'error_previo' => $previousError,
+                    'causa_raiz' => $rootCause,
                     'intentos_realizados' => $attempt
                 ]);
 
@@ -322,7 +311,7 @@ class CfdiSatScraperService
      */
     public function listByUuids(array $uuids, string $tipo = 'emitidos'): array
     {
-        $maxRetries = 2;
+        $maxRetries = 3;
         $attempt = 0;
 
         while ($attempt < $maxRetries) {
@@ -355,30 +344,36 @@ class CfdiSatScraperService
             } catch (\Exception $e) {
                 $attempt++;
 
-                // Verificar si es un error de sesión
-                $isSessionError = strpos($e->getMessage(), 'session registered') !== false ||
-                                  strpos($e->getMessage(), 'portal home page') !== false;
+                // Verificar si es un error reintentable (sesión o conexión)
+                $isRetryableError = $this->isRetryableError($e);
 
-                if ($isSessionError && $attempt < $maxRetries) {
-                    Log::warning('Error de sesión detectado en listByUuids, reintentando...', [
+                if ($isRetryableError && $attempt < $maxRetries) {
+                    $previousError = $e->getPrevious() ? $e->getPrevious()->getMessage() : 'N/A';
+                    Log::warning('Error de conexión/sesión detectado en listByUuids, reintentando...', [
                         'team_id' => $this->team->id,
                         'rfc' => $this->config['rfc'],
                         'intento' => $attempt,
-                        'error' => $e->getMessage()
+                        'max_reintentos' => $maxRetries,
+                        'error' => $e->getMessage(),
+                        'error_previo' => $previousError
                     ]);
 
                     // Limpiar scraper y cookies para forzar nueva sesión
                     $this->scraper = null;
                     $this->cleanCookie();
-                    sleep(2); // Esperar 2 segundos antes de reintentar
+                    sleep($attempt * 3 + 2); // Espera progresiva: 2s, 5s, 8s
                     continue;
                 }
 
+                $previousError = $e->getPrevious() ? $e->getPrevious()->getMessage() : 'N/A';
+                $rootCause = $e->getPrevious() && $e->getPrevious()->getPrevious() ? $e->getPrevious()->getPrevious()->getMessage() : 'N/A';
                 Log::error('Error consultando CFDIs por UUIDs', [
                     'team_id' => $this->team->id,
                     'rfc' => $this->config['rfc'],
                     'tipo' => $tipo,
                     'error' => $e->getMessage(),
+                    'error_previo' => $previousError,
+                    'causa_raiz' => $rootCause,
                     'intentos_realizados' => $attempt
                 ]);
 
@@ -489,6 +484,44 @@ class CfdiSatScraperService
 
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Determina si un error es reintentable (conexión, sesión, timeout)
+     */
+    private function isRetryableError(\Exception $e): bool
+    {
+        $retryablePatterns = [
+            'session registered',
+            'portal home page',
+            'Connection error',
+            'Connection reset',
+            'cURL error',
+            'timed out',
+            'empty response',
+            'HTTP client error',
+            'SSL',
+            'Could not resolve',
+        ];
+
+        // Verificar en el mensaje principal y en excepciones previas
+        $messages = [$e->getMessage()];
+        if ($e->getPrevious()) {
+            $messages[] = $e->getPrevious()->getMessage();
+            if ($e->getPrevious()->getPrevious()) {
+                $messages[] = $e->getPrevious()->getPrevious()->getMessage();
+            }
+        }
+
+        foreach ($messages as $message) {
+            foreach ($retryablePatterns as $pattern) {
+                if (stripos($message, $pattern) !== false) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

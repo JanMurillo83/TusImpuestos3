@@ -190,46 +190,31 @@ class NewCFDI extends Controller
         return $metadata;
     }
 
-    public function Descarga($team_id,$uuids) : array
+    public function Descarga($team_id, $uuids) : array
     {
-        $record = Team::where('id',$team_id)->first();
+        $record = Team::where('id', $team_id)->first();
 
         try {
-            $scraperService = new CfdiSatScraperService($record);
-            $xmlProcessor = new XmlProcessorService();
+            // Obtener fechas min/max de los UUIDs seleccionados desde temp_cfdis
+            $fechas = TempCfdis::where('team_id', $team_id)
+                ->whereIn('UUID', $uuids)
+                ->selectRaw('MIN(DATE(FechaEmision)) as fecha_min, MAX(DATE(FechaEmision)) as fecha_max')
+                ->first();
 
-            // Validar archivos FIEL
-            $validation = $scraperService->validateFielFiles();
-            if (!$validation['valid']) {
-                throw new \Exception($validation['error']);
+            $fechaInicial = $fechas->fecha_min ?? Carbon::now()->subMonth()->format('Y-m-d');
+            $fechaFinal = $fechas->fecha_max ?? Carbon::now()->format('Y-m-d');
+
+            // Usar Descarga Masiva (SOAP) en lugar de Scraper
+            $masivaService = new SatDescargaMasivaService($record);
+            $result = $masivaService->descargarXmlsPorUuids($uuids, $team_id, $fechaInicial, $fechaFinal);
+
+            if (!$result['success']) {
+                throw new \Exception($result['error'] ?? 'Error en descarga masiva');
             }
-
-            // Inicializar scraper
-            $init = $scraperService->initializeScraper();
-            if (!$init['valid']) {
-                throw new \Exception($init['error']);
-            }
-
-            // Consultar y descargar por UUIDs - emitidos
-            $emitidosResult = $scraperService->listByUuids($uuids, 'emitidos');
-            if ($emitidosResult['success']) {
-                $scraperService->downloadResources($emitidosResult['list'], 'xml', 'emitidos', 50);
-            }
-
-            // Consultar y descargar por UUIDs - recibidos
-            $recibidosResult = $scraperService->listByUuids($uuids, 'recibidos');
-            if ($recibidosResult['success']) {
-                $scraperService->downloadResources($recibidosResult['list'], 'xml', 'recibidos', 50);
-            }
-
-            // Procesar archivos descargados
-            $config = $scraperService->getConfig();
-            $resultEmitidos = $xmlProcessor->processDirectory($config['downloadsPath']['xml_emitidos'], $team_id, 'Emitidos');
-            $resultRecibidos = $xmlProcessor->processDirectory($config['downloadsPath']['xml_recibidos'], $team_id, 'Recibidos');
 
             return [
-                'data_emitidos' => $resultEmitidos['success'],
-                'data_recibidos' => $resultRecibidos['success']
+                'data_emitidos' => $result['emitidos'],
+                'data_recibidos' => $result['recibidos']
             ];
 
         } catch (\Exception $e) {

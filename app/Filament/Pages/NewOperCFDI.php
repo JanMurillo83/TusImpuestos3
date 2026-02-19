@@ -177,63 +177,11 @@ class NewOperCFDI extends Page implements HasForms,HasActions, HasTable
             ],HeaderActionsPosition::Bottom);
     }
 
+    /**
+     * @deprecated Usar NewCFDI->Scraper() que utiliza CfdiSatScraperService
+     */
     public function Scraper($record,$fecha_i,$fecha_f) : array
     {
-        $fecha_inicial = Carbon::create($fecha_i)->format('Y-m-d');
-        $fecha_final = Carbon::create($fecha_f)->format('Y-m-d');
-        $hoy = Carbon::now()->format('d').Carbon::now()->format('m').Carbon::now()->format('Y');
-        $rfc = $record->taxid;
-        $fielcer = storage_path().'/app/public/'.$record->archivocer;
-        $fielkey = storage_path().'/app/public/'.$record->archivokey;
-        $fielpass = $record->fielpass;
-        $count_emitidos = 0;
-        $count_recibidos = 0;
-        $data_emitidos = [];
-        $data_recibidos = [];
-        if(file_exists($fielcer) && file_exists($fielkey) && $fielpass != '') {
-            try {
-                $cookieJarPath = storage_path() . '/app/public/cookies/';
-                $cookieJarFile = storage_path() . '/app/public/cookies/' . $rfc . '.json';
-                if(File::exists($cookieJarFile)) unlink($cookieJarFile);
-                $downloadsPath_REC = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/RECIBIDOS/';
-                $downloadsPath_EMI = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/XML/EMITIDOS/';
-                $downloadsPath2 = storage_path() . '/app/public/cfdis/' . $rfc . '/' . $hoy . '/PDF/';
-                if (!is_dir($cookieJarPath)) {
-                    mkdir($cookieJarPath, 0777, true);
-                }
-                if (!is_dir($downloadsPath_REC)) {
-                    mkdir($downloadsPath_REC, 0777, true);
-                }
-                if (!is_dir($downloadsPath_EMI)) {
-                    mkdir($downloadsPath_EMI, 0777, true);
-                }
-                if(file_exists($cookieJarFile)) unlink($cookieJarFile);
-                if (!file_exists($cookieJarFile)) {
-                    fopen($cookieJarFile, 'w');
-                }
-                $client = new Client([
-                    'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
-                ]);
-                $gateway = new SatHttpGateway($client, new FileCookieJar($cookieJarFile, true));
-                $credential = Credential::openFiles($fielcer, $fielkey, $fielpass);
-                $fielSessionManager = FielSessionManager::create($credential);
-                if($credential->isFiel()&&$credential->certificate()->validOn()) {
-                    $satScraper = new SatScraper($fielSessionManager, $gateway);
-                    $query = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                    $query->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::emitidos());
-                    $list = $satScraper->listByPeriod($query);
-                    $query2 = new QueryByFilters(new \DateTimeImmutable($fecha_inicial), new \DateTimeImmutable($fecha_final));
-                    $query2->setDownloadType(\PhpCfdi\CfdiSatScraper\Filters\DownloadType::recibidos());
-                    $list2 = $satScraper->listByPeriod($query2);
-                    $count_recibidos = $list2->count();
-                    $count_emitidos = $list->count();
-                    $data_emitidos = $list;
-                    $data_recibidos = $list2;
-                }
-            } catch (\Exception $e) {
-                throw new \Exception($e->getMessage());
-            }
-        }
-        return ['recibidos' => $count_recibidos, 'emitidos' => $count_emitidos,'data_emitidos' => $data_emitidos,'data_recibidos' => $data_recibidos];
+        return app(NewCFDI::class)->Scraper($record->id, $fecha_i, $fecha_f);
     }
 }

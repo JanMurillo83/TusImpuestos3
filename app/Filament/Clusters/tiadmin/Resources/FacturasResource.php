@@ -252,6 +252,7 @@ class FacturasResource extends Resource
                         ])->schema([
                             TextInput::make('cant')->numeric()
                             ->default(1)->label('Cantidad')
+                            ->minValue(1)
                             ->live()
                             ->currencyMask(decimalSeparator:'.',precision:2)
                             ->afterStateUpdated(function(Get $get, Set $set){
@@ -357,6 +358,7 @@ class FacturasResource extends Resource
                                 $precio = $precio - $prec;
                                 $set('precio',$precio);
                                 $cant = floatval($get('cant')) ?: 1;
+                                $precio = floatval($precio);
                                 $subt = $precio * $cant;
                                 $set('subtotal',$subt);
                                 $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
@@ -374,11 +376,12 @@ class FacturasResource extends Resource
                             TextInput::make('descripcion'),
                             TextInput::make('precio')
                                 ->numeric()
+                                ->minValue(0.1)
                                 ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function(Get $get, Set $set){
-                                    $cant = $get('cant');
-                                    $cost = $get('precio');
+                                    $cant = floatval($get('cant'));
+                                    $cost = floatval($get('precio'));
                                     $subt = $cost * $cant;
                                     $set('subtotal',$subt);
                                     $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);

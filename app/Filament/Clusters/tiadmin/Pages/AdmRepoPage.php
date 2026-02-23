@@ -262,6 +262,126 @@ class AdmRepoPage extends Page implements HasForms
                           $this->estado_cotizacion = $data['estado'] ?? 'todas';
                           return $this->exportarCotizacionesExcel();
                       }),
+                  Action::make('Vista Cotizaciones por Vendedor')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio'),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin'),
+                      Select::make('cliente_id')
+                          ->label('Cliente')
+                          ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
+                      Select::make('estado')
+                          ->label('Estado')
+                          ->options([
+                              'todas' => 'Todas',
+                              'facturadas' => 'Facturadas',
+                              'no_facturadas' => 'No Facturadas'
+                          ])
+                          ->default('todas')
+                          ->required(),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->cliente_id = $data['cliente_id'] ?? null;
+                          $this->estado_cotizacion = $data['estado'] ?? 'todas';
+                          $this->getAction('CotizacionesPorVendedorAction')->visible(true);
+                          $this->replaceMountedAction('CotizacionesPorVendedorAction');
+                          $this->getAction('CotizacionesPorVendedorAction')->visible(false);
+                      }),
+                  Action::make('Cotizaciones por Vendedor')->icon('fas-file-excel')->color('success')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio'),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin'),
+                      Select::make('cliente_id')
+                          ->label('Cliente')
+                          ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
+                      Select::make('estado')
+                          ->label('Estado')
+                          ->options([
+                              'todas' => 'Todas',
+                              'facturadas' => 'Facturadas',
+                              'no_facturadas' => 'No Facturadas'
+                          ])
+                          ->default('todas')
+                          ->required(),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Exportar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->cliente_id = $data['cliente_id'] ?? null;
+                          $this->estado_cotizacion = $data['estado'] ?? 'todas';
+                          return $this->exportarCotizacionesExcelPorVendedor();
+                      }),
+                  Action::make('Vista Cotizaciones por Cliente')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio'),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin'),
+                      Select::make('cliente_id')
+                          ->label('Cliente')
+                          ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
+                      Select::make('estado')
+                          ->label('Estado')
+                          ->options([
+                              'todas' => 'Todas',
+                              'facturadas' => 'Facturadas',
+                              'no_facturadas' => 'No Facturadas'
+                          ])
+                          ->default('todas')
+                          ->required(),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->cliente_id = $data['cliente_id'] ?? null;
+                          $this->estado_cotizacion = $data['estado'] ?? 'todas';
+                          $this->getAction('CotizacionesPorClienteAction')->visible(true);
+                          $this->replaceMountedAction('CotizacionesPorClienteAction');
+                          $this->getAction('CotizacionesPorClienteAction')->visible(false);
+                      }),
+                  Action::make('Cotizaciones por Cliente')->icon('fas-file-excel')->color('success')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio'),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin'),
+                      Select::make('cliente_id')
+                          ->label('Cliente')
+                          ->options(Clientes::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
+                      Select::make('estado')
+                          ->label('Estado')
+                          ->options([
+                              'todas' => 'Todas',
+                              'facturadas' => 'Facturadas',
+                              'no_facturadas' => 'No Facturadas'
+                          ])
+                          ->default('todas')
+                          ->required(),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Exportar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->cliente_id = $data['cliente_id'] ?? null;
+                          $this->estado_cotizacion = $data['estado'] ?? 'todas';
+                          return $this->exportarCotizacionesExcelPorCliente();
+                      }),
                ]),
                 View::make('ReportesAdmin.your-pdf-viewer')
                     ->columnSpanFull()
@@ -413,6 +533,34 @@ class AdmRepoPage extends Page implements HasForms
                     'cliente_id' => $this->cliente_id,
                     'estado' => $this->estado_cotizacion,
                 ]))
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('CotizacionesPorVendedorAction')
+                ->visible(false)
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Reporte de Cotizaciones por Vendedor')
+                ->content(fn() => view('ReporteCotizacionesPorVendedor',[
+                    'team' => $this->team_id,
+                    'fecha_inicio' => $this->fecha_inicio,
+                    'fecha_fin' => $this->fecha_fin,
+                    'cliente_id' => $this->cliente_id,
+                    'estado' => $this->estado_cotizacion,
+                ]))
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('CotizacionesPorClienteAction')
+                ->visible(false)
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Reporte de Cotizaciones por Cliente')
+                ->content(fn() => view('ReporteCotizacionesPorCliente',[
+                    'team' => $this->team_id,
+                    'fecha_inicio' => $this->fecha_inicio,
+                    'fecha_fin' => $this->fecha_fin,
+                    'cliente_id' => $this->cliente_id,
+                    'estado' => $this->estado_cotizacion,
+                ]))
                 ->modalWidth('7xl')
         ];
     }
@@ -513,5 +661,210 @@ class AdmRepoPage extends Page implements HasForms
         Notification::make()->title('Cotizaciones exportadas a Excel')->success()->send();
 
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    private function getCotizacionesFiltradas()
+    {
+        $query = Cotizaciones::where('team_id', $this->team_id);
+
+        if ($this->fecha_inicio && $this->fecha_fin) {
+            $query->whereBetween(DB::raw('DATE(fecha)'), [$this->fecha_inicio, $this->fecha_fin]);
+        }
+
+        if ($this->cliente_id) {
+            $query->where('clie', $this->cliente_id);
+        }
+
+        $cotizaciones = $query->orderBy('fecha', 'desc')->get();
+
+        $estado = $this->estado_cotizacion ?? 'todas';
+        if ($estado == 'facturadas') {
+            $cotizaciones = $cotizaciones->filter(fn($c) => Facturas::where('cotizacion_id', $c->id)->exists());
+        } elseif ($estado == 'no_facturadas') {
+            $cotizaciones = $cotizaciones->filter(fn($c) => !Facturas::where('cotizacion_id', $c->id)->exists());
+        }
+
+        return $cotizaciones;
+    }
+
+    private function writeExcelHeaders($sheet, $headers, $styleRange)
+    {
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+        ];
+        $sheet->getStyle($styleRange)->applyFromArray($headerStyle);
+    }
+
+    private function calcCotizacionImportes($cotizacion)
+    {
+        $tcambio = floatval($cotizacion->tcambio) != 0 ? $cotizacion->tcambio : 1;
+        if ($cotizacion->moneda == 'USD') {
+            return [
+                'sub_usd' => $cotizacion->subtotal, 'iva_usd' => $cotizacion->iva, 'tot_usd' => $cotizacion->total,
+                'sub_mxn' => $cotizacion->subtotal * $tcambio, 'iva_mxn' => $cotizacion->iva * $tcambio, 'tot_mxn' => $cotizacion->total * $tcambio,
+                'tcambio' => $tcambio,
+            ];
+        }
+        return [
+            'sub_usd' => 0, 'iva_usd' => 0, 'tot_usd' => 0,
+            'sub_mxn' => $cotizacion->subtotal, 'iva_mxn' => $cotizacion->iva, 'tot_mxn' => $cotizacion->total,
+            'tcambio' => $tcambio,
+        ];
+    }
+
+    private function writeCotizacionRow($sheet, $row, $cotizacion, $importes)
+    {
+        $factura = Facturas::where('cotizacion_id', $cotizacion->id)->first();
+        $sheet->setCellValue('A' . $row, $cotizacion->docto);
+        $sheet->setCellValue('B' . $row, Carbon::create($cotizacion->fecha)->format('Y-m-d'));
+        $sheet->setCellValue('C' . $row, $cotizacion->nombre);
+        $sheet->setCellValue('D' . $row, $cotizacion->moneda ?? 'MXN');
+        $sheet->setCellValue('E' . $row, $importes['tcambio']);
+        $sheet->setCellValue('F' . $row, $importes['sub_usd']);
+        $sheet->setCellValue('G' . $row, $importes['iva_usd']);
+        $sheet->setCellValue('H' . $row, $importes['tot_usd']);
+        $sheet->setCellValue('I' . $row, $importes['sub_mxn']);
+        $sheet->setCellValue('J' . $row, $importes['iva_mxn']);
+        $sheet->setCellValue('K' . $row, $importes['tot_mxn']);
+        $sheet->setCellValue('L' . $row, $factura ? 'Facturada' : 'No Facturada');
+        $sheet->setCellValue('M' . $row, $factura ? $factura->docto : '-');
+    }
+
+    private function writeSubtotalRow($sheet, $row, $label, $totals)
+    {
+        $subtotalStyle = [
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E2F3']],
+        ];
+        $sheet->setCellValue('A' . $row, $label);
+        $sheet->mergeCells('A' . $row . ':E' . $row);
+        $sheet->setCellValue('F' . $row, $totals['sub_usd']);
+        $sheet->setCellValue('G' . $row, $totals['iva_usd']);
+        $sheet->setCellValue('H' . $row, $totals['tot_usd']);
+        $sheet->setCellValue('I' . $row, $totals['sub_mxn']);
+        $sheet->setCellValue('J' . $row, $totals['iva_mxn']);
+        $sheet->setCellValue('K' . $row, $totals['tot_mxn']);
+        $sheet->getStyle('A' . $row . ':M' . $row)->applyFromArray($subtotalStyle);
+        $sheet->getStyle('F' . $row . ':K' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+    }
+
+    private function writeGranTotalRow($sheet, $row, $totals)
+    {
+        $grandStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '2F5496']],
+        ];
+        $sheet->setCellValue('A' . $row, 'GRAN TOTAL');
+        $sheet->mergeCells('A' . $row . ':E' . $row);
+        $sheet->setCellValue('F' . $row, $totals['sub_usd']);
+        $sheet->setCellValue('G' . $row, $totals['iva_usd']);
+        $sheet->setCellValue('H' . $row, $totals['tot_usd']);
+        $sheet->setCellValue('I' . $row, $totals['sub_mxn']);
+        $sheet->setCellValue('J' . $row, $totals['iva_mxn']);
+        $sheet->setCellValue('K' . $row, $totals['tot_mxn']);
+        $sheet->getStyle('A' . $row . ':M' . $row)->applyFromArray($grandStyle);
+        $sheet->getStyle('F' . $row . ':K' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+    }
+
+    private function finalizarExcel($spreadsheet, $sheet, $lastDataRow, $fileName)
+    {
+        if ($lastDataRow >= 2) {
+            $sheet->getStyle('E2:K' . $lastDataRow)->getNumberFormat()->setFormatCode('#,##0.00');
+        }
+        foreach (range('A', 'M') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+        Notification::make()->title('Cotizaciones exportadas a Excel')->success()->send();
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public function exportarCotizacionesExcelPorVendedor()
+    {
+        $cotizaciones = $this->getCotizacionesFiltradas();
+        $grouped = $cotizaciones->groupBy(fn($c) => $c->nombre_elaboro ?: 'Sin vendedor');
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $headers = ['Cotización', 'Fecha', 'Cliente', 'Moneda', 'T.Cambio', 'Subtotal USD', 'IVA USD', 'Total USD', 'Subtotal MXN', 'IVA MXN', 'Total MXN', 'Estado Facturación', 'Factura'];
+        $this->writeExcelHeaders($sheet, $headers, 'A1:M1');
+
+        $row = 2;
+        $grandTotals = ['sub_usd' => 0, 'iva_usd' => 0, 'tot_usd' => 0, 'sub_mxn' => 0, 'iva_mxn' => 0, 'tot_mxn' => 0];
+
+        foreach ($grouped as $vendedor => $items) {
+            // Encabezado de grupo vendedor
+            $groupStyle = [
+                'font' => ['bold' => true, 'size' => 11],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B4C6E7']],
+            ];
+            $sheet->setCellValue('A' . $row, 'Vendedor: ' . $vendedor);
+            $sheet->mergeCells('A' . $row . ':M' . $row);
+            $sheet->getStyle('A' . $row . ':M' . $row)->applyFromArray($groupStyle);
+            $row++;
+
+            $segTotals = ['sub_usd' => 0, 'iva_usd' => 0, 'tot_usd' => 0, 'sub_mxn' => 0, 'iva_mxn' => 0, 'tot_mxn' => 0];
+            foreach ($items as $cotizacion) {
+                $imp = $this->calcCotizacionImportes($cotizacion);
+                $this->writeCotizacionRow($sheet, $row, $cotizacion, $imp);
+                foreach (['sub_usd', 'iva_usd', 'tot_usd', 'sub_mxn', 'iva_mxn', 'tot_mxn'] as $k) {
+                    $segTotals[$k] += $imp[$k];
+                    $grandTotals[$k] += $imp[$k];
+                }
+                $row++;
+            }
+            $this->writeSubtotalRow($sheet, $row, 'Subtotal ' . $vendedor . ' (' . count($items) . ' cotizaciones)', $segTotals);
+            $row += 2;
+        }
+
+        $this->writeGranTotalRow($sheet, $row, $grandTotals);
+        return $this->finalizarExcel($spreadsheet, $sheet, $row, 'Cotizaciones_por_Vendedor_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    public function exportarCotizacionesExcelPorCliente()
+    {
+        $cotizaciones = $this->getCotizacionesFiltradas();
+        $grouped = $cotizaciones->groupBy(fn($c) => $c->nombre ?: 'Sin cliente');
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $headers = ['Cotización', 'Fecha', 'Cliente', 'Moneda', 'T.Cambio', 'Subtotal USD', 'IVA USD', 'Total USD', 'Subtotal MXN', 'IVA MXN', 'Total MXN', 'Estado Facturación', 'Factura'];
+        $this->writeExcelHeaders($sheet, $headers, 'A1:M1');
+
+        $row = 2;
+        $grandTotals = ['sub_usd' => 0, 'iva_usd' => 0, 'tot_usd' => 0, 'sub_mxn' => 0, 'iva_mxn' => 0, 'tot_mxn' => 0];
+
+        foreach ($grouped as $cliente => $items) {
+            $groupStyle = [
+                'font' => ['bold' => true, 'size' => 11],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B4C6E7']],
+            ];
+            $sheet->setCellValue('A' . $row, 'Cliente: ' . $cliente);
+            $sheet->mergeCells('A' . $row . ':M' . $row);
+            $sheet->getStyle('A' . $row . ':M' . $row)->applyFromArray($groupStyle);
+            $row++;
+
+            $segTotals = ['sub_usd' => 0, 'iva_usd' => 0, 'tot_usd' => 0, 'sub_mxn' => 0, 'iva_mxn' => 0, 'tot_mxn' => 0];
+            foreach ($items as $cotizacion) {
+                $imp = $this->calcCotizacionImportes($cotizacion);
+                $this->writeCotizacionRow($sheet, $row, $cotizacion, $imp);
+                foreach (['sub_usd', 'iva_usd', 'tot_usd', 'sub_mxn', 'iva_mxn', 'tot_mxn'] as $k) {
+                    $segTotals[$k] += $imp[$k];
+                    $grandTotals[$k] += $imp[$k];
+                }
+                $row++;
+            }
+            $this->writeSubtotalRow($sheet, $row, 'Subtotal ' . $cliente . ' (' . count($items) . ' cotizaciones)', $segTotals);
+            $row += 2;
+        }
+
+        $this->writeGranTotalRow($sheet, $row, $grandTotals);
+        return $this->finalizarExcel($spreadsheet, $sheet, $row, 'Cotizaciones_por_Cliente_' . date('Y-m-d_His') . '.xlsx');
     }
 }

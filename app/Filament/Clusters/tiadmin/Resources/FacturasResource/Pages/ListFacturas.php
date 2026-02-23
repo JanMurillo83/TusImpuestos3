@@ -62,6 +62,7 @@ class ListFacturas extends ListRecords
         return [
             Html2MediaAction::make('Imprimir_Doc_P')
             ->visible(false)
+            ->elementId('Imprimir_Doc_P')
             ->print(false)
             ->savePdf()
             ->preview()
@@ -76,6 +77,7 @@ class ListFacturas extends ListRecords
             }),
             Html2MediaAction::make('Imprimir_Doc_E')
                 ->visible(false)
+                ->elementId('Imprimir_Doc_E')
                 ->print(false)
                 ->savePdf()
                 ->preview(false)

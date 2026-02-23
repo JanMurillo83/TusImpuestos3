@@ -229,9 +229,21 @@ class AdmRepoPage extends Page implements HasForms
                           $this->fecha_fin = $data['fecha_fin'] ?? null;
                           $this->cliente_id = $data['cliente_id'] ?? null;
                           $this->estado_cotizacion = $data['estado'] ?? 'todas';
-                          $this->getAction('CotizacionesAction')->visible(true);
-                          $this->replaceMountedAction('CotizacionesAction');
-                          $this->getAction('CotizacionesAction')->visible(false);
+                          $ruta = public_path().'/TMPCFDI/Cotizaciones_'.$this->team_id.'.pdf';
+                          if(\File::exists($ruta)) unlink($ruta);
+                          $html = \Illuminate\Support\Facades\View::make('ReporteCotizaciones', [
+                              'team' => $this->team_id,
+                              'fecha_inicio' => $this->fecha_inicio,
+                              'fecha_fin' => $this->fecha_fin,
+                              'cliente_id' => $this->cliente_id,
+                              'estado' => $this->estado_cotizacion,
+                          ])->render();
+                          Browsershot::html($html)->format('Letter')
+                              ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                              ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                              ->noSandbox()
+                              ->scale(0.8)->savePdf($ruta);
+                          $this->ReportePDF = base64_encode(file_get_contents($ruta));
                       }),
                   Action::make('Cotizaciones Excel')->icon('fas-file-excel')->color('success')->form([
                       DatePicker::make('fecha_inicio')
@@ -289,9 +301,21 @@ class AdmRepoPage extends Page implements HasForms
                           $this->fecha_fin = $data['fecha_fin'] ?? null;
                           $this->cliente_id = $data['cliente_id'] ?? null;
                           $this->estado_cotizacion = $data['estado'] ?? 'todas';
-                          $this->getAction('CotizacionesPorVendedorAction')->visible(true);
-                          $this->replaceMountedAction('CotizacionesPorVendedorAction');
-                          $this->getAction('CotizacionesPorVendedorAction')->visible(false);
+                          $ruta = public_path().'/TMPCFDI/CotizacionesPorVendedor_'.$this->team_id.'.pdf';
+                          if(\File::exists($ruta)) unlink($ruta);
+                          $html = \Illuminate\Support\Facades\View::make('ReporteCotizacionesPorVendedor', [
+                              'team' => $this->team_id,
+                              'fecha_inicio' => $this->fecha_inicio,
+                              'fecha_fin' => $this->fecha_fin,
+                              'cliente_id' => $this->cliente_id,
+                              'estado' => $this->estado_cotizacion,
+                          ])->render();
+                          Browsershot::html($html)->format('Letter')
+                              ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                              ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                              ->noSandbox()
+                              ->scale(0.8)->savePdf($ruta);
+                          $this->ReportePDF = base64_encode(file_get_contents($ruta));
                       }),
                   Action::make('Cotizaciones por Vendedor')->icon('fas-file-excel')->color('success')->form([
                       DatePicker::make('fecha_inicio')
@@ -349,9 +373,21 @@ class AdmRepoPage extends Page implements HasForms
                           $this->fecha_fin = $data['fecha_fin'] ?? null;
                           $this->cliente_id = $data['cliente_id'] ?? null;
                           $this->estado_cotizacion = $data['estado'] ?? 'todas';
-                          $this->getAction('CotizacionesPorClienteAction')->visible(true);
-                          $this->replaceMountedAction('CotizacionesPorClienteAction');
-                          $this->getAction('CotizacionesPorClienteAction')->visible(false);
+                          $ruta = public_path().'/TMPCFDI/CotizacionesPorCliente_'.$this->team_id.'.pdf';
+                          if(\File::exists($ruta)) unlink($ruta);
+                          $html = \Illuminate\Support\Facades\View::make('ReporteCotizacionesPorCliente', [
+                              'team' => $this->team_id,
+                              'fecha_inicio' => $this->fecha_inicio,
+                              'fecha_fin' => $this->fecha_fin,
+                              'cliente_id' => $this->cliente_id,
+                              'estado' => $this->estado_cotizacion,
+                          ])->render();
+                          Browsershot::html($html)->format('Letter')
+                              ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                              ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                              ->noSandbox()
+                              ->scale(0.8)->savePdf($ruta);
+                          $this->ReportePDF = base64_encode(file_get_contents($ruta));
                       }),
                   Action::make('Cotizaciones por Cliente')->icon('fas-file-excel')->color('success')->form([
                       DatePicker::make('fecha_inicio')
@@ -407,6 +443,7 @@ class AdmRepoPage extends Page implements HasForms
         return [
             Html2MediaAction::make('SaldoCarteraAction')
                 ->visible(false)
+                ->elementId('SaldoCarteraAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -415,6 +452,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('SaldoProveedoresAction')
                 ->visible(false)
+                ->elementId('SaldoProveedoresAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -423,6 +461,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('EstadoCuentaClienteAction')
                 ->visible(false)
+                ->elementId('EstadoCuentaClienteAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -436,6 +475,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('EstadoCuentaClientesAction')
                 ->visible(false)
+                ->elementId('EstadoCuentaClientesAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -448,6 +488,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('EstadoCuentaProveedorAction')
                 ->visible(false)
+                ->elementId('EstadoCuentaProveedorAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -461,6 +502,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('EstadoCuentaProveedoresAction')
                 ->visible(false)
+                ->elementId('EstadoCuentaProveedoresAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -473,6 +515,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('FacturacionAction')
                 ->visible(false)
+                ->elementId('FacturacionAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -487,6 +530,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('ComprasAction')
                 ->visible(false)
+                ->elementId('ComprasAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -499,6 +543,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('CostoInventarioAction')
                 ->visible(false)
+                ->elementId('CostoInventarioAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -509,6 +554,7 @@ class AdmRepoPage extends Page implements HasForms
                 ->modalWidth('7xl'),
             Html2MediaAction::make('MovimientosInventarioAction')
                 ->visible(false)
+                ->elementId('MovimientosInventarioAction')
                 ->preview()
                 ->print(false)
                 ->savePdf()
@@ -518,48 +564,6 @@ class AdmRepoPage extends Page implements HasForms
                     'producto_id' => $this->producto_id,
                     'fecha_inicio' => $this->fecha_inicio,
                     'fecha_fin' => $this->fecha_fin,
-                ]))
-                ->modalWidth('7xl'),
-            Html2MediaAction::make('CotizacionesAction')
-                ->visible(false)
-                ->preview()
-                ->print(false)
-                ->savePdf()
-                ->filename('Reporte de Cotizaciones')
-                ->content(fn() => view('ReporteCotizaciones',[
-                    'team' => $this->team_id,
-                    'fecha_inicio' => $this->fecha_inicio,
-                    'fecha_fin' => $this->fecha_fin,
-                    'cliente_id' => $this->cliente_id,
-                    'estado' => $this->estado_cotizacion,
-                ]))
-                ->modalWidth('7xl'),
-            Html2MediaAction::make('CotizacionesPorVendedorAction')
-                ->visible(false)
-                ->preview()
-                ->print(false)
-                ->savePdf()
-                ->filename('Reporte de Cotizaciones por Vendedor')
-                ->content(fn() => view('ReporteCotizacionesPorVendedor',[
-                    'team' => $this->team_id,
-                    'fecha_inicio' => $this->fecha_inicio,
-                    'fecha_fin' => $this->fecha_fin,
-                    'cliente_id' => $this->cliente_id,
-                    'estado' => $this->estado_cotizacion,
-                ]))
-                ->modalWidth('7xl'),
-            Html2MediaAction::make('CotizacionesPorClienteAction')
-                ->visible(false)
-                ->preview()
-                ->print(false)
-                ->savePdf()
-                ->filename('Reporte de Cotizaciones por Cliente')
-                ->content(fn() => view('ReporteCotizacionesPorCliente',[
-                    'team' => $this->team_id,
-                    'fecha_inicio' => $this->fecha_inicio,
-                    'fecha_fin' => $this->fecha_fin,
-                    'cliente_id' => $this->cliente_id,
-                    'estado' => $this->estado_cotizacion,
                 ]))
                 ->modalWidth('7xl')
         ];

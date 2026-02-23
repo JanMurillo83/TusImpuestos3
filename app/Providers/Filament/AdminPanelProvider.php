@@ -26,6 +26,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Pages\Tenancy\RegisterTeam;
 use App\Http\Middleware\ApplyTenantScopes;
+use App\Http\Middleware\RestrictDefaultTenant;
 use App\Models\Team;
 use Filament\Navigation\MenuItem;
 use App\Filament\Pages\Paginas\CamPer;
@@ -98,6 +99,7 @@ class AdminPanelProvider extends PanelProvider
             ->tenant(Team::class)
             ->tenantMiddleware([
                 ApplyTenantScopes::class,
+                RestrictDefaultTenant::class,
             ], isPersistent: true)
             ->tenantMenuItems([
                 MenuItem::make()->label('Cambio de Periodo')

@@ -132,7 +132,8 @@ class FacturasResource extends Resource
                                     $set('serie',$fol->serie);
                                     $fol_a = 0;
                                     //dd($context);
-                                    if($context != 'Agregar') {
+
+                                    if($context != 'create') {
                                         $set('folio', $fol->folio);
                                         $fol_a = $fol->folio;
                                     }

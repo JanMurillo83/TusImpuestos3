@@ -441,7 +441,7 @@ class FacturasResource extends Resource
                         Forms\Components\TextInput::make('total')
                             ->numeric()->inlineLabel()
                             ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
-                        Actions::make([
+                        /*Actions::make([
                             ActionsAction::make('ImportarExcel')
                                 ->visible(function(Get $get){
                                     if($get('clie') > 0&&$get('subtotal') == 0) return true;
@@ -488,8 +488,8 @@ class FacturasResource extends Resource
                                     $set('partidas', $partidas);
                                     Self::updateTotals2($get,$set);
                                 })
-                        ]),
-                        Actions::make([
+                        ]),*/
+                        /*Actions::make([
                             ActionsAction::make('Facturar Cotización')
                                 ->badge()->tooltip('Facturar Cotización')
                                 ->icon('fas-file-invoice')
@@ -802,7 +802,7 @@ class FacturasResource extends Resource
                                     $set('partidas', $partidas);
                                     Self::updateTotals2($get,$set);
                                 })
-                        ])
+                        ])*/
                     ]),
             ])->columnSpanFull(),
             Forms\Components\Hidden::make('cotizacion_id')->dehydrated(true),
@@ -2082,7 +2082,7 @@ class FacturasResource extends Resource
     {
         return [
             'index' => Pages\ListFacturas::route('/'),
-            //'create' => Pages\CreateFacturas::route('/create'),
+            'create' => Pages\CreateFacturas::route('/create'),
             //'edit' => Pages\EditFacturas::route('/{record}/edit'),
         ];
     }

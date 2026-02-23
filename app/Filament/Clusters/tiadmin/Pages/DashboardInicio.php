@@ -10,7 +10,6 @@ use App\Models\Cotizaciones;
 use App\Models\Facturas;
 use App\Models\Inventario;
 use App\Models\Ordenes;
-use App\Models\User;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
@@ -65,26 +64,16 @@ class DashboardInicio extends Page
             ->selectRaw('COALESCE(SUM(p_costo * exist), 0) as importe')
             ->value('importe');
 
-        $cotizacionesVendedor = Cotizaciones::where('team_id', $teamId)
+        $cotizacionesPorVendedor = Cotizaciones::where('team_id', $teamId)
             ->whereBetween('fecha', [$inicioPeriodo, $finPeriodo])
-            ->selectRaw('vendedor, COALESCE(SUM(total), 0) as importe')
-            ->groupBy('vendedor')
+            ->selectRaw("COALESCE(NULLIF(nombre_elaboro, ''), 'Sin vendedor') as nombre, COALESCE(SUM(total), 0) as importe")
+            ->groupByRaw("COALESCE(NULLIF(nombre_elaboro, ''), 'Sin vendedor')")
             ->orderBy('importe', 'desc')
-            ->get();
-
-        $vendedores = User::whereIn('id', $cotizacionesVendedor->pluck('vendedor')->filter()->all())
             ->get()
-            ->keyBy('id');
-
-        $cotizacionesPorVendedor = $cotizacionesVendedor->map(function ($row) use ($vendedores) {
-            $nombre = $row->vendedor && $vendedores->has($row->vendedor)
-                ? $vendedores[$row->vendedor]->name
-                : 'Sin vendedor';
-            return [
-                'nombre' => $nombre,
+            ->map(fn ($row) => [
+                'nombre' => $row->nombre,
                 'importe' => (float) $row->importe,
-            ];
-        });
+            ]);
 
         $ordenesPendientes = Ordenes::where('team_id', $teamId)
             ->whereIn('estado', ['Activa', 'Parcial'])

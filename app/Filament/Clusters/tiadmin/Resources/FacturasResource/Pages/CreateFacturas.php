@@ -6,10 +6,32 @@ use App\Filament\Clusters\tiadmin\Resources\FacturasResource;
 use App\Models\Cotizaciones;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Support\Colors\Color;
 
 class CreateFacturas extends CreateRecord
 {
     protected static string $resource = FacturasResource::class;
+
+    protected function getCreateFormAction(): \Filament\Actions\Action
+    {
+        return parent::getCreateFormAction()
+            ->label('Guardar')
+            ->color(Color::Green)
+            ->icon('fas-save');
+    }
+
+    protected function getCreateAnotherFormAction(): \Filament\Actions\Action
+    {
+        return parent::getCreateAnotherFormAction()->visible(false);
+    }
+
+    protected function getCancelFormAction(): \Filament\Actions\Action
+    {
+        return parent::getCancelFormAction()
+            ->label('Cerrar')
+            ->color(Color::Red)
+            ->icon('fas-ban');
+    }
 
     protected function afterCreate(): void
     {

@@ -67,8 +67,8 @@ class DashboardInicio extends Page
         $cotizacionesPorVendedor = Cotizaciones::where('team_id', $teamId)
             ->whereBetween('fecha', [$inicioPeriodo, $finPeriodo])
             ->selectRaw("COALESCE(NULLIF(nombre_elaboro, ''), 'Sin vendedor') as nombre, COALESCE(SUM(total), 0) as importe")
-            ->groupByRaw("COALESCE(NULLIF(nombre_elaboro, ''), 'Sin vendedor')")
-            ->orderBy('importe', 'desc')
+            ->groupBy('nombre_elaboro')
+            ->orderByRaw('importe desc')
             ->get()
             ->map(fn ($row) => [
                 'nombre' => $row->nombre,

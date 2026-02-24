@@ -79,12 +79,36 @@ class ClientesResource extends Resource
                                             ->maxLength(255)
                                             ->unique(
                                                 ignoreRecord: true,
-                                                modifyRuleUsing: fn ($rule, $state) =>
-                                                    strtoupper($state ?? '') === 'XAXX010101000'
-                                                        ? $rule->where('team_id', -1) // Si es XAXX010101000, no validar duplicidad
-                                                        : $rule->where('team_id', Filament::getTenant()->id)
+                                                modifyRuleUsing: function ($rule, $state, Get $get) {
+                                                    $rfc = strtoupper($state ?? '');
+                                                    $teamId = Filament::getTenant()->id;
+
+                                                    if ($rfc === 'XAXX010101000' || $rfc === 'XEXX010101000') {
+                                                        $idFiscal = $get('id_fiscal');
+                                                        return $rule->where('team_id', $teamId)
+                                                                    ->where('id_fiscal', $idFiscal);
+                                                    }
+
+                                                    return $rule->where('team_id', $teamId);
+                                                }
                                             )
-                                            ->default('XAXX010101000'),
+                                            ->default('XAXX010101000')
+                                            ->live(),
+                                        Forms\Components\TextInput::make('id_fiscal')
+                                            ->label('Id Fiscal')
+                                            ->maxLength(255)
+                                            ->required(fn (Get $get) => strtoupper($get('rfc') ?? '') === 'XEXX010101000')
+                                            ->visible(fn (Get $get) => strtoupper($get('rfc') ?? '') === 'XEXX010101000')
+                                            ->live()
+                                            ->unique(
+                                                ignoreRecord: true,
+                                                modifyRuleUsing: function ($rule, $state, Get $get) {
+                                                    $rfc = strtoupper($get('rfc') ?? '');
+                                                    $teamId = Filament::getTenant()->id;
+                                                    return $rule->where('team_id', $teamId)
+                                                                ->where('rfc', $rfc);
+                                                }
+                                            ),
                                         Forms\Components\Select::make('regimen')
                                             ->label('Regimen Fiscal')->required()
                                             ->options(Regimenes::all()->pluck('mostrar','clave')),

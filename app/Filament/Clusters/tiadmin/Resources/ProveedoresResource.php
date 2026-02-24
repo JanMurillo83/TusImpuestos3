@@ -61,7 +61,34 @@ class ProveedoresResource extends Resource
                     ->maxLength(255)
                     ->unique(
                         ignoreRecord: true,
-                        modifyRuleUsing: fn ($rule) => $rule->where('team_id', Filament::getTenant()->id)
+                        modifyRuleUsing: function ($rule, $state, Forms\Get $get) {
+                            $rfc = strtoupper($state ?? '');
+                            $teamId = Filament::getTenant()->id;
+
+                            if ($rfc === 'XAXX010101000' || $rfc === 'XEXX010101000') {
+                                $idFiscal = $get('id_fiscal');
+                                return $rule->where('team_id', $teamId)
+                                            ->where('id_fiscal', $idFiscal);
+                            }
+
+                            return $rule->where('team_id', $teamId);
+                        }
+                    )
+                    ->live(),
+                Forms\Components\TextInput::make('id_fiscal')
+                    ->label('Id Fiscal')
+                    ->maxLength(255)
+                    ->required(fn (Forms\Get $get) => strtoupper($get('rfc') ?? '') === 'XEXX010101000')
+                    ->visible(fn (Forms\Get $get) => strtoupper($get('rfc') ?? '') === 'XEXX010101000')
+                    ->live()
+                    ->unique(
+                        ignoreRecord: true,
+                        modifyRuleUsing: function ($rule, $state, Forms\Get $get) {
+                            $rfc = strtoupper($get('rfc') ?? '');
+                            $teamId = Filament::getTenant()->id;
+                            return $rule->where('team_id', $teamId)
+                                        ->where('rfc', $rfc);
+                        }
                     ),
                 Forms\Components\TextInput::make('contacto')
                     ->maxLength(255),
@@ -128,6 +155,10 @@ class ProveedoresResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('rfc')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('id_fiscal')
+                    ->label('Id Fiscal')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('telefono')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('correo')

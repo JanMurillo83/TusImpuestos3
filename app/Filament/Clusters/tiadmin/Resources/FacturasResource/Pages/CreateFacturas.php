@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\FacturasResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\FacturasResource;
 use App\Models\Cotizaciones;
+use App\Models\SeriesFacturas;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Support\Colors\Color;
@@ -11,6 +12,19 @@ use Filament\Support\Colors\Color;
 class CreateFacturas extends CreateRecord
 {
     protected static string $resource = FacturasResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Obtener siguiente folio de forma segura justo antes de crear
+        $serieId = intval($data['sel_serie']);
+        $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+
+        $data['serie'] = $folioData['serie'];
+        $data['folio'] = $folioData['folio'];
+        $data['docto'] = $folioData['docto'];
+
+        return $data;
+    }
 
     protected function getCreateFormAction(): \Filament\Actions\Action
     {

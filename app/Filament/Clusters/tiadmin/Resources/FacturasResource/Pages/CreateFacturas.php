@@ -47,7 +47,7 @@ class CreateFacturas extends CreateRecord
     protected function getCreateFormAction(): \Filament\Actions\Action
     {
         return parent::getCreateFormAction()
-            ->label('Guardar')
+            ->label('Grabar')
             ->color(Color::Green)
             ->icon('fas-save');
     }

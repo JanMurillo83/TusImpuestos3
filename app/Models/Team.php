@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Team extends Model
 {
@@ -39,9 +40,9 @@ class Team extends Model
     {
         return $this->belongsToMany(Compras::class);
     }
-    public function facturas(): BelongsToMany
+    public function facturas(): HasMany
     {
-        return $this->belongsToMany(Compras::class);
+        return $this->hasMany(Facturas::class);
     }
     public function terceros(): BelongsToMany
     {

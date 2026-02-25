@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Filament\Facades\Filament;
 use CfdiUtils;
 use CfdiUtils\Cfdi;
+use App\Support\CfdiPagosHelper;
 class SolicitudesResource extends Resource
 {
     protected static ?string $model = Solicitudes::class;
@@ -231,7 +232,7 @@ class SolicitudesResource extends Resource
             $emisor = $comprobante->searchNode('cfdi:Emisor');
             $receptor = $comprobante->searchNode('cfdi:Receptor');
             $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
-            $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+            $pagoscom = CfdiPagosHelper::findPagosComplement($comprobante);
             $impuestos = $comprobante->searchNode('cfdi:Impuestos');
             $tipocom = $comprobante['TipoDeComprobante'];
             $subtotal = 0;
@@ -251,12 +252,12 @@ class SolicitudesResource extends Resource
             }
             else
             {
-                $pagostot = $pagoscom->searchNode('pago20:Totales');
-                $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
-                $retencion = floatval(0.00);
-                $total = floatval($pagostot['MontoTotalPagos']);
-                $tipocambio = 1;
+                $pagostot = CfdiPagosHelper::calculatePagosTotales($pagoscom);
+                $subtotal = $pagostot['subtotal'];
+                $traslado = $pagostot['traslado'];
+                $retencion = $pagostot['retencion'];
+                $total = $pagostot['total'];
+                $tipocambio = $pagostot['tipocambio'];
             }
             $xmlContenido = \file_get_contents($file,false);
             //dd($xmlContenido);

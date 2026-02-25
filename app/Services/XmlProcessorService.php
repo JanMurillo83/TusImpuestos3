@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Almacencfdis;
 use App\Models\Xmlfiles;
+use App\Support\CfdiPagosHelper;
 use CfdiUtils\Cfdi;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -158,7 +159,7 @@ class XmlProcessorService
                 ];
             }
 
-            $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+            $pagoscom = CfdiPagosHelper::findPagosComplement($comprobante);
             $impuestos = $comprobante->searchNode('cfdi:Impuestos');
             $tipocom = $comprobante['TipoDeComprobante'];
 
@@ -238,15 +239,11 @@ class XmlProcessorService
             }
         } else {
             // Complemento de pago
-            if ($pagoscom) {
-                $pagostot = $pagoscom->searchNode('pago20:Totales');
-                if ($pagostot) {
-                    $result['subtotal'] = floatval($pagostot['TotalTrasladosBaseIVA16'] ?? 0);
-                    $result['traslado'] = floatval($pagostot['TotalTrasladosImpuestoIVA16'] ?? 0);
-                    $result['total'] = floatval($pagostot['MontoTotalPagos'] ?? 0);
-                }
-            }
-            $result['tipocambio'] = 1.0;
+            $pagostot = CfdiPagosHelper::calculatePagosTotales($pagoscom);
+            $result['subtotal'] = $pagostot['subtotal'];
+            $result['traslado'] = $pagostot['traslado'];
+            $result['total'] = $pagostot['total'];
+            $result['tipocambio'] = $pagostot['tipocambio'];
         }
 
         return $result;

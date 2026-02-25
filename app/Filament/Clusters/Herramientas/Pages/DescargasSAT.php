@@ -72,6 +72,7 @@ use PhpCfdi\CfdiSatScraper\SatHttpGateway;
 use App\Services\CfdiSatScraperService;
 use App\Services\SatDescargaMasivaService;
 use App\Services\XmlProcessorService;
+use App\Support\CfdiPagosHelper;
 
 
 
@@ -698,7 +699,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 $emisor = $comprobante->searchNode('cfdi:Emisor');
                 $receptor = $comprobante->searchNode('cfdi:Receptor');
                 $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
-                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+                $pagoscom = CfdiPagosHelper::findPagosComplement($comprobante);
                 $impuestos = $comprobante->searchNode('cfdi:Impuestos');
                 $tipocom = $comprobante['TipoDeComprobante'];
                 $subtotal = 0;
@@ -717,21 +718,12 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 }
                 else
                 {
-                    if (!isset($pagoscom))
-                    {
-                        $pagostot = floatval(0.00);
-                        $subtotal = floatval(0.00);
-                        $traslado = floatval(0.00);
-                        $retencion = floatval(0.00);
-                        $total = floatval(0.00);
-                        $tipocambio = 1;
-                    }
-                    $pagostot = $pagoscom?->searchNode('pago20:Totales') ?? 0;
-                    $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                    $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
-                    $retencion = floatval(0.00);
-                    $total = floatval($pagostot['MontoTotalPagos']);
-                    $tipocambio = 1;
+                    $pagostot = CfdiPagosHelper::calculatePagosTotales($pagoscom);
+                    $subtotal = $pagostot['subtotal'];
+                    $traslado = $pagostot['traslado'];
+                    $retencion = $pagostot['retencion'];
+                    $total = $pagostot['total'];
+                    $tipocambio = $pagostot['tipocambio'];
                 }
                 $xmlContenido = \file_get_contents($file, false);
                 //dd($xmlContenido);
@@ -806,7 +798,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 $emisor = $comprobante->searchNode('cfdi:Emisor');
                 $receptor = $comprobante->searchNode('cfdi:Receptor');
                 $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
-                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+                $pagoscom = CfdiPagosHelper::findPagosComplement($comprobante);
                 $impuestos = $comprobante->searchNode('cfdi:Impuestos');
                 $tipocom = $comprobante['TipoDeComprobante'];
                 $subtotal = 0;
@@ -825,21 +817,12 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 }
                 else
                 {
-                    if (!isset($pagoscom))
-                    {
-                        $pagostot = floatval(0.00);
-                        $subtotal = floatval(0.00);
-                        $traslado = floatval(0.00);
-                        $retencion = floatval(0.00);
-                        $total = floatval(0.00);
-                        $tipocambio = 1;
-                    }
-                    $pagostot = $pagoscom->searchNode('pago20:Totales');
-                    $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                    $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
-                    $retencion = floatval(0.00);
-                    $total = floatval($pagostot['MontoTotalPagos']);
-                    $tipocambio = 1;
+                    $pagostot = CfdiPagosHelper::calculatePagosTotales($pagoscom);
+                    $subtotal = $pagostot['subtotal'];
+                    $traslado = $pagostot['traslado'];
+                    $retencion = $pagostot['retencion'];
+                    $total = $pagostot['total'];
+                    $tipocambio = $pagostot['tipocambio'];
                 }
                 $xmlContenido = \file_get_contents($file, false);
                 //dd($xmlContenido);
@@ -932,7 +915,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 $emisor = $comprobante->searchNode('cfdi:Emisor');
                 $receptor = $comprobante->searchNode('cfdi:Receptor');
                 $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
-                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+                $pagoscom = CfdiPagosHelper::findPagosComplement($comprobante);
                 $impuestos = $comprobante->searchNode('cfdi:Impuestos');
                 $tipocom = $comprobante['TipoDeComprobante'];
                 $subtotal = 0;
@@ -951,21 +934,12 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 }
                 else
                 {
-                    if (!isset($pagoscom))
-                    {
-                        $pagostot = floatval(0.00);
-                        $subtotal = floatval(0.00);
-                        $traslado = floatval(0.00);
-                        $retencion = floatval(0.00);
-                        $total = floatval(0.00);
-                        $tipocambio = 1;
-                    }
-                    $pagostot = $pagoscom->searchNode('pago20:Totales');
-                    $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                    $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
-                    $retencion = floatval(0.00);
-                    $total = floatval($pagostot['MontoTotalPagos']);
-                    $tipocambio = 1;
+                    $pagostot = CfdiPagosHelper::calculatePagosTotales($pagoscom);
+                    $subtotal = $pagostot['subtotal'];
+                    $traslado = $pagostot['traslado'];
+                    $retencion = $pagostot['retencion'];
+                    $total = $pagostot['total'];
+                    $tipocambio = $pagostot['tipocambio'];
                 }
                 $xmlContenido = \file_get_contents($file, false);
                 //dd($xmlContenido);
@@ -1034,7 +1008,7 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 $emisor = $comprobante->searchNode('cfdi:Emisor');
                 $receptor = $comprobante->searchNode('cfdi:Receptor');
                 $tfd = $comprobante->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
-                $pagoscom = $comprobante->searchNode('cfdi:Complemento', 'pago20:Pagos');
+                $pagoscom = CfdiPagosHelper::findPagosComplement($comprobante);
                 $impuestos = $comprobante->searchNode('cfdi:Impuestos');
                 $tipocom = $comprobante['TipoDeComprobante'];
                 $subtotal = 0;
@@ -1053,21 +1027,12 @@ class DescargasSAT extends Page implements HasTable,HasForms
                 }
                 else
                 {
-                    if (!isset($pagoscom))
-                    {
-                        $pagostot = floatval(0.00);
-                        $subtotal = floatval(0.00);
-                        $traslado = floatval(0.00);
-                        $retencion = floatval(0.00);
-                        $total = floatval(0.00);
-                        $tipocambio = 1;
-                    }
-                    $pagostot = $pagoscom->searchNode('pago20:Totales');
-                    $subtotal = floatval($pagostot['TotalTrasladosBaseIVA16']);
-                    $traslado = floatval($pagostot['TotalTrasladosImpuestoIVA16']);
-                    $retencion = floatval(0.00);
-                    $total = floatval($pagostot['MontoTotalPagos']);
-                    $tipocambio = 1;
+                    $pagostot = CfdiPagosHelper::calculatePagosTotales($pagoscom);
+                    $subtotal = $pagostot['subtotal'];
+                    $traslado = $pagostot['traslado'];
+                    $retencion = $pagostot['retencion'];
+                    $total = $pagostot['total'];
+                    $tipocambio = $pagostot['tipocambio'];
                 }
                 $xmlContenido = \file_get_contents($file, false);
                 //dd($xmlContenido);

@@ -6,6 +6,7 @@ use App\Models\Almacencfdis;
 use App\Models\DoctosRelacionados;
 use App\Models\Facturas;
 use Carbon\Carbon;
+use CfdiUtils\SumasPagos20\Currencies;
 use CfdiUtils\SumasPagos20\PagosWriter;
 use DateTime;
 use DateTimeZone;
@@ -21,6 +22,24 @@ class TimbradoController extends Controller
     public string $api_key = '18b88997a6d3461b82b7786e8a6c05ac';
     //public string $url = 'https://dev.facturaloplus.com/ws/servicio.do?wsdl';
     //public string $api_key = 'd653c0eee6664e099ead4a76d0f0e15d';
+
+    private function getMonedaDecimals(string $moneda): int
+    {
+        static $currencies = null;
+        if (null === $currencies) {
+            $currencies = new Currencies(['MXN' => 2, 'USD' => 2]);
+        }
+
+        return $currencies->get($moneda);
+    }
+
+    private function formatMonedaImporte($importe, string $moneda): string
+    {
+        $decimals = $this->getMonedaDecimals($moneda);
+        $rounded = round((float) $importe, $decimals);
+
+        return number_format($rounded, $decimals, '.', '');
+    }
     public function CancelarFactura($factura,$receptor,$motivo,$folio):string
     {
         $objConexion = new ConexionController($this->url);
@@ -484,6 +503,13 @@ class TimbradoController extends Controller
         foreach ($pardata as $pdata)
         {
             $facrel = Facturas::where('id', $pdata->uuidrel)->first();
+            $monedaDr = $facrel->moneda ?? 'MXN';
+            $impSaldoAnt = $this->formatMonedaImporte($pdata->saldoant, $monedaDr);
+            $impPagado = $this->formatMonedaImporte(
+                bcdiv((string) $pdata->imppagado, (string) $pdata->equivalencia, 6),
+                $monedaDr
+            );
+            $impSaldoInsoluto = $this->formatMonedaImporte($pdata->insoluto, $monedaDr);
             $Pagos->addPago([
                 'FechaPago' => $fechahora2,
                 'FormaDePagoP' => $facdata[0]->forma,
@@ -492,12 +518,12 @@ class TimbradoController extends Controller
                 'Monto' => round(floatval($pdata->imppagado),6)
             ])->addDoctoRelacionado([
                 'IdDocumento' => $facrel->uuid,
-                'MonedaDR' => $facrel->moneda,
+                'MonedaDR' => $monedaDr,
                 'EquivalenciaDR' => bcdiv(floatval($pdata->equivalencia),1,4),
                 'NumParcialidad' => intval($pdata->parcialidad),
-                'ImpSaldoAnt' => bcdiv(round(floatval($pdata->saldoant),6),1,2),
-                'ImpPagado' => bcdiv(floatval($pdata->imppagado),floatval($pdata->equivalencia),2),
-                'ImpSaldoInsoluto' => bcdiv(round(floatval($pdata->insoluto),6),1,2),
+                'ImpSaldoAnt' => $impSaldoAnt,
+                'ImpPagado' => $impPagado,
+                'ImpSaldoInsoluto' => $impSaldoInsoluto,
                 'ObjetoImpDR' => "02"
             ])->addImpuestosDR()
                 ->addTrasladosDR()
@@ -645,14 +671,18 @@ class TimbradoController extends Controller
         foreach ($pardata as $pdata)
         {
             $facrel = Facturas::where('id', $pdata->uuidrel)->first();
+            $monedaDr = $facrel->moneda ?? 'MXN';
+            $impSaldoAnt = $this->formatMonedaImporte($pdata->saldoant, $monedaDr);
+            $impPagado = $this->formatMonedaImporte($pdata->imppagado, $monedaDr);
+            $impSaldoInsoluto = $this->formatMonedaImporte($pdata->insoluto, $monedaDr);
             $par_pagos->addDoctoRelacionado([
                 'IdDocumento' => $facrel->uuid,
-                'MonedaDR' => $facrel->moneda,
+                'MonedaDR' => $monedaDr,
                 'EquivalenciaDR' => $equivalencia,
                 'NumParcialidad' => intval($pdata->parcialidad),
-                'ImpSaldoAnt' => round(floatval($pdata->saldoant),6),
-                'ImpPagado' => round(floatval($pdata->imppagado),6),
-                'ImpSaldoInsoluto' => round(floatval($pdata->insoluto),6),
+                'ImpSaldoAnt' => $impSaldoAnt,
+                'ImpPagado' => $impPagado,
+                'ImpSaldoInsoluto' => $impSaldoInsoluto,
                 'ObjetoImpDR' => "02"
             ])->addImpuestosDR()
                 ->addTrasladosDR()

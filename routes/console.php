@@ -16,8 +16,8 @@ Schedule::command('reports:send-weekly')
     ->weeklyOn(1, env('WEEKLY_REPORTS_TIME', '08:00'))
     ->withoutOverlapping();
 
-// Descarga automática de CFDIs del SAT cada día a las 03:00
+// Descarga automática de CFDIs del SAT (sin restricción de hora)
 Schedule::command('sat:descargar-automatico')
-    ->dailyAt('03:00')
+    ->everyMinute()
     ->withoutOverlapping()
     ->onOneServer();

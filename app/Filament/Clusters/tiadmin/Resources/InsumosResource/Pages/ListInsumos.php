@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\InsumosResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\InsumosResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListInsumos extends ListRecords
 {

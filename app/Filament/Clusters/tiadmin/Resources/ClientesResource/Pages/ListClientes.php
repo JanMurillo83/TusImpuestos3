@@ -4,7 +4,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\ClientesResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\ClientesResource;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListClientes extends ListRecords
 {

@@ -4,7 +4,7 @@ namespace App\Filament\Resources\TempCfdisResource\Pages;
 
 use App\Filament\Resources\TempCfdisResource;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListTempCfdis extends ListRecords
 {

@@ -26,6 +26,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Pages\Tenancy\RegisterTeam;
 use App\Http\Middleware\ApplyTenantScopes;
+use App\Http\Middleware\ResetTablePaginationPerPage;
 use App\Http\Middleware\RestrictDefaultTenant;
 use App\Models\Team;
 use Filament\Navigation\MenuItem;
@@ -84,6 +85,7 @@ class AdminPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
+                ResetTablePaginationPerPage::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,

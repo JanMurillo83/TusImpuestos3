@@ -5,7 +5,7 @@ namespace App\Filament\Resources\ReembolsosResource\Pages;
 use App\Filament\Resources\ReembolsosResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListReembolsos extends ListRecords
 {

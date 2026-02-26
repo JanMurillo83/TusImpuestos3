@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\Nominas\Resources\CatEmpleadosResource\Pages;
 use App\Filament\Clusters\Nominas\Resources\CatEmpleadosResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListCatEmpleados extends ListRecords
 {

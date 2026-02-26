@@ -3,7 +3,7 @@
 namespace App\Filament\Clusters\tiadmin\Resources\RemisionesResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\RemisionesResource;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListRemisiones extends ListRecords
 {

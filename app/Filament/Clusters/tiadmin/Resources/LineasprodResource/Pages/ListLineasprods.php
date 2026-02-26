@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\LineasprodResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\LineasprodResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListLineasprods extends ListRecords
 {

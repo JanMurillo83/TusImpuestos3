@@ -3,7 +3,7 @@
 namespace App\Filament\Clusters\tiadmin\Resources\ProyectosResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\ProyectosResource;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListProyectos extends ListRecords
 {

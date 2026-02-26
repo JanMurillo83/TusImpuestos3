@@ -8,7 +8,7 @@ use App\Models\Auxiliares;
 use App\Models\CatPolizas;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\DB;
 
 class ListListareportes extends ListRecords

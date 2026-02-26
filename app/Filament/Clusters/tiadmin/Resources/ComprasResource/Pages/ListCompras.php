@@ -27,7 +27,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\DB;
 use Torgodly\Html2Media\Actions\Html2MediaAction;

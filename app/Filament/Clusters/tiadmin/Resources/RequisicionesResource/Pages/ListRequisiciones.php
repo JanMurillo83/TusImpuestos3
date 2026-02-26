@@ -3,7 +3,7 @@
 namespace App\Filament\Clusters\tiadmin\Resources\RequisicionesResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\RequisicionesResource;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListRequisiciones extends ListRecords
 {

@@ -8,7 +8,7 @@ use App\Models\DatosFiscales;
 use App\Models\Facturas;
 use App\Models\NotadeCredito;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class ListNotasdeCreditos extends ListRecords

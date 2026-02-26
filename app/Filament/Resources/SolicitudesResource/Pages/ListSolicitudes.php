@@ -5,7 +5,7 @@ namespace App\Filament\Resources\SolicitudesResource\Pages;
 use App\Filament\Resources\SolicitudesResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\Action;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;

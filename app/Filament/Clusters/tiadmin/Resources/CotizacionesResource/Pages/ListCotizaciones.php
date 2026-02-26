@@ -4,7 +4,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\CotizacionesResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\CotizacionesResource;
 use Filament\Actions;
-use App\Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords;
 
 class ListCotizaciones extends ListRecords
 {

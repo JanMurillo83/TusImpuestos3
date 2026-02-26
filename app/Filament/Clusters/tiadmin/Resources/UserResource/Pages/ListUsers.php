@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\UserResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\UserResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListUsers extends ListRecords
 {

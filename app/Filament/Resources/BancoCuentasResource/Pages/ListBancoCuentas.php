@@ -8,7 +8,7 @@ use App\Models\Saldosbanco;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Facades\Filament;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Model;
 
 class ListBancoCuentas extends ListRecords

@@ -10,7 +10,7 @@ use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
 use Filament\Actions;
 use Filament\Facades\Filament;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\DB;
 
 class ListActivosfijos extends ListRecords

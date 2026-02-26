@@ -251,6 +251,70 @@ class AdmRepoPage extends Page implements HasForms
                           $this->replaceMountedAction('OrdenesAction');
                           $this->getAction('OrdenesAction')->visible(false);
                       }),
+                  Action::make('Ordenes Pendientes de Entrada')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio'),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin'),
+                      Select::make('proveedor_id')
+                          ->label('Proveedor')
+                          ->options(Proveedores::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->proveedor_id = $data['proveedor_id'] ?? null;
+                          $ruta = public_path().'/TMPCFDI/OrdenesEntrada_'.$this->team_id.'.pdf';
+                          if(\File::exists($ruta)) unlink($ruta);
+                          $html = \Illuminate\Support\Facades\View::make('ReporteOrdenesEntrada', [
+                              'team' => $this->team_id,
+                              'fecha_inicio' => $this->fecha_inicio,
+                              'fecha_fin' => $this->fecha_fin,
+                              'proveedor_id' => $this->proveedor_id,
+                          ])->render();
+                          Browsershot::html($html)->format('Letter')
+                              ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                              ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                              ->noSandbox()
+                              ->scale(0.8)->savePdf($ruta);
+                          $this->ReportePDF = base64_encode(file_get_contents($ruta));
+                      }),
+                  Action::make('Requisiciones a Ordenes')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio'),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin'),
+                      Select::make('proveedor_id')
+                          ->label('Proveedor')
+                          ->options(Proveedores::where('team_id',Filament::getTenant()->id)->pluck('nombre','id'))
+                          ->searchable()
+                          ->placeholder('Todos')
+                          ->native(false),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->proveedor_id = $data['proveedor_id'] ?? null;
+                          $ruta = public_path().'/TMPCFDI/RequisicionesOrdenes_'.$this->team_id.'.pdf';
+                          if(\File::exists($ruta)) unlink($ruta);
+                          $html = \Illuminate\Support\Facades\View::make('ReporteRequisicionesOrdenes', [
+                              'team' => $this->team_id,
+                              'fecha_inicio' => $this->fecha_inicio,
+                              'fecha_fin' => $this->fecha_fin,
+                              'proveedor_id' => $this->proveedor_id,
+                          ])->render();
+                          Browsershot::html($html)->format('Letter')
+                              ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                              ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                              ->noSandbox()
+                              ->scale(0.8)->savePdf($ruta);
+                          $this->ReportePDF = base64_encode(file_get_contents($ruta));
+                      }),
                   Action::make('Costo Inventario')->extraAttributes(['style'=>'width:15rem !important'])
                       ->action(function(){
                           $this->team_id = Filament::getTenant()->id;

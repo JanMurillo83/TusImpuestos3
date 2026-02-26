@@ -5,7 +5,7 @@ namespace App\Filament\Resources\CatCuentasResource\Pages;
 use App\Filament\Resources\CatCuentasResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListCatCuentas extends ListRecords
 {

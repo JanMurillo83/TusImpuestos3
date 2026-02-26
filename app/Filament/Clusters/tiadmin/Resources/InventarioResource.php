@@ -216,9 +216,9 @@ class InventarioResource extends Resource
             ->striped()
             ->columns([
                 Tables\Columns\TextColumn::make('clave')
-                    ->searchable(),
+                    ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('descripcion')
-                    ->searchable()->wrap(),
+                    ->searchable()->wrap()->sortable(),
                 Tables\Columns\TextColumn::make('linea')
                     ->numeric()
                     ->sortable()
@@ -553,8 +553,11 @@ class InventarioResource extends Resource
             ActionsAction::make('ExportarExcel')
                 ->label('Exportar')
                 ->icon('fas-file-excel')->badge()
-                ->action(function(){
-                    return static::exportarInventarioExcel();
+                ->action(function($livewire){
+                    $query = method_exists($livewire, 'getTableQueryForExport')
+                        ? $livewire->getTableQueryForExport()
+                        : $livewire->getFilteredTableQuery();
+                    return static::exportarInventarioExcel($query);
                 }),
             ActionsAction::make('Fisico')
                 ->label('Inventario Fisico')
@@ -1089,10 +1092,16 @@ class InventarioResource extends Resource
         }
     }
 
-    public static function exportarInventarioExcel()
+    public static function exportarInventarioExcel($inventarios = null)
     {
-        $teamId = Filament::getTenant()->id;
-        $inventarios = Inventario::where('team_id', $teamId)->get();
+        if ($inventarios instanceof Builder) {
+            $inventarios = $inventarios->get();
+        }
+
+        if ($inventarios === null) {
+            $teamId = Filament::getTenant()->id;
+            $inventarios = Inventario::where('team_id', $teamId)->get();
+        }
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();

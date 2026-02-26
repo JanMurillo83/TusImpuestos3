@@ -5,7 +5,7 @@ namespace App\Filament\Resources\TercerosResource\Pages;
 use App\Filament\Resources\TercerosResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListTerceros extends ListRecords
 {

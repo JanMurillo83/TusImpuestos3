@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\EsquemasimpResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\EsquemasimpResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListEsquemasimps extends ListRecords
 {

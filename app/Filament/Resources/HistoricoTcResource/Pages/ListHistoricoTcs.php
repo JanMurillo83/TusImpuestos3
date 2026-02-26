@@ -5,7 +5,7 @@ namespace App\Filament\Resources\HistoricoTcResource\Pages;
 use App\Filament\Resources\HistoricoTcResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListHistoricoTcs extends ListRecords
 {

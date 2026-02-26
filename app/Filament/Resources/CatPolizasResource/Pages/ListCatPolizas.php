@@ -11,7 +11,7 @@ use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Facades\Filament;
 use Filament\Resources\Components\Tab;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListCatPolizas extends ListRecords
 {

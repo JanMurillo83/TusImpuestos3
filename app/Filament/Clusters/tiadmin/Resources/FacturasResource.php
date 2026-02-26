@@ -1354,45 +1354,56 @@ class FacturasResource extends Resource
                     ->action(function(Model $record){
                         DB::transaction(function () use ($record) {
                             $teamId = Filament::getTenant()->id;
-                            $serieRow = SeriesFacturas::where('team_id', $teamId)->where('tipo', 'F')->first();
+                            $serieActual = $record->serie ?? null;
+                            $serieRow = SeriesFacturas::where('team_id', $teamId)
+                                ->where('tipo', SeriesFacturas::TIPO_FACTURAS)
+                                ->when($serieActual, fn ($q) => $q->where('serie', $serieActual))
+                                ->first();
+                            if (!$serieRow) {
+                                $serieRow = SeriesFacturas::where('team_id', $teamId)
+                                    ->where('tipo', SeriesFacturas::TIPO_FACTURAS)
+                                    ->first();
+                            }
                             if (!$serieRow) {
                                 throw new \Exception("No se encontró una serie de facturación configurada");
                             }
 
                             // Crear encabezado de factura copiada con folio seguro
-                            $nueva = FacturaFolioService::crearConFolioSeguro($serieRow->id, [
-                                'team_id' => $teamId,
-                                'fecha' => Carbon::now(),
-                                'clie' => $record->clie,
-                                'nombre' => $record->nombre,
-                                'esquema' => $record->esquema,
-                                'subtotal' => $record->subtotal,
-                                'iva' => $record->iva,
-                                'retiva' => $record->retiva,
-                                'retisr' => $record->retisr,
-                                'ieps' => $record->ieps,
-                                'total' => $record->total,
-                                'observa' => $record->observa,
-                                'estado' => 'Activa',
-                                'metodo' => $record->metodo,
-                                'forma' => $record->forma,
-                                'uso' => $record->uso,
-                                'condiciones' => $record->condiciones,
-                                'vendedor' => $record->vendedor,
-                                'moneda' => $record->moneda,
-                                'tcambio' => $record->tcambio,
-                                'pendiente_pago' => $record->total,
-                                // Campos que no se deben copiar tal cual (timbrado / CFDI)
-                                'uuid' => null,
-                                'timbrado' => null,
-                                'xml' => null,
-                                'fecha_tim' => null,
-                                'fecha_cancela' => null,
-                                'motivo' => null,
-                                'sustituye' => null,
-                                'xml_cancela' => null,
-                                'error_timbrado' => null,
-                            ]);
+                            $nueva = Facturas::sinBloqueoFolio(function () use ($serieRow, $teamId, $record) {
+                                return FacturaFolioService::crearConFolioSeguro($serieRow->id, [
+                                    'team_id' => $teamId,
+                                    'fecha' => Carbon::now(),
+                                    'clie' => $record->clie,
+                                    'nombre' => $record->nombre,
+                                    'esquema' => $record->esquema,
+                                    'subtotal' => $record->subtotal,
+                                    'iva' => $record->iva,
+                                    'retiva' => $record->retiva,
+                                    'retisr' => $record->retisr,
+                                    'ieps' => $record->ieps,
+                                    'total' => $record->total,
+                                    'observa' => $record->observa,
+                                    'estado' => 'Activa',
+                                    'metodo' => $record->metodo,
+                                    'forma' => $record->forma,
+                                    'uso' => $record->uso,
+                                    'condiciones' => $record->condiciones,
+                                    'vendedor' => $record->vendedor,
+                                    'moneda' => $record->moneda,
+                                    'tcambio' => $record->tcambio,
+                                    'pendiente_pago' => $record->total,
+                                    // Campos que no se deben copiar tal cual (timbrado / CFDI)
+                                    'uuid' => null,
+                                    'timbrado' => null,
+                                    'xml' => null,
+                                    'fecha_tim' => null,
+                                    'fecha_cancela' => null,
+                                    'motivo' => null,
+                                    'sustituye' => null,
+                                    'xml_cancela' => null,
+                                    'error_timbrado' => null,
+                                ]);
+                            });
 
                             // Duplicar partidas
                             $partidas = FacturasPartidas::where('facturas_id', $record->id)->get();

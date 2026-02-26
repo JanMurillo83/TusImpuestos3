@@ -6,7 +6,7 @@ use App\Filament\Clusters\tiadmin\Resources\ProveedoresResource;
 use App\Livewire\CuentasPagarWidget;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListProveedores extends ListRecords
 {

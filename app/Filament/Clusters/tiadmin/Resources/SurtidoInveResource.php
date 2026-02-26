@@ -93,6 +93,7 @@ class SurtidoInveResource extends Resource
                     ->numeric()->label('Estado')
                     ->sortable(),
             ])
+            ->recordAction(null)
             ->filters([
                 //
             ])
@@ -172,8 +173,8 @@ class SurtidoInveResource extends Resource
     {
         return [
             'index' => Pages\ListSurtidoInves::route('/'),
-            'create' => Pages\CreateSurtidoInve::route('/create'),
-            'edit' => Pages\EditSurtidoInve::route('/{record}/edit'),
+            //'create' => Pages\CreateSurtidoInve::route('/create'),
+            //'edit' => Pages\EditSurtidoInve::route('/{record}/edit'),
         ];
     }
 }

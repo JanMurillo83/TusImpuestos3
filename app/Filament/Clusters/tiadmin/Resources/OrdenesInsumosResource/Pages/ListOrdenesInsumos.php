@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\OrdenesInsumosResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\OrdenesInsumosResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListOrdenesInsumos extends ListRecords
 {

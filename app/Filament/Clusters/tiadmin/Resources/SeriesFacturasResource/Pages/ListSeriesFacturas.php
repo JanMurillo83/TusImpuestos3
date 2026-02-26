@@ -4,7 +4,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\SeriesFacturasResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\SeriesFacturasResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListSeriesFacturas extends ListRecords
 {

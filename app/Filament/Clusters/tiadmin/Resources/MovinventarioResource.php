@@ -69,7 +69,7 @@ class MovinventarioResource extends Resource
                         if($get('tipo') == 'Salida') return Conceptosmi::where('tipo','Salida')->pluck('descripcion','id');
                     })
                     ->afterStateUpdated(function(Get $get,Set $set){
-                        $concep = Conceptosmi::where('id',$get('concepto'))->get();
+                        $concep = Conceptosmi::where('id',$get('concepto'))->where('team_id',Filament::getTenant()->id)->get();
                         $concep = $concep[0];
                         $set('tipoter',$concep->tercero);
                     })

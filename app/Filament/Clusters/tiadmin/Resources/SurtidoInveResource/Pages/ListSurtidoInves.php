@@ -4,7 +4,7 @@ namespace App\Filament\Clusters\tiadmin\Resources\SurtidoInveResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\SurtidoInveResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListSurtidoInves extends ListRecords
 {

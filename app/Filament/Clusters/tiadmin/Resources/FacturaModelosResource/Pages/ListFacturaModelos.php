@@ -3,7 +3,7 @@
 namespace App\Filament\Clusters\tiadmin\Resources\FacturaModelosResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\FacturaModelosResource;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 
 class ListFacturaModelos extends ListRecords
 {

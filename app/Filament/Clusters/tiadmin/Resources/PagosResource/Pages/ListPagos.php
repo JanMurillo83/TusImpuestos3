@@ -9,7 +9,7 @@ use App\Models\Facturas;
 use App\Models\Pagos;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class ListPagos extends ListRecords

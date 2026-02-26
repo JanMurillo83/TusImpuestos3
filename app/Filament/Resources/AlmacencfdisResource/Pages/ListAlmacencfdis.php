@@ -5,7 +5,7 @@ namespace App\Filament\Resources\AlmacencfdisResource\Pages;
 use App\Filament\Resources\AlmacencfdisResource;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions\Action;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\ListRecords;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;

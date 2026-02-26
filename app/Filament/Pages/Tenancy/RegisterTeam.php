@@ -525,10 +525,28 @@ class RegisterTeam extends RegisterTenant
         ]);*/
 
         SeriesFacturas::create([
-            'serie'=>'A', 'tipo'=>'F', 'folio'=>0,'team_id'=>$empresa,
+            'serie'=>'A', 'tipo'=>'F', 'folio'=>0, 'descripcion' => 'Facturas', 'team_id'=>$empresa,
         ]);
         SeriesFacturas::create([
-            'serie'=>'B', 'tipo'=>'N', 'folio'=>0,'team_id'=>$empresa,
+            'serie'=>'B', 'tipo'=>'N', 'folio'=>0, 'descripcion' => 'Notas de credito', 'team_id'=>$empresa,
+        ]);
+        SeriesFacturas::create([
+            'serie'=>'C', 'tipo'=>SeriesFacturas::TIPO_COTIZACIONES, 'folio'=>0, 'descripcion' => 'Cotizaciones', 'team_id'=>$empresa,
+        ]);
+        SeriesFacturas::create([
+            'serie'=>'R', 'tipo'=>SeriesFacturas::TIPO_REMISIONES, 'folio'=>0, 'descripcion' => 'Remisiones', 'team_id'=>$empresa,
+        ]);
+        SeriesFacturas::create([
+            'serie'=>'RQ', 'tipo'=>SeriesFacturas::TIPO_REQUISICIONES, 'folio'=>0, 'descripcion' => 'Requisiciones de Compra', 'team_id'=>$empresa,
+        ]);
+        SeriesFacturas::create([
+            'serie'=>'OC', 'tipo'=>SeriesFacturas::TIPO_ORDENES_COMPRA, 'folio'=>0, 'descripcion' => 'Ordenes de Compra', 'team_id'=>$empresa,
+        ]);
+        SeriesFacturas::create([
+            'serie'=>'OI', 'tipo'=>SeriesFacturas::TIPO_ORDENES_INSUMOS, 'folio'=>0, 'descripcion' => 'Ordenes de Compra Insumos', 'team_id'=>$empresa,
+        ]);
+        SeriesFacturas::create([
+            'serie'=>'E', 'tipo'=>SeriesFacturas::TIPO_COMPRAS, 'folio'=>0, 'descripcion' => 'Entradas (Compras)', 'team_id'=>$empresa,
         ]);
         return $team;
     }

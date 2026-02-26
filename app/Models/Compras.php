@@ -9,7 +9,7 @@ use App\Services\ImpuestosCalculator;
 
 class Compras extends Model
 {
-    protected $fillable = ['folio','fecha','prov','nombre','esquema','subtotal',
+    protected $fillable = ['serie','folio','docto','fecha','prov','nombre','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','moneda','tcambio','observa','estado','orden','orden_id','requisicion_id','team_id','recibe','proyecto','cfdi_id'];
 
     public function partidas(): HasMany

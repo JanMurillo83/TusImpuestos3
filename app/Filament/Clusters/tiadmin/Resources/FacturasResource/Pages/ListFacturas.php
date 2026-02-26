@@ -21,6 +21,7 @@ use App\Models\SurtidoInve;
 use App\Models\TableSettings;
 use App\Models\Team;
 use App\Models\Usos;
+use App\Services\FacturaFolioService;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
 use CfdiUtils\Cleaner\Cleaner;
@@ -229,14 +230,12 @@ class ListFacturas extends ListRecords
 
                                 DB::beginTransaction();
                                 try {
-                                    // Obtener siguiente folio de forma segura
                                     $serieId = intval($get('sel_serie'));
-                                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+                                    if (! $serieId) {
+                                        throw new \Exception('Debe seleccionar una serie para la factura.');
+                                    }
 
-                                    $factura = \App\Models\Facturas::create([
-                                        'serie' => $folioData['serie'],
-                                        'folio' => $folioData['folio'],
-                                        'docto' => $folioData['docto'],
+                                    $factura = FacturaFolioService::crearConFolioSeguro($serieId, [
                                         'fecha' => now()->format('Y-m-d'),
                                         'clie' => $cot->clie,
                                         'nombre' => $cot->nombre,
@@ -342,7 +341,7 @@ class ListFacturas extends ListRecords
                                         $resultado = json_decode($res);
                                         $codigores = $resultado->codigo;
                                         if ($codigores == "200") {
-                                            // El folio ya fue incrementado al obtenerlo con obtenerSiguienteFolio()
+                                            // El folio ya fue asignado de forma segura al crear la factura
                                             $date = Carbon::now();
                                             $facturamodel = Facturas::find($record->id);
                                             $facturamodel->timbrado = 'SI';
@@ -532,14 +531,12 @@ class ListFacturas extends ListRecords
 
                                 DB::beginTransaction();
                                 try {
-                                    // Obtener siguiente folio de forma segura
                                     $serieId = intval($get('sel_serie'));
-                                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+                                    if (! $serieId) {
+                                        throw new \Exception('Debe seleccionar una serie para la factura.');
+                                    }
 
-                                    $factura = \App\Models\Facturas::create([
-                                        'serie' => $folioData['serie'],
-                                        'folio' => $folioData['folio'],
-                                        'docto' => $folioData['docto'],
+                                    $factura = FacturaFolioService::crearConFolioSeguro($serieId, [
                                         'fecha' => now()->format('Y-m-d'),
                                         'clie' => $cot->clie,
                                         'nombre' => $cot->nombre,
@@ -620,7 +617,7 @@ class ListFacturas extends ListRecords
                                     $pendientesTotales = PedidosPartidas::where('pedidos_id', $cot->id)->sum('pendientes');
                                     $cot->update(['estado' => $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial']);
                                     DB::commit();
-                                    // El folio ya fue incrementado al obtenerlo con obtenerSiguienteFolio()
+                                    // El folio ya fue asignado de forma segura al crear la factura
                                     Notification::make()->title('Factura generada exitosamente')->success()->send();
                                     $action->close();
                                     $livewire->dispatch('close-modal', ['id' => $action->getName()]);

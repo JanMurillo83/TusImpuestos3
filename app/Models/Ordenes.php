@@ -9,7 +9,7 @@ use App\Services\ImpuestosCalculator;
 
 class Ordenes extends Model
 {
-    protected $fillable = ['folio','fecha','prov','nombre','esquema','subtotal',
+    protected $fillable = ['serie','folio','docto','fecha','prov','nombre','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','moneda','tcambio','observa','estado','compra','requisicion_id','team_id','solicita','proyecto',
     'entrega_lugar', 'entrega_direccion', 'entrega_horario', 'entrega_contacto', 'entrega_telefono',
     'condiciones_pago', 'condiciones_entrega', 'oc_referencia_interna', 'nombre_elaboro', 'nombre_autorizo'];

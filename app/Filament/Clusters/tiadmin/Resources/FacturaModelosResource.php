@@ -22,6 +22,7 @@ use App\Models\SeriesFacturas;
 use App\Models\Team;
 use App\Models\Unidades;
 use App\Models\Usos;
+use App\Services\FacturaFolioService;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use CfdiUtils\Cleaner\Cleaner;
@@ -551,42 +552,44 @@ class FacturaModelosResource extends Resource
      */
     public static function emitirDesdePlantilla(FacturaModelo $plantilla): void
     {
+        $teamId = $plantilla->team_id;
+        $serieRow = SeriesFacturas::where('team_id', $teamId)
+            ->where('tipo', SeriesFacturas::TIPO_FACTURAS)
+            ->first();
+        if (! $serieRow) {
+            throw new \Exception('No se encontró una serie configurada para Facturas.');
+        }
+
         // Crear encabezado de factura básica (no timbrada)
-        $serie = SeriesFacturas::where('team_id', Filament::getTenant()->id)->where('tipo','F')->first();
-        $folio = SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->folio + 1 ?? count(Facturas::all()) + 1;
         $esquema = Esquemasimp::where('id',$plantilla->esquema)->first();
-        $ser = $serie?->serie ?? 'A';
-        $fact = new Facturas();
-        $fact->team_id = Filament::getTenant()->id;
-        $fact->serie = $serie?->serie ?? 'A';
-        $fact->folio = $folio;
-        $fact->docto = $ser.$folio;
-        $fact->fecha = now()->format('Y-m-d');
-        $fact->clie = $plantilla->clie;
-        $fact->nombre = $plantilla->cliente_nombre;
-        $fact->esquema = $plantilla->esquema;
-        $fact->subtotal = $plantilla->subtotal;
-        $fact->iva = $plantilla->iva;
-        $fact->retiva = $plantilla->retiva;
-        $fact->retisr = $plantilla->retisr;
-        $fact->ieps = $plantilla->ieps;
-        $fact->total = $plantilla->total;
-        $fact->observa = $plantilla->observa;
-        $fact->estado = 'Activa';
-        $fact->metodo = $plantilla->metodo;
-        $fact->forma = $plantilla->forma;
-        $fact->uso = $plantilla->uso;
-        $fact->uuid = '';
-        $fact->condiciones = $plantilla->condiciones;
-        $fact->vendedor = 0;
-        $fact->anterior = null;
-        $fact->timbrado = 0;
-        $fact->xml = '';
-        $fact->moneda = $plantilla->moneda;
-        $fact->tcambio = $plantilla->tcambio;
-        $fact->pendiente_pago = $plantilla->total;
-        $fact->error_timbrado = '';
-        $fact->save();
+        $fact = FacturaFolioService::crearConFolioSeguro($serieRow->id, [
+            'team_id' => $teamId,
+            'fecha' => now()->format('Y-m-d'),
+            'clie' => $plantilla->clie,
+            'nombre' => $plantilla->cliente_nombre,
+            'esquema' => $plantilla->esquema,
+            'subtotal' => $plantilla->subtotal,
+            'iva' => $plantilla->iva,
+            'retiva' => $plantilla->retiva,
+            'retisr' => $plantilla->retisr,
+            'ieps' => $plantilla->ieps,
+            'total' => $plantilla->total,
+            'observa' => $plantilla->observa,
+            'estado' => 'Activa',
+            'metodo' => $plantilla->metodo,
+            'forma' => $plantilla->forma,
+            'uso' => $plantilla->uso,
+            'uuid' => '',
+            'condiciones' => $plantilla->condiciones,
+            'vendedor' => 0,
+            'anterior' => null,
+            'timbrado' => 0,
+            'xml' => '',
+            'moneda' => $plantilla->moneda,
+            'tcambio' => $plantilla->tcambio,
+            'pendiente_pago' => $plantilla->total,
+            'error_timbrado' => '',
+        ]);
 
         // Guardar partidas
         foreach ($plantilla->partidas as $p) {
@@ -615,12 +618,6 @@ class FacturaModelosResource extends Resource
                 'por_imp4' => $esquema->ieps,
                 'team_id' => Filament::getTenant()->id,
             ]);
-        }
-
-        // Actualizar folio de serie
-        if ($serie) {
-            $serie->folio = $folio;
-            $serie->save();
         }
 
         // Actualizar fechas de programación
@@ -751,4 +748,3 @@ class FacturaModelosResource extends Resource
         $set('total',$total);
     }
 }
-

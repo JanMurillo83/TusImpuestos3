@@ -9,7 +9,7 @@ use App\Services\ImpuestosCalculator;
 
 class Requisiciones extends Model
 {
-    protected $fillable = ['folio','fecha','prov','nombre','esquema','subtotal',
+    protected $fillable = ['serie','folio','docto','fecha','prov','nombre','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','moneda','tcambio','observa','estado','compra','team_id','solicita','proyecto'];
 
     public function partidas(): HasMany

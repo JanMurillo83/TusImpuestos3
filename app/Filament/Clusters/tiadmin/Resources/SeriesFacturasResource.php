@@ -26,8 +26,8 @@ class SeriesFacturasResource extends Resource
         return auth()->user()->hasRole(['administrador']);
     }
     protected static ?int $navigationSort = 4;
-    protected static ?string $label = 'Serie de Facturas';
-    protected static ?string $pluralLabel = 'Series de Facturas';
+    protected static ?string $label = 'Serie de Documentos';
+    protected static ?string $pluralLabel = 'Series de Documentos';
 
     public static function form(Form $form): Form
     {
@@ -36,8 +36,10 @@ class SeriesFacturasResource extends Resource
                 Forms\Components\TextInput::make('serie')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Hidden::make('tipo')
-                    ->default('F'),
+                Forms\Components\Select::make('tipo')
+                    ->label('Tipo')
+                    ->options(SeriesFacturas::tiposDisponibles())
+                    ->required(),
                 Forms\Components\TextInput::make('folio')
                     ->required()
                     ->numeric()->default(0),

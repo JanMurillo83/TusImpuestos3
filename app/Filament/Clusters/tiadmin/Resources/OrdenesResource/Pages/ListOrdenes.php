@@ -9,6 +9,7 @@ use App\Models\Facturas;
 use App\Models\Ordenes;
 use App\Models\Proveedores;
 use App\Models\Requisiciones;
+use App\Models\SeriesFacturas;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Filament\Actions;
 use Filament\Facades\Filament;
@@ -65,15 +66,19 @@ class ListOrdenes extends ListRecords
                     $record = Requisiciones::where('id',$fol)->first();
                     //dd($record);
                     $partidas = $record->partidas()
+                        ->where(function($q) {
+                            $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
+                        })
                         ->get()
                         ->map(function ($partida) {
+                            $pend = $partida->pendientes ?? $partida->cant;
                             return [
                                 'partida_id' => $partida->id,
                                 'item' => $partida->item,
                                 'descripcion' => $partida->descripcion,
                                 'cantidad_original' => $partida->cant,
-                                'cantidad_pendiente' => $partida->cant,
-                                'cantidad_a_convertir' => $partida->cant,
+                                'cantidad_pendiente' => $pend,
+                                'cantidad_a_convertir' => $pend,
                                 'costo' => $partida->costo,
                             ];
                         })->toArray();
@@ -123,7 +128,13 @@ class ListOrdenes extends ListRecords
                                     Placeholder::make('pendiente')
                                         ->label('Cantidad')
                                         ->content(fn ($get) => $get('cantidad_pendiente')),
-                                    Hidden::make('cantidad_a_convertir'),
+                                    TextInput::make('cantidad_a_convertir')
+                                        ->label('A Convertir')
+                                        ->numeric()
+                                        ->required()
+                                        ->minValue(0.01)
+                                        ->maxValue(fn ($get) => $get('cantidad_pendiente'))
+                                        ->reactive(),
                                 ]),
                         ])
                         ->addable(false)
@@ -173,9 +184,19 @@ class ListOrdenes extends ListRecords
 
                             DB::beginTransaction();
                             try {
+                                $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                    ->first();
+                                if (! $serieRow) {
+                                    throw new \Exception('No se encontro una serie de ordenes de compra configurada.');
+                                }
+                                $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
+
                                 // Crear Orden
                                 $orden = \App\Models\Ordenes::create([
-                                    'folio' => (\App\Models\Ordenes::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                                    'serie' => $folioData['serie'],
+                                    'folio' => $folioData['folio'],
+                                    'docto' => $folioData['docto'],
                                     'fecha' => now()->format('Y-m-d'),
                                     'prov' => $req->prov,
                                     'nombre' => $req->nombre,
@@ -259,10 +280,22 @@ class ListOrdenes extends ListRecords
                                 $req->save();
 
                                 DB::commit();
-                                Notification::make()->title('Orden generada #'.$orden->folio)->success()->send();
+                                $ordenLabel = $orden->docto ?? $orden->folio;
+                                Notification::make()->title('Orden generada #'.$ordenLabel)->success()->send();
                                 $action->close();
                                 $this->dispatch('close-modal', ['id' => $action->getName()]);
                                 $set('is_vis','NO');
+                                $archivo_pdf = 'ORDEN_COMPRA'.$orden->id.'.pdf';
+                                $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                                if(\File::exists($ruta)) unlink($ruta);
+                                $data = ['idorden'=>$orden->id,'team_id'=>Filament::getTenant()->id,'prov_id'=>$orden->prov];
+                                $html = \Illuminate\Support\Facades\View::make('NFTO_OrdendeCompra',$data)->render();
+                                \Spatie\Browsershot\Browsershot::html($html)->format('Letter')
+                                    ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                    ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                    ->noSandbox()
+                                    ->scale(0.8)->savePdf($ruta);
+                                return response()->download($ruta);
                             } catch (\Exception $e) {
                                 DB::rollBack();
                                 Notification::make()->title('Error al generar la orden: ' . $e->getMessage())->danger()->send();

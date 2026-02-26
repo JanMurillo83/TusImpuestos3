@@ -9,6 +9,8 @@ use App\Models\Esquemasimp;
 use App\Models\Inventario;
 use App\Models\Remisiones;
 use App\Models\RemisionesPartidas;
+use App\Models\SeriesFacturas;
+use App\Services\FacturaFolioService;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -68,18 +70,60 @@ class RemisionesResource extends Resource
                         ->schema([
                             Hidden::make('team_id')->default(Filament::getTenant()->id),
                             Forms\Components\Hidden::make('id'),
-                            Forms\Components\Hidden::make('serie')->default('R'),
+                            Forms\Components\Select::make('sel_serie')
+                                ->label('Serie')
+                                ->live(onBlur: true)
+                                ->required()
+                                ->disabledOn('edit')
+                                ->options(SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_REMISIONES)
+                                    ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
+                                    ->pluck('descripcion', 'id'))
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REMISIONES)
+                                        ->value('id');
+                                })
+                                ->afterStateUpdated(function (Get $get, Set $set, $context) {
+                                    if ($context === 'edit') {
+                                        return;
+                                    }
+                                    $serId = $get('sel_serie');
+                                    if (! $serId) {
+                                        return;
+                                    }
+                                    $fol = SeriesFacturas::find($serId);
+                                    if (! $fol) {
+                                        return;
+                                    }
+                                    $set('serie', $fol->serie);
+                                    $set('folio', $fol->folio + 1);
+                                    $set('docto', $fol->serie . ($fol->folio + 1));
+                                }),
+                            Forms\Components\Hidden::make('serie')
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REMISIONES)
+                                        ->value('serie') ?? 'R';
+                                }),
                             Forms\Components\Hidden::make('folio')
-                                ->default(function(){
-                                    return count(Remisiones::where('team_id',Filament::getTenant()->id)->get()) + 1;
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REMISIONES)
+                                        ->first();
+                                    return ($serieRow->folio ?? 0) + 1;
                                 }),
                             Forms\Components\TextInput::make('docto')
                                 ->label('Documento')
                                 ->required()
                                 ->readOnly()
-                                ->default(function(){
-                                    $fol = count(Remisiones::where('team_id',Filament::getTenant()->id)->get()) + 1;
-                                    return 'R'.$fol;
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REMISIONES)
+                                        ->first();
+                                    $serie = $serieRow->serie ?? 'R';
+                                    $folio = ($serieRow->folio ?? 0) + 1;
+                                    return $serie . $folio;
                                 }),
                             Forms\Components\Select::make('clie')
                                 ->searchable()
@@ -472,17 +516,15 @@ class RemisionesResource extends Resource
                     ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
                     ->action(function (Model $record) {
                         $req = $record->fresh();
-                        $ser = \App\Models\SeriesFacturas::where('team_id', Filament::getTenant()->id)->where('tipo', 'F')->first();
-                        $serie = $ser->serie ?? 'A';
-                        $folio = ($ser->folio ?? 0) + 1;
-                        if ($ser) {
-                            $ser->update(['folio' => $folio]);
+                        $teamId = Filament::getTenant()->id;
+                        $serieRow = SeriesFacturas::where('team_id', $teamId)
+                            ->where('tipo', SeriesFacturas::TIPO_FACTURAS)
+                            ->first();
+                        if (! $serieRow) {
+                            throw new \Exception('No se encontró una serie configurada para Facturas.');
                         }
 
-                        $factura = \App\Models\Facturas::create([
-                            'serie' => $serie,
-                            'folio' => $folio,
-                            'docto' => $serie . $folio,
+                        $factura = FacturaFolioService::crearConFolioSeguro($serieRow->id, [
                             'fecha' => now()->format('Y-m-d'),
                             'clie' => $req->clie,
                             'nombre' => $req->nombre,
@@ -498,7 +540,7 @@ class RemisionesResource extends Resource
                             'observa' => 'Generado desde Remisión #' . $req->folio,
                             'estado' => 'Activa',
                             'remision_id' => $req->id,
-                            'team_id' => Filament::getTenant()->id,
+                            'team_id' => $teamId,
                         ]);
 
                         foreach ($req->partidas as $par) {
@@ -545,6 +587,19 @@ class RemisionesResource extends Resource
                     ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $serieId = intval($data['sel_serie'] ?? 0);
+                        if (! $serieId) {
+                            throw new \Exception('Debe seleccionar una serie para la remision.');
+                        }
+
+                        $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+                        $data['serie'] = $folioData['serie'];
+                        $data['folio'] = $folioData['folio'];
+                        $data['docto'] = $folioData['docto'];
+
+                        return $data;
+                    })
                     ->after(function($record){
                         DB::transaction(function() use ($record){
                             foreach($record->partidas as $partida){

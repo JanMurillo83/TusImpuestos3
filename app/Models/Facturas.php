@@ -9,10 +9,37 @@ use App\Services\ImpuestosCalculator;
 
 class Facturas extends Model
 {
+    protected static bool $allowFolioUpdate = false;
+
     protected $fillable = ['serie','folio','docto','fecha','clie','nombre','rfc_mostr','nombre_mostr','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','observa','estado','metodo',
     'forma','uso','uuid','remision_id','pedido_id','cotizacion_id','condiciones','vendedor','anterior','timbrado','xml','fecha_tim',
     'moneda','tcambio','fecha_cancela','motivo','sustituye','xml_cancela','pendiente_pago','team_id','error_timbrado','docto_rela','tipo_rela'];
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $factura): void {
+            if (self::$allowFolioUpdate) {
+                return;
+            }
+
+            if ($factura->isDirty('folio') || $factura->isDirty('serie')) {
+                throw new \RuntimeException('No se permite actualizar serie/folio en facturas existentes.');
+            }
+        });
+    }
+
+    public static function sinBloqueoFolio(callable $callback): mixed
+    {
+        $prev = self::$allowFolioUpdate;
+        self::$allowFolioUpdate = true;
+
+        try {
+            return $callback();
+        } finally {
+            self::$allowFolioUpdate = $prev;
+        }
+    }
     public function partidas(): HasMany
     {
         return $this->hasMany(related: FacturasPartidas::class);

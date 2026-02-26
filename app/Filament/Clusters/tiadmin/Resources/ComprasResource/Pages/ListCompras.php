@@ -10,6 +10,8 @@ use App\Models\Movinventario;
 use App\Models\Ordenes;
 use App\Models\Proveedores;
 use App\Models\Requisiciones;
+use App\Models\SeriesFacturas;
+use App\Services\CompraInventarioService;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Carbon\Carbon;
 use Filament\Actions;
@@ -161,9 +163,19 @@ class ListCompras extends ListRecords
 
                                 DB::beginTransaction();
                                 try {
-                                    // Crear Orden
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                        ->first();
+                                    if (! $serieRow) {
+                                        throw new \Exception('No se encontro una serie de compras configurada.');
+                                    }
+                                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
+
+                                    // Crear Recepción (Compra)
                                     $orden = \App\Models\Compras::create([
-                                        'folio' => (\App\Models\Compras::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                                        'serie' => $folioData['serie'],
+                                        'folio' => $folioData['folio'],
+                                        'docto' => $folioData['docto'],
                                         'fecha' => now()->format('Y-m-d'),
                                         'prov' => $req->prov,
                                         'nombre' => $req->nombre,
@@ -176,9 +188,11 @@ class ListCompras extends ListRecords
                                         'total' => 0,
                                         'moneda' => $req->moneda,
                                         'tcambio' => $req->tcambio ?? 1,
-                                        'observa' => 'Generada desde Requisición #'.$req->folio,
+                                        'observa' => 'Generada desde Orden #'.$req->folio,
                                         'estado' => 'Activa',
-                                        'requisicion_id' => $req->id,
+                                        'orden' => $req->id,
+                                        'orden_id' => $req->id,
+                                        'requisicion_id' => $req->requisicion_id,
                                         'team_id' => Filament::getTenant()->id,
                                     ]);
 
@@ -206,7 +220,6 @@ class ListCompras extends ListRecords
                                             'item' => $parOriginal->item,
                                             'descripcion' => $parOriginal->descripcion,
                                             'cant' => $cantConvertir,
-                                            'pendientes' => $cantConvertir, // Para la orden, todo está pendiente de recibir en compra
                                             'costo' => $unit,
                                             'subtotal' => $lineSubtotal,
                                             'iva' => $lineIva,
@@ -247,10 +260,23 @@ class ListCompras extends ListRecords
                                     $req->save();
 
                                     DB::commit();
-                                    Notification::make()->title('Recepción generada #'.$orden->folio)->success()->send();
+                                    CompraInventarioService::aplicarEntrada($orden);
+                                    $ordenLabel = $orden->docto ?? $orden->folio;
+                                    Notification::make()->title('Recepción generada #'.$ordenLabel)->success()->send();
                                     $action->close();
                                     $this->dispatch('close-modal', ['id' => $action->getName()]);
                                     $set('is_vis','NO');
+                                    $archivo_pdf = 'COMPRA'.$orden->id.'.pdf';
+                                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                                    if(\File::exists($ruta)) unlink($ruta);
+                                    $data = ['idorden'=>$orden->id];
+                                    $html = \Illuminate\Support\Facades\View::make('RecepcionCompra',$data)->render();
+                                    \Spatie\Browsershot\Browsershot::html($html)->format('Letter')
+                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                        ->noSandbox()
+                                        ->scale(0.8)->savePdf($ruta);
+                                    return response()->download($ruta);
                                 } catch (\Exception $e) {
                                     DB::rollBack();
                                     Notification::make()->title('Error al generar la Recepción: ' . $e->getMessage())->danger()->send();
@@ -373,9 +399,19 @@ class ListCompras extends ListRecords
 
                                 DB::beginTransaction();
                                 try {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                        ->first();
+                                    if (! $serieRow) {
+                                        throw new \Exception('No se encontro una serie de compras configurada.');
+                                    }
+                                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
+
                                     // Crear Orden
                                     $orden = \App\Models\Compras::create([
-                                        'folio' => (\App\Models\Compras::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                                        'serie' => $folioData['serie'],
+                                        'folio' => $folioData['folio'],
+                                        'docto' => $folioData['docto'],
                                         'fecha' => now()->format('Y-m-d'),
                                         'prov' => $req->prov,
                                         'nombre' => $req->nombre,
@@ -418,7 +454,6 @@ class ListCompras extends ListRecords
                                             'item' => $parOriginal->item,
                                             'descripcion' => $parOriginal->descripcion,
                                             'cant' => $cantConvertir,
-                                            'pendientes' => $cantConvertir, // Para la orden, todo está pendiente de recibir en compra
                                             'costo' => $unit,
                                             'subtotal' => $lineSubtotal,
                                             'iva' => $lineIva,
@@ -433,20 +468,7 @@ class ListCompras extends ListRecords
                                             'team_id' => Filament::getTenant()->id,
                                             'orden_partida_id' => $parOriginal->id,
                                         ]);
-                                        Movinventario::insert([
-                                            'producto'=>$parOriginal->item,
-                                            'tipo'=>'Entrada',
-                                            'fecha'=>Carbon::now(),
-                                            'cant'=>$cantConvertir,
-                                            'costo'=>$parOriginal->costo,
-                                            'precio'=>0,
-                                            'concepto'=>1,
-                                            'tipoter'=>'P',
-                                            'tercero'=>$parOriginal->prov,
-                                            'team_id'=>Filament::getTenant()->id,
-                                        ]);
-                                        Inventario::where('id',$parOriginal->item)->increment('exist',$cantConvertir);
-                                        // Actualizar pendientes en Requisición
+                                        // Actualizar pendientes en Orden
                                         $parOriginal->pendientes = max(0, ($parOriginal->pendientes ?? $parOriginal->cant) - $cantConvertir);
                                         $parOriginal->save();
 
@@ -462,19 +484,33 @@ class ListCompras extends ListRecords
                                         'total' => $total,
                                     ]);
 
-                                    // Actualizar estado de la requisición
+                                    // Actualizar estado de la orden
                                     $quedanPend = \App\Models\OrdenesPartidas::where('ordenes_id', $req->id)
                                         ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
                                         ->exists();
 
-                                    $req->estado = $quedanPend ? 'Parcial' : 'Cerrada';
+                                    $req->estado = $quedanPend ? 'Parcial' : 'Comprada';
+                                    $req->compra = $orden->folio;
                                     $req->save();
 
                                     DB::commit();
-                                    Notification::make()->title('Recepción generada #'.$orden->folio)->success()->send();
+                                    CompraInventarioService::aplicarEntrada($orden);
+                                    $ordenLabel = $orden->docto ?? $orden->folio;
+                                    Notification::make()->title('Recepción generada #'.$ordenLabel)->success()->send();
                                     $action->close();
                                     $this->dispatch('close-modal', ['id' => $action->getName()]);
                                     $set('is_vis','NO');
+                                    $archivo_pdf = 'COMPRA'.$orden->id.'.pdf';
+                                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                                    if(\File::exists($ruta)) unlink($ruta);
+                                    $data = ['idorden'=>$orden->id];
+                                    $html = \Illuminate\Support\Facades\View::make('RecepcionCompra',$data)->render();
+                                    \Spatie\Browsershot\Browsershot::html($html)->format('Letter')
+                                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                        ->noSandbox()
+                                        ->scale(0.8)->savePdf($ruta);
+                                    return response()->download($ruta);
                                 } catch (\Exception $e) {
                                     DB::rollBack();
                                     Notification::make()->title('Error al generar la Recepción: ' . $e->getMessage())->danger()->send();

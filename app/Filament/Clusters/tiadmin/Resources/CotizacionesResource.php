@@ -11,6 +11,8 @@ use App\Models\CotizacionesPartidas;
 use App\Models\Esquemasimp;
 use App\Models\EquivalenciaInventarioCliente;
 use App\Models\Inventario;
+use App\Models\SeriesFacturas;
+use App\Services\FacturaFolioService;
 use App\Services\PrecioCalculator;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
@@ -78,28 +80,60 @@ class CotizacionesResource extends Resource
                         ->schema([
                             Hidden::make('team_id')->default(Filament::getTenant()->id),
                             Forms\Components\Hidden::make('id'),
-                            Forms\Components\Hidden::make('serie')->default('C'),
+                            Forms\Components\Select::make('sel_serie')
+                                ->label('Serie')
+                                ->live(onBlur: true)
+                                ->required()
+                                ->disabledOn('edit')
+                                ->options(SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
+                                    ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
+                                    ->pluck('descripcion', 'id'))
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
+                                        ->value('id');
+                                })
+                                ->afterStateUpdated(function (Get $get, Set $set, $context) {
+                                    if ($context === 'edit') {
+                                        return;
+                                    }
+                                    $serId = $get('sel_serie');
+                                    if (! $serId) {
+                                        return;
+                                    }
+                                    $fol = SeriesFacturas::find($serId);
+                                    if (! $fol) {
+                                        return;
+                                    }
+                                    $set('serie', $fol->serie);
+                                    $set('folio', $fol->folio + 1);
+                                    $set('docto', $fol->serie . ($fol->folio + 1));
+                                }),
+                            Forms\Components\Hidden::make('serie')
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
+                                        ->value('serie') ?? 'C';
+                                }),
                             Forms\Components\Hidden::make('folio')
-                                ->default(function(){
-                                    $teamId = Filament::getTenant()->id;
-                                    $serie = 'C';
-                                    $ultimoFolio = Cotizaciones::where('team_id', $teamId)
-                                        ->where('serie', $serie)
-                                        ->max('folio');
-                                    return ((int) $ultimoFolio) + 1;
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
+                                        ->first();
+                                    return ($serieRow->folio ?? 0) + 1;
                                 }),
                             Forms\Components\TextInput::make('docto')
                                 ->label('Documento')
                                 ->required()
                                 ->readOnly()
-                                ->default(function(){
-                                    $teamId = Filament::getTenant()->id;
-                                    $serie = 'C';
-                                    $ultimoFolio = Cotizaciones::where('team_id', $teamId)
-                                        ->where('serie', $serie)
-                                        ->max('folio');
-                                    $nuevoFolio = ((int) $ultimoFolio) + 1;
-                                    return $serie.$nuevoFolio;
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
+                                        ->first();
+                                    $serie = $serieRow->serie ?? 'C';
+                                    $folio = ($serieRow->folio ?? 0) + 1;
+                                    return $serie . $folio;
                                 }),
                             Forms\Components\Select::make('clie')
                                 ->searchable()
@@ -972,9 +1006,15 @@ class CotizacionesResource extends Resource
 
                             DB::beginTransaction();
                             try {
-                                $factura = \App\Models\Facturas::create([
-                                    'serie' => 'F', // Default series or pick from settings
-                                    'folio' => (\App\Models\Facturas::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                                $teamId = Filament::getTenant()->id;
+                                $serieRow = SeriesFacturas::where('team_id', $teamId)
+                                    ->where('tipo', SeriesFacturas::TIPO_FACTURAS)
+                                    ->first();
+                                if (! $serieRow) {
+                                    throw new \Exception('No se encontró una serie configurada para Facturas.');
+                                }
+
+                                $factura = FacturaFolioService::crearConFolioSeguro($serieRow->id, [
                                     'fecha' => now()->format('Y-m-d'),
                                     'clie' => $cot->clie,
                                     'nombre' => $cot->nombre,
@@ -990,7 +1030,7 @@ class CotizacionesResource extends Resource
                                     'observa' => 'Generada desde Cotización #'.$cot->folio,
                                     'estado' => 'Activa',
                                     'cotizacion_id' => $cot->id,
-                                    'team_id' => Filament::getTenant()->id,
+                                    'team_id' => $teamId,
                                     'metodo' => $cot->metodo ?? 'PUE',
                                     'forma' => $cot->forma ?? '01',
                                     'uso' => $cot->uso ?? 'G03',
@@ -1082,11 +1122,21 @@ class CotizacionesResource extends Resource
                     ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
                         $teamId = Filament::getTenant()->id;
                         $serie = $record->serie ?? 'C';
-                        $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                        $serieRow = SeriesFacturas::where('team_id', $teamId)
+                            ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
                             ->where('serie', $serie)
-                            ->max('folio');
-                        $nuevoFolio_ = ((int) $ultimoFolio) + 1;
-                        $nuevoFolio = $serie.$nuevoFolio_;
+                            ->first();
+
+                        if ($serieRow) {
+                            $nuevoFolio_ = ($serieRow->folio ?? 0) + 1;
+                            $nuevoFolio = $serieRow->serie . $nuevoFolio_;
+                        } else {
+                            $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                                ->where('serie', $serie)
+                                ->max('folio');
+                            $nuevoFolio_ = ((int) $ultimoFolio) + 1;
+                            $nuevoFolio = $serie . $nuevoFolio_;
+                        }
 
                         $form->fill([
                             'nuevo_folio' => $nuevoFolio,
@@ -1137,15 +1187,19 @@ class CotizacionesResource extends Resource
                         DB::transaction(function () use ($record, $data) {
                             $teamId = Filament::getTenant()->id;
 
-                            // Obtener nuevo folio
                             $serie = $record->serie ?? 'C';
-                            $ultimoFolio = Cotizaciones::where('team_id', $teamId)
+                            $serieRow = SeriesFacturas::where('team_id', $teamId)
+                                ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
                                 ->where('serie', $serie)
-                                ->orderBy('folio', 'desc')
-                                ->lockForUpdate()
-                                ->value('folio');
-                            $nuevoFolio_ = ((int) $ultimoFolio) + 1;
-                            $nuevoFolio = $serie.$nuevoFolio_;
+                                ->first();
+                            if (! $serieRow) {
+                                throw new \Exception('No se encontro una serie de cotizaciones configurada.');
+                            }
+
+                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
+                            $serie = $folioData['serie'];
+                            $nuevoFolio_ = $folioData['folio'];
+                            $nuevoFolio = $folioData['docto'];
 
                             // Obtener información del nuevo cliente
                             $nuevoCliente = Clientes::find($data['clie']);
@@ -1300,25 +1354,12 @@ class CotizacionesResource extends Resource
                     ->modalFooterActionsAlignment(Alignment::Left)
                     ->modalWidth('full')
                     ->mutateFormDataUsing(function (array $data): array {
-                        // Obtener siguiente folio de forma segura con lock para evitar duplicados
-                        $teamId = Filament::getTenant()->id;
-                        $serie = $data['serie'] ?? 'C';
+                        $serieId = intval($data['sel_serie'] ?? 0);
+                        if (! $serieId) {
+                            throw new \Exception('Debe seleccionar una serie para la cotizacion.');
+                        }
 
-                        $folioData = DB::transaction(function () use ($teamId, $serie) {
-                            // Lock en la tabla para evitar condiciones de carrera
-                            $ultimoFolio = Cotizaciones::where('team_id', $teamId)
-                                ->where('serie', $serie)
-                                ->lockForUpdate()
-                                ->max('folio');
-
-                            $nuevoFolio = ((int) $ultimoFolio) + 1;
-
-                            return [
-                                'serie' => $serie,
-                                'folio' => $nuevoFolio,
-                                'docto' => $serie . $nuevoFolio,
-                            ];
-                        });
+                        $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
 
                         $data['serie'] = $folioData['serie'];
                         $data['folio'] = $folioData['folio'];

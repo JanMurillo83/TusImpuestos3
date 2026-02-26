@@ -13,9 +13,9 @@ use App\Models\FacturasPartidas;
 use App\Models\Pedidos;
 use App\Models\PedidosPartidas;
 use App\Models\Remisiones;
-use App\Models\SeriesFacturas;
 use App\Models\SurtidoInve;
 use App\Models\Team;
+use App\Services\FacturaFolioService;
 use Carbon\Carbon;
 use CfdiUtils\Cleaner\Cleaner;
 use Filament\Actions;
@@ -33,15 +33,21 @@ class CreateFacturas extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Obtener siguiente folio de forma segura justo antes de crear
-        $serieId = intval($data['sel_serie']);
-        $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
-
-        $data['serie'] = $folioData['serie'];
-        $data['folio'] = $folioData['folio'];
-        $data['docto'] = $folioData['docto'];
+        unset($data['serie'], $data['folio'], $data['docto']);
 
         return $data;
+    }
+
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        $serieId = intval($data['sel_serie'] ?? 0);
+        if (! $serieId) {
+            throw new \Exception('Debe seleccionar una serie para la factura.');
+        }
+
+        unset($data['sel_serie']);
+
+        return FacturaFolioService::crearConFolioSeguro($serieId, $data);
     }
 
     protected function getCreateFormAction(): \Filament\Actions\Action

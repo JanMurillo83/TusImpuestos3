@@ -10,6 +10,7 @@ use App\Models\Requisiciones;
 use App\Models\Proveedores;
 use App\Models\Proyectos;
 use App\Models\RequisicionesPartidas;
+use App\Models\SeriesFacturas;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -70,14 +71,61 @@ class RequisicionesResource extends Resource
                     FieldSet::make('Requisición de Compra')
                         ->schema([
                             Forms\Components\Hidden::make('id'),
-                            Forms\Components\TextInput::make('folio')
-                            ->required()
-                            ->numeric()
-                            ->readOnly()
-                            ->default(function(){
-                                $las_fol = Requisiciones::where('team_id',Filament::getTenant()->id)->max('folio') ?? 0;
-                                return  $las_fol + 1;
-                            }),
+                            Forms\Components\Select::make('sel_serie')
+                                ->label('Serie')
+                                ->live(onBlur: true)
+                                ->required()
+                                ->disabledOn('edit')
+                                ->options(SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
+                                    ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
+                                    ->pluck('descripcion', 'id'))
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
+                                        ->value('id');
+                                })
+                                ->afterStateUpdated(function (Get $get, Set $set, $context) {
+                                    if ($context === 'edit') {
+                                        return;
+                                    }
+                                    $serId = $get('sel_serie');
+                                    if (! $serId) {
+                                        return;
+                                    }
+                                    $fol = SeriesFacturas::find($serId);
+                                    if (! $fol) {
+                                        return;
+                                    }
+                                    $set('serie', $fol->serie);
+                                    $set('folio', $fol->folio + 1);
+                                    $set('docto', $fol->serie . ($fol->folio + 1));
+                                }),
+                            Forms\Components\Hidden::make('serie')
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
+                                        ->value('serie') ?? 'RQ';
+                                }),
+                            Forms\Components\Hidden::make('folio')
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
+                                        ->first();
+                                    return ($serieRow->folio ?? 0) + 1;
+                                }),
+                            Forms\Components\TextInput::make('docto')
+                                ->label('Documento')
+                                ->required()
+                                ->readOnly()
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
+                                        ->first();
+                                    $serie = $serieRow->serie ?? 'RQ';
+                                    $folio = ($serieRow->folio ?? 0) + 1;
+                                    return $serie . $folio;
+                                }),
                         Forms\Components\Select::make('prov')
                             ->searchable()
                             ->label('Proveedor')
@@ -362,7 +410,11 @@ class RequisicionesResource extends Resource
             ->striped()
             ->columns([
                 Tables\Columns\TextColumn::make('folio')
-                    ->numeric()
+                    ->label('Documento')
+                    ->formatStateUsing(function ($state, $record) {
+                        $serie = $record->serie ?? '';
+                        return $serie !== '' ? $serie . $state : $state;
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha')
                     ->date('d-m-Y')
@@ -399,16 +451,22 @@ class RequisicionesResource extends Resource
                         DB::transaction(function () use ($record) {
                             $teamId = Filament::getTenant()->id;
 
-                            // Obtener nuevo folio
-                            $ultimaRequisicion = Requisiciones::where('team_id', $teamId)
-                                ->orderBy('folio', 'desc')
+                            $serie = $record->serie ?? 'RQ';
+                            $serieRow = SeriesFacturas::where('team_id', $teamId)
+                                ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
+                                ->where('serie', $serie)
                                 ->first();
-                            $nuevoFolio = ($ultimaRequisicion->folio ?? 0) + 1;
+                            if (! $serieRow) {
+                                throw new \Exception('No se encontro una serie de requisiciones configurada.');
+                            }
+                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
 
                             // Crear encabezado de requisición copiada
                             $nueva = new Requisiciones();
                             $nueva->team_id = $teamId;
-                            $nueva->folio = $nuevoFolio;
+                            $nueva->serie = $folioData['serie'];
+                            $nueva->folio = $folioData['folio'];
+                            $nueva->docto = $folioData['docto'];
                             $nueva->fecha = Carbon::now();
                             $nueva->prov = $record->prov;
                             $nueva->nombre = $record->nombre;
@@ -456,7 +514,7 @@ class RequisicionesResource extends Resource
                             }
 
                             Notification::make()
-                                ->title('Requisición copiada correctamente: ' . $nueva->folio)
+                                ->title('Requisición copiada correctamente: ' . ($nueva->docto ?? $nueva->folio))
                                 ->success()
                                 ->send();
                         });
@@ -521,7 +579,7 @@ class RequisicionesResource extends Resource
                 ActionsAction::make('Generar Orden')
                     ->icon('fas-file-invoice-dollar')
                     ->color(Color::Green)
-                    ->visible(false)
+                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
                     ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
                         $partidas = $record->partidas()
                             ->where(function($q) {
@@ -598,9 +656,19 @@ class RequisicionesResource extends Resource
 
                         DB::beginTransaction();
                         try {
+                            $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                ->first();
+                            if (! $serieRow) {
+                                throw new \Exception('No se encontro una serie de ordenes de compra configurada.');
+                            }
+                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
+
                             // Crear Orden
                             $orden = \App\Models\Ordenes::create([
-                                'folio' => (\App\Models\Ordenes::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                                'serie' => $folioData['serie'],
+                                'folio' => $folioData['folio'],
+                                'docto' => $folioData['docto'],
                                 'fecha' => now()->format('Y-m-d'),
                                 'prov' => $req->prov,
                                 'nombre' => $req->nombre,
@@ -684,7 +752,19 @@ class RequisicionesResource extends Resource
                             $req->save();
 
                             DB::commit();
-                            Notification::make()->title('Orden generada #'.$orden->folio)->success()->send();
+                            $ordenLabel = $orden->docto ?? $orden->folio;
+                            Notification::make()->title('Orden generada #'.$ordenLabel)->success()->send();
+                            $archivo_pdf = 'ORDEN_COMPRA'.$orden->id.'.pdf';
+                            $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                            if(File::exists($ruta))File::delete($ruta);
+                            $data = ['idorden'=>$orden->id,'team_id'=>Filament::getTenant()->id,'prov_id'=>$orden->prov];
+                            $html = View::make('NFTO_OrdendeCompra',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
                         } catch (\Exception $e) {
                             DB::rollBack();
                             Notification::make()->title('Error al generar la orden: ' . $e->getMessage())->danger()->send();
@@ -703,6 +783,19 @@ class RequisicionesResource extends Resource
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full')->button()
+                ->mutateFormDataUsing(function (array $data): array {
+                    $serieId = intval($data['sel_serie'] ?? 0);
+                    if (! $serieId) {
+                        throw new \Exception('Debe seleccionar una serie para la requisicion.');
+                    }
+
+                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+                    $data['serie'] = $folioData['serie'];
+                    $data['folio'] = $folioData['folio'];
+                    $data['docto'] = $folioData['docto'];
+
+                    return $data;
+                })
                 ->after(function ($record){
                     $record->refresh();
                     $record->recalculatePartidasFromItemSchema();
@@ -712,6 +805,18 @@ class RequisicionesResource extends Resource
                         $p->pendientes = $p->cant;
                         $p->save();
                     }
+
+                    $archivo_pdf = 'REQUISICION'.$record->id.'.pdf';
+                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                    if(File::exists($ruta))File::delete($ruta);
+                    $data = ['idrequisicion'=>$record->id,'team_id'=>Filament::getTenant()->id,'prov_id'=>$record->prov];
+                    $html = View::make('NFTO_Requisicion',$data)->render();
+                    Browsershot::html($html)->format('Letter')
+                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                        ->noSandbox()
+                        ->scale(0.8)->savePdf($ruta);
+                    return response()->download($ruta);
                 })
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([

@@ -33,6 +33,7 @@ use App\Models\TableSettings;
 use App\Models\Team;
 use App\Models\Unidades;
 use App\Models\Usos;
+use App\Services\FacturaFolioService;
 use App\Models\Xmlfiles;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
@@ -1358,46 +1359,40 @@ class FacturasResource extends Resource
                                 throw new \Exception("No se encontró una serie de facturación configurada");
                             }
 
-                            // Obtener siguiente folio de forma segura
-                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
-
-                            // Crear encabezado de factura copiada
-                            $nueva = new Facturas();
-                            $nueva->team_id = $teamId;
-                            $nueva->serie = $folioData['serie'];
-                            $nueva->folio = $folioData['folio'];
-                            $nueva->docto = $folioData['docto'];
-                            $nueva->fecha = Carbon::now();
-                            $nueva->clie = $record->clie;
-                            $nueva->nombre = $record->nombre;
-                            $nueva->esquema = $record->esquema;
-                            $nueva->subtotal = $record->subtotal;
-                            $nueva->iva = $record->iva;
-                            $nueva->retiva = $record->retiva;
-                            $nueva->retisr = $record->retisr;
-                            $nueva->ieps = $record->ieps;
-                            $nueva->total = $record->total;
-                            $nueva->observa = $record->observa;
-                            $nueva->estado = 'Activa';
-                            $nueva->metodo = $record->metodo;
-                            $nueva->forma = $record->forma;
-                            $nueva->uso = $record->uso;
-                            $nueva->condiciones = $record->condiciones;
-                            $nueva->vendedor = $record->vendedor;
-                            $nueva->moneda = $record->moneda;
-                            $nueva->tcambio = $record->tcambio;
-                            $nueva->pendiente_pago = $record->total; // nuevo saldo pendiente
-                            // Campos que no se deben copiar tal cual (timbrado / CFDI)
-                            $nueva->uuid = null;
-                            $nueva->timbrado = null;
-                            $nueva->xml = null;
-                            $nueva->fecha_tim = null;
-                            $nueva->fecha_cancela = null;
-                            $nueva->motivo = null;
-                            $nueva->sustituye = null;
-                            $nueva->xml_cancela = null;
-                            $nueva->error_timbrado = null;
-                            $nueva->save();
+                            // Crear encabezado de factura copiada con folio seguro
+                            $nueva = FacturaFolioService::crearConFolioSeguro($serieRow->id, [
+                                'team_id' => $teamId,
+                                'fecha' => Carbon::now(),
+                                'clie' => $record->clie,
+                                'nombre' => $record->nombre,
+                                'esquema' => $record->esquema,
+                                'subtotal' => $record->subtotal,
+                                'iva' => $record->iva,
+                                'retiva' => $record->retiva,
+                                'retisr' => $record->retisr,
+                                'ieps' => $record->ieps,
+                                'total' => $record->total,
+                                'observa' => $record->observa,
+                                'estado' => 'Activa',
+                                'metodo' => $record->metodo,
+                                'forma' => $record->forma,
+                                'uso' => $record->uso,
+                                'condiciones' => $record->condiciones,
+                                'vendedor' => $record->vendedor,
+                                'moneda' => $record->moneda,
+                                'tcambio' => $record->tcambio,
+                                'pendiente_pago' => $record->total,
+                                // Campos que no se deben copiar tal cual (timbrado / CFDI)
+                                'uuid' => null,
+                                'timbrado' => null,
+                                'xml' => null,
+                                'fecha_tim' => null,
+                                'fecha_cancela' => null,
+                                'motivo' => null,
+                                'sustituye' => null,
+                                'xml_cancela' => null,
+                                'error_timbrado' => null,
+                            ]);
 
                             // Duplicar partidas
                             $partidas = FacturasPartidas::where('facturas_id', $record->id)->get();
@@ -1429,7 +1424,7 @@ class FacturasResource extends Resource
                                 ]);
                             }
 
-                            // El folio ya fue incrementado por obtenerSiguienteFolio()
+                            // El folio ya fue asignado de forma segura al crear la factura
 
                             Notification::make()
                                 ->title('Factura copiada correctamente: ' . $nueva->docto)
@@ -1674,15 +1669,18 @@ class FacturasResource extends Resource
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full')
                 ->mutateFormDataUsing(function (array $data): array {
-                    // Obtener siguiente folio de forma segura justo antes de crear
-                    $serieId = intval($data['sel_serie']);
-                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
-
-                    $data['serie'] = $folioData['serie'];
-                    $data['folio'] = $folioData['folio'];
-                    $data['docto'] = $folioData['docto'];
-
+                    unset($data['serie'], $data['folio'], $data['docto']);
                     return $data;
+                })
+                ->using(function (array $data): Model {
+                    $serieId = intval($data['sel_serie'] ?? 0);
+                    if (! $serieId) {
+                        throw new \Exception('Debe seleccionar una serie para la factura.');
+                    }
+
+                    unset($data['sel_serie']);
+
+                    return FacturaFolioService::crearConFolioSeguro($serieId, $data);
                 })
                 ->after(function($record,$livewire){
                     $record->refresh();
@@ -1879,9 +1877,11 @@ class FacturasResource extends Resource
                                     'team_id'=>Filament::getTenant()->id
                                 ]);
                             }
-                            $factura = Facturas::firstOrCreate([
+                            $factura = Facturas::updateOrCreate([
+                                'team_id' => Filament::getTenant()->id,
                                 'serie' => $comprobante['serie'],
                                 'folio' => $comprobante['folio'],
+                            ], [
                                 'docto' => $comprobante['serie'] . $comprobante['folio'],
                                 'fecha' => $comprobante['fecha'],
                                 'clie' => $cliente->id,
@@ -1906,7 +1906,6 @@ class FacturasResource extends Resource
                                 'moneda' => $comprobante['Moneda'],
                                 'tcambio' => $tipocambio,
                                 'pendiente_pago' => $total,
-                                'team_id' => Filament::getTenant()->id
                             ]);
                             foreach ($conceptos() as $concepto) {
                                 $producto = Inventario::where('descripcion', $concepto['Descripcion'])->first();

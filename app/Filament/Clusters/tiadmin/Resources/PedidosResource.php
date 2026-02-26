@@ -11,6 +11,8 @@ use App\Models\Esquemasimp;
 use App\Models\Inventario;
 use App\Models\Pedidos;
 use App\Models\PedidosPartidas;
+use App\Models\SeriesFacturas;
+use App\Services\FacturaFolioService;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -674,9 +676,15 @@ class PedidosResource extends Resource
 
                         DB::beginTransaction();
                         try {
-                            $factura = \App\Models\Facturas::create([
-                                'serie' => 'F',
-                                'folio' => (\App\Models\Facturas::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                            $teamId = Filament::getTenant()->id;
+                            $serieRow = SeriesFacturas::where('team_id', $teamId)
+                                ->where('tipo', SeriesFacturas::TIPO_FACTURAS)
+                                ->first();
+                            if (! $serieRow) {
+                                throw new \Exception('No se encontró una serie configurada para Facturas.');
+                            }
+
+                            $factura = FacturaFolioService::crearConFolioSeguro($serieRow->id, [
                                 'fecha' => now()->format('Y-m-d'),
                                 'clie' => $ped->clie,
                                 'nombre' => $ped->nombre,
@@ -692,7 +700,7 @@ class PedidosResource extends Resource
                                 'observa' => 'Generada desde Pedido #'.$ped->folio,
                                 'estado' => 'Activa',
                                 'pedido_id' => $ped->id,
-                                'team_id' => Filament::getTenant()->id,
+                                'team_id' => $teamId,
                                 'metodo' => $ped->metodo ?? 'PUE',
                                 'forma' => $ped->forma ?? '01',
                                 'uso' => $ped->uso ?? 'G03',
@@ -744,7 +752,7 @@ class PedidosResource extends Resource
                             $factura->update([
                                 'subtotal' => $subtotal, 'iva' => $iva, 'retiva' => $retiva,
                                 'retisr' => $retisr, 'ieps' => $ieps, 'total' => $total,
-                                'docto' => 'F'.$factura->folio
+                                'docto' => $factura->serie . $factura->folio
                             ]);
 
                             $pendientesTotales = \App\Models\PedidosPartidas::where('pedidos_id', $ped->id)->sum('pendientes');

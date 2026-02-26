@@ -195,6 +195,62 @@ class AdmRepoPage extends Page implements HasForms
                           $this->replaceMountedAction('ComprasAction');
                           $this->getAction('ComprasAction')->visible(false);
                       }),
+                  Action::make('Reporte Requisiciones')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio')
+                          ->default(Carbon::now()->startOfMonth()),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin')
+                          ->default(Carbon::now()),
+                      Select::make('estado')
+                          ->label('Estado')
+                          ->options([
+                              'todas' => 'Todas',
+                              'Activa' => 'Activa',
+                              'Parcial' => 'Parcial',
+                              'Cerrada' => 'Cerrada',
+                              'Cancelada' => 'Cancelada',
+                          ])
+                          ->default('todas')
+                          ->required(),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->estado = $data['estado'] ?? 'todas';
+                          $this->getAction('RequisicionesAction')->visible(true);
+                          $this->replaceMountedAction('RequisicionesAction');
+                          $this->getAction('RequisicionesAction')->visible(false);
+                      }),
+                  Action::make('Reporte Ordenes')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio')
+                          ->default(Carbon::now()->startOfMonth()),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin')
+                          ->default(Carbon::now()),
+                      Select::make('estado')
+                          ->label('Estado')
+                          ->options([
+                              'todas' => 'Todas',
+                              'Activa' => 'Activa',
+                              'Parcial' => 'Parcial',
+                              'Comprada' => 'Comprada',
+                              'Cancelada' => 'Cancelada',
+                          ])
+                          ->default('todas')
+                          ->required(),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+                          $this->estado = $data['estado'] ?? 'todas';
+                          $this->getAction('OrdenesAction')->visible(true);
+                          $this->replaceMountedAction('OrdenesAction');
+                          $this->getAction('OrdenesAction')->visible(false);
+                      }),
                   Action::make('Costo Inventario')->extraAttributes(['style'=>'width:15rem !important'])
                       ->action(function(){
                           $this->team_id = Filament::getTenant()->id;
@@ -539,6 +595,34 @@ class AdmRepoPage extends Page implements HasForms
                     'team' => $this->team_id,
                     'fecha_inicio' => $this->fecha_inicio,
                     'fecha_fin' => $this->fecha_fin,
+                ]))
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('RequisicionesAction')
+                ->visible(false)
+                ->elementId('RequisicionesAction')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Reporte de Requisiciones')
+                ->content(fn() => view('RepRequisiciones',[
+                    'team' => $this->team_id,
+                    'fecha_inicio' => $this->fecha_inicio,
+                    'fecha_fin' => $this->fecha_fin,
+                    'estado' => $this->estado,
+                ]))
+                ->modalWidth('7xl'),
+            Html2MediaAction::make('OrdenesAction')
+                ->visible(false)
+                ->elementId('OrdenesAction')
+                ->preview()
+                ->print(false)
+                ->savePdf()
+                ->filename('Reporte de Ordenes')
+                ->content(fn() => view('RepOrdenes',[
+                    'team' => $this->team_id,
+                    'fecha_inicio' => $this->fecha_inicio,
+                    'fecha_fin' => $this->fecha_fin,
+                    'estado' => $this->estado,
                 ]))
                 ->modalWidth('7xl'),
             Html2MediaAction::make('CostoInventarioAction')

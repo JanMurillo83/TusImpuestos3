@@ -14,6 +14,8 @@ use App\Models\Proveedores;
 use App\Models\Proyectos;
 use App\Models\Requisiciones;
 use App\Models\RequisicionesPartidas;
+use App\Models\SeriesFacturas;
+use App\Services\CompraInventarioService;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -78,14 +80,61 @@ class OrdenesResource extends Resource
                     FieldSet::make('Orden de Compra')
                         ->schema([
                             Forms\Components\Hidden::make('id'),
-                            Forms\Components\TextInput::make('folio')
-                            ->required()
-                            ->numeric()
-                            ->readOnly()
-                            ->default(function(){
-                                $las_fol = Ordenes::where('team_id',Filament::getTenant()->id)->max('folio') ?? 0;
-                                return  $las_fol + 1;
-                            }),
+                            Forms\Components\Select::make('sel_serie')
+                                ->label('Serie')
+                                ->live(onBlur: true)
+                                ->required()
+                                ->disabledOn('edit')
+                                ->options(SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                    ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
+                                    ->pluck('descripcion', 'id'))
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                        ->value('id');
+                                })
+                                ->afterStateUpdated(function (Get $get, Set $set, $context) {
+                                    if ($context === 'edit') {
+                                        return;
+                                    }
+                                    $serId = $get('sel_serie');
+                                    if (! $serId) {
+                                        return;
+                                    }
+                                    $fol = SeriesFacturas::find($serId);
+                                    if (! $fol) {
+                                        return;
+                                    }
+                                    $set('serie', $fol->serie);
+                                    $set('folio', $fol->folio + 1);
+                                    $set('docto', $fol->serie . ($fol->folio + 1));
+                                }),
+                            Forms\Components\Hidden::make('serie')
+                                ->default(function () {
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                        ->value('serie') ?? 'OC';
+                                }),
+                            Forms\Components\Hidden::make('folio')
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                        ->first();
+                                    return ($serieRow->folio ?? 0) + 1;
+                                }),
+                            Forms\Components\TextInput::make('docto')
+                                ->label('Documento')
+                                ->required()
+                                ->readOnly()
+                                ->default(function () {
+                                    $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                        ->first();
+                                    $serie = $serieRow->serie ?? 'OC';
+                                    $folio = ($serieRow->folio ?? 0) + 1;
+                                    return $serie . $folio;
+                                }),
                         Forms\Components\Select::make('prov')
                             ->searchable()
                             ->label('Proveedor')
@@ -410,7 +459,11 @@ class OrdenesResource extends Resource
             ->striped()
             ->columns([
                 Tables\Columns\TextColumn::make('folio')
-                    ->numeric()
+                    ->label('Documento')
+                    ->formatStateUsing(function ($state, $record) {
+                        $serie = $record->serie ?? '';
+                        return $serie !== '' ? $serie . $state : $state;
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha')
                     ->date('d-m-Y')
@@ -447,16 +500,22 @@ class OrdenesResource extends Resource
                         DB::transaction(function () use ($record) {
                             $teamId = Filament::getTenant()->id;
 
-                            // Obtener nuevo folio
-                            $ultimaOrden = Ordenes::where('team_id', $teamId)
-                                ->orderBy('folio', 'desc')
+                            $serie = $record->serie ?? 'OC';
+                            $serieRow = SeriesFacturas::where('team_id', $teamId)
+                                ->where('tipo', SeriesFacturas::TIPO_ORDENES_COMPRA)
+                                ->where('serie', $serie)
                                 ->first();
-                            $nuevoFolio = ($ultimaOrden->folio ?? 0) + 1;
+                            if (! $serieRow) {
+                                throw new \Exception('No se encontro una serie de ordenes de compra configurada.');
+                            }
+                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
 
                             // Crear encabezado de orden copiada
                             $nueva = new Ordenes();
                             $nueva->team_id = $teamId;
-                            $nueva->folio = $nuevoFolio;
+                            $nueva->serie = $folioData['serie'];
+                            $nueva->folio = $folioData['folio'];
+                            $nueva->docto = $folioData['docto'];
                             $nueva->fecha = Carbon::now();
                             $nueva->prov = $record->prov;
                             $nueva->nombre = $record->nombre;
@@ -508,7 +567,7 @@ class OrdenesResource extends Resource
                             }
 
                             Notification::make()
-                                ->title('Orden de Compra copiada correctamente: ' . $nueva->folio)
+                                ->title('Orden de Compra copiada correctamente: ' . ($nueva->docto ?? $nueva->folio))
                                 ->success()
                                 ->send();
                         });
@@ -582,18 +641,22 @@ class OrdenesResource extends Resource
                     ->label('Recibir Orden')
                     ->icon('fas-file-invoice')
                     ->color(Color::Green)
-                    ->visible(false)
+                    ->visible(fn($record) => in_array($record->estado, ['Activa', 'Parcial']))
                     ->mountUsing(function (Forms\ComponentContainer $form, Model $record) {
                         $partidas = OrdenesPartidas::where('ordenes_id',$record->id)
+                            ->where(function($q){
+                                $q->whereNull('pendientes')->orWhere('pendientes','>',0);
+                            })
                             ->get()
                             ->map(function ($partida) {
+                                $pend = $partida->pendientes ?? $partida->cant;
                                 return [
                                     'partida_id' => $partida->id,
                                     'item' => $partida->item,
                                     'descripcion' => $partida->descripcion,
                                     'cantidad_original' => $partida->cant,
-                                    'cantidad_pendiente' => $partida->cant,
-                                    'cantidad_a_recibir' => $partida->cant,
+                                    'cantidad_pendiente' => $pend,
+                                    'cantidad_a_recibir' => $pend,
                                     'costo' => $partida->costo,
                                 ];
                             })->toArray();
@@ -634,7 +697,7 @@ class OrdenesResource extends Resource
                                         Forms\Components\TextInput::make('cantidad_a_recibir')
                                             ->label('A Recibir')
                                             ->numeric()
-                                            ->required()->readOnly()
+                                            ->required()
                                             ->minValue(0.01)
                                             ->maxValue(fn ($get) => $get('cantidad_pendiente'))
                                             ->reactive(),
@@ -656,9 +719,19 @@ class OrdenesResource extends Resource
 
                         DB::beginTransaction();
                         try {
+                            $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                ->first();
+                            if (! $serieRow) {
+                                throw new \Exception('No se encontro una serie de compras configurada.');
+                            }
+                            $folioData = SeriesFacturas::obtenerSiguienteFolio($serieRow->id);
+
                             // Crear Compra
                             $compra = \App\Models\Compras::create([
-                                'folio' => (\App\Models\Compras::where('team_id', Filament::getTenant()->id)->max('folio') ?? 0) + 1,
+                                'serie' => $folioData['serie'],
+                                'folio' => $folioData['folio'],
+                                'docto' => $folioData['docto'],
                                 'fecha' => now()->format('Y-m-d'),
                                 'prov' => $ord->prov,
                                 'nombre' => $ord->nombre,
@@ -743,11 +816,25 @@ class OrdenesResource extends Resource
                                 ->where(function($q){ $q->whereNull('pendientes')->orWhere('pendientes','>',0); })
                                 ->exists();
 
-                            $ord->estado = $quedanPend ? 'Parcial' : 'Cerrada';
+                            $ord->estado = $quedanPend ? 'Parcial' : 'Comprada';
+                            $ord->compra = $compra->folio;
                             $ord->save();
 
                             DB::commit();
-                            Notification::make()->title('Recepción generada #'.$compra->folio)->success()->send();
+                            CompraInventarioService::aplicarEntrada($compra);
+                            $compraLabel = $compra->docto ?? $compra->folio;
+                            Notification::make()->title('Recepción generada #'.$compraLabel)->success()->send();
+                            $archivo_pdf = 'COMPRA'.$compra->id.'.pdf';
+                            $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                            if(File::exists($ruta))File::delete($ruta);
+                            $data = ['idorden'=>$compra->id];
+                            $html = View::make('RecepcionCompra',$data)->render();
+                            Browsershot::html($html)->format('Letter')
+                                ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                                ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                                ->noSandbox()
+                                ->scale(0.8)->savePdf($ruta);
+                            return response()->download($ruta);
                         } catch (\Exception $e) {
                             DB::rollBack();
                             Notification::make()->title('Error al generar la Recepción: ' . $e->getMessage())->danger()->send();
@@ -766,6 +853,19 @@ class OrdenesResource extends Resource
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('full')->button()
+                ->mutateFormDataUsing(function (array $data): array {
+                    $serieId = intval($data['sel_serie'] ?? 0);
+                    if (! $serieId) {
+                        throw new \Exception('Debe seleccionar una serie para la orden.');
+                    }
+
+                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+                    $data['serie'] = $folioData['serie'];
+                    $data['folio'] = $folioData['folio'];
+                    $data['docto'] = $folioData['docto'];
+
+                    return $data;
+                })
                 ->after(function ($record) {
                     $record->refresh();
                     $record->recalculatePartidasFromItemSchema();
@@ -775,6 +875,18 @@ class OrdenesResource extends Resource
                             $p->pendientes = $p->cant;
                             $p->save();
                         }
+
+                    $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
+                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                    if(File::exists($ruta))File::delete($ruta);
+                    $data = ['idorden'=>$record->id,'team_id'=>Filament::getTenant()->id,'prov_id'=>$record->prov];
+                    $html = View::make('NFTO_OrdendeCompra',$data)->render();
+                    Browsershot::html($html)->format('Letter')
+                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                        ->noSandbox()
+                        ->scale(0.8)->savePdf($ruta);
+                    return response()->download($ruta);
                 }),
                 Tables\Actions\Action::make('Importar Req')
                 ->label('Importar Requisición')
@@ -785,7 +897,12 @@ class OrdenesResource extends Resource
                         ->options(
                             Requisiciones::whereIn('estado',['Activa','Parcial'])
                             ->where('team_id', Filament::getTenant()->id)
-                            ->get()->pluck('folio','id')
+                            ->get()
+                            ->mapWithKeys(function ($req) {
+                                $serie = $req->serie ?? '';
+                                $label = $serie !== '' ? $serie . $req->folio : $req->folio;
+                                return [$req->id => $label];
+                            })
                         )
                     ]);
                 })

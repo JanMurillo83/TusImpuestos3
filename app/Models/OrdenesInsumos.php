@@ -10,7 +10,9 @@ use App\Services\ImpuestosCalculator;
 class OrdenesInsumos extends Model
 {
     protected $fillable = [
+        'serie',
         'folio',
+        'docto',
         'fecha',
         'prov',
         'nombre',

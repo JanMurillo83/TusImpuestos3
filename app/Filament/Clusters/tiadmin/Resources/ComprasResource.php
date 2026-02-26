@@ -18,7 +18,9 @@ use App\Models\OrdenesPartidas;
 use App\Models\Proveedores;
 use App\Models\Proyectos;
 use App\Models\Requisiciones;
+use App\Models\SeriesFacturas;
 use App\Models\Terceros;
+use App\Services\CompraInventarioService;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -162,12 +164,60 @@ class ComprasResource extends Resource
                 FieldSet::make('Recepción')
                     ->schema([
                         Forms\Components\Hidden::make('id'),
-                        Forms\Components\TextInput::make('folio')
+                        Forms\Components\Select::make('sel_serie')
+                            ->label('Serie')
+                            ->live(onBlur: true)
                             ->required()
-                            ->numeric()
+                            ->disabledOn('edit')
+                            ->options(SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
+                                ->pluck('descripcion', 'id'))
+                            ->default(function () {
+                                return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                    ->value('id');
+                            })
+                            ->afterStateUpdated(function (Get $get, Set $set, $context) {
+                                if ($context === 'edit') {
+                                    return;
+                                }
+                                $serId = $get('sel_serie');
+                                if (! $serId) {
+                                    return;
+                                }
+                                $fol = SeriesFacturas::find($serId);
+                                if (! $fol) {
+                                    return;
+                                }
+                                $set('serie', $fol->serie);
+                                $set('folio', $fol->folio + 1);
+                                $set('docto', $fol->serie . ($fol->folio + 1));
+                            }),
+                        Forms\Components\Hidden::make('serie')
+                            ->default(function () {
+                                return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                    ->value('serie') ?? 'E';
+                            }),
+                        Forms\Components\Hidden::make('folio')
+                            ->default(function () {
+                                $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                    ->first();
+                                return ($serieRow->folio ?? 0) + 1;
+                            }),
+                        Forms\Components\TextInput::make('docto')
+                            ->label('Documento')
+                            ->required()
                             ->readOnly()
-                            ->default(function(){
-                                return count(Compras::all()) + 1;
+                            ->default(function () {
+                                $serieRow = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                    ->where('tipo', SeriesFacturas::TIPO_COMPRAS)
+                                    ->first();
+                                $serie = $serieRow->serie ?? 'E';
+                                $folio = ($serieRow->folio ?? 0) + 1;
+                                return $serie . $folio;
                             }),
                         Forms\Components\Select::make('prov')
                             ->searchable()
@@ -322,6 +372,8 @@ class ComprasResource extends Resource
                                 Hidden::make('observa'),
                                 Hidden::make('prov'),
                                 Hidden::make('idorden'),
+                                Hidden::make('orden_partida_id'),
+                                Hidden::make('requisicion_partida_id'),
                                 Hidden::make('team_id')->default(Filament::getTenant()->id),
                                 Hidden::make('es_xml')->default('NO'),
                             ])->columnSpan('full')->streamlined(),
@@ -367,7 +419,12 @@ class ComprasResource extends Resource
                                             ->where('prov',$prov)
                                             ->where('estado','Activa')
                                             ->orderBy('fecha','desc')
-                                            ->pluck('folio','id');
+                                            ->get()
+                                            ->mapWithKeys(function ($orden) {
+                                                $serie = $orden->serie ?? '';
+                                                $label = $serie !== '' ? $serie . $orden->folio : $orden->folio;
+                                                return [$orden->id => $label];
+                                            });
                                     })
                             ])
                             ->action(function(Get $get, Set $set, $data){
@@ -375,25 +432,31 @@ class ComprasResource extends Resource
                                 if(!$ordenId){
                                     return;
                                 }
-                                $partidasDB = OrdenesPartidas::where('ordenes_id',$ordenId)->get();
+                                $partidasDB = OrdenesPartidas::where('ordenes_id',$ordenId)
+                                    ->where(function($q){
+                                        $q->whereNull('pendientes')->orWhere('pendientes','>',0);
+                                    })
+                                    ->get();
                                 $partidas = [];
                                 foreach($partidasDB as $p){
+                                    $cantPend = ($p->pendientes ?? $p->cant);
                                     $partidas[] = [
-                                        'cant' => $p->cant,
+                                        'cant' => $cantPend,
                                         'item' => $p->item,
                                         'descripcion' => $p->descripcion,
                                         'costo' => $p->costo,
-                                        'subtotal' => $p->subtotal,
-                                        'iva' => $p->iva,
-                                        'retiva' => $p->retiva,
-                                        'retisr' => $p->retisr,
-                                        'ieps' => $p->ieps,
-                                        'total' => $p->total,
+                                        'subtotal' => $p->costo * $cantPend,
+                                        'iva' => $p->cant > 0 ? ($p->iva * ($cantPend / $p->cant)) : $p->iva,
+                                        'retiva' => $p->cant > 0 ? ($p->retiva * ($cantPend / $p->cant)) : $p->retiva,
+                                        'retisr' => $p->cant > 0 ? ($p->retisr * ($cantPend / $p->cant)) : $p->retisr,
+                                        'ieps' => $p->cant > 0 ? ($p->ieps * ($cantPend / $p->cant)) : $p->ieps,
+                                        'total' => $p->cant > 0 ? ($p->total * ($cantPend / $p->cant)) : $p->total,
                                         'prov' => $get('prov'),
                                         'unidad' => $p->unidad,
                                         'cvesat' => $p->cvesat,
                                         'observa' => $p->observa,
                                         'idorden' => $ordenId,
+                                        'orden_partida_id' => $p->id,
                                         'team_id' => Filament::getTenant()->id,
                                     ];
                                 }
@@ -523,7 +586,11 @@ class ComprasResource extends Resource
             ->striped()
             ->columns([
                 Tables\Columns\TextColumn::make('folio')
-                    ->numeric()
+                    ->label('Documento')
+                    ->formatStateUsing(function ($state, $record) {
+                        $serie = $record->serie ?? '';
+                        return $serie !== '' ? $serie . $state : $state;
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha')
                     ->date('d-m-Y')
@@ -617,66 +684,78 @@ class ComprasResource extends Resource
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
                 ->modalWidth('7xl')->button()
+                ->mutateFormDataUsing(function (array $data): array {
+                    $serieId = intval($data['sel_serie'] ?? 0);
+                    if (! $serieId) {
+                        throw new \Exception('Debe seleccionar una serie para la compra.');
+                    }
+
+                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
+                    $data['serie'] = $folioData['serie'];
+                    $data['folio'] = $folioData['folio'];
+                    $data['docto'] = $folioData['docto'];
+
+                    return $data;
+                })
                 ->after(function($record){
                     $record->refresh();
                     $record->recalculatePartidasFromItemSchema();
                     $record->recalculateTotalsFromPartidas();
                     $partidas = ComprasPartidas::where('compras_id',$record->id)->get();
-                    // Procesar movimientos de inventario y actualizar enlace con la orden
-                    foreach($partidas as $partida)
-                    {
-                        $arti = $partida->item;
-                        $inve = Inventario::where('id',$arti)->first();
-                        if($inve && $inve->servicio == 'NO')
-                        {
-                            Movinventario::insert([
-                                'producto'=>$partida->item,
-                                'tipo'=>'Entrada',
-                                'fecha'=>Carbon::now(),
-                                'cant'=>$partida->cant,
-                                'costo'=>$partida->costo,
-                                'precio'=>0,
-                                'concepto'=>1,
-                                'tipoter'=>'P',
-                                'tercero'=>$record->prov,
-                                'team_id'=>Filament::getTenant()->id,
-                            ]);
+                    // Procesar movimientos de inventario
+                    CompraInventarioService::aplicarEntrada($record);
 
-                            $cost = $partida->costo;
-                            $nuevaExist = ($inve->exist ?? 0) + $partida->cant;
-                            $avgBase = ($inve->p_costo ?? 0) * ($inve->exist ?? 0);
-                            $avgp = $avgBase == 0 ? $cost : (($inve->p_costo + $cost) * (($inve->exist ?? 0) + $nuevaExist)) / (($inve->exist ?? 0) + $nuevaExist);
-                            Inventario::where('id',$arti)->update([
-                                'exist' => $nuevaExist,
-                                'u_costo'=>$cost,
-                                'p_costo'=>$avgp
-                            ]);
-                            if($record->orden > 0){
-                                OrdenesPartidas::where(['ordenes_id'=>$record->orden,
-                                'item'=>$partida->item])->decrement('pendientes',$partida->cant);
+                    // Actualizar pendientes y estado de la orden (si aplica)
+                    $ordenId = $record->orden_id ?: $record->orden;
+                    if ($ordenId) {
+                        foreach ($partidas as $partida) {
+                            $ordenPartida = null;
+                            if ($partida->orden_partida_id) {
+                                $ordenPartida = OrdenesPartidas::where('id', $partida->orden_partida_id)->first();
                             }
+                            if (! $ordenPartida && $partida->idorden) {
+                                $ordenPartida = OrdenesPartidas::where('ordenes_id', $partida->idorden)
+                                    ->where('item', $partida->item)
+                                    ->first();
+                            }
+                            if (! $ordenPartida) {
+                                $ordenPartida = OrdenesPartidas::where('ordenes_id', $ordenId)
+                                    ->where('item', $partida->item)
+                                    ->first();
+                            }
+                            if ($ordenPartida) {
+                                $pend = max(0, (float) $ordenPartida->pendientes - (float) $partida->cant);
+                                $ordenPartida->update(['pendientes' => $pend]);
 
-                        }
-
-                        // Enlazar partida de la orden:
-                        if($partida->idorden){
-                            $op = OrdenesPartidas::where(['ordenes_id'=>$partida->idorden,'item'=>$partida->item])->first();
-                            if($op){
-                                // Si la cantidad recibida cubre totalmente lo ordenado, marcar como enlazada
-                                if((float)$partida->cant >= (float)$op->cant){
-                                    OrdenesPartidas::where('id',$op->id)->update(['idcompra'=>$record->folio]);
+                                if ($pend <= 0 && (float) $partida->cant >= (float) $ordenPartida->cant) {
+                                    $ordenPartida->update(['idcompra' => $record->folio]);
                                 }
                             }
                         }
-                    }
 
-                    // Actualizar estado de la orden: al grabar la compra desde una orden, marcar como 'Comprada'
-                    if($record->orden){
-                        Ordenes::where('id',$record->orden)->update([
-                            'estado'=>'Comprada',
-                            'compra'=>$record->folio
+                        $quedanPend = OrdenesPartidas::where('ordenes_id', $ordenId)
+                            ->where(function ($q) {
+                                $q->whereNull('pendientes')->orWhere('pendientes', '>', 0);
+                            })
+                            ->exists();
+
+                        Ordenes::where('id', $ordenId)->update([
+                            'estado' => $quedanPend ? 'Parcial' : 'Comprada',
+                            'compra' => $record->folio,
                         ]);
                     }
+
+                    $archivo_pdf = 'COMPRA'.$record->id.'.pdf';
+                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                    if(File::exists($ruta))File::delete($ruta);
+                    $data = ['idorden'=>$record->id];
+                    $html = View::make('RecepcionCompra',$data)->render();
+                    Browsershot::html($html)->format('Letter')
+                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                        ->noSandbox()
+                        ->scale(0.8)->savePdf($ruta);
+                    return response()->download($ruta);
 
                 }),
                 Tables\Actions\Action::make('Importar Req')
@@ -688,7 +767,12 @@ class ComprasResource extends Resource
                             Select::make('sel_requisicion')->label('Requisición')
                                 ->options(
                                     Requisiciones::whereIn('estado',['Activa','Parcial'])
-                                        ->get()->pluck('folio','id')
+                                        ->get()
+                                        ->mapWithKeys(function ($req) {
+                                            $serie = $req->serie ?? '';
+                                            $label = $serie !== '' ? $serie . $req->folio : $req->folio;
+                                            return [$req->id => $label];
+                                        })
                                 )
                         ]);
                     })
@@ -706,7 +790,12 @@ class ComprasResource extends Resource
                                 ->options(
                                     Ordenes::whereIn('estado',['Activa','Parcial'])
                                         ->where('team_id',Filament::getTenant()->id)
-                                        ->get()->pluck('folio','id')
+                                        ->get()
+                                        ->mapWithKeys(function ($orden) {
+                                            $serie = $orden->serie ?? '';
+                                            $label = $serie !== '' ? $serie . $orden->folio : $orden->folio;
+                                            return [$orden->id => $label];
+                                        })
                                 )
                         ]);
                     })

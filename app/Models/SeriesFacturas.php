@@ -8,11 +8,36 @@ use Illuminate\Support\Facades\DB;
 
 class SeriesFacturas extends Model
 {
+    public const TIPO_FACTURAS = 'F';
+    public const TIPO_NOTAS_CREDITO = 'N';
+    public const TIPO_COTIZACIONES = 'C';
+    public const TIPO_REMISIONES = 'R';
+    public const TIPO_REQUISICIONES = 'RQ';
+    public const TIPO_ORDENES_COMPRA = 'OC';
+    public const TIPO_ORDENES_INSUMOS = 'OI';
+    public const TIPO_COMPRAS = 'E';
+
+    public const TIPOS_LABELS = [
+        self::TIPO_FACTURAS => 'Facturas',
+        self::TIPO_NOTAS_CREDITO => 'Notas de credito',
+        self::TIPO_COTIZACIONES => 'Cotizaciones',
+        self::TIPO_REMISIONES => 'Remisiones',
+        self::TIPO_REQUISICIONES => 'Requisiciones de Compra',
+        self::TIPO_ORDENES_COMPRA => 'Ordenes de Compra',
+        self::TIPO_ORDENES_INSUMOS => 'Ordenes de Compra Insumos',
+        self::TIPO_COMPRAS => 'Entradas (Compras)',
+    ];
+
     protected $fillable = ['serie','descripcion', 'tipo', 'folio','team_id'];
 
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public static function tiposDisponibles(): array
+    {
+        return self::TIPOS_LABELS;
     }
 
     /**

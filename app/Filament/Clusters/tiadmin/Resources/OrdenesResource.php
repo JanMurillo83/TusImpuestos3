@@ -8,6 +8,7 @@ use App\Filament\Clusters\tiadmin\Resources\OrdenesResource\RelationManagers;
 use App\Models\Compras;
 use App\Models\Esquemasimp;
 use App\Models\Inventario;
+use App\Models\Mailconfig;
 use App\Models\Ordenes;
 use App\Models\OrdenesPartidas;
 use App\Models\Proveedores;
@@ -52,6 +53,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
+use PHPMailer\PHPMailer\PHPMailer;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
 use Spatie\Browsershot\Browsershot;
@@ -604,6 +606,75 @@ class OrdenesResource extends Resource
                             ->noSandbox()
                             ->scale(0.8)->savePdf($ruta);
                         return response()->download($ruta);
+                    }),
+                ActionsAction::make('Enviar por Correo')
+                    ->icon('fas-envelope')
+                    ->action(function(Model $record){
+                        $proveedor = Proveedores::where('id', $record->prov)->first();
+                        if (!$proveedor || empty($proveedor->correo)) {
+                            Notification::make()
+                                ->warning()
+                                ->title('Envio de Correo')
+                                ->body('Proveedor sin correo configurado')
+                                ->send();
+                            return;
+                        }
+
+                        $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
+                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
+                        if(File::exists($ruta)) File::delete($ruta);
+
+                        $data = ['idorden'=>$record->id,'team_id'=>Filament::getTenant()->id,'prov_id'=>$record->prov];
+                        $html = View::make('NFTO_OrdendeCompra',$data)->render();
+                        Browsershot::html($html)->format('Letter')
+                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                            ->noSandbox()
+                            ->scale(0.8)->savePdf($ruta);
+
+                        $mailConf = Mailconfig::where('team_id', Filament::getTenant()->id)->first();
+                        $mail = new PHPMailer();
+                        $mail->isSMTP();
+                        $mail->AuthType = 'LOGIN';
+                        $mail->SMTPAuth = true;
+                        $mail->SMTPSecure='tls';
+                        if ($mailConf) {
+                            $mail->Host = $mailConf->host;
+                            $mail->Port = $mailConf->port;
+                            $mail->Username = $mailConf->username;
+                            $mail->Password = $mailConf->password;
+                            $fromAddress = $mailConf->from_address ?: $mailConf->username;
+                            $fromName = $mailConf->from_name ?: Filament::getTenant()->name;
+                            $mail->setFrom($fromAddress, $fromName);
+                        } else {
+                            $mail->Host = 'smtp.ionos.mx';
+                            $mail->Port = 587;
+                            $mail->Username = 'sistema@app-tusimpuestos.com';
+                            $mail->Password = '*TusImpuestos2025$*';
+                            $mail->setFrom('sistema@app-tusimpuestos.com', Filament::getTenant()->name);
+                        }
+
+                        $mail->addAddress($proveedor->correo, $proveedor->nombre ?? '');
+                        $mail->addAttachment($ruta, $archivo_pdf);
+                        $doc = $record->docto ?? $record->folio;
+                        $mail->Subject = 'Orden de Compra '.$doc.' '.$proveedor->nombre;
+                        $mail->msgHTML('<b>Orden de Compra</b>');
+                        $mail->Body = 'Orden de Compra';
+
+                        if (!$mail->send()) {
+                            Notification::make()
+                                ->warning()
+                                ->title('Envio de Correo')
+                                ->body($mail->ErrorInfo)
+                                ->send();
+                            return;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Envio de Correo')
+                            ->body('Orden enviada correctamente')
+                            ->send();
                     }),
                 Tables\Actions\ViewAction::make()
                     ->modalWidth('full')

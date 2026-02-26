@@ -286,6 +286,7 @@ class InventarioResource extends Resource
                                 ->label('Movimientos al Inventario')
                                 ->addable(false)
                                 ->deletable(false)
+                                ->streamlined()
                                 ->reorderable(false)
                                 ->headers([
                                     Header::make('fecha')->label('Fecha'),

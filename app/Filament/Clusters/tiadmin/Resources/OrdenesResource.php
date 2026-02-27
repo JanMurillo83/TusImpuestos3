@@ -20,6 +20,7 @@ use App\Models\SeriesFacturas;
 use App\Models\Unidades;
 use App\Services\CompraInventarioService;
 use App\Services\ImpuestosCalculator;
+use App\Support\DocumentFilename;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -456,7 +457,7 @@ class OrdenesResource extends Resource
                                 ->action(function($record){
                                     $idorden = $record->id;
                                     $id_empresa = Filament::getTenant()->id;
-                                    $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
+                                    $archivo_pdf = DocumentFilename::build('ORDEN_COMPRA', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                                     $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                                     if(File::exists($ruta))File::delete($ruta);
                                     $data = ['idorden'=>$idorden,'team_id'=>$id_empresa,'prov_id'=>$record->prov];
@@ -652,7 +653,7 @@ class OrdenesResource extends Resource
                     ->action(function($record){
                         $idorden = $record->id;
                         $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
+                        $archivo_pdf = DocumentFilename::build('ORDEN_COMPRA', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta))File::delete($ruta);
                         $data = ['idorden'=>$idorden,'team_id'=>$id_empresa,'prov_id'=>$record->prov];
@@ -677,7 +678,7 @@ class OrdenesResource extends Resource
                             return;
                         }
 
-                        $archivo_pdf = 'ORDEN_COMPRA'.$record->id.'.pdf';
+                        $archivo_pdf = DocumentFilename::build('ORDEN_COMPRA', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta)) File::delete($ruta);
 
@@ -952,7 +953,7 @@ class OrdenesResource extends Resource
                             CompraInventarioService::aplicarEntrada($compra);
                             $compraLabel = $compra->docto ?? $compra->folio;
                             Notification::make()->title('Recepción generada #'.$compraLabel)->success()->send();
-                            $archivo_pdf = 'COMPRA'.$compra->id.'.pdf';
+                            $archivo_pdf = DocumentFilename::build('RECEPCION_COMPRA', $compra->docto ?? ($compra->serie . $compra->folio), $compra->nombre, $compra->fecha);
                             $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                             if(File::exists($ruta))File::delete($ruta);
                             $data = ['idorden'=>$compra->id];

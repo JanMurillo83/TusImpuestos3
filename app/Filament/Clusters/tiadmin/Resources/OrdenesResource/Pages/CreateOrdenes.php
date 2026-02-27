@@ -6,6 +6,7 @@ use App\Filament\Clusters\tiadmin\Resources\OrdenesResource;
 use App\Filament\Support\HasDownloadRedirect;
 use App\Models\OrdenesPartidas;
 use App\Models\SeriesFacturas;
+use App\Support\DocumentFilename;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
@@ -70,7 +71,7 @@ class CreateOrdenes extends CreateRecord
             $partida->save();
         }
 
-        $archivo_pdf = 'ORDEN_COMPRA' . $record->id . '.pdf';
+        $archivo_pdf = DocumentFilename::build('ORDEN_COMPRA', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
         $ruta = public_path() . '/TMPCFDI/' . $archivo_pdf;
         if (File::exists($ruta)) {
             File::delete($ruta);

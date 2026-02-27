@@ -15,6 +15,7 @@ use App\Models\Proyectos;
 use App\Models\SeriesFacturas;
 use App\Models\Unidades;
 use App\Services\ImpuestosCalculator;
+use App\Support\DocumentFilename;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -532,7 +533,7 @@ class OrdenesInsumosResource extends Resource
                     ->action(function(Model $record){
                         $idorden = $record->id;
                         $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'ORDEN_INSUMOS_'.$record->folio.'.pdf';
+                        $archivo_pdf = DocumentFilename::build('ORDEN_INSUMOS', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta)) File::delete($ruta);
                         $data = ['idorden'=>$idorden,'id_empresa'=>$id_empresa];
@@ -559,7 +560,7 @@ class OrdenesInsumosResource extends Resource
                             return;
                         }
 
-                        $archivo_pdf = 'ORDEN_INSUMOS_'.$record->folio.'.pdf';
+                        $archivo_pdf = DocumentFilename::build('ORDEN_INSUMOS', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta)) File::delete($ruta);
 

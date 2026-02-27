@@ -1067,6 +1067,7 @@ class FacturasResource extends Resource
                 'facturas.error_timbrado',
                 'facturas.docto_rela',
                 'facturas.tipo_rela',
+                'facturas.created_by_user_id',
                 'facturas.created_at',
                 'facturas.updated_at'
             );

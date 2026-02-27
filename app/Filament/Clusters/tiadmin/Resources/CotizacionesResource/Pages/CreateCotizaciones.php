@@ -6,6 +6,7 @@ use App\Filament\Clusters\tiadmin\Resources\CotizacionesResource;
 use App\Filament\Support\HasDownloadRedirect;
 use App\Models\CotizacionesPartidas;
 use App\Models\SeriesFacturas;
+use App\Support\DocumentFilename;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
@@ -80,7 +81,7 @@ class CreateCotizaciones extends CreateRecord
 
         $idorden = $record->id;
         $id_empresa = Filament::getTenant()->id;
-        $archivo_pdf = 'COT-' . $record->serie . $record->folio . '-' . $record->nombre_elaboro . '-' . $record->nombre . '.pdf';
+        $archivo_pdf = DocumentFilename::build('COTIZACION', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
         $ruta = public_path() . '/TMPCFDI/' . $archivo_pdf;
         if (File::exists($ruta)) {
             File::delete($ruta);

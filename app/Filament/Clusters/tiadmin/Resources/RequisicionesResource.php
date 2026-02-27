@@ -14,6 +14,7 @@ use App\Models\RequisicionesPartidas;
 use App\Models\SeriesFacturas;
 use App\Models\Unidades;
 use App\Services\ImpuestosCalculator;
+use App\Support\DocumentFilename;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -601,7 +602,7 @@ class RequisicionesResource extends Resource
                     ->action(function($record){
                         $idrequisicion = $record->id;
                         $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'REQUISICION'.$record->id.'.pdf';
+                        $archivo_pdf = DocumentFilename::build('REQUISICION', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                         if(File::exists($ruta))File::delete($ruta);
                         $data = ['idrequisicion'=>$idrequisicion,'team_id'=>$id_empresa,'prov_id'=>$record->prov];
@@ -809,7 +810,7 @@ class RequisicionesResource extends Resource
                             DB::commit();
                             $ordenLabel = $orden->docto ?? $orden->folio;
                             Notification::make()->title('Orden generada #'.$ordenLabel)->success()->send();
-                            $archivo_pdf = 'ORDEN_COMPRA'.$orden->id.'.pdf';
+                            $archivo_pdf = DocumentFilename::build('ORDEN_COMPRA', $orden->docto ?? ($orden->serie . $orden->folio), $orden->nombre, $orden->fecha);
                             $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                             if(File::exists($ruta))File::delete($ruta);
                             $data = ['idorden'=>$orden->id,'team_id'=>Filament::getTenant()->id,'prov_id'=>$orden->prov];

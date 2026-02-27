@@ -22,6 +22,7 @@ use App\Models\Unidades;
 use App\Services\FacturaFolioService;
 use App\Services\PrecioCalculator;
 use App\Services\ImpuestosCalculator;
+use App\Support\DocumentFilename;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
@@ -868,7 +869,7 @@ class CotizacionesResource extends Resource
                                     ->action(function($record){
                                         $idorden = $record->id;
                                         $id_empresa = Filament::getTenant()->id;
-                                        $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
+                                        $archivo_pdf = DocumentFilename::build('COTIZACION', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                                         $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                                         if(File::exists($ruta))File::delete($ruta);
                                         $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
@@ -1085,7 +1086,7 @@ class CotizacionesResource extends Resource
                         ->action(function($record){
                             $idorden = $record->id;
                             $id_empresa = Filament::getTenant()->id;
-                            $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
+                            $archivo_pdf = DocumentFilename::build('COTIZACION', $record->docto ?? ($record->serie . $record->folio), $record->nombre, $record->fecha);
                             $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
                             if(File::exists($ruta))File::delete($ruta);
                             $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];

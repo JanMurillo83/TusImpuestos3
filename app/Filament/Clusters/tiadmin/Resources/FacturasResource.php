@@ -1009,68 +1009,33 @@ class FacturasResource extends Resource
         ->striped()
         ->defaultSort('facturas.created_at', 'desc')
         ->modifyQueryUsing(function (Builder $query) {
-            // Precargar datos relacionados para optimizar rendimiento
-            // Usar MAX() para evitar problemas con ONLY_FULL_GROUP_BY
-            $query->leftJoin('almacencfdis', function($join) {
-                $join->on('facturas.uuid', '=', 'almacencfdis.UUID')
-                     ->on('facturas.team_id', '=', 'almacencfdis.team_id');
+            // Subquery agregado para evitar ONLY_FULL_GROUP_BY en producción
+            $agg = DB::table('facturas')
+                ->leftJoin('almacencfdis', function($join) {
+                    $join->on('facturas.uuid', '=', 'almacencfdis.UUID')
+                         ->on('facturas.team_id', '=', 'almacencfdis.team_id');
+                })
+                ->leftJoin('cat_polizas', 'almacencfdis.id', '=', 'cat_polizas.idcfdi')
+                ->leftJoin('ingresos_egresos', 'almacencfdis.id', '=', 'ingresos_egresos.xml_id')
+                ->select('facturas.id')
+                ->selectRaw(
+                    'MAX(cat_polizas.tipo) as poliza_tipo,
+                    MAX(cat_polizas.folio) as poliza_folio,
+                    MAX(ingresos_egresos.pendientemxn) as pendientemxn,
+                    MAX(ingresos_egresos.totalmxn) as totalmxn'
+                )
+                ->groupBy('facturas.id');
+
+            $query->leftJoinSub($agg, 'facturas_agg', function ($join) {
+                $join->on('facturas.id', '=', 'facturas_agg.id');
             })
-            ->leftJoin('cat_polizas', 'almacencfdis.id', '=', 'cat_polizas.idcfdi')
-            ->leftJoin('ingresos_egresos', 'almacencfdis.id', '=', 'ingresos_egresos.xml_id')
-            ->selectRaw(
-                'facturas.*,
-                MAX(cat_polizas.tipo) as poliza_tipo,
-                MAX(cat_polizas.folio) as poliza_folio,
-                MAX(ingresos_egresos.pendientemxn) as pendientemxn,
-                MAX(ingresos_egresos.totalmxn) as totalmxn'
-            )
-            ->groupBy(
-                'facturas.id',
-                'facturas.serie',
-                'facturas.folio',
-                'facturas.docto',
-                'facturas.fecha',
-                'facturas.clie',
-                'facturas.nombre',
-                'facturas.rfc_mostr',
-                'facturas.nombre_mostr',
-                'facturas.esquema',
-                'facturas.subtotal',
-                'facturas.iva',
-                'facturas.retiva',
-                'facturas.retisr',
-                'facturas.ieps',
-                'facturas.total',
-                'facturas.observa',
-                'facturas.estado',
-                'facturas.metodo',
-                'facturas.forma',
-                'facturas.uso',
-                'facturas.uuid',
-                'facturas.remision_id',
-                'facturas.pedido_id',
-                'facturas.cotizacion_id',
-                'facturas.condiciones',
-                'facturas.vendedor',
-                'facturas.anterior',
-                'facturas.timbrado',
-                'facturas.xml',
-                'facturas.fecha_tim',
-                'facturas.moneda',
-                'facturas.tcambio',
-                'facturas.fecha_cancela',
-                'facturas.motivo',
-                'facturas.sustituye',
-                'facturas.xml_cancela',
-                'facturas.pendiente_pago',
-                'facturas.team_id',
-                'facturas.error_timbrado',
-                'facturas.docto_rela',
-                'facturas.tipo_rela',
-                'facturas.created_by_user_id',
-                'facturas.created_at',
-                'facturas.updated_at'
-            );
+            ->select('facturas.*')
+            ->addSelect([
+                'facturas_agg.poliza_tipo',
+                'facturas_agg.poliza_folio',
+                'facturas_agg.pendientemxn',
+                'facturas_agg.totalmxn',
+            ]);
         })
         ->defaultSort(function (Builder $query): Builder {
             return $query

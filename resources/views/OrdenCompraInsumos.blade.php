@@ -36,7 +36,7 @@
                     <table class="table table-bordered table-sm" style="width:100%">
                         <tr>
                             <td class="text-start"><b>Folio:</b></td>
-                            <td class="text-end">{{$orden->folio}}</td>
+                            <td class="text-end">{{ ($orden->serie ?? '') . ($orden->folio ?? '') }}</td>
                         </tr>
                         <tr>
                             <td class="text-start"><b>Fecha:</b></td>

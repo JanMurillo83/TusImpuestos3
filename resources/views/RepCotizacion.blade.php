@@ -28,7 +28,7 @@ use Filament\Facades\Filament;
                     <table class="table table-bordered table-striped" style="width:100%">
                         <tr>
                             <td class="pl-3 pr-3 text-start"><b>  Folio:  </b></td>
-                            <td class="pl-3 pr-3 text-end">  {{$orden->folio}}  </td>
+                            <td class="pl-3 pr-3 text-end">  {{ ($orden->serie ?? '') . ($orden->folio ?? '') }}  </td>
                         </tr>
                         <tr>
                             <td class="pl-3 pr-3 text-start"><b>  Fecha:  </b></td>

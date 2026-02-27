@@ -32,7 +32,7 @@
                 </div>
             </div>
             <div class="text-right text-[13px] text-slate-600 space-y-1">
-                <p><span class="font-semibold">Folio:</span> {{$docto->folio}}</p>
+                <p><span class="font-semibold">Folio:</span> {{ ($docto->serie ?? '') . ($docto->folio ?? '') }}</p>
                 <p><span class="font-semibold">Fecha emisión:</span> {{$docto->fecha}}</p>
                 <p><span class="font-semibold">Proyecto:</span> {{ \App\Models\Proyectos::find($docto->proyecto)->descripcion ?? '' }}</p>
             </div>

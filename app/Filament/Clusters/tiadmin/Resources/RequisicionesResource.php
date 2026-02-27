@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\tiadmin\Resources;
 
 use App\Filament\Clusters\tiadmin;
 use App\Filament\Clusters\tiadmin\Resources\RequisicionesResource\Pages;
+use App\Models\Claves;
 use App\Models\Esquemasimp;
 use App\Models\Inventario;
 use App\Models\Requisiciones;
@@ -11,6 +12,7 @@ use App\Models\Proveedores;
 use App\Models\Proyectos;
 use App\Models\RequisicionesPartidas;
 use App\Models\SeriesFacturas;
+use App\Models\Unidades;
 use App\Services\ImpuestosCalculator;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -32,10 +34,8 @@ use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Colors\Color;
-use Filament\Support\Enums\Alignment;
 use Filament\Tables;
 use Filament\Tables\Actions\Action as ActionsAction;
-use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\HeaderActionsPosition;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,6 +54,11 @@ class RequisicionesResource extends Resource
     public static function canViewAny(): bool
     {
         return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
+    }
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras'])
+            && $record->estado === 'Activa';
     }
     protected static ?string $navigationIcon = 'fas-file-lines';
     protected static ?string $cluster = tiadmin::class;
@@ -74,8 +79,9 @@ class RequisicionesResource extends Resource
                             Forms\Components\Select::make('sel_serie')
                                 ->label('Serie')
                                 ->live(onBlur: true)
-                                ->required()
+                                ->required(fn (string $context): bool => $context === 'create')
                                 ->disabledOn('edit')
+                                ->dehydrated(fn (string $context): bool => $context === 'create')
                                 ->options(SeriesFacturas::where('team_id', Filament::getTenant()->id)
                                     ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
                                     ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
@@ -84,6 +90,18 @@ class RequisicionesResource extends Resource
                                     return SeriesFacturas::where('team_id', Filament::getTenant()->id)
                                         ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
                                         ->value('id');
+                                })
+                                ->afterStateHydrated(function (Set $set, ?Requisiciones $record): void {
+                                    if (! $record || ! $record->serie) {
+                                        return;
+                                    }
+                                    $serId = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_REQUISICIONES)
+                                        ->where('serie', $record->serie)
+                                        ->value('id');
+                                    if ($serId) {
+                                        $set('sel_serie', $serId);
+                                    }
                                 })
                                 ->afterStateUpdated(function (Get $get, Set $set, $context) {
                                     if ($context === 'edit') {
@@ -201,57 +219,100 @@ class RequisicionesResource extends Resource
                                     $set('prov',$get('../../prov'));
                                     Self::updateTotals($get,$set);
                                 }),
-                                TextInput::make('item')
+                                Select::make('item')
+                                    ->searchable()
+                                    ->options(Inventario::where('team_id', Filament::getTenant()->id)
+                                        ->select('id', DB::raw('CONCAT("Item: ",descripcion,"  Exist: ",FORMAT(exist,2)) as descripcion'))
+                                        ->pluck('descripcion', 'id'))
+                                    ->createOptionForm(function ($form) {
+                                        return $form
+                                            ->schema([
+                                                TextInput::make('clave')->label('SKU')->required(),
+                                                TextInput::make('descripcion')->columnSpan(3)->required(),
+                                                TextInput::make('precio')->required()->default(0)
+                                                    ->currencyMask(decimalSeparator:'.',precision:4),
+                                                Forms\Components\TextInput::make('cvesat')
+                                                    ->label('Clave SAT')
+                                                    ->default(function(Get $get): string{
+                                                        if($get('cvesat'))
+                                                            $val = $get('cvesat');
+                                                        else
+                                                            $val = '01010101';
+                                                        return $val;
+                                                    })
+                                                    ->required()
+                                                    ->suffixAction(
+                                                        \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat')
+                                                            ->label('Buscador')
+                                                            ->icon('fas-circle-question')
+                                                            ->form([
+                                                                Forms\Components\TextInput::make('cvesat_search')
+                                                                    ->label('Buscar')
+                                                                    ->live(debounce: 400),
+                                                                Forms\Components\Select::make('CatCveSat')
+                                                                    ->label('Claves SAT')
+                                                                    ->options(fn (Get $get): array => Claves::getCachedOptions($get('cvesat_search') ?? '', 25))
+                                                                    ->reactive(),
+                                                            ])
+                                                            ->modalCancelAction(false)
+                                                            ->modalSubmitActionLabel('Seleccionar')
+                                                            ->modalWidth('sm')
+                                                            ->action(function(Set $set,$data){
+                                                                $set('cvesat',$data['CatCveSat']);
+                                                            })
+                                                    ),
+                                                Select::make('unidad')
+                                                    ->label('Unidad de Medida')
+                                                    ->searchable()
+                                                    ->required()
+                                                    ->options(Unidades::all()->pluck('mostrar','clave'))
+                                                    ->default('H87'),
+                                                Select::make('servicio')->label('Servicio')
+                                                    ->options(['SI'=>'SI','NO'=>'NO'])->default('NO'),
+                                            ])->columns(4);
+                                    })->createOptionUsing(function ($data) {
+                                        return Inventario::create([
+                                            'clave'=> $data['clave'],
+                                            'descripcion'=> $data['descripcion'],
+                                            'linea'=>1,
+                                            'marca'=>'',
+                                            'modelo'=>'',
+                                            'u_costo'=>0,
+                                            'p_costo'=>0,
+                                            'precio1'=> $data['precio'],
+                                            'precio2'=>0,
+                                            'precio3'=>0,
+                                            'precio4'=>0,
+                                            'precio5'=>0,
+                                            'exist'=>0,
+                                            'esquema'=>Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id,
+                                            'servicio'=>$data['servicio'],
+                                            'unidad'=>$data['unidad'],
+                                            'cvesat'=>$data['cvesat'],
+                                            'team_id'=>Filament::getTenant()->id
+                                        ])->getKey();
+                                    })
                                     ->required()
                                     ->live(onBlur:true)
                                     ->afterStateUpdated(function(Get $get, Set $set){
-                                        $prod = Inventario::where('id',$get('item'))->get();
-                                    if(count($prod) > 0){
-                                        $prod = $prod[0];
-                                        $set('descripcion',$prod->descripcion);
-                                        $set('costo',$prod->u_costo);
+                                        $prod = Inventario::where('id', $get('item'))->first();
+                                        if (!$prod) {
+                                            return;
+                                        }
+                                        $set('descripcion', $prod->descripcion);
+                                        $set('costo', $prod->u_costo);
                                         $cant = floatval($get('cant')) ?: 1;
                                         $subt = $prod->u_costo * $cant;
-                                        $set('subtotal',$subt);
+                                        $set('subtotal', $subt);
                                         $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
-                                        $set('iva',$taxes['iva']);
-                                        $set('retiva',$taxes['retiva']);
-                                        $set('retisr',$taxes['retisr']);
-                                        $set('ieps',$taxes['ieps']);
-                                        $set('total',$taxes['total']);
+                                        $set('iva', $taxes['iva']);
+                                        $set('retiva', $taxes['retiva']);
+                                        $set('retisr', $taxes['retisr']);
+                                        $set('ieps', $taxes['ieps']);
+                                        $set('total', $taxes['total']);
+                                        $set('prov', $get('../../prov'));
                                         Self::updateTotals($get,$set);
-                                    }
-                                })->suffixAction(
-                                        Action::make('AbreItem')
-                                        ->icon('fas-magnifying-glass')
-                                        ->form([
-                                            Select::make('SelItem')
-                                            ->label('Seleccionar')
-                                            ->searchable()
-                                            ->options(DB::table('inventarios')->where('team_id',Filament::getTenant()->id)
-                                                ->select(DB::raw('CONCAT(clave," - ",descripcion) as descripcion,id'))
-                                                ->pluck('descripcion','id'))
-                                        ])
-                                        ->action(function(Set $set,Get $get,$data){
-                                            $cant = $get('cant');
-                                            $item = $data['SelItem'];
-                                            $set('item',$item);
-                                            $prod = Inventario::where('id',$item)->get();
-                                            $prod = $prod[0];
-                                            $set('descripcion',$prod->descripcion);
-                                            $set('costo',$prod->u_costo);
-                                            $subt = $prod->u_costo * $cant;
-                                            $set('subtotal',$subt);
-                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
-                                            $set('iva',$taxes['iva']);
-                                            $set('retiva',$taxes['retiva']);
-                                            $set('retisr',$taxes['retisr']);
-                                            $set('ieps',$taxes['ieps']);
-                                            $set('total',$taxes['total']);
-                                            $set('prov',$get('../../prov'));
-                                            Self::updateTotals($get,$set);
-                                        })
-                                ),
+                                    }),
                                 TextInput::make('descripcion'),
                                 TextInput::make('costo')
                                     ->numeric()
@@ -408,6 +469,7 @@ class RequisicionesResource extends Resource
             ->defaultPaginationPageOption(5)
             ->paginationPageOptions([5,'all'])
             ->striped()
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('folio')
                     ->label('Documento')
@@ -519,23 +581,16 @@ class RequisicionesResource extends Resource
                                 ->send();
                         });
                     }),
-                Tables\Actions\EditAction::make()
-                ->label('Editar')->icon('fas-edit')
-                ->modalSubmitActionLabel('Grabar')
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
-                ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('full')
-                ->after(function ($record) {
-                    $record->refresh();
-                    $record->recalculatePartidasFromItemSchema();
-                    $record->recalculateTotalsFromPartidas();
-                })
-                ->visible(function ($record) {
-                    if($record->estado == 'Activa') return true;
-                    else return false;
-                }),
+                Tables\Actions\Action::make('Editar')
+                    ->label('Editar')
+                    ->icon('fas-edit')
+                    ->url(fn (Model $record) => static::getUrl('edit', ['record' => $record]))
+                    ->visible(function ($record) {
+                        if ($record->estado == 'Activa') {
+                            return true;
+                        }
+                        return false;
+                    }),
                 Tables\Actions\ViewAction::make()
                     ->modalWidth('full')
                     ->visible(function ($record) {
@@ -773,51 +828,13 @@ class RequisicionesResource extends Resource
             ])
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
-                CreateAction::make('Agregar')
-                ->createAnother(false)
-                ->tooltip('Nueva Requisición')->badge()
-                ->label('Agregar')->icon('fas-circle-plus')
-                ->modalSubmitActionLabel('Grabar')
-                ->modalCancelActionLabel('Cerrar')
-                ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
-                ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                ->modalFooterActionsAlignment(Alignment::Left)
-                ->modalWidth('full')->button()
-                ->mutateFormDataUsing(function (array $data): array {
-                    $serieId = intval($data['sel_serie'] ?? 0);
-                    if (! $serieId) {
-                        throw new \Exception('Debe seleccionar una serie para la requisicion.');
-                    }
-
-                    $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
-                    $data['serie'] = $folioData['serie'];
-                    $data['folio'] = $folioData['folio'];
-                    $data['docto'] = $folioData['docto'];
-
-                    return $data;
-                })
-                ->after(function ($record){
-                    $record->refresh();
-                    $record->recalculatePartidasFromItemSchema();
-                    $record->recalculateTotalsFromPartidas();
-                    $partidas = RequisicionesPartidas::where('requisiciones_id',$record->id)->get();
-                    foreach ($partidas as $p) {
-                        $p->pendientes = $p->cant;
-                        $p->save();
-                    }
-
-                    $archivo_pdf = 'REQUISICION'.$record->id.'.pdf';
-                    $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
-                    if(File::exists($ruta))File::delete($ruta);
-                    $data = ['idrequisicion'=>$record->id,'team_id'=>Filament::getTenant()->id,'prov_id'=>$record->prov];
-                    $html = View::make('NFTO_Requisicion',$data)->render();
-                    Browsershot::html($html)->format('Letter')
-                        ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-                        ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-                        ->noSandbox()
-                        ->scale(0.8)->savePdf($ruta);
-                    return response()->download($ruta);
-                })
+                Tables\Actions\Action::make('Agregar')
+                    ->label('Agregar')
+                    ->icon('fas-circle-plus')
+                    ->tooltip('Nueva Requisición')
+                    ->url(static::getUrl('create'))
+                    ->button()
+                    ->visible(static::canCreate())
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -836,6 +853,8 @@ class RequisicionesResource extends Resource
     {
         return [
             'index' => Pages\ListRequisiciones::route('/'),
+            'create' => Pages\CreateRequisiciones::route('/create'),
+            'edit' => Pages\EditRequisiciones::route('/{record}/edit'),
         ];
     }
 }

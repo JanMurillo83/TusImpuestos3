@@ -44,6 +44,18 @@ class Team extends Model
     {
         return $this->hasMany(Facturas::class);
     }
+    public function ordenes(): HasMany
+    {
+        return $this->hasMany(Ordenes::class);
+    }
+    public function requisiciones(): HasMany
+    {
+        return $this->hasMany(Requisiciones::class);
+    }
+    public function cotizaciones(): HasMany
+    {
+        return $this->hasMany(Cotizaciones::class);
+    }
     public function terceros(): BelongsToMany
     {
         return $this->belongsToMany(Terceros::class);

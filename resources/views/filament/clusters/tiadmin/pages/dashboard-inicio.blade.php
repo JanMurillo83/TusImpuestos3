@@ -1,101 +1,150 @@
 <x-filament-panels::page>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://kit.fontawesome.com/48953f55c7.js" crossorigin="anonymous"></script>
-<div class="bg-slate-300" style="margin-top: -2rem !important; margin-bottom: 2rem !important; margin-left: -1rem !important; margin-right: -1rem !important;">
-    <div class="min-h-screen">
-        <header class="bg-white shadow-sm">
-            <div class="max-w-full px-6 py-4 flex items-center justify-between">
-                <div>
-                    <h1 class="text-lg font-bold text-slate-800">Dashboard de Inicio</h1>
-                    <p class="text-xs text-slate-500">Indicadores clave del periodo</p>
+@php
+    $fmtMoney = fn ($v) => '$' . number_format((float) $v, 2);
+    $fmtPct = fn ($v, $d = 1) => number_format(((float) $v) * 100, $d) . '%';
+    $lossMax = ($loss_reasons ?? collect())->max('importe') ?: 0;
+@endphp
+
+<div class="bg-slate-200 -mt-8 -mx-4 pb-6">
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-full px-6 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-lg font-bold text-slate-800">Dashboard Comercial</h1>
+                <p class="text-xs text-slate-500">Indicadores clave del periodo</p>
+            </div>
+            <div class="text-xs text-slate-500 text-right">
+                <p>Fecha: {{$fecha}}</p>
+                <p>Periodo: <span class="font-semibold">{{$mes_actual}} {{$ejercicio}}</span></p>
+                @if($seller_only)
+                    <p class="text-emerald-600 font-semibold">Vista vendedor</p>
+                @endif
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-full mx-auto px-6 py-6 space-y-6">
+        <section>
+            <h2 class="text-sm font-semibold text-slate-700 mb-2">KPIs comerciales</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 text-sm">
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Cotizaciones</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$kpis['total_quotes']}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">{{$kpis['open_count']}} abiertas · {{$kpis['invoiced_quotes_count']}} facturadas · {{$kpis['lost_count']}} perdidas/expiradas</p>
                 </div>
-                <div class="text-xs text-slate-500 text-right">
-                    <p>Fecha: {{$fecha}}</p>
-                    <p>Periodo de Trabajo: <span class="font-semibold">{{$mes_actual}} {{$ejercicio}}</span></p>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">$ Cotizado</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtMoney($kpis['total_quoted'])}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Base para conversión ponderada</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">$ Facturado (total)</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtMoney($kpis['total_invoiced'])}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">{{$fmtMoney($kpis['invoiced_from_quotes_value'])}} desde cotizaciones · {{$fmtMoney($kpis['invoiced_direct_value'])}} directo</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Conversión</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtPct($kpis['conversion'])}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Cotizaciones facturadas / totales</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Conversión ponderada</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtPct($kpis['weighted'])}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">$ facturado desde cotizaciones / $ cotizado</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Ciclo promedio</p>
+                    <p class="text-2xl font-bold text-slate-800">{{number_format($kpis['avg_cycle'], 1)}} días</p>
+                    <p class="text-[11px] text-slate-500 mt-1">De cotización a factura</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Descuento promedio</p>
+                    <p class="text-2xl font-bold text-slate-800">{{number_format($kpis['avg_discount'], 1)}}%</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Control de calidad comercial</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Margen ponderado</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtPct($kpis['margin_pct_weighted'])}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Requiere costo en partidas</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Cobranza ponderada</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtPct($kpis['paid_pct_weighted'])}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">1 - (pendiente/total)</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Ventas directas</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtMoney($kpis['invoiced_direct_value'])}}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Facturas sin cotización</p>
                 </div>
             </div>
-        </header>
+        </section>
 
-        <main class="max-w-full mx-auto px-6 py-6 space-y-6">
-            <section>
-                <h2 class="text-sm font-semibold text-slate-700 mb-2">Resumen del periodo</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-emerald-500">Total cotizaciones del periodo</p><br>
-                        <p class="text-2xl font-bold text-slate-800">{{'$'.number_format($cotizaciones_periodo,2)}}</p>
-                    </div>
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-amber-500">Cotizaciones pendientes de facturar</p><br>
-                        <p class="text-2xl font-bold text-slate-800">{{'$'.number_format($cotizaciones_pendientes_importe,2)}}</p>
-                        <p class="text-[11px] text-slate-500 mt-1">{{$cotizaciones_pendientes_count}} cotizaciones</p>
-                    </div>
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-blue-500">Facturas timbradas del periodo</p><br>
-                        <p class="text-2xl font-bold text-slate-800">{{'$'.number_format($facturas_timbradas_periodo,2)}}</p>
-                    </div>
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-slate-500">Utilidad total del periodo</p><br>
-                        <p class="text-2xl font-bold text-emerald-600">{{'$'.number_format($utilidad_periodo,2)}}</p>
-                    </div>
-                </div>
-            </section>
-
-            <section>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-indigo-500">Costo total del inventario</p><br>
-                        <p class="text-2xl font-bold text-amber-600">{{'$'.number_format($costo_inventario,2)}}</p><br>
-                        <a href="{{'/'.$team_id.'/inventario-detalle'}}" class="text-xs px-10 py-1 rounded-full bg-slate-100 text-slate-600">Ver Detalle >></a>
-                    </div>
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-rose-500">Ordenes de compra pendientes</p><br>
-                        <p class="text-2xl font-bold text-slate-800">{{$ordenes_pendientes}}</p>
-                        <p class="text-[11px] text-slate-500 mt-1">{{'$'.number_format($ordenes_pendientes_importe,2)}} en total</p>
-                    </div>
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-emerald-500">Compras del periodo</p><br>
-                        <p class="text-2xl font-bold text-slate-800">{{'$'.number_format($compras_periodo,2)}}</p>
-                    </div>
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                        <p class="text-xs text-slate-500">Periodo</p><br>
-                        <p class="text-2xl font-bold text-slate-800">{{$mes_actual}}</p>
-                        <p class="text-[11px] text-slate-500 mt-1">{{$ejercicio}}</p>
-                    </div>
-                </div>
-            </section>
-
-            <section>
+        <section>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                 <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <div class="flex items-center justify-between mb-2">
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-700">Importe de cotizaciones por vendedor</h3>
-                            <p class="text-[11px] text-slate-500">{{$mes_actual}} {{$ejercicio}}</p>
-                        </div>
-                        <span class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">Periodo actual</span>
+                    <p class="text-xs text-slate-500">Productos</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$productos_count}}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Almacenes</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$almacenes_count}}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Movimientos</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$movimientos_count}}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p class="text-xs text-slate-500">Inventario valuado (aprox)</p>
+                    <p class="text-2xl font-bold text-slate-800">{{$fmtMoney($inventario_valuado)}}</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-800">Alertas: Bajo stock</h3>
+                        <p class="text-[11px] text-slate-500">Productos por debajo del mínimo configurado.</p>
                     </div>
-                    <table class="w-full text-[11px]">
+                    <a href="{{'/'.$team_id.'/inventario-detalle'}}" class="text-xs text-slate-600 underline">Ver reportes</a>
+                </div>
+                <div class="overflow-auto">
+                    <table class="w-full text-[11px] text-slate-800">
                         <thead>
-                        <tr class="text-slate-500">
-                            <th class="py-1 text-left" style="color: black !important;">Vendedor</th>
-                            <th class="py-1 text-right" style="color: black !important;">Importe</th>
+                        <tr class="text-slate-600 bg-slate-50">
+                            <th class="py-2 px-3 text-left">Almacén</th>
+                            <th class="py-2 px-3 text-left">SKU</th>
+                            <th class="py-2 px-3 text-left">Producto</th>
+                            <th class="py-2 px-3 text-right">Existencia</th>
+                            <th class="py-2 px-3 text-right">Mínimo</th>
                         </tr>
                         </thead>
                         <tbody>
-                        @forelse($cotizaciones_por_vendedor as $row)
+                        @forelse($low_stock as $row)
+                            @php
+                                $minVal = $row->minimo ?? $row->min ?? $row->minimo_stock ?? $row->min_stock ?? 0;
+                                $almacenLabel = $row->almacen ?? $row->almacen_id ?? '—';
+                            @endphp
                             <tr class="border-t">
-                                <td class="py-1 pr-2" style="color: black !important;">{{$row['nombre']}}</td>
-                                <td class="py-1 text-right" style="color: black !important;">{{'$'.number_format($row['importe'],2)}}</td>
+                                <td class="py-2 px-3 text-slate-800">{{$almacenLabel}}</td>
+                                <td class="py-2 px-3 text-slate-800">{{$row->clave}}</td>
+                                <td class="py-2 px-3 text-slate-800">{{$row->descripcion}}</td>
+                                <td class="py-2 px-3 text-right text-slate-800">{{number_format((float) $row->exist, 0)}}</td>
+                                <td class="py-2 px-3 text-right text-slate-800">{{number_format((float) $minVal, 0)}}</td>
                             </tr>
                         @empty
                             <tr class="border-t">
-                                <td class="py-2 text-center text-slate-500" colspan="2">Sin cotizaciones en el periodo.</td>
+                                <td class="py-3 px-3 text-center text-slate-500" colspan="5">Sin alertas en el periodo.</td>
                             </tr>
                         @endforelse
                         </tbody>
                     </table>
                 </div>
-            </section>
-        </main>
-    </div>
+            </div>
+        </section>
+    </main>
 </div>
 </x-filament-panels::page>

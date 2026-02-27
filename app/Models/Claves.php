@@ -28,10 +28,17 @@ class Claves extends Model
 
         // Cachear por 24 horas (86400 segundos)
         return Cache::remember($cacheKey, 86400, function () use ($search, $limit) {
-            return self::where('mostrar', 'like', "%{$search}%")
+            $rows = self::where('mostrar', 'like', "%{$search}%")
                 ->limit($limit)
                 ->pluck('mostrar', 'clave')
                 ->toArray();
+
+            $clean = [];
+            foreach ($rows as $clave => $mostrar) {
+                $clean[$clave] = self::sanitizeLabel($mostrar);
+            }
+
+            return $clean;
         });
     }
 
@@ -54,5 +61,33 @@ class Claves extends Model
         return Cache::remember($cacheKey, 86400, function () use ($clave) {
             return self::where('clave', $clave)->first();
         });
+    }
+
+    private static function sanitizeLabel(?string $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $value = (string) $value;
+        if (function_exists('mb_check_encoding') && mb_check_encoding($value, 'UTF-8')) {
+            return $value;
+        }
+
+        if (function_exists('mb_detect_encoding') && function_exists('mb_convert_encoding')) {
+            $encoding = mb_detect_encoding($value, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+            if ($encoding) {
+                return mb_convert_encoding($value, 'UTF-8', $encoding);
+            }
+        }
+
+        if (function_exists('iconv')) {
+            $converted = iconv('UTF-8', 'UTF-8//IGNORE', $value);
+            if ($converted !== false) {
+                return $converted;
+            }
+        }
+
+        return $value;
     }
 }

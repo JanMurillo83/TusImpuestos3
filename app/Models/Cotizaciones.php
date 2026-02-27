@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Services\ImpuestosCalculator;
+use App\Models\User;
+use App\Models\ComercialSegmento;
+use App\Models\ComercialCanal;
+use App\Models\ComercialMotivoGanada;
+use App\Models\ComercialMotivoPerdida;
+use App\Models\CotizacionActividad;
 
 class Cotizaciones extends Model
 {
@@ -14,7 +20,8 @@ class Cotizaciones extends Model
     'forma','uso','moneda','tcambio','uuid','condiciones','vendedor','siguiente','team_id',
     'entrega_lugar', 'entrega_direccion', 'entrega_horario', 'entrega_contacto', 'entrega_telefono',
     'condiciones_pago', 'condiciones_entrega', 'oc_referencia_interna', 'nombre_elaboro', 'nombre_autorizo',
-    'direccion_entrega_id'];
+    'direccion_entrega_id', 'created_by_user_id', 'estado_comercial', 'probabilidad', 'descuento_pct',
+    'segmento_id', 'canal_id', 'cierre_estimado', 'vigencia_hasta', 'motivo_ganada_id', 'motivo_perdida_id'];
     public function partidas(): HasMany
     {
         return $this->hasMany(related: CotizacionesPartidas::class);
@@ -28,6 +35,36 @@ class Cotizaciones extends Model
     public function direccionEntrega(): BelongsTo
     {
         return $this->belongsTo(DireccionesEntrega::class, 'direccion_entrega_id');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function segmento(): BelongsTo
+    {
+        return $this->belongsTo(ComercialSegmento::class, 'segmento_id');
+    }
+
+    public function canal(): BelongsTo
+    {
+        return $this->belongsTo(ComercialCanal::class, 'canal_id');
+    }
+
+    public function motivoGanada(): BelongsTo
+    {
+        return $this->belongsTo(ComercialMotivoGanada::class, 'motivo_ganada_id');
+    }
+
+    public function motivoPerdida(): BelongsTo
+    {
+        return $this->belongsTo(ComercialMotivoPerdida::class, 'motivo_perdida_id');
+    }
+
+    public function actividades(): HasMany
+    {
+        return $this->hasMany(CotizacionActividad::class, 'cotizacion_id');
     }
 
     public function syncClienteNombre(): void

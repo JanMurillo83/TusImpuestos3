@@ -32,7 +32,25 @@ Route::get('/reportes/nif/exportar-todos-excel', [\App\Http\Controllers\Reportes
 Route::get('/mainview',[\App\Http\Controllers\MainChartsController::class,'mainview'])->name('mainviewns');
 Route::prefix('{tenantSlug}')->group(function () {
     Route::get('/tiadmin', function (string $tenantSlug) {
-        return redirect("/{$tenantSlug}/tiadmin/inicio");
+        return redirect("/{$tenantSlug}/tiadmin/comercial");
+    });
+    Route::middleware('auth')->group(function () {
+        Route::get('/tiadmin/comercial-embed', [\App\Http\Controllers\ComercialDashboardController::class, 'index'])
+            ->name('tiadmin.comercial.embed');
+        Route::get('/tiadmin/comercial/api/bootstrap', [\App\Http\Controllers\ComercialDashboardController::class, 'bootstrap'])
+            ->name('tiadmin.comercial.bootstrap');
+        Route::post('/tiadmin/comercial/api/quotes', [\App\Http\Controllers\ComercialDashboardController::class, 'createQuote'])
+            ->name('tiadmin.comercial.quotes.create');
+        Route::put('/tiadmin/comercial/api/quotes/{quote}', [\App\Http\Controllers\ComercialDashboardController::class, 'updateQuote'])
+            ->name('tiadmin.comercial.quotes.update');
+        Route::post('/tiadmin/comercial/api/quotes/{quote}/activities', [\App\Http\Controllers\ComercialDashboardController::class, 'addActivity'])
+            ->name('tiadmin.comercial.quotes.activities');
+        Route::post('/tiadmin/comercial/api/invoices', [\App\Http\Controllers\ComercialDashboardController::class, 'createInvoice'])
+            ->name('tiadmin.comercial.invoices.create');
+        Route::get('/tiadmin/descarga', [\App\Http\Controllers\TiadminDownloadController::class, 'download'])
+            ->name('tiadmin.download');
+        Route::get('/tiadmin/descarga/redirect', [\App\Http\Controllers\TiadminDownloadController::class, 'downloadAndRedirect'])
+            ->name('tiadmin.download.redirect');
     });
     Route::get('/contabilizar', [\App\Http\Controllers\ReportesController::class, 'ContabilizaReporte_ret'])->name('contabilizar');
     Route::get('/grafica1', [\App\Http\Controllers\ChartsController::class, 'showChart1'])->name('showChart1');

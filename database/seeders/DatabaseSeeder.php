@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
 
         // Seed roles
         $this->call(RoleSeeder::class);
+        $this->call(CondicionesPagoSeeder::class);
 
         // Assign admin role to the admin user
         DB::table('role_user')->insert([

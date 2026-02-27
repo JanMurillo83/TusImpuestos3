@@ -6,12 +6,19 @@ use App\Filament\Clusters\tiadmin;
 use App\Filament\Clusters\tiadmin\Resources\CotizacionesResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\CotizacionesResource\RelationManagers;
 use App\Models\Clientes;
+use App\Models\Claves;
+use App\Models\ComercialCanal;
+use App\Models\ComercialMotivoGanada;
+use App\Models\ComercialMotivoPerdida;
+use App\Models\ComercialSegmento;
+use App\Models\CondicionesPago;
 use App\Models\Cotizaciones;
 use App\Models\CotizacionesPartidas;
 use App\Models\Esquemasimp;
 use App\Models\EquivalenciaInventarioCliente;
 use App\Models\Inventario;
 use App\Models\SeriesFacturas;
+use App\Models\Unidades;
 use App\Services\FacturaFolioService;
 use App\Services\PrecioCalculator;
 use App\Services\ImpuestosCalculator;
@@ -35,11 +42,9 @@ use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Colors\Color;
-use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\HeaderActionsPosition;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -72,6 +77,21 @@ class CotizacionesResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $condicionesPagoOptions = function (Get $get): array {
+            $options = CondicionesPago::where('team_id', Filament::getTenant()->id)
+                ->where('activo', 1)
+                ->orderBy('sort')
+                ->pluck('nombre', 'nombre')
+                ->toArray();
+
+            $current = $get('condiciones_pago');
+            if ($current && !isset($options[$current])) {
+                $options[$current] = $current;
+            }
+
+            return $options;
+        };
+
         return $form
             ->columns(6)
             ->schema([
@@ -83,7 +103,12 @@ class CotizacionesResource extends Resource
                             Forms\Components\Select::make('sel_serie')
                                 ->label('Serie')
                                 ->live(onBlur: true)
-                                ->required()
+                                ->required(function ($context) {
+                                    return $context !== 'edit';
+                                })
+                                ->dehydrated(function ($context) {
+                                    return $context !== 'edit';
+                                })
                                 ->disabledOn('edit')
                                 ->options(SeriesFacturas::where('team_id', Filament::getTenant()->id)
                                     ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
@@ -93,6 +118,25 @@ class CotizacionesResource extends Resource
                                     return SeriesFacturas::where('team_id', Filament::getTenant()->id)
                                         ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
                                         ->value('id');
+                                })
+                                ->afterStateHydrated(function (Set $set, ?Cotizaciones $record) {
+                                    if (! $record || empty($record->serie)) {
+                                        return;
+                                    }
+
+                                    $tenant = Filament::getTenant();
+                                    if (! $tenant) {
+                                        return;
+                                    }
+
+                                    $serieId = SeriesFacturas::where('team_id', $tenant->id)
+                                        ->where('tipo', SeriesFacturas::TIPO_COTIZACIONES)
+                                        ->where('serie', $record->serie)
+                                        ->value('id');
+
+                                    if ($serieId) {
+                                        $set('sel_serie', $serieId);
+                                    }
                                 })
                                 ->afterStateUpdated(function (Get $get, Set $set, $context) {
                                     if ($context === 'edit') {
@@ -166,8 +210,11 @@ class CotizacionesResource extends Resource
                             Forms\Components\Textarea::make('observa')
                                 ->columnSpan(3)->label('Observaciones')
                                 ->rows(1),
-                            Forms\Components\TextInput::make('condiciones_pago')
-                                ->columnSpan(2)->label('Condiciones de Pago'),
+                            Forms\Components\Select::make('condiciones_pago')
+                                ->label('Condiciones de Pago')
+                                ->searchable()
+                                ->options($condicionesPagoOptions)
+                                ->columnSpan(2),
                             Forms\Components\Select::make('moneda')
                                 ->label('Moneda')
                                 ->options([
@@ -461,6 +508,74 @@ class CotizacionesResource extends Resource
                                         ->options(Inventario::where('team_id',Filament::getTenant()->id)
                                             ->select('id',DB::raw('CONCAT("Item: ",descripcion,"  Exist: ",FORMAT(exist,2)) as descripcion'))
                                             ->pluck('descripcion','id'))
+                                        ->createOptionForm(function ($form) {
+                                            return $form
+                                                ->schema([
+                                                    TextInput::make('clave')->label('SKU')->required(),
+                                                    TextInput::make('descripcion')->columnSpan(3)->required(),
+                                                    TextInput::make('precio')->required()->default(0)
+                                                        ->currencyMask(decimalSeparator:'.',precision:4),
+                                                    Forms\Components\TextInput::make('cvesat')
+                                                        ->label('Clave SAT')
+                                                        ->default(function(Get $get): string{
+                                                            if($get('cvesat'))
+                                                                $val = $get('cvesat');
+                                                            else
+                                                                $val = '01010101';
+                                                            return $val;
+                                                        })
+                                                        ->required()
+                                                        ->suffixAction(
+                                                            \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat')
+                                                                ->label('Buscador')
+                                                                ->icon('fas-circle-question')
+                                                                ->form([
+                                                                    Forms\Components\TextInput::make('cvesat_search')
+                                                                        ->label('Buscar')
+                                                                        ->live(debounce: 400),
+                                                                    Forms\Components\Select::make('CatCveSat')
+                                                                        ->label('Claves SAT')
+                                                                        ->options(fn (Get $get): array => Claves::getCachedOptions($get('cvesat_search') ?? '', 25))
+                                                                        ->reactive(),
+                                                                ])
+                                                                ->modalCancelAction(false)
+                                                                ->modalSubmitActionLabel('Seleccionar')
+                                                                ->modalWidth('sm')
+                                                                ->action(function(Set $set,$data){
+                                                                    $set('cvesat',$data['CatCveSat']);
+                                                                })
+                                                        ),
+                                                    Select::make('unidad')
+                                                        ->label('Unidad de Medida')
+                                                        ->searchable()
+                                                        ->required()
+                                                        ->options(Unidades::all()->pluck('mostrar','clave'))
+                                                        ->default('H87'),
+                                                    Select::make('servicio')->label('Servicio')
+                                                        ->options(['SI'=>'SI','NO'=>'NO'])->default('NO'),
+                                                ])->columns(4);
+                                        })->createOptionUsing(function ($data) {
+                                            return Inventario::create([
+                                                'clave'=> $data['clave'],
+                                                'descripcion'=> $data['descripcion'],
+                                                'linea'=>1,
+                                                'marca'=>'',
+                                                'modelo'=>'',
+                                                'u_costo'=>0,
+                                                'p_costo'=>0,
+                                                'precio1'=> $data['precio'],
+                                                'precio2'=>0,
+                                                'precio3'=>0,
+                                                'precio4'=>0,
+                                                'precio5'=>0,
+                                                'exist'=>0,
+                                                'esquema'=>Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id,
+                                                'servicio'=>$data['servicio'],
+                                                'unidad'=>$data['unidad'],
+                                                'cvesat'=>$data['cvesat'],
+                                                'team_id'=>Filament::getTenant()->id
+                                            ])->getKey();
+                                        })
                                         ->required()
                                         ->live(onBlur:true)
                                         ->afterStateUpdated(function(Get $get, Set $set){
@@ -614,14 +729,73 @@ class CotizacionesResource extends Resource
                                 ])->columns(3),
                             Section::make('Datos Comerciales')
                                 ->schema([
-                                    Forms\Components\TextInput::make('condiciones_pago')
-                                        ->label('Condiciones de Pago'),
+                                    Select::make('segmento_id')
+                                        ->label('Segmento')
+                                        ->searchable()
+                                        ->options(fn () => ComercialSegmento::where('team_id', Filament::getTenant()->id)
+                                            ->where('activo', 1)
+                                            ->orderBy('sort')
+                                            ->pluck('nombre', 'id')),
+                                    Select::make('canal_id')
+                                        ->label('Canal')
+                                        ->searchable()
+                                        ->options(fn () => ComercialCanal::where('team_id', Filament::getTenant()->id)
+                                            ->where('activo', 1)
+                                            ->orderBy('sort')
+                                            ->pluck('nombre', 'id')),
+                                    Select::make('estado_comercial')
+                                        ->label('Estatus Comercial')
+                                        ->options([
+                                            'OPEN' => 'Abierta',
+                                            'NEGOTIATION' => 'En negociacion',
+                                            'WON' => 'Facturada',
+                                            'LOST' => 'Perdida',
+                                            'EXPIRED' => 'Expirada',
+                                        ])->default('OPEN'),
+                                    Select::make('probabilidad')
+                                        ->label('Probabilidad')
+                                        ->options([
+                                            0.20 => 'Baja (20%)',
+                                            0.50 => 'Media (50%)',
+                                            0.80 => 'Alta (80%)',
+                                        ])->default(0.20),
+                                    Forms\Components\TextInput::make('descuento_pct')
+                                        ->label('Descuento (%)')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->default(0),
+                                    Forms\Components\DatePicker::make('cierre_estimado')
+                                        ->label('Fecha estimada de cierre'),
+                                    Forms\Components\DatePicker::make('vigencia_hasta')
+                                        ->label('Vigencia hasta'),
+                                    Select::make('motivo_ganada_id')
+                                        ->label('Motivo de ganada')
+                                        ->searchable()
+                                        ->options(fn () => ComercialMotivoGanada::where('team_id', Filament::getTenant()->id)
+                                            ->where('activo', 1)
+                                            ->orderBy('sort')
+                                            ->pluck('nombre', 'id')),
+                                    Select::make('motivo_perdida_id')
+                                        ->label('Motivo de perdida')
+                                        ->searchable()
+                                        ->options(fn () => ComercialMotivoPerdida::where('team_id', Filament::getTenant()->id)
+                                            ->where('activo', 1)
+                                            ->orderBy('sort')
+                                            ->pluck('nombre', 'id')),
+                                    Forms\Components\Select::make('condiciones_pago')
+                                        ->label('Condiciones de Pago')
+                                        ->searchable()
+                                        ->options($condicionesPagoOptions),
                                     Forms\Components\TextInput::make('condiciones_entrega')
                                         ->label('Condiciones de Entrega'),
                                     Forms\Components\TextInput::make('oc_referencia_interna')
                                         ->label('Referencia Interna'),
                                     Forms\Components\TextInput::make('nombre_elaboro')
-                                        ->label('Elaboró')->default(Filament::auth()->user()->name),
+                                        ->label('Elaboro')
+                                        ->default(Filament::auth()->user()->name)
+                                        ->disabled()
+                                        ->dehydrated(),
                                     Forms\Components\TextInput::make('nombre_autorizo')
                                         ->label('Autorizó'),
                                 ])->columns(3),
@@ -863,11 +1037,7 @@ class CotizacionesResource extends Resource
             ->recordClasses('row_gral')
             ->defaultPaginationPageOption(5)
             ->paginationPageOptions([5,'all'])
-            ->defaultSort(function (Builder $query): Builder {
-                return $query
-                    ->orderBy('fecha', 'desc')
-                    ->orderBy('folio', 'desc');
-            })
+            ->defaultSort('created_at', 'desc')
             ->striped()
             ->columns([
                 Tables\Columns\TextColumn::make('docto')
@@ -1035,6 +1205,10 @@ class CotizacionesResource extends Resource
                                     'forma' => $cot->forma ?? '01',
                                     'uso' => $cot->uso ?? 'G03',
                                     'condiciones' => $cot->condiciones ?? 'CONTADO',
+                                    'created_by_user_id' => Filament::auth()->id(),
+                                    'segmento_id' => $cot->segmento_id,
+                                    'canal_id' => $cot->canal_id,
+                                    'motivo_ganada_id' => $cot->motivo_ganada_id,
                                 ]);
 
                                 $subtotal = 0; $iva = 0; $retiva = 0; $retisr = 0; $ieps = 0; $total = 0;
@@ -1084,10 +1258,13 @@ class CotizacionesResource extends Resource
                                     'retisr' => $retisr, 'ieps' => $ieps, 'total' => $total,
                                     'docto' => 'F'.$factura->folio
                                 ]);
+                                $factura->pendiente_pago = $total;
+                                $factura->save();
+                                $factura->recalculateCommercialMetrics();
 
                                 $pendientesTotales = \App\Models\CotizacionesPartidas::where('cotizaciones_id', $cot->id)->sum('pendientes');
                                 $nuevoEstado = $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial';
-                                $cot->update(['estado' => $nuevoEstado]);
+                                $cot->update(['estado' => $nuevoEstado, 'estado_comercial' => 'WON']);
 
                                 DB::commit();
                                 Notification::make()->title('Factura generada exitosamente')->success()->send();
@@ -1261,7 +1438,8 @@ class CotizacionesResource extends Resource
                             $nueva->condiciones_pago = $record->condiciones_pago;
                             $nueva->condiciones_entrega = $record->condiciones_entrega;
                             $nueva->oc_referencia_interna = $record->oc_referencia_interna;
-                            $nueva->nombre_elaboro = $record->nombre_elaboro;
+                            $nueva->created_by_user_id = Filament::auth()->id();
+                            $nueva->nombre_elaboro = Filament::auth()->user()->name;
                             $nueva->nombre_autorizo = $record->nombre_autorizo;
                             $nueva->save();
 
@@ -1301,95 +1479,21 @@ class CotizacionesResource extends Resource
                                 ->send();
                         });
                     }),
-                Tables\Actions\EditAction::make()
-                    ->modalSubmitActionLabel('Grabar')
-                    ->modalCancelActionLabel('Cerrar')
-                    ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
-                    ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                    ->modalFooterActionsAlignment(Alignment::Left)
-                    ->modalWidth('full')
-                    ->after(function($record,$livewire){
-                        $record->refresh();
-                        $record->syncClienteNombre();
-                        $record->fixPartidasSubtotalFromCantidadPrecio();
-                        $record->recalculateTotalsFromPartidas();
-                        $idorden = $record->id;
-                        $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();
-                        foreach($partidas_pen as $par){
-                            CotizacionesPartidas::where('id',$par->id)->update(['pendientes'=>$par->cant]);
-                        }
-                        Cotizaciones::where('id',$record->id)->update([
-                            'nombre_elaboro'=>Filament::auth()->user()->name,
-                        ]);
-                        $clien = Clientes::where('id',$record->clie)->first();
-                        Cotizaciones::where('id',$record->id)->update([
-                            'nombre'=>$clien->nombre,
-                        ]);
-                        $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
-                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
-                        if(File::exists($ruta))File::delete($ruta);
-                        $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
-                        $html = View::make('NFTO_Cotizacion',$data)->render();
-                        Browsershot::html($html)->format('Letter')
-                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-                            ->noSandbox()
-                            ->scale(0.8)->savePdf($ruta);
-                        return response()->download($ruta);
-                    })->iconPosition(IconPosition::After),
+                Action::make('Editar')
+                    ->label('Editar')
+                    ->icon('fas-edit')
+                    ->url(fn (Model $record) => static::getUrl('edit', ['record' => $record]))
+                    ->iconPosition(IconPosition::After),
             ])
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             ->headerActions([
-                CreateAction::make('Agregar')
-                    ->closeModalByClickingAway(false)
-                    ->closeModalByEscaping(false)
-                    ->createAnother(false)
+                Action::make('Agregar')
+                    ->label('Agregar')
+                    ->icon('fas-circle-plus')
                     ->tooltip('Nueva Cotizacion')
-                    ->label('Agregar')->icon('fas-circle-plus')
-                    ->modalSubmitActionLabel('Grabar')
-                    ->modalCancelActionLabel('Cerrar')
-                    ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
-                    ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
-                    ->modalFooterActionsAlignment(Alignment::Left)
-                    ->modalWidth('full')
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $serieId = intval($data['sel_serie'] ?? 0);
-                        if (! $serieId) {
-                            throw new \Exception('Debe seleccionar una serie para la cotizacion.');
-                        }
-
-                        $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
-
-                        $data['serie'] = $folioData['serie'];
-                        $data['folio'] = $folioData['folio'];
-                        $data['docto'] = $folioData['docto'];
-
-                        return $data;
-                    })
-                    ->after(function($record,$livewire){
-                        $record->refresh();
-                        $record->syncClienteNombre();
-                        $record->fixPartidasSubtotalFromCantidadPrecio();
-                        $record->recalculateTotalsFromPartidas();
-                        $partidas_pen = CotizacionesPartidas::where('cotizaciones_id',$record->id)->get();
-                        foreach($partidas_pen as $par){
-                            CotizacionesPartidas::where('id',$par->id)->update(['pendientes'=>$par->cant]);
-                        }
-                        $idorden = $record->id;
-                        $id_empresa = Filament::getTenant()->id;
-                        $archivo_pdf = 'COT-'.$record->serie.$record->folio.'-'.$record->nombre_elaboro.'-'.$record->nombre.'.pdf';
-                        $ruta = public_path().'/TMPCFDI/'.$archivo_pdf;
-                        if(File::exists($ruta))File::delete($ruta);
-                        $data = ['idcotiza'=>$idorden,'team_id'=>$id_empresa,'clie_id'=>$record->clie];
-                        $html = View::make('NFTO_Cotizacion',$data)->render();
-                        Browsershot::html($html)->format('Letter')
-                            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-                            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-                            ->noSandbox()
-                            ->scale(0.8)->savePdf($ruta);
-                        return response()->download($ruta);
-                    })
+                    ->url(static::getUrl('create'))
+                    ->button()
+                    ->visible(static::canCreate())
             ],HeaderActionsPosition::Bottom)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -1409,8 +1513,8 @@ class CotizacionesResource extends Resource
     {
         return [
             'index' => Pages\ListCotizaciones::route('/'),
-            //'create' => Pages\CreateCotizaciones::route('/create'),
-            //'edit' => Pages\EditCotizaciones::route('/{record}/edit'),
+            'create' => Pages\CreateCotizaciones::route('/create'),
+            'edit' => Pages\EditCotizaciones::route('/{record}/edit'),
         ];
     }
 }

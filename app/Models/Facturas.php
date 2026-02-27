@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Services\ImpuestosCalculator;
+use App\Models\User;
+use App\Models\ComercialSegmento;
+use App\Models\ComercialCanal;
+use App\Models\ComercialMotivoGanada;
 
 class Facturas extends Model
 {
@@ -14,7 +18,8 @@ class Facturas extends Model
     protected $fillable = ['serie','folio','docto','fecha','clie','nombre','rfc_mostr','nombre_mostr','esquema','subtotal',
     'iva','retiva','retisr','ieps','total','observa','estado','metodo',
     'forma','uso','uuid','remision_id','pedido_id','cotizacion_id','condiciones','vendedor','anterior','timbrado','xml','fecha_tim',
-    'moneda','tcambio','fecha_cancela','motivo','sustituye','xml_cancela','pendiente_pago','team_id','error_timbrado','docto_rela','tipo_rela'];
+    'moneda','tcambio','fecha_cancela','motivo','sustituye','xml_cancela','pendiente_pago','team_id','error_timbrado','docto_rela','tipo_rela',
+    'created_by_user_id', 'segmento_id', 'canal_id', 'motivo_ganada_id', 'margen_pct', 'cobranza_pct'];
 
     protected static function booted(): void
     {
@@ -48,6 +53,26 @@ class Facturas extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function segmento(): BelongsTo
+    {
+        return $this->belongsTo(ComercialSegmento::class, 'segmento_id');
+    }
+
+    public function canal(): BelongsTo
+    {
+        return $this->belongsTo(ComercialCanal::class, 'canal_id');
+    }
+
+    public function motivoGanada(): BelongsTo
+    {
+        return $this->belongsTo(ComercialMotivoGanada::class, 'motivo_ganada_id');
     }
 
     public function recalculatePartidasFromItemSchema(): void
@@ -91,6 +116,27 @@ class Facturas extends Model
             'retisr' => $totals->retisr ?? 0,
             'ieps' => $totals->ieps ?? 0,
             'total' => $totals->total ?? 0,
+        ])->save();
+    }
+
+    public function recalculateCommercialMetrics(): void
+    {
+        $subtotal = (float) ($this->subtotal ?? 0);
+        $total = (float) ($this->total ?? 0);
+
+        $cost = (float) $this->partidas()
+            ->selectRaw('COALESCE(SUM(costo * cant), 0) as costo_total')
+            ->value('costo_total');
+
+        $marginPct = $subtotal > 0 ? ($subtotal - $cost) / $subtotal : 0;
+        $marginPct = max(0, min(1, $marginPct));
+
+        $cobranzaPct = $total > 0 ? 1 - ((float) ($this->pendiente_pago ?? 0) / $total) : 0;
+        $cobranzaPct = max(0, min(1, $cobranzaPct));
+
+        $this->forceFill([
+            'margen_pct' => $marginPct,
+            'cobranza_pct' => $cobranzaPct,
         ])->save();
     }
 }

@@ -9,6 +9,9 @@ use App\Http\Controllers\TimbradoController;
 use App\Http\Middleware\ApplyTenantScopes;
 use App\Models\Almacencfdis;
 use App\Models\Claves;
+use App\Models\ComercialCanal;
+use App\Models\ComercialMotivoGanada;
+use App\Models\ComercialSegmento;
 use App\Models\CuentasCobrar;
 use App\Models\DatosFiscales;
 use App\Models\DoctosRelacionados;
@@ -120,15 +123,31 @@ class FacturasResource extends Resource
                         Forms\Components\Select::make('sel_serie')
                             ->label('Serie')
                             ->live(onBlur: true)
-                            ->required()
+                            ->required(fn (string $context): bool => $context === 'create')
                             ->disabledOn('edit')
+                            ->dehydrated(fn (string $context): bool => $context === 'create')
                             ->options(SeriesFacturas::where('team_id',Filament::getTenant()->id)
                                 ->where('tipo','F')
                                 ->select(DB::raw("id,CONCAT(serie,'-',COALESCE(descripcion,'Default')) as descripcion"))
                                 ->pluck('descripcion','id'))
                                 ->default(function (){
-                                    return SeriesFacturas::where('team_id',Filament::getTenant()->id)->where('tipo','F')->first()->serie ?? 'A';
-                                })->afterStateUpdated(function(Get $get,Set $set,$context){
+                                    return SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', 'F')
+                                        ->value('id');
+                                })
+                                ->afterStateHydrated(function (Set $set, ?Facturas $record): void {
+                                    if (! $record || ! $record->serie) {
+                                        return;
+                                    }
+                                    $serId = SeriesFacturas::where('team_id', Filament::getTenant()->id)
+                                        ->where('tipo', 'F')
+                                        ->where('serie', $record->serie)
+                                        ->value('id');
+                                    if ($serId) {
+                                        $set('sel_serie', $serId);
+                                    }
+                                })
+                                ->afterStateUpdated(function(Get $get,Set $set,$context){
                                     if($context === 'edit') return;
                                     $ser = $get('sel_serie');
                                     $fol = SeriesFacturas::where('id',$ser)->first();
@@ -273,7 +292,7 @@ class FacturasResource extends Resource
                                         TextInput::make('descripcion')->columnSpan(3)->required(),
                                         TextInput::make('precio')->required()->default(0)
                                         ->currencyMask(decimalSeparator:'.',precision:4),
-                                        Forms\Components\Select::make('cvesat')
+                                        Forms\Components\TextInput::make('cvesat')
                                             ->label('Clave SAT')
                                             ->default(function(Get $get): string{
                                                 if($get('cvesat'))
@@ -282,17 +301,27 @@ class FacturasResource extends Resource
                                                     $val = '01010101';
                                                 return $val;
                                             })
-                                            ->searchable()
-                                            ->searchDebounce(500)
-                                            ->getSearchResultsUsing(fn (string $search): array => Claves::getCachedOptions($search, 25))
-                                            ->getOptionLabelUsing(function ($value): ?string {
-                                                // Evita errores de tipo cuando el valor aún es null/vacío
-                                                if (empty($value)) {
-                                                    return null;
-                                                }
-                                                $clave = (string) $value;
-                                                return Claves::getByClave($clave)?->mostrar;
-                                            }),
+                                            ->required()
+                                            ->suffixAction(
+                                                \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat')
+                                                    ->label('Buscador')
+                                                    ->icon('fas-circle-question')
+                                                    ->form([
+                                                        Forms\Components\TextInput::make('cvesat_search')
+                                                            ->label('Buscar')
+                                                            ->live(debounce: 400),
+                                                        Forms\Components\Select::make('CatCveSat')
+                                                            ->label('Claves SAT')
+                                                            ->options(fn (Get $get): array => Claves::getCachedOptions($get('cvesat_search') ?? '', 25))
+                                                            ->reactive(),
+                                                    ])
+                                                    ->modalCancelAction(false)
+                                                    ->modalSubmitActionLabel('Seleccionar')
+                                                    ->modalWidth('sm')
+                                                    ->action(function(Set $set,$data){
+                                                        $set('cvesat',$data['CatCveSat']);
+                                                    })
+                                            ),
                                         Select::make('unidad')
                                             ->label('Unidad de Medida')
                                             ->searchable()
@@ -415,11 +444,38 @@ class FacturasResource extends Resource
                     ])->grow(true)->columns(5),
             ])->columnSpanFull(),
             Split::make([
-                Section::make('Observaciones')
-                ->schema([
-                    Forms\Components\Textarea::make('observa')
-                        ->columnSpanFull()->label('Observaciones')
-                        ->rows(3),
+                Forms\Components\Group::make([
+                    Section::make('Observaciones')
+                        ->schema([
+                            Forms\Components\Textarea::make('observa')
+                                ->columnSpanFull()->label('Observaciones')
+                                ->rows(3),
+                        ]),
+                    Section::make('Datos comerciales')
+                        ->schema([
+                            Forms\Components\Select::make('segmento_id')
+                                ->label('Segmento')
+                                ->searchable()
+                                ->options(fn () => ComercialSegmento::where('team_id', Filament::getTenant()->id)
+                                    ->where('activo', 1)
+                                    ->orderBy('sort')
+                                    ->pluck('nombre', 'id')),
+                            Forms\Components\Select::make('canal_id')
+                                ->label('Canal')
+                                ->searchable()
+                                ->options(fn () => ComercialCanal::where('team_id', Filament::getTenant()->id)
+                                    ->where('activo', 1)
+                                    ->orderBy('sort')
+                                    ->pluck('nombre', 'id')),
+                            Forms\Components\Select::make('motivo_ganada_id')
+                                ->label('Motivo de ganada')
+                                ->searchable()
+                                ->options(fn () => ComercialMotivoGanada::where('team_id', Filament::getTenant()->id)
+                                    ->where('activo', 1)
+                                    ->orderBy('sort')
+                                    ->pluck('nombre', 'id')),
+                        ])
+                        ->columns(3),
                 ]),
                 Section::make('Totales')
                     ->schema([
@@ -951,6 +1007,7 @@ class FacturasResource extends Resource
         ->defaultPaginationPageOption(5)
         ->paginationPageOptions([5,'all'])
         ->striped()
+        ->defaultSort('facturas.created_at', 'desc')
         ->modifyQueryUsing(function (Builder $query) {
             // Precargar datos relacionados para optimizar rendimiento
             // Usar MAX() para evitar problemas con ONLY_FULL_GROUP_BY
@@ -1519,6 +1576,18 @@ class FacturasResource extends Resource
                     })
                     ->after(function($record,$livewire){
                         $record->refresh();
+                        if (! $record->created_by_user_id) {
+                            $record->created_by_user_id = Filament::auth()->id();
+                        }
+                        if ($record->cotizacion_id) {
+                            $cotizacion = Cotizaciones::find($record->cotizacion_id);
+                            if ($cotizacion) {
+                                $record->segmento_id = $record->segmento_id ?? $cotizacion->segmento_id;
+                                $record->canal_id = $record->canal_id ?? $cotizacion->canal_id;
+                                $record->motivo_ganada_id = $record->motivo_ganada_id ?? $cotizacion->motivo_ganada_id;
+                            }
+                        }
+                        $record->save();
                         $record->recalculatePartidasFromItemSchema();
                         $record->recalculateTotalsFromPartidas();
                         $partidas = $record->partidas;
@@ -1571,6 +1640,7 @@ class FacturasResource extends Resource
                                 'team_id'=>Filament::getTenant()->id
                             ]);
                         }
+                        $record->recalculateCommercialMetrics();
                         //-----------------------------
                         $data = $record;
                         $factura = $data->id;
@@ -1681,6 +1751,15 @@ class FacturasResource extends Resource
                 ->modalWidth('full')
                 ->mutateFormDataUsing(function (array $data): array {
                     unset($data['serie'], $data['folio'], $data['docto']);
+                    $data['created_by_user_id'] = Filament::auth()->id();
+                    if (!empty($data['cotizacion_id'])) {
+                        $cotizacion = Cotizaciones::find($data['cotizacion_id']);
+                        if ($cotizacion) {
+                            $data['segmento_id'] = $data['segmento_id'] ?? $cotizacion->segmento_id;
+                            $data['canal_id'] = $data['canal_id'] ?? $cotizacion->canal_id;
+                            $data['motivo_ganada_id'] = $data['motivo_ganada_id'] ?? $cotizacion->motivo_ganada_id;
+                        }
+                    }
                     return $data;
                 })
                 ->using(function (array $data): Model {
@@ -1695,6 +1774,18 @@ class FacturasResource extends Resource
                 })
                 ->after(function($record,$livewire){
                     $record->refresh();
+                    if (! $record->created_by_user_id) {
+                        $record->created_by_user_id = Filament::auth()->id();
+                    }
+                    if ($record->cotizacion_id) {
+                        $cotizacion = Cotizaciones::find($record->cotizacion_id);
+                        if ($cotizacion) {
+                            $record->segmento_id = $record->segmento_id ?? $cotizacion->segmento_id;
+                            $record->canal_id = $record->canal_id ?? $cotizacion->canal_id;
+                            $record->motivo_ganada_id = $record->motivo_ganada_id ?? $cotizacion->motivo_ganada_id;
+                        }
+                    }
+                    $record->save();
                     $record->recalculatePartidasFromItemSchema();
                     $record->recalculateTotalsFromPartidas();
                     $partidas = $record->partidas;
@@ -1723,7 +1814,10 @@ class FacturasResource extends Resource
                     if ($record->cotizacion_id) {
                         $pendientesTotales = CotizacionesPartidas::where('cotizaciones_id', $record->cotizacion_id)->sum('pendientes');
                         $nuevoEstado = $pendientesTotales <= 0 ? 'Cerrada' : 'Parcial';
-                        Cotizaciones::where('id', $record->cotizacion_id)->update(['estado' => $nuevoEstado]);
+                        Cotizaciones::where('id', $record->cotizacion_id)->update([
+                            'estado' => $nuevoEstado,
+                            'estado_comercial' => 'WON',
+                        ]);
                     }
                     if ($record->pedido_id) {
                         $pendientesTotales = PedidosPartidas::where('pedidos_id', $record->pedido_id)->sum('pendientes');
@@ -1741,6 +1835,7 @@ class FacturasResource extends Resource
                             'team_id'=>Filament::getTenant()->id
                         ]);
                     }
+                    $record->recalculateCommercialMetrics();
                     //-----------------------------
                         $data = $record;
                         $factura = $data->id;
@@ -1995,8 +2090,16 @@ class FacturasResource extends Resource
                                 ->options(
                                     Cotizaciones::whereIn('estado',['Activa','Parcial'])
                                         ->where('team_id', Filament::getTenant()->id)
-                                        ->select(DB::raw("CONCAT(docto,' - ',nombre,' - ',DATE_FORMAT(fecha,'%d/%m/%Y'),' - ',FORMAT(total,2,'en_US')) AS folio"), 'id')
-                                        ->get()->pluck('folio','id')
+                                        ->orderBy('created_at', 'desc')
+                                        ->get()
+                                        ->mapWithKeys(function ($cot) {
+                                            $docto = $cot->docto ?: (($cot->serie ?? '') . ($cot->folio ?? ''));
+                                            $cliente = $cot->nombre ?? 'Cliente sin nombre';
+                                            $fecha = $cot->fecha ? Carbon::parse($cot->fecha)->format('d-m-Y') : '';
+                                            $importe = '$' . number_format((float) ($cot->total ?? 0), 2);
+                                            $label = trim($docto . ' | ' . $cliente . ' | ' . $fecha . ' | ' . $importe);
+                                            return [$cot->id => $label];
+                                        })
                                 )
                         ]);
                     })

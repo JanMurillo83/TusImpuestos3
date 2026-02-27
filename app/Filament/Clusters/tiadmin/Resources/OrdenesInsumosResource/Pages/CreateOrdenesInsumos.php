@@ -1,31 +1,27 @@
 <?php
 
-namespace App\Filament\Clusters\tiadmin\Resources\OrdenesResource\Pages;
+namespace App\Filament\Clusters\tiadmin\Resources\OrdenesInsumosResource\Pages;
 
-use App\Filament\Clusters\tiadmin\Resources\OrdenesResource;
+use App\Filament\Clusters\tiadmin\Resources\OrdenesInsumosResource;
 use App\Filament\Support\HasDownloadRedirect;
-use App\Models\OrdenesPartidas;
+use App\Models\OrdenesInsumosPartidas;
 use App\Models\SeriesFacturas;
 use Filament\Actions\Action;
-use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Support\Colors\Color;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\View;
-use Spatie\Browsershot\Browsershot;
 
-class CreateOrdenes extends CreateRecord
+class CreateOrdenesInsumos extends CreateRecord
 {
     use HasDownloadRedirect;
 
-    protected static string $resource = OrdenesResource::class;
+    protected static string $resource = OrdenesInsumosResource::class;
     protected static bool $canCreateAnother = false;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $serieId = intval($data['sel_serie'] ?? 0);
         if (! $serieId) {
-            throw new \Exception('Debe seleccionar una serie para la orden.');
+            throw new \Exception('Debe seleccionar una serie para la orden de insumos.');
         }
 
         $folioData = SeriesFacturas::obtenerSiguienteFolio($serieId);
@@ -64,26 +60,11 @@ class CreateOrdenes extends CreateRecord
         $record->recalculatePartidasFromItemSchema();
         $record->recalculateTotalsFromPartidas();
 
-        $partidas = OrdenesPartidas::where('ordenes_id', $record->id)->get();
+        $partidas = OrdenesInsumosPartidas::where('ordenes_insumos_id', $record->id)->get();
         foreach ($partidas as $partida) {
             $partida->pendientes = $partida->cant;
             $partida->save();
         }
-
-        $archivo_pdf = 'ORDEN_COMPRA' . $record->id . '.pdf';
-        $ruta = public_path() . '/TMPCFDI/' . $archivo_pdf;
-        if (File::exists($ruta)) {
-            File::delete($ruta);
-        }
-        $data = ['idorden' => $record->id, 'team_id' => Filament::getTenant()->id, 'prov_id' => $record->prov];
-        $html = View::make('NFTO_OrdendeCompra', $data)->render();
-        Browsershot::html($html)->format('Letter')
-            ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
-            ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
-            ->noSandbox()
-            ->scale(0.8)->savePdf($ruta);
-
-        $this->setDownloadFilename($archivo_pdf);
     }
 
     protected function getRedirectUrl(): string

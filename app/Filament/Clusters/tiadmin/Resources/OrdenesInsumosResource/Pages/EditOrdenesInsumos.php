@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Filament\Clusters\tiadmin\Resources\OrdenesResource\Pages;
+namespace App\Filament\Clusters\tiadmin\Resources\OrdenesInsumosResource\Pages;
 
-use App\Filament\Clusters\tiadmin\Resources\OrdenesResource;
+use App\Filament\Clusters\tiadmin\Resources\OrdenesInsumosResource;
 use App\Filament\Support\HasDownloadRedirect;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Colors\Color;
 
-class EditOrdenes extends EditRecord
+class EditOrdenesInsumos extends EditRecord
 {
     use HasDownloadRedirect;
 
-    protected static string $resource = OrdenesResource::class;
+    protected static string $resource = OrdenesInsumosResource::class;
 
     protected function getHeaderActions(): array
     {

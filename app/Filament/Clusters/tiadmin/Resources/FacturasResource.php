@@ -1148,7 +1148,7 @@ class FacturasResource extends Resource
                     }
 
                     // Si es PPD, verificar si tiene complemento de pago
-                    $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->uuid)
+                    $tieneComplemento = \App\Models\ParPagos::where('uuidrel', $record->id)
                         ->where('team_id', $record->team_id)
                         ->exists();
 

@@ -28,6 +28,7 @@ use CfdiUtils\Cleaner\Cleaner;
 use Filament\Actions;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
@@ -155,6 +156,10 @@ class ListFacturas extends ListRecords
                                             ->readOnly(),
                                 ])->columns(5),
                             Grid::make(3)->schema([
+                                DatePicker::make('fecha')
+                                    ->label('Fecha Factura')
+                                    ->default(fn () => now())
+                                    ->required(),
                                 Select::make('forma')
                                     ->label('Metodo de Pago')
                                     ->options(Formas::all()->pluck('mostrar','clave'))
@@ -235,8 +240,11 @@ class ListFacturas extends ListRecords
                                         throw new \Exception('Debe seleccionar una serie para la factura.');
                                     }
 
+                                    $fechaFactura = $data['fecha'] ?? now();
+                                    $fechaFactura = $fechaFactura ? Carbon::parse($fechaFactura)->format('Y-m-d') : now()->format('Y-m-d');
+
                                     $factura = FacturaFolioService::crearConFolioSeguro($serieId, [
-                                        'fecha' => now()->format('Y-m-d'),
+                                        'fecha' => $fechaFactura,
                                         'clie' => $cot->clie,
                                         'nombre' => $cot->nombre,
                                         'esquema' => $cot->esquema,

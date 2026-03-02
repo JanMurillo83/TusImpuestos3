@@ -52,6 +52,19 @@ class PagosResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $sumMoney = static function (?array $partidas, string $key): float {
+            return collect($partidas ?? [])
+                ->pluck($key)
+                ->map(function ($value) {
+                    if (is_numeric($value)) {
+                        return (float) $value;
+                    }
+                    $clean = preg_replace('/[^\d\.\-]/', '', (string) $value);
+                    return $clean === '' ? 0.0 : (float) $clean;
+                })
+                ->sum();
+        };
+
         return $form
             ->schema([
                         Forms\Components\Fieldset::make('Datos Generales')->schema([
@@ -99,8 +112,8 @@ class PagosResource extends Resource
                                 ->required()
                                 ->numeric()
                                 ->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
-                                ->placeholder(function (Forms\Get $get, Forms\Set $set) {
-                                    $valor = collect($get('Partidas'))->pluck('baseiva')->sum();
+                                ->placeholder(function (Forms\Get $get, Forms\Set $set) use ($sumMoney) {
+                                    $valor = $sumMoney($get('Partidas'), 'baseiva');
                                     $set('subtotal', $valor);
                                     return floatval($valor);
                                 }),
@@ -108,8 +121,8 @@ class PagosResource extends Resource
                                 ->required()
                                 ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
                                 //->default(0.00000000)
-                                ->placeholder(function (Forms\Get $get, Forms\Set $set) {
-                                    $valor = collect($get('Partidas'))->pluck('montoiva')->sum();
+                                ->placeholder(function (Forms\Get $get, Forms\Set $set) use ($sumMoney) {
+                                    $valor = $sumMoney($get('Partidas'), 'montoiva');
                                     $set('iva', $valor);
                                     return floatval($valor);
                                 }),
@@ -117,8 +130,8 @@ class PagosResource extends Resource
                                 ->required()
                                 ->numeric()->numeric()->prefix('$')->currencyMask(decimalSeparator:'.',precision:2)
                                 //->default(0.00000000)
-                                ->placeholder(function (Forms\Get $get, Forms\Set $set) {
-                                    $valor = collect($get('Partidas'))->pluck('imppagado')->sum();
+                                ->placeholder(function (Forms\Get $get, Forms\Set $set) use ($sumMoney) {
+                                    $valor = $sumMoney($get('Partidas'), 'imppagado');
                                     $set('total', $valor);
                                     return floatval($valor);
                                 }),

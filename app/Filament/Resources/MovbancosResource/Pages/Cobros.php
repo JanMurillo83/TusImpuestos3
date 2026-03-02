@@ -105,6 +105,19 @@ class Cobros extends Page implements HasForms
 
     public function form(Form $form): Form
     {
+        $sumMoney = static function (?array $rows, string $key): float {
+            return collect($rows ?? [])
+                ->pluck($key)
+                ->map(function ($value) {
+                    if (is_numeric($value)) {
+                        return (float) $value;
+                    }
+                    $clean = preg_replace('/[^\d\.\-]/', '', (string) $value);
+                    return $clean === '' ? 0.0 : (float) $clean;
+                })
+                ->sum();
+        };
+
         return $form
             ->schema([
                 Fieldset::make('Datos del Cobro')
@@ -238,8 +251,8 @@ class Cobros extends Page implements HasForms
                                 $this->fact_nombres.= ' '. $fact->Serie . $fact->Folio;
                                 array_push($data_tmp, $data_new);
                             }
-                            $sum = array_sum(array_column($data_tmp, 'Monto a Pagar'));
-                            $sum2 = array_sum(array_column($data_tmp, 'Pendiente'));
+                            $sum = $sumMoney($data_tmp, 'Monto a Pagar');
+                            $sum2 = $sumMoney($data_tmp, 'Pendiente');
                             $cnt = count($data_tmp);
                             $set('numero_total', $cnt);
                             $set('monto_total', $sum);
@@ -289,8 +302,8 @@ class Cobros extends Page implements HasForms
                         ->live(onBlur: true)
                         ->afterStateUpdated(function (Get $get, Set $set) {
                             $data_tmp = $get('../../facturas_a_pagar');
-                            $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
-                            $sum2 = array_sum(array_column($data_tmp,'Pendiente'));
+                            $sum = $sumMoney($data_tmp, 'Monto a Pagar');
+                            $sum2 = $sumMoney($data_tmp, 'Pendiente');
                             $cnt = count($data_tmp);
                             $set('../../monto_total',$sum);
                             $set('../../monto_total_usd',$sum2);
@@ -299,7 +312,7 @@ class Cobros extends Page implements HasForms
                     Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
                 ])->afterStateUpdated(function (Get $get, Set $set) {
                         $data_tmp = $get('facturas_a_pagar');
-                        $sum = array_sum(array_column($data_tmp,'Monto a Pagar'));
+                        $sum = $sumMoney($data_tmp, 'Monto a Pagar');
                         $cnt = count($data_tmp);
                         $set('numero_total',$cnt);
                         $set('monto_total',$sum);

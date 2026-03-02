@@ -156,9 +156,10 @@ class ListFacturas extends ListRecords
                                             ->readOnly(),
                                 ])->columns(5),
                             Grid::make(3)->schema([
-                                DatePicker::make('fecha')
+                                DatePicker::make('fecha_factura')
                                     ->label('Fecha Factura')
-                                    ->default(fn () => now())
+                                    ->default(fn () => Carbon::now()->format('Y-m-d'))
+                                    ->live()
                                     ->required(),
                                 Select::make('forma')
                                     ->label('Metodo de Pago')
@@ -239,8 +240,7 @@ class ListFacturas extends ListRecords
                                     if (! $serieId) {
                                         throw new \Exception('Debe seleccionar una serie para la factura.');
                                     }
-
-                                    $fechaFactura = $data['fecha'] ?? now();
+                                    $fechaFactura = $get('fecha_factura') ?? now();
                                     $fechaFactura = $fechaFactura ? Carbon::parse($fechaFactura)->format('Y-m-d') : now()->format('Y-m-d');
 
                                     $factura = FacturaFolioService::crearConFolioSeguro($serieId, [

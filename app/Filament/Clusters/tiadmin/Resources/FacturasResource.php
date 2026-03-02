@@ -399,7 +399,7 @@ class FacturasResource extends Resource
                             TextInput::make('descripcion'),
                             TextInput::make('precio')
                                 ->numeric()
-                                ->minValue(0.1)
+                                ->minValue(0.01)
                                 ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function(Get $get, Set $set){

@@ -201,7 +201,7 @@ class Cobros extends Page implements HasForms
                     })
                     ->live(onBlur: true)
                     ->multiple()
-                    ->afterStateUpdated(function (Get $get, Set $set) {
+                    ->afterStateUpdated(function (Get $get, Set $set) use ($sumMoney) {
                         if($get('factura')) {
                             $facturas = $get('factura');
                             $data_tmp = $get('facturas_a_pagar');
@@ -300,7 +300,7 @@ class Cobros extends Page implements HasForms
                     TextInput::make('Tipo Cambio')->readOnly()->numeric()->currencyMask(precision: 4)->prefix('$'),
                     TextInput::make('Monto a Pagar')->numeric()->currencyMask(precision: 2)->prefix('$')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function (Get $get, Set $set) {
+                        ->afterStateUpdated(function (Get $get, Set $set) use ($sumMoney) {
                             $data_tmp = $get('../../facturas_a_pagar');
                             $sum = $sumMoney($data_tmp, 'Monto a Pagar');
                             $sum2 = $sumMoney($data_tmp, 'Pendiente');
@@ -310,7 +310,7 @@ class Cobros extends Page implements HasForms
                         }),
                     TextInput::make('USD a Pagar')->numeric()->currencyMask()->prefix('$'),
                     Hidden::make('id_xml'),Hidden::make('id_fac'),Hidden::make('igeg_id_id')
-                ])->afterStateUpdated(function (Get $get, Set $set) {
+                ])->afterStateUpdated(function (Get $get, Set $set) use ($sumMoney) {
                         $data_tmp = $get('facturas_a_pagar');
                         $sum = $sumMoney($data_tmp, 'Monto a Pagar');
                         $cnt = count($data_tmp);

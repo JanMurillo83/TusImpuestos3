@@ -10,6 +10,7 @@ use App\Models\EstadCXC_F;
 use App\Models\Facturas;
 use App\Models\Proveedores;
 use App\Models\Inventario;
+use App\Services\Reportes\UtilidadBrutaService;
 use Filament\Notifications\Notification;
 use Carbon\Carbon;
 use Filament\Actions\Contracts\HasActions;
@@ -194,6 +195,62 @@ class AdmRepoPage extends Page implements HasForms
                           $this->getAction('ComprasAction')->visible(true);
                           $this->replaceMountedAction('ComprasAction');
                           $this->getAction('ComprasAction')->visible(false);
+                      }),
+                  Action::make('Utilidad Bruta')->form([
+                      DatePicker::make('fecha_inicio')
+                          ->label('Fecha Inicio')
+                          ->default(Carbon::now()->startOfMonth()),
+                      DatePicker::make('fecha_fin')
+                          ->label('Fecha Fin')
+                          ->default(Carbon::now()),
+                  ])->modalWidth('md')->modalSubmitActionLabel('Generar')->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+
+                          $ruta = public_path().'/TMPCFDI/UtilidadBruta_'.Filament::getTenant()->id.'.pdf';
+                          if(\File::exists($ruta)) unlink($ruta);
+
+                          $reporte = app(UtilidadBrutaService::class)
+                              ->build($this->team_id, $this->fecha_inicio, $this->fecha_fin);
+
+                          $html = \Illuminate\Support\Facades\View::make('ReporteUtilidadBruta', [
+                              'empresa' => Filament::getTenant()->name,
+                              'periodo' => $reporte['periodo'],
+                              'ventas' => $reporte['ventas'],
+                              'costos' => $reporte['costos'],
+                              'totales' => $reporte['totales'],
+                          ])->render();
+
+                          Browsershot::html($html)->format('Letter')
+                              ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
+                              ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
+                              ->noSandbox()
+                              ->scale(0.8)->savePdf($ruta);
+
+                          $this->ReportePDF = base64_encode(file_get_contents($ruta));
+                      }),
+                  Action::make('Utilidad Bruta Excel')
+                      ->icon('fas-file-excel')
+                      ->color('success')
+                      ->form([
+                          DatePicker::make('fecha_inicio')
+                              ->label('Fecha Inicio')
+                              ->default(Carbon::now()->startOfMonth()),
+                          DatePicker::make('fecha_fin')
+                              ->label('Fecha Fin')
+                              ->default(Carbon::now()),
+                      ])
+                      ->modalWidth('md')
+                      ->modalSubmitActionLabel('Exportar')
+                      ->extraAttributes(['style'=>'width:15rem !important'])
+                      ->action(function($data){
+                          $this->team_id = Filament::getTenant()->id;
+                          $this->fecha_inicio = $data['fecha_inicio'] ?? null;
+                          $this->fecha_fin = $data['fecha_fin'] ?? null;
+
+                          return $this->exportarUtilidadBrutaExcel();
                       }),
                   Action::make('Reporte Requisiciones')->form([
                       DatePicker::make('fecha_inicio')
@@ -811,6 +868,79 @@ class AdmRepoPage extends Page implements HasForms
         $writer->save($tempFile);
 
         Notification::make()->title('Cotizaciones exportadas a Excel')->success()->send();
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public function exportarUtilidadBrutaExcel()
+    {
+        $reporte = app(UtilidadBrutaService::class)
+            ->build($this->team_id, $this->fecha_inicio, $this->fecha_fin);
+
+        $rows = array_merge($reporte['ventas'] ?? [], $reporte['costos'] ?? []);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', 'Reporte de Utilidad Bruta');
+        $sheet->mergeCells('A1:H1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+
+        $inicio = $reporte['periodo']['inicio'] ?? null;
+        $fin = $reporte['periodo']['fin'] ?? null;
+        $sheet->setCellValue('A2', 'Periodo');
+        $sheet->setCellValue('B2', ($inicio ?: 'Libre') . ' a ' . ($fin ?: 'Libre'));
+
+        $sheet->setCellValue('A3', 'Ventas (MXN)');
+        $sheet->setCellValue('B3', (float) ($reporte['totales']['ventas_mxn'] ?? 0));
+        $sheet->setCellValue('C3', 'Costo (MXN)');
+        $sheet->setCellValue('D3', (float) ($reporte['totales']['costos_mxn'] ?? 0));
+        $sheet->setCellValue('E3', 'Utilidad Bruta (MXN)');
+        $sheet->setCellValue('F3', (float) ($reporte['totales']['utilidad_mxn'] ?? 0));
+        $sheet->setCellValue('G3', 'Margen');
+        $sheet->setCellValue('H3', (float) ($reporte['totales']['margen'] ?? 0));
+
+        $headers = ['Tipo', 'Documento', 'Fecha', 'Tercero', 'Moneda', 'T.Cambio', 'Subtotal', 'Subtotal MXN'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValueByColumnAndRow($i + 1, 5, $h);
+        }
+
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+        ];
+        $sheet->getStyle('A5:H5')->applyFromArray($headerStyle);
+
+        $rowN = 6;
+        foreach ($rows as $r) {
+            $sheet->setCellValue('A' . $rowN, $r['tipo'] ?? '');
+            $sheet->setCellValue('B' . $rowN, $r['documento'] ?? '');
+            $sheet->setCellValue('C' . $rowN, !empty($r['fecha']) ? Carbon::parse($r['fecha'])->format('Y-m-d') : '');
+            $sheet->setCellValue('D' . $rowN, $r['tercero'] ?? '');
+            $sheet->setCellValue('E' . $rowN, $r['moneda'] ?? 'MXN');
+            $sheet->setCellValue('F' . $rowN, (float) ($r['tcambio'] ?? 1));
+            $sheet->setCellValue('G' . $rowN, (float) ($r['subtotal'] ?? 0));
+            $sheet->setCellValue('H' . $rowN, (float) ($r['subtotal_mxn'] ?? 0));
+            $rowN++;
+        }
+
+        $lastRow = $rowN - 1;
+        if ($lastRow >= 6) {
+            $sheet->getStyle('B6:B' . $lastRow)->getAlignment()->setWrapText(true);
+            $sheet->getStyle('F6:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
+        }
+
+        $sheet->getStyle('B3:F3')->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('H3')->getNumberFormat()->setFormatCode('0.00%');
+
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = 'Reporte_Utilidad_Bruta_' . date('Y-m-d_His') . '.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), 'uti_');
+        $writer->save($tempFile);
 
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }

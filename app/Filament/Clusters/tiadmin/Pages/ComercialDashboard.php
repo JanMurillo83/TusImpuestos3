@@ -25,7 +25,7 @@ class ComercialDashboard extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista']);
     }
 
     public static function getNavigationItems(): array

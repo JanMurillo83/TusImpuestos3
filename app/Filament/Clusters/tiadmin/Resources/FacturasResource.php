@@ -1036,6 +1036,9 @@ class FacturasResource extends Resource
                 'facturas_agg.pendientemxn',
                 'facturas_agg.totalmxn',
             ]);
+
+            // Para mostrar "Vendedor" (usuario que elaboró) sin N+1
+            $query->with('createdBy');
         })
         ->defaultSort(function (Builder $query): Builder {
             return $query
@@ -1066,6 +1069,18 @@ class FacturasResource extends Resource
                     return $query->where('facturas.nombre', 'like', "%{$search}%");
                 })
                 ->label('Cliente')->width('30%'),
+            Tables\Columns\TextColumn::make('vendedor_elaboro')
+                ->label('Vendedor')
+                ->getStateUsing(fn ($record) => $record->createdBy?->name ?? $record->vendedor)
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->where(function (Builder $q) use ($search): void {
+                        $q
+                            ->whereHas('createdBy', function (Builder $uq) use ($search): void {
+                                $uq->where('name', 'like', "%{$search}%");
+                            })
+                            ->orWhere('facturas.vendedor', 'like', "%{$search}%");
+                    });
+                }),
             Tables\Columns\TextColumn::make('subtotal')
                 ->numeric()
                 ->sortable()

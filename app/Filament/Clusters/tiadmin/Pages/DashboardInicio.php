@@ -109,143 +109,172 @@ class DashboardInicio extends Page
         $user = auth()->user();
         $sellerOnly = $user->hasRole(['ventas']) && ! $user->hasRole(['administrador', 'contador', 'compras']);
 
+        // Visibilidad de indicadores por rol / módulo.
+        // Nota: la navegación puede permitir el acceso a la página, pero aquí evitamos exponer datos de módulos no autorizados.
+        $canCotizaciones = $user->hasRole(['administrador', 'contador', 'ventas']);
+        $canFacturas = $user->hasRole(['administrador', 'contador', 'ventas', 'facturista']);
+        $showComercialKpis = $canCotizaciones;
+        $showInventarioKpis = $user->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+
+        // Defaults para evitar variables indefinidas en la vista.
+        $cotizacionesPeriodo = 0.0;
+        $cotizacionesPendientesImporte = 0.0;
+        $cotizacionesPendientesCount = 0;
+        $facturasTimbradasPeriodo = 0.0;
+        $costoInventario = 0.0;
+        $quotes = collect();
+        $invoices = collect();
+        $users = collect();
+        $kpis = $this->computeKPIs(collect(), collect());
+        $scoreboard = collect();
+        $lossReasons = collect();
+        $latestQuotes = collect();
+
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $teamId);
 
         $inicioPeriodo = Carbon::create($ejercicio, $periodo, 1)->startOfMonth();
         $finPeriodo = Carbon::create($ejercicio, $periodo, 1)->endOfMonth();
 
-        $quotesQuery = Cotizaciones::where('team_id', $teamId)
-            ->whereBetween('fecha', [$inicioPeriodo, $finPeriodo]);
-        if ($sellerOnly) {
-            $quotesQuery->where(function ($q) use ($user) {
-                $q->where('created_by_user_id', $user->id)
-                    ->orWhere(function ($q2) use ($user) {
-                        $q2->whereNull('created_by_user_id')
-                            ->where('nombre_elaboro', $user->name);
-                    });
-            });
+        if ($canCotizaciones) {
+            $quotesQuery = Cotizaciones::where('team_id', $teamId)
+                ->whereBetween('fecha', [$inicioPeriodo, $finPeriodo]);
+            if ($sellerOnly) {
+                $quotesQuery->where(function ($q) use ($user) {
+                    $q->where('created_by_user_id', $user->id)
+                        ->orWhere(function ($q2) use ($user) {
+                            $q2->whereNull('created_by_user_id')
+                                ->where('nombre_elaboro', $user->name);
+                        });
+                });
+            }
+
+            $cotizacionesPeriodo = (float) (clone $quotesQuery)->sum('total');
+
+            $cotizacionesPendientesQuery = Cotizaciones::where('team_id', $teamId)
+                ->whereIn('estado', ['Activa', 'Parcial']);
+            if ($sellerOnly) {
+                $cotizacionesPendientesQuery->where(function ($q) use ($user) {
+                    $q->where('created_by_user_id', $user->id)
+                        ->orWhere(function ($q2) use ($user) {
+                            $q2->whereNull('created_by_user_id')
+                                ->where('nombre_elaboro', $user->name);
+                        });
+                });
+            }
+            $cotizacionesPendientesImporte = (float) $cotizacionesPendientesQuery->sum('total');
+            $cotizacionesPendientesCount = (int) $cotizacionesPendientesQuery->count();
+
+            $quotes = (clone $quotesQuery)->get([
+                'id', 'fecha', 'total', 'created_by_user_id', 'nombre_elaboro',
+                'estado_comercial', 'descuento_pct', 'motivo_perdida_id',
+            ]);
         }
 
-        $cotizacionesPeriodo = (clone $quotesQuery)->sum('total');
+        if ($canFacturas) {
+            $invoicesQuery = Facturas::where('team_id', $teamId)
+                ->whereBetween('fecha', [$inicioPeriodo, $finPeriodo]);
+            if ($sellerOnly) {
+                $invoicesQuery->where('created_by_user_id', $user->id);
+            }
 
-        $cotizacionesPendientesQuery = Cotizaciones::where('team_id', $teamId)
-            ->whereIn('estado', ['Activa', 'Parcial']);
-        if ($sellerOnly) {
-            $cotizacionesPendientesQuery->where(function ($q) use ($user) {
-                $q->where('created_by_user_id', $user->id)
-                    ->orWhere(function ($q2) use ($user) {
-                        $q2->whereNull('created_by_user_id')
-                            ->where('nombre_elaboro', $user->name);
-                    });
-            });
-        }
-        $cotizacionesPendientesImporte = $cotizacionesPendientesQuery->sum('total');
-        $cotizacionesPendientesCount = $cotizacionesPendientesQuery->count();
+            $facturasTimbradasPeriodo = (float) (clone $invoicesQuery)
+                ->where('timbrado', 'SI')
+                ->sum('total');
 
-        $invoicesQuery = Facturas::where('team_id', $teamId)
-            ->whereBetween('fecha', [$inicioPeriodo, $finPeriodo]);
-        if ($sellerOnly) {
-            $invoicesQuery->where('created_by_user_id', $user->id);
+            $invoices = (clone $invoicesQuery)->get([
+                'id', 'fecha', 'total', 'cotizacion_id', 'created_by_user_id',
+                'margen_pct', 'cobranza_pct',
+            ]);
         }
 
-        $facturasTimbradasPeriodo = (clone $invoicesQuery)
-            ->where('timbrado', 'SI')
-            ->sum('total');
+        if ($canCotizaciones || $canFacturas) {
+            $userIds = $quotes->pluck('created_by_user_id')
+                ->merge($invoices->pluck('created_by_user_id'))
+                ->filter()
+                ->unique()
+                ->values();
+            $users = $userIds->isEmpty()
+                ? collect()
+                : User::whereIn('id', $userIds)->pluck('name', 'id');
+        }
 
-        $costoInventario = (float) Inventario::where('team_id', $teamId)
-            ->selectRaw('COALESCE(SUM(p_costo * exist), 0) as importe')
-            ->value('importe');
+        if ($canCotizaciones) {
+            $motivosPerdida = ComercialMotivoPerdida::where('team_id', $teamId)
+                ->pluck('nombre', 'id');
 
-        $quotes = (clone $quotesQuery)->get([
-            'id', 'fecha', 'total', 'created_by_user_id', 'nombre_elaboro',
-            'estado_comercial', 'descuento_pct', 'motivo_perdida_id',
-        ]);
-        $invoices = (clone $invoicesQuery)->get([
-            'id', 'fecha', 'total', 'cotizacion_id', 'created_by_user_id',
-            'margen_pct', 'cobranza_pct',
-        ]);
+            $kpis = $this->computeKPIs($quotes, $invoices);
 
-        $userIds = $quotes->pluck('created_by_user_id')
-            ->merge($invoices->pluck('created_by_user_id'))
-            ->filter()
-            ->unique()
-            ->values();
-        $users = $userIds->isEmpty()
-            ? collect()
-            : User::whereIn('id', $userIds)->pluck('name', 'id');
+            $invoiceByQuote = collect();
+            if ($canFacturas) {
+                $quoteIds = $quotes->pluck('id')->values();
+                $invoiceByQuote = $quoteIds->isEmpty()
+                    ? collect()
+                    : Facturas::where('team_id', $teamId)
+                        ->whereIn('cotizacion_id', $quoteIds)
+                        ->pluck('id', 'cotizacion_id');
+            }
 
-        $motivosPerdida = ComercialMotivoPerdida::where('team_id', $teamId)
-            ->pluck('nombre', 'id');
-
-        $kpis = $this->computeKPIs($quotes, $invoices);
-
-        $quoteIds = $quotes->pluck('id')->values();
-        $invoiceByQuote = $quoteIds->isEmpty()
-            ? collect()
-            : Facturas::where('team_id', $teamId)
-                ->whereIn('cotizacion_id', $quoteIds)
-                ->pluck('id', 'cotizacion_id');
-
-        $latestQuotes = $quotes->sortByDesc('fecha')->take(8)->map(function ($q) use ($users, $invoiceByQuote) {
-            $sellerName = $q->created_by_user_id ? ($users[$q->created_by_user_id] ?? 'Sin vendedor') : ($q->nombre_elaboro ?: 'Sin vendedor');
-            return [
-                'id' => $q->id,
-                'fecha' => $q->fecha,
-                'total' => (float) $q->total,
-                'seller' => $sellerName,
-                'estado_comercial' => $q->estado_comercial ?? 'OPEN',
-                'invoice_id' => $invoiceByQuote[$q->id] ?? null,
-            ];
-        });
-
-        $lossReasons = $quotes->filter(fn ($q) => in_array($q->estado_comercial, ['LOST', 'EXPIRED'], true))
-            ->groupBy(fn ($q) => $q->motivo_perdida_id ?: 'sin')
-            ->map(function ($items, $key) use ($motivosPerdida) {
-                $label = $key === 'sin' ? '(Sin motivo)' : ($motivosPerdida[$key] ?? '(Sin motivo)');
+            $latestQuotes = $quotes->sortByDesc('fecha')->take(8)->map(function ($q) use ($users, $invoiceByQuote) {
+                $sellerName = $q->created_by_user_id ? ($users[$q->created_by_user_id] ?? 'Sin vendedor') : ($q->nombre_elaboro ?: 'Sin vendedor');
                 return [
-                    'motivo' => $label,
-                    'count' => $items->count(),
-                    'importe' => (float) $items->sum('total'),
+                    'id' => $q->id,
+                    'fecha' => $q->fecha,
+                    'total' => (float) $q->total,
+                    'seller' => $sellerName,
+                    'estado_comercial' => $q->estado_comercial ?? 'OPEN',
+                    'invoice_id' => $invoiceByQuote[$q->id] ?? null,
                 ];
-            })
-            ->values()
-            ->sortByDesc('importe')
-            ->take(6)
-            ->values();
+            });
 
-        $scoreboard = [];
-        foreach ($quotes as $q) {
-            $sellerId = $q->created_by_user_id ?: 0;
-            $sellerName = $q->created_by_user_id ? ($users[$q->created_by_user_id] ?? 'Sin vendedor') : ($q->nombre_elaboro ?: 'Sin vendedor');
-            $key = $sellerId . '|' . $sellerName;
-            if (!isset($scoreboard[$key])) {
-                $scoreboard[$key] = [
-                    'seller' => $sellerName,
-                    'seller_id' => $sellerId,
-                    'quotes' => collect(),
-                    'invoices' => collect(),
-                ];
+            $lossReasons = $quotes->filter(fn ($q) => in_array($q->estado_comercial, ['LOST', 'EXPIRED'], true))
+                ->groupBy(fn ($q) => $q->motivo_perdida_id ?: 'sin')
+                ->map(function ($items, $key) use ($motivosPerdida) {
+                    $label = $key === 'sin' ? '(Sin motivo)' : ($motivosPerdida[$key] ?? '(Sin motivo)');
+                    return [
+                        'motivo' => $label,
+                        'count' => $items->count(),
+                        'importe' => (float) $items->sum('total'),
+                    ];
+                })
+                ->values()
+                ->sortByDesc('importe')
+                ->take(6)
+                ->values();
+
+            $scoreboardRows = [];
+            foreach ($quotes as $q) {
+                $sellerId = $q->created_by_user_id ?: 0;
+                $sellerName = $q->created_by_user_id ? ($users[$q->created_by_user_id] ?? 'Sin vendedor') : ($q->nombre_elaboro ?: 'Sin vendedor');
+                $key = $sellerId . '|' . $sellerName;
+                if (!isset($scoreboardRows[$key])) {
+                    $scoreboardRows[$key] = [
+                        'seller' => $sellerName,
+                        'seller_id' => $sellerId,
+                        'quotes' => collect(),
+                        'invoices' => collect(),
+                    ];
+                }
+                $scoreboardRows[$key]['quotes']->push($q);
             }
-            $scoreboard[$key]['quotes']->push($q);
-        }
-        foreach ($invoices as $i) {
-            $sellerId = $i->created_by_user_id ?: 0;
-            $sellerName = $i->created_by_user_id ? ($users[$i->created_by_user_id] ?? 'Sin vendedor') : 'Sin vendedor';
-            $key = $sellerId . '|' . $sellerName;
-            if (!isset($scoreboard[$key])) {
-                $scoreboard[$key] = [
-                    'seller' => $sellerName,
-                    'seller_id' => $sellerId,
-                    'quotes' => collect(),
-                    'invoices' => collect(),
-                ];
+            foreach ($invoices as $i) {
+                $sellerId = $i->created_by_user_id ?: 0;
+                $sellerName = $i->created_by_user_id ? ($users[$i->created_by_user_id] ?? 'Sin vendedor') : 'Sin vendedor';
+                $key = $sellerId . '|' . $sellerName;
+                if (!isset($scoreboardRows[$key])) {
+                    $scoreboardRows[$key] = [
+                        'seller' => $sellerName,
+                        'seller_id' => $sellerId,
+                        'quotes' => collect(),
+                        'invoices' => collect(),
+                    ];
+                }
+                $scoreboardRows[$key]['invoices']->push($i);
             }
-            $scoreboard[$key]['invoices']->push($i);
+            $scoreboard = collect($scoreboardRows)->map(function ($row) {
+                $metrics = $this->computeKPIs($row['quotes'], $row['invoices']);
+                return array_merge($row, $metrics);
+            })->sortByDesc('total_invoiced')->values();
         }
-        $scoreboard = collect($scoreboard)->map(function ($row) {
-            $metrics = $this->computeKPIs($row['quotes'], $row['invoices']);
-            return array_merge($row, $metrics);
-        })->sortByDesc('total_invoiced')->values();
 
         $ordenesPendientes = Ordenes::where('team_id', $teamId)
             ->whereIn('estado', ['Activa', 'Parcial'])
@@ -261,10 +290,17 @@ class DashboardInicio extends Page
 
         $utilidadPeriodo = app(MainChartsController::class)->GetUtiPer($teamId);
 
-        $productosCount = Inventario::where('team_id', $teamId)->count();
-        $inventarioValuado = (float) Inventario::where('team_id', $teamId)
-            ->selectRaw('COALESCE(SUM(p_costo * exist), 0) as importe')
-            ->value('importe');
+        $productosCount = 0;
+        $inventarioValuado = 0.0;
+        if ($showInventarioKpis) {
+            $costoInventario = (float) Inventario::where('team_id', $teamId)
+                ->selectRaw('COALESCE(SUM(p_costo * exist), 0) as importe')
+                ->value('importe');
+            $productosCount = Inventario::where('team_id', $teamId)->count();
+            $inventarioValuado = (float) Inventario::where('team_id', $teamId)
+                ->selectRaw('COALESCE(SUM(p_costo * exist), 0) as importe')
+                ->value('importe');
+        }
 
         $almacenesCount = 0;
         if (Schema::hasTable('almacenes')) {
@@ -296,16 +332,18 @@ class DashboardInicio extends Page
         }
 
         $lowStock = collect();
-        $lowStockQuery = Inventario::where('team_id', $teamId);
-        if ($minColumn) {
-            $lowStockQuery->whereColumn('exist', '<', $minColumn);
-        } else {
-            $lowStockQuery->where('exist', '<=', 0);
+        if ($showInventarioKpis) {
+            $lowStockQuery = Inventario::where('team_id', $teamId);
+            if ($minColumn) {
+                $lowStockQuery->whereColumn('exist', '<', $minColumn);
+            } else {
+                $lowStockQuery->where('exist', '<=', 0);
+            }
+            $lowStock = $lowStockQuery
+                ->orderBy('exist')
+                ->limit(10)
+                ->get(['clave', 'descripcion', 'exist', $minColumn ?? DB::raw('0 as minimo'), $almacenColumn ?? DB::raw("'—' as almacen")]);
         }
-        $lowStock = $lowStockQuery
-            ->orderBy('exist')
-            ->limit(10)
-            ->get(['clave', 'descripcion', 'exist', $minColumn ?? DB::raw('0 as minimo'), $almacenColumn ?? DB::raw("'—' as almacen")]);
 
         return [
             'team_id' => $teamId,
@@ -313,6 +351,8 @@ class DashboardInicio extends Page
             'ejercicio' => $ejercicio,
             'mes_actual' => app(MainChartsController::class)->mes_letras($periodo),
             'fecha' => Carbon::now()->format('d/m/Y'),
+            'show_comercial_kpis' => $showComercialKpis,
+            'show_inventario_kpis' => $showInventarioKpis,
             'cotizaciones_periodo' => $cotizacionesPeriodo,
             'cotizaciones_pendientes_importe' => $cotizacionesPendientesImporte,
             'cotizaciones_pendientes_count' => $cotizacionesPendientesCount,

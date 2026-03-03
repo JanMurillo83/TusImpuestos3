@@ -16,6 +16,11 @@ class InventarioDetalle extends Page
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $title = 'Detalle de Inventario';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+    }
+
     public function getTitle(): string
     {
         return '';

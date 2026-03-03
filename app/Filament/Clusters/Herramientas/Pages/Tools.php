@@ -6,14 +6,20 @@ use App\Filament\Clusters\Herramientas;
 use App\Models\Admincuentaspagar;
 use App\Models\CatCuentas;
 use App\Models\ContaPeriodos;
+use App\Services\Herramientas\CatalogosImportService;
+use App\Services\Herramientas\CatalogosLayoutService;
+use App\Services\Herramientas\CatalogosResetService;
+use App\Services\Herramientas\MovimientosResetService;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -32,7 +38,27 @@ class Tools extends Page implements HasForms, HasActions
     protected static ?string $title = 'Herramientas';
     public static function shouldRegisterNavigation () : bool
     {
-        return auth()->user()->hasRole(['administrador']);
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        if (! empty($user->is_admin)) {
+            return true;
+        }
+
+        if (($user->role ?? null) && in_array($user->role, ['administrador', 'admin'], true)) {
+            return true;
+        }
+
+        return method_exists($user, 'hasRole')
+            ? $user->hasRole(['administrador', 'admin'])
+            : false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return static::shouldRegisterNavigation();
     }
 
     public ? int $periodo;
@@ -56,6 +82,160 @@ class Tools extends Page implements HasForms, HasActions
         return $form
             ->schema([
                 Actions::make([
+                    Actions\Action::make('importarCatalogos')
+                        ->label('Importar catálogos (Inventario / Clientes / Proveedores)')
+                        ->icon('fas-file-import')
+                        ->requiresConfirmation()
+                        ->modalHeading('Importar catálogos')
+                        ->modalSubmitActionLabel('Procesar')
+                        ->form([
+                            Actions::make([
+                                Actions\Action::make('layoutInventario')
+                                    ->label('Descargar layout Inventario')
+                                    ->icon('fas-download')
+                                    ->action(function () {
+                                        $service = app(CatalogosLayoutService::class);
+                                        $csv = "\xEF\xBB\xBF" . $service->toCsv('inventario');
+
+                                        return response()->streamDownload(
+                                            function () use ($csv) {
+                                                echo $csv;
+                                            },
+                                            $service->filename('inventario'),
+                                            ['Content-Type' => 'text/csv; charset=UTF-8']
+                                        );
+                                    }),
+                                Actions\Action::make('layoutClientes')
+                                    ->label('Descargar layout Clientes')
+                                    ->icon('fas-download')
+                                    ->action(function () {
+                                        $service = app(CatalogosLayoutService::class);
+                                        $csv = "\xEF\xBB\xBF" . $service->toCsv('clientes');
+
+                                        return response()->streamDownload(
+                                            function () use ($csv) {
+                                                echo $csv;
+                                            },
+                                            $service->filename('clientes'),
+                                            ['Content-Type' => 'text/csv; charset=UTF-8']
+                                        );
+                                    }),
+                                Actions\Action::make('layoutProveedores')
+                                    ->label('Descargar layout Proveedores')
+                                    ->icon('fas-download')
+                                    ->action(function () {
+                                        $service = app(CatalogosLayoutService::class);
+                                        $csv = "\xEF\xBB\xBF" . $service->toCsv('proveedores');
+
+                                        return response()->streamDownload(
+                                            function () use ($csv) {
+                                                echo $csv;
+                                            },
+                                            $service->filename('proveedores'),
+                                            ['Content-Type' => 'text/csv; charset=UTF-8']
+                                        );
+                                    }),
+                            ])->columnSpanFull(),
+
+                            Toggle::make('eliminar_movimientos')
+                                ->label('Eliminar movimientos antes de importar (Mov bancarios, Cotizaciones, Facturas, OC, Órdenes de Insumos)')
+                                ->default(false),
+
+                            Toggle::make('eliminar_inventario')
+                                ->label('Eliminar catálogo de Inventario')
+                                ->default(false),
+                            Toggle::make('eliminar_clientes')
+                                ->label('Eliminar catálogo de Clientes')
+                                ->default(false),
+                            Toggle::make('eliminar_proveedores')
+                                ->label('Eliminar catálogo de Proveedores')
+                                ->default(false),
+
+                            FileUpload::make('inventario_file')
+                                ->label('Archivo de Inventario (CSV/XLSX)')
+                                ->storeFiles(false)
+                                ->acceptedFileTypes([
+                                    'text/csv',
+                                    'text/plain',
+                                    'application/vnd.ms-excel',
+                                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                ]),
+                            FileUpload::make('clientes_file')
+                                ->label('Archivo de Clientes (CSV/XLSX)')
+                                ->storeFiles(false)
+                                ->acceptedFileTypes([
+                                    'text/csv',
+                                    'text/plain',
+                                    'application/vnd.ms-excel',
+                                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                ]),
+                            FileUpload::make('proveedores_file')
+                                ->label('Archivo de Proveedores (CSV/XLSX)')
+                                ->storeFiles(false)
+                                ->acceptedFileTypes([
+                                    'text/csv',
+                                    'text/plain',
+                                    'application/vnd.ms-excel',
+                                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                ]),
+                        ])
+                        ->action(function (array $data) {
+                            $tenant = Filament::getTenant();
+                            if (! $tenant) {
+                                Notification::make()->title('No se encontró el tenant activo.')->danger()->send();
+                                return;
+                            }
+
+                            $teamId = $tenant->id;
+
+                            $movimientosCounts = [];
+                            $catalogosCounts = [];
+
+                            DB::transaction(function () use ($teamId, $data, &$movimientosCounts, &$catalogosCounts) {
+                                if (! empty($data['eliminar_movimientos'])) {
+                                    $movimientosCounts = app(MovimientosResetService::class)->purgeForTeam($teamId);
+                                }
+
+                                $catalogosCounts = app(CatalogosResetService::class)->purgeForTeam($teamId, [
+                                    'inventario' => ! empty($data['eliminar_inventario']),
+                                    'clientes' => ! empty($data['eliminar_clientes']),
+                                    'proveedores' => ! empty($data['eliminar_proveedores']),
+                                ]);
+                            });
+
+                            $paths = [
+                                'inventario' => ! empty($data['inventario_file']) ? $data['inventario_file']->path() : null,
+                                'clientes' => ! empty($data['clientes_file']) ? $data['clientes_file']->path() : null,
+                                'proveedores' => ! empty($data['proveedores_file']) ? $data['proveedores_file']->path() : null,
+                            ];
+
+                            $importResult = app(CatalogosImportService::class)->import($teamId, $paths);
+
+                            $lines = [];
+                            if (! empty($movimientosCounts)) {
+                                $lines[] = 'Movimientos eliminados: ' . json_encode($movimientosCounts);
+                            }
+                            if (! empty($catalogosCounts)) {
+                                $lines[] = 'Catálogos eliminados: ' . json_encode($catalogosCounts);
+                            }
+
+                            foreach (['inventario' => 'Inventario', 'clientes' => 'Clientes', 'proveedores' => 'Proveedores'] as $key => $label) {
+                                if (! empty($importResult[$key])) {
+                                    $r = $importResult[$key];
+                                    $lines[] = $label . ': ' . ($r['created'] ?? 0) . ' creados, ' . ($r['updated'] ?? 0) . ' actualizados, ' . ($r['skipped'] ?? 0) . ' omitidos.';
+                                }
+                            }
+
+                            if (empty($lines)) {
+                                $lines[] = 'No se realizaron cambios (sin archivos y sin opciones de eliminación seleccionadas).';
+                            }
+
+                            Notification::make()
+                                ->title('Proceso completado')
+                                ->body(implode("\n", $lines))
+                                ->success()
+                                ->send();
+                        }),
                     Actions\Action::make('Reporte de Timbres')
                     ->form([
                         Select::make('periodo')

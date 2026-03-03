@@ -72,7 +72,7 @@ class CotizacionesResource extends Resource
     protected static ?int $navigationSort = 1;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'compras_cotizaciones']);
     }
     protected static ?string $navigationGroup = 'Ventas';
 
@@ -1040,6 +1040,7 @@ class CotizacionesResource extends Resource
             ->paginationPageOptions([5,'all'])
             ->defaultSort('created_at', 'desc')
             ->striped()
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('createdBy'))
             ->columns([
                 Tables\Columns\TextColumn::make('docto')
                     ->label('Cotizacion')
@@ -1051,6 +1052,21 @@ class CotizacionesResource extends Resource
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()
                     ->label('Cliente'),
+                Tables\Columns\TextColumn::make('vendedor_elaboro')
+                    ->label('Vendedor')
+                    ->getStateUsing(fn ($record) => $record->createdBy?->name
+                        ?? $record->nombre_elaboro
+                        ?? $record->vendedor)
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $q) use ($search): void {
+                            $q
+                                ->whereHas('createdBy', function (Builder $uq) use ($search): void {
+                                    $uq->where('name', 'like', "%{$search}%");
+                                })
+                                ->orWhere('cotizaciones.nombre_elaboro', 'like', "%{$search}%")
+                                ->orWhere('cotizaciones.vendedor', 'like', "%{$search}%");
+                        });
+                    }),
                 Tables\Columns\TextColumn::make('subtotal')
                     ->numeric()
                     ->sortable()

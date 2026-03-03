@@ -31,6 +31,12 @@ class DashBoardIndicadores extends Page
         return '';
     }
 
+    public static function canAccess(): bool
+    {
+        // Página con indicadores financieros/globales: restringida a perfiles administrativos.
+        return auth()->user()->hasRole(['administrador', 'contador']);
+    }
+
     public function getViewData(): array
     {
         $team_id = Filament::getTenant()->id;

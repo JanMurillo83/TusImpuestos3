@@ -32,6 +32,11 @@ class IndicadoresMain extends Page
     protected static string $view = 'filament.pages.indicadores-main';
     protected static bool $shouldRegisterNavigation = false;
     protected ?string $maxContentWidth = 'full';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista']);
+    }
     protected function getHeaderWidgets(): array
     {
         return [

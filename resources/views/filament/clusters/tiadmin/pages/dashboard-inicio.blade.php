@@ -5,19 +5,32 @@
     $fmtMoney = fn ($v) => '$' . number_format((float) $v, 2);
     $fmtPct = fn ($v, $d = 1) => number_format(((float) $v) * 100, $d) . '%';
     $lossMax = ($loss_reasons ?? collect())->max('importe') ?: 0;
+    $showComercial = (bool) ($show_comercial_kpis ?? false);
+    $showInventario = (bool) ($show_inventario_kpis ?? false);
+
+    if ($showComercial && $showInventario) {
+        $pageTitle = 'Dashboard';
+        $pageSubtitle = 'Indicadores del periodo';
+    } elseif ($showComercial) {
+        $pageTitle = 'Dashboard Comercial';
+        $pageSubtitle = 'Indicadores clave del periodo';
+    } else {
+        $pageTitle = 'Dashboard Inventario';
+        $pageSubtitle = 'Indicadores clave del periodo';
+    }
 @endphp
 
 <div class="bg-slate-200 -mt-8 -mx-4 pb-6">
     <header class="bg-white border-b border-slate-200">
         <div class="max-w-full px-6 py-4 flex items-center justify-between">
             <div>
-                <h1 class="text-lg font-bold text-slate-800">Dashboard Comercial</h1>
-                <p class="text-xs text-slate-500">Indicadores clave del periodo</p>
+                <h1 class="text-lg font-bold text-slate-800">{{$pageTitle}}</h1>
+                <p class="text-xs text-slate-500">{{$pageSubtitle}}</p>
             </div>
             <div class="text-xs text-slate-500 text-right">
                 <p>Fecha: {{$fecha}}</p>
                 <p>Periodo: <span class="font-semibold">{{$mes_actual}} {{$ejercicio}}</span></p>
-                @if($seller_only)
+                @if($showComercial && ($seller_only ?? false))
                     <p class="text-emerald-600 font-semibold">Vista vendedor</p>
                 @endif
             </div>
@@ -25,6 +38,7 @@
     </header>
 
     <main class="max-w-full mx-auto px-6 py-6 space-y-6">
+        @if($showComercial)
         <section>
             <h2 class="text-sm font-semibold text-slate-700 mb-2">KPIs comerciales</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 text-sm">
@@ -80,7 +94,9 @@
                 </div>
             </div>
         </section>
+        @endif
 
+        @if($showInventario)
         <section>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                 <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
@@ -145,6 +161,7 @@
                 </div>
             </div>
         </section>
+        @endif
     </main>
 </div>
 </x-filament-panels::page>

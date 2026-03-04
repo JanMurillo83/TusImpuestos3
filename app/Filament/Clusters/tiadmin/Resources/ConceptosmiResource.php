@@ -31,7 +31,7 @@ class ConceptosmiResource extends Resource
     protected static ?int $navigationSort = 5;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas', 'operador_comercial']);
     }
 
     public static function form(Form $form): Form

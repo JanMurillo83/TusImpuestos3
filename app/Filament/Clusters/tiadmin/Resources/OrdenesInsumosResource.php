@@ -55,11 +55,11 @@ class OrdenesInsumosResource extends Resource
     protected static ?int $navigationSort = 3;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'operador_comercial']);
     }
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras'])
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'operador_comercial'])
             && $record->estado === 'Activa';
     }
     protected static ?string $navigationIcon = 'fas-cart-arrow-down';

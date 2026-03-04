@@ -67,7 +67,7 @@ class ComprasResource extends Resource
     protected static ?int $navigationSort = 2;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'compras_cotizaciones']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'compras_cotizaciones', 'operador_comercial']);
     }
     protected static ?string $navigationIcon = 'fas-cart-plus';
     protected static ?string $label = 'Entrada';

@@ -71,7 +71,7 @@ class NotasdeCreditoResource extends Resource
     protected static ?int $navigationSort = 7;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'operador_comercial']);
     }
     protected static ?string $navigationIcon = 'fas-file-invoice-dollar';
     protected static ?string $label = 'Nota de Credito';

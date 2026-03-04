@@ -43,7 +43,7 @@ class InsumosResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas', 'operador_comercial']);
     }
 
     public static function form(Form $form): Form

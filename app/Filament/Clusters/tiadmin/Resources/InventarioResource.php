@@ -59,7 +59,7 @@ class InventarioResource extends Resource
     protected static ?int $navigationSort = 1;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas', 'operador_comercial']);
     }
 
     public static function form(Form $form): Form
@@ -160,48 +160,36 @@ class InventarioResource extends Resource
                     ->required()
                     ->options(Unidades::all()->pluck('mostrar','clave'))
                     ->default('H87'),
-                /*Forms\Components\TextInput::make('cvesat')
+                Forms\Components\TextInput::make('cvesat')
                     ->label('Clave SAT')
-                    ->default('01010101')
+                    ->default(function(Get $get): string{
+                        if($get('cvesat'))
+                            $val = $get('cvesat');
+                        else
+                            $val = '01010101';
+                        return $val;
+                    })
                     ->required()
                     ->suffixAction(
                         Action::make('Cat_cve_sat')
                             ->label('Buscador')
                             ->icon('fas-circle-question')
                             ->form([
+                                Forms\Components\TextInput::make('cvesat_search')
+                                    ->label('Buscar')
+                                    ->live(debounce: 400),
                                 Forms\Components\Select::make('CatCveSat')
-                                    ->default(function(Get $get): string{
-                                        if($get('cvesat'))
-                                            $val = $get('cvesat');
-                                        else
-                                            $val = '01010101';
-                                        return $val;
-                                    })
-                            ->label('Claves SAT')
-                            ->searchable()
-                            ->searchDebounce(100)
-                            ->getSearchResultsUsing(fn (string $search): array => Claves::where('mostrar', 'like', "%{$search}%")->limit(50)->pluck('mostrar', 'clave')->toArray())
-                        ])
-                        ->modalCancelAction(false)
-                        ->modalSubmitActionLabel('Seleccionar')
-                        ->modalWidth('sm')
-                        ->action(function(Set $set,$data){
-                            $set('cvesat',$data['CatCveSat']);
-                        })
-                    ),*/
-                    Forms\Components\Select::make('cvesat')
-                        ->label('Clave SAT')
-                        ->default(function(Get $get): string{
-                            if($get('cvesat'))
-                                $val = $get('cvesat');
-                            else
-                                $val = '01010101';
-                            return $val;
-                        })
-                        ->searchable()
-                        ->searchDebounce(500)
-                        ->getSearchResultsUsing(fn (string $search): array => Claves::getCachedOptions($search, 25))
-                        ->getOptionLabelUsing(fn ($value): ?string => Claves::getByClave($value)?->mostrar)
+                                    ->label('Claves SAT')
+                                    ->options(fn (Get $get): array => Claves::getCachedOptions($get('cvesat_search') ?? '', 25))
+                                    ->reactive(),
+                            ])
+                            ->modalCancelAction(false)
+                            ->modalSubmitActionLabel('Seleccionar')
+                            ->modalWidth('sm')
+                            ->action(function(Set $set,$data){
+                                $set('cvesat',$data['CatCveSat']);
+                            })
+                    ),
                 ]),
 
             ]);

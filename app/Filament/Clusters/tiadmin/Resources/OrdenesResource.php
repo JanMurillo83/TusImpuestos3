@@ -65,11 +65,11 @@ class OrdenesResource extends Resource
     protected static ?int $navigationSort = 2;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'compras_cotizaciones']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'compras_cotizaciones', 'operador_comercial']);
     }
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'compras_cotizaciones'])
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'compras_cotizaciones', 'operador_comercial'])
             && $record->estado === 'Activa';
     }
     protected static ?string $navigationIcon = 'fas-cart-arrow-down';

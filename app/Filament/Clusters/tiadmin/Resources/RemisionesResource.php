@@ -55,7 +55,7 @@ class RemisionesResource extends Resource
     protected static ?int $navigationSort = 3;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'operador_comercial']);
     }
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationGroup = 'Ventas';

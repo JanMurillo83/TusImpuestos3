@@ -62,7 +62,7 @@ class PedidosResource extends Resource
     protected static bool $shouldRegisterNavigation = false;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'operador_comercial']);
     }
     protected static ?string $navigationGroup = 'Ventas';
 

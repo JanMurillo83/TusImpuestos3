@@ -189,6 +189,15 @@
                 <br><label style="color: white">&nbsp;</label>
             </div>
             <hr style="margin-top: -1rem !important;">
+            @if($dafis->leyenda_facturas)
+                <div class="row mt-2">
+                    <div class="col-12" style="font-size: 10px !important;">
+                        <label><b>NOTAS ADICIONALES:</b></label><br>
+                        <div style="text-align: justify;text-justify: inter-word;">{!! nl2br(e($dafis->leyenda_facturas)) !!}</div>
+                    </div>
+                </div>
+                <hr>
+            @endif
     </div>
     </body>
 </html>

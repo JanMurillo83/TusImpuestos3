@@ -72,7 +72,7 @@ class CotizacionesResource extends Resource
     protected static ?int $navigationSort = 1;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'compras_cotizaciones']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'compras_cotizaciones', 'operador_comercial']);
     }
     protected static ?string $navigationGroup = 'Ventas';
 
@@ -878,7 +878,7 @@ class CotizacionesResource extends Resource
                                             ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                                             ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                                             ->noSandbox()
-                                            ->scale(0.8)->savePdf($ruta);
+                                            ->scale(0.85)->savePdf($ruta);
                                         return response()->download($ruta);
                                     })
                             ])->visibleOn('edit'),
@@ -1111,7 +1111,7 @@ class CotizacionesResource extends Resource
                                 ->setIncludePath('$PATH:/opt/plesk/node/22/bin')
                                 ->setEnvironmentOptions(["XDG_CONFIG_HOME" => "/tmp/google-chrome-for-testing", "XDG_CACHE_HOME" => "/tmp/google-chrome-for-testing"])
                                 ->noSandbox()
-                                ->scale(0.8)->savePdf($ruta);
+                                ->scale(0.85)->savePdf($ruta);
                             return response()->download($ruta);
                         }),
                     Action::make('Generar Factura')

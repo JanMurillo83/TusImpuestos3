@@ -22,7 +22,7 @@
 <body>
     <div class="container">
         <div class="row">
-            <div class="col-xs-6" style="font-size: 9px !important;">
+            <div class="col-xs-7" style="font-size: 9px !important;">
                 <h6>ESTE DOCUMENTO ES UNA REPRESENTACIÓN IMPRESA DE UN CFDI.</h6>
                 <h6>EMISOR <b>{{$dafis->nombre}}</b></h6>
             </div>

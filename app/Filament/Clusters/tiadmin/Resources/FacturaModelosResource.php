@@ -71,7 +71,7 @@ class FacturaModelosResource extends Resource
     protected static ?int $navigationSort = 8;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista', 'operador_comercial']);
     }
     public static function form(Form $form): Form
     {

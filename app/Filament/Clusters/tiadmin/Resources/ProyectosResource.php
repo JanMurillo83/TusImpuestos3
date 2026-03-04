@@ -29,7 +29,7 @@ class ProyectosResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'operador_comercial']);
     }
 
     public static function form(Form $form): Form

@@ -27,7 +27,7 @@ class EsquemasimpResource extends Resource
     protected static ?int $navigationSort = 4;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas', 'operador_comercial']);
     }
     protected static ?string $label = 'Esquema de Impuestos';
     protected static ?string $pluralLabel = 'Esquemas de Impuestos';

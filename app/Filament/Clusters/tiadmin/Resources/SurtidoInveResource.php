@@ -34,6 +34,11 @@ class SurtidoInveResource extends Resource
     protected static ?string $cluster = tiadmin::class;
     protected static ?string $navigationGroup = 'Inventario';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'ventas', 'operador_comercial']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form

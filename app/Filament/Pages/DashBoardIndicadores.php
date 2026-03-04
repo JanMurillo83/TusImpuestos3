@@ -34,7 +34,7 @@ class DashBoardIndicadores extends Page
     public static function canAccess(): bool
     {
         // Página con indicadores financieros/globales: restringida a perfiles administrativos.
-        return auth()->user()->hasRole(['administrador', 'contador']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'operador_comercial']);
     }
 
     public function getViewData(): array

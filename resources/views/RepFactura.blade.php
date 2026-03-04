@@ -44,11 +44,11 @@ $logo = public_path('storage/'.$dafis->logo);
 <body style="font-size: 10px !important;">
 <div class="container mt-5" style="margin-left: 1rem !important; margin-right: 1rem !important;">
     <div class="row">
-        <div class="col-6" style="font-size: 11px !important;">
+        <div class="col-7" style="font-size: 11px !important;">
             <label style="font-size: 14px">ESTE DOCUMENTO ES UNA REPRESENTACIÓN IMPRESA DE UN CFDI.</label>
             <label style="font-size: 14px">EMISOR <b>{{$dafis->nombre}}</b></label>
         </div>
-        <div class="col-4"></div>
+        <div class="col-3"></div>
         <div class="col-2" style="font-size: 12px !important;">
             <h4>{{$orden->serie.$orden->folio}}</h4>
         </div>
@@ -56,7 +56,7 @@ $logo = public_path('storage/'.$dafis->logo);
     <div style="border-top: 1px solid black"></div>
     <div class="row">
         <div class="col-3">
-            <img src="{{$logo}}" alt="Tus Impuestos" width="100px" style="margin-top: 1rem !important;">
+            <img src="{{$logo}}" alt="Tus Impuestos" width="300px" style="margin-top: 1rem !important;">
         </div>
         <div class="col-3" style="font-size: 12px !important;">
             <b>{{$dafis->nombre}}</b><br>
@@ -286,6 +286,14 @@ $logo = public_path('storage/'.$dafis->logo);
         <label><b>Cadena Original:</b></label>
         {{chunk_split($cadenaOrigen ?? '', 150)}}
     </div>-->
+    @if($dafis->leyenda_facturas)
+        <div class="row mt-2">
+            <div class="col-12" style="font-size: 11px !important;">
+                <label><b>NOTAS ADICIONALES:</b></label><br>
+                <div style="text-align: justify;text-justify: inter-word;">{!! nl2br(e($dafis->leyenda_facturas)) !!}</div>
+            </div>
+        </div>
+    @endif
     <div style="border-top: 1px solid black"></div>
 </div>
 </body>

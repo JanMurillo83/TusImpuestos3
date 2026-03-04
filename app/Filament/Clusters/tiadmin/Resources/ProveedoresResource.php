@@ -39,7 +39,7 @@ class ProveedoresResource extends Resource
     protected static ?int $navigationSort = 3;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'compras']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'compras', 'operador_comercial']);
     }
 
     public static function form(Form $form): Form

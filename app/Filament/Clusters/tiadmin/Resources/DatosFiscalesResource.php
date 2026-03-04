@@ -90,6 +90,15 @@ class DatosFiscalesResource extends Resource
                                     ->label('Beneficiario')
                                     ->maxLength(255),
                             ])->columns(2),
+                        Forms\Components\Tabs\Tab::make('Leyendas')
+                            ->schema([
+                                Forms\Components\Textarea::make('leyenda_cotizaciones')
+                                    ->label('Leyenda en Cotizaciones')
+                                    ->rows(3),
+                                Forms\Components\Textarea::make('leyenda_facturas')
+                                    ->label('Leyenda en Facturas')
+                                    ->rows(3),
+                            ])->columns(1),
                     ])->columnSpanFull(),
             ]);
     }

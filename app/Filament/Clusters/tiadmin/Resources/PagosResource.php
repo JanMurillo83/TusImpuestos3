@@ -47,7 +47,7 @@ class PagosResource extends Resource
     protected static ?int $navigationSort = 6;
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista']);
+        return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista', 'operador_comercial']);
     }
 
     public static function form(Form $form): Form

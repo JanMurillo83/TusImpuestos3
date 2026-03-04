@@ -81,6 +81,29 @@
             text-align: center;
             padding-top: 5px;
         }
+        .totals-table {
+            width: 250px;
+            float: right;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+        .totals-table td {
+            padding: 5px;
+            border: 1px solid #ddd;
+        }
+        .totals-table .label {
+            font-weight: bold;
+            background-color: #f2f2f2;
+            text-align: right;
+            width: 100px;
+        }
+        .totals-table .value {
+            text-align: right;
+        }
+        .clear {
+            clear: both;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +172,30 @@
             </tr>
         </tbody>
     </table>
+
+    @php
+        $partida = \App\Models\FacturasPartidas::find($surtido->factura_partida_id);
+        $impuestos = 0;
+        if ($partida) {
+            $impuestos = ($partida->iva ?? 0) + ($partida->ieps ?? 0) - ($partida->retiva ?? 0) - ($partida->retisr ?? 0);
+        }
+    @endphp
+
+    <table class="totals-table">
+        <tr>
+            <td class="label">Subtotal:</td>
+            <td class="value">${{ number_format($partida->subtotal ?? $surtido->precio_total, 2) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Impuestos:</td>
+            <td class="value">${{ number_format($impuestos, 2) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Total:</td>
+            <td class="value"><strong>${{ number_format($partida->total ?? ($surtido->precio_total + $impuestos), 2) }}</strong></td>
+        </tr>
+    </table>
+    <div class="clear"></div>
 
     <div class="signature-section">
         <div class="signature-box">

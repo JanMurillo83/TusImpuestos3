@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -38,17 +39,20 @@ class UserResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->disabledOn('edit'),
                 Forms\Components\TextInput::make('email')
                     ->email()
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->disabledOn('edit'),
                 Forms\Components\Hidden::make('email_verified_at')
                 ->default(Carbon::now()),
                 Forms\Components\TextInput::make('password')
                     ->password()
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->visibleOn('create'),
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id),
                 Forms\Components\Hidden::make('is_admin')
@@ -112,6 +116,25 @@ class UserResource extends Resource
                                 // Assign the new role
                                 $record->assignRole($record->role);
                             }
+                        }),
+                    Tables\Actions\Action::make('Cambiar Contraseña')
+                        ->icon('heroicon-o-key')
+                        ->form([
+                            Forms\Components\TextInput::make('new_password')
+                                ->password()
+                                ->label('Nueva Contraseña')
+                                ->required()
+                                ->maxLength(255),
+                        ])
+                        ->action(function (User $record, array $data) {
+                            $record->update([
+                                'password' => $data['new_password'],
+                            ]);
+
+                            Notification::make()
+                                ->title('Contraseña actualizada correctamente')
+                                ->success()
+                                ->send();
                         }),
                 ])
             ],Tables\Enums\ActionsPosition::BeforeCells);

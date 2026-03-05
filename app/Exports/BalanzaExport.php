@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Exports;
+
 use App\Http\Controllers\ReportesController;
 use App\Models\SaldosReportes;
 use App\Models\Team;

@@ -61,6 +61,7 @@ class ReportesNIF extends Page implements HasForms
                                 10 => 'Octubre',
                                 11 => 'Noviembre',
                                 12 => 'Diciembre',
+                                13 => 'Ajuste',
                             ])
                             ->default(Filament::getTenant()->periodo)
                             ->required()

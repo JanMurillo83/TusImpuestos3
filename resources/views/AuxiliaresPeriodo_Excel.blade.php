@@ -2,7 +2,7 @@
 use \Illuminate\Support\Facades\DB;
 use \Carbon\Carbon;
 
-$empresaRow = DB::table('teams')->where('id',$empresa)->first();
+$empresaRow = \App\Models\Team::find($empresa);
 $fecha = Carbon::now();
 
 // Normalizar rango de cuentas recibido (opcional)

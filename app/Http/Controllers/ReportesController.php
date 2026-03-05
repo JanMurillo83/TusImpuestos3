@@ -269,7 +269,7 @@ class ReportesController extends Controller
     {
         $empresa = Filament::getTenant()->id;
         DB::statement("DELETE FROM auxiliares WHERE id > 0 AND team_id = $empresa AND cat_polizas_id NOT IN (SELECT id FROM cat_polizas WHERE team_id = $empresa)");
-        DB::statement("DELETE FROM saldoscuentas WHERE id > 0 AND team_id = $empresa ");
+        DB::statement("DELETE FROM saldoscuentas WHERE id > 0 AND team_id = $empresa AND ejercicio = $ejercicio");
         $campo1 = 'c'.$periodo;
         $campo2 = 'a'.$periodo;
         $campo3 = 's'.$periodo;
@@ -303,25 +303,25 @@ class ReportesController extends Controller
         foreach($saldos_mes as $saldo)
         {
             DB::statement("UPDATE saldoscuentas SET $campo1 = $saldo->cargos, $campo2 = $saldo->abonos,
-            $campo3 = $saldo->final WHERE codigo = '$saldo->codigo' AND team_id = $empresa");
+            $campo3 = $saldo->final WHERE codigo = '$saldo->codigo' AND team_id = $empresa AND ejercicio = $ejercicio");
             DB::statement("UPDATE saldoscuentas SET $campo1 = $campo1 +$saldo->cargos,
             $campo2 = $campo2 + $saldo->abonos, $campo3 = $campo3 + $saldo->final
-            WHERE codigo = '$saldo->n1' AND team_id = $empresa");
+            WHERE codigo = '$saldo->n1' AND team_id = $empresa AND ejercicio = $ejercicio");
             DB::statement("UPDATE saldoscuentas SET $campo1 = $campo1 +$saldo->cargos,
             $campo2 = $campo2 + $saldo->abonos, $campo3 = $campo3 + $saldo->final
-            WHERE codigo = '$saldo->n2' AND team_id = $empresa");
+            WHERE codigo = '$saldo->n2' AND team_id = $empresa AND ejercicio = $ejercicio");
             DB::statement("UPDATE saldoscuentas SET $campo1 = $campo1 +$saldo->cargos,
             $campo2 = $campo2 + $saldo->abonos, $campo3 = $campo3 + $saldo->final
-            WHERE codigo = '$saldo->n3' AND team_id = $empresa");
+            WHERE codigo = '$saldo->n3' AND team_id = $empresa AND ejercicio = $ejercicio");
             DB::statement("UPDATE saldoscuentas SET $campo1 = $campo1 +$saldo->cargos,
             $campo2 = $campo2 + $saldo->abonos, $campo3 = $campo3 + $saldo->final
-            WHERE codigo = '$saldo->n4' AND team_id = $empresa");
+            WHERE codigo = '$saldo->n4' AND team_id = $empresa AND ejercicio = $ejercicio");
             DB::statement("UPDATE saldoscuentas SET $campo1 = $campo1 +$saldo->cargos,
             $campo2 = $campo2 + $saldo->abonos, $campo3 = $campo3 + $saldo->final
-            WHERE codigo = '$saldo->n5' AND team_id = $empresa");
+            WHERE codigo = '$saldo->n5' AND team_id = $empresa AND ejercicio = $ejercicio");
             DB::statement("UPDATE saldoscuentas SET $campo1 = $campo1 +$saldo->cargos,
             $campo2 = $campo2 + $saldo->abonos, $campo3 = $campo3 + $saldo->final
-            WHERE codigo = '$saldo->n6' AND team_id = $empresa");
+            WHERE codigo = '$saldo->n6' AND team_id = $empresa AND ejercicio = $ejercicio");
         }
     }
     public function ContabilizaReporte_ret(Request $request)
@@ -337,7 +337,7 @@ class ReportesController extends Controller
                 'a_periodo'=>$poliza->periodo,
             ]);
         }
-        SaldosReportes::where('team_id',$team_id)->delete();
+        SaldosReportes::where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->delete();
         $cuentas = DB::select("SELECT codigo, nombre as cuenta, acumula, naturaleza, team_id
         FROM cat_cuentas WHERE team_id = $team_id
         AND substr(codigo,1,5)
@@ -379,36 +379,38 @@ class ReportesController extends Controller
                 'abonos' => $montos->abonos,
                 'final' => $final,
                 'nivel'=> $nivel,
-                'team_id' => $team_id
+                'team_id' => $team_id,
+                'ejercicio' => $ejercicio,
+                'periodo' => $periodo,
             ]);
         }
         $nivel_3 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
-        FROM saldos_reportes WHERE nivel = 3 AND team_id = $team_id GROUP BY acumula");
+        FROM saldos_reportes WHERE nivel = 3 AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo GROUP BY acumula");
         foreach ($nivel_3 as $n_3) {
-            SaldosReportes::where('codigo',$n_3->acumula)->update([
+            SaldosReportes::where('codigo',$n_3->acumula)->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->update([
                 'cargos'=>$n_3->s_cargos,
                 'abonos'=>$n_3->s_abonos,
                 'anterior'=>$n_3->anterior
             ]);
         }
         $nivel_2 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
-        FROM saldos_reportes WHERE nivel = 2 AND team_id = $team_id GROUP BY acumula");
+        FROM saldos_reportes WHERE nivel = 2 AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo GROUP BY acumula");
         foreach ($nivel_2 as $n_2) {
-            SaldosReportes::where('codigo',$n_2->acumula)->update([
+            SaldosReportes::where('codigo',$n_2->acumula)->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->update([
                 'cargos'=>$n_2->s_cargos,
                 'abonos'=>$n_2->s_abonos,
                 'anterior'=>$n_2->anterior
             ]);
         }
-        DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id");
-        DB::statement("UPDATE saldos_reportes SET final = (anterior + abonos - cargos) WHERE naturaleza = 'A' AND team_id = $team_id");
-        self::genera_cuentas_cobrar($team_id);
-        self::genera_cuentas_pagar($team_id);
+        DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo");
+        DB::statement("UPDATE saldos_reportes SET final = (anterior + abonos - cargos) WHERE naturaleza = 'A' AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo");
+        self::genera_cuentas_cobrar($team_id, $ejercicio, $periodo);
+        self::genera_cuentas_pagar($team_id, $ejercicio, $periodo);
         return 1;
     }
 
-    public function genera_cuentas_cobrar($team_id){
-        DB::statement("DELETE FROM cuentas_cobrar_tables WHERE team_id = $team_id AND id > 0");
+    public function genera_cuentas_cobrar($team_id, $ejercicio, $periodo){
+        DB::statement("DELETE FROM cuentas_cobrar_tables WHERE team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo AND id > 0");
         $cfdis = Almacencfdis::where('team_id',$team_id)
             ->where('TipoDeComprobante','I')
             ->where('xml_type','Emitidos')
@@ -466,8 +468,8 @@ class ReportesController extends Controller
         }
     }
 
-    public function genera_cuentas_pagar($team_id){
-        DB::statement("DELETE FROM cuentas_pagar_tables WHERE team_id = $team_id AND id > 0");
+    public function genera_cuentas_pagar($team_id, $ejercicio, $periodo){
+        DB::statement("DELETE FROM cuentas_pagar_tables WHERE team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo AND id > 0");
         $cfdis = Almacencfdis::where('team_id',$team_id)
             ->where('TipoDeComprobante','I')
             ->where('xml_type','Recibidos')
@@ -536,7 +538,7 @@ class ReportesController extends Controller
                 'a_periodo'=>$poliza->periodo,
             ]);
         }
-        SaldosReportes::where('team_id',$team_id)->delete();
+        SaldosReportes::where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->delete();
         $cuentas = DB::select("SELECT codigo, nombre as cuenta, acumula, naturaleza, team_id
         FROM cat_cuentas WHERE team_id = $team_id
         AND substr(codigo,1,5)
@@ -626,29 +628,31 @@ class ReportesController extends Controller
                 'abonos' => $montos->abonos,
                 'final' => $final,
                 'nivel'=> $nivel,
-                'team_id' => $team_id
+                'team_id' => $team_id,
+                'ejercicio' => $ejercicio,
+                'periodo' => $periodo,
             ]);
         }
         $nivel_3 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
-        FROM saldos_reportes WHERE nivel = 3 AND team_id = $team_id GROUP BY acumula");
+        FROM saldos_reportes WHERE nivel = 3 AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo GROUP BY acumula");
         foreach ($nivel_3 as $n_3) {
-            SaldosReportes::where('codigo',$n_3->acumula)->update([
+            SaldosReportes::where('codigo',$n_3->acumula)->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->update([
                 'cargos'=>$n_3->s_cargos,
                 'abonos'=>$n_3->s_abonos,
                 'anterior'=>$n_3->anterior
             ]);
         }
         $nivel_2 = DB::select("SELECT acumula,COALESCE(SUM(anterior),0) as anterior, COALESCE(SUM(cargos),0) as s_cargos, COALESCE(SUM(abonos),0) as s_abonos
-        FROM saldos_reportes WHERE nivel = 2 AND team_id = $team_id GROUP BY acumula");
+        FROM saldos_reportes WHERE nivel = 2 AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo GROUP BY acumula");
         foreach ($nivel_2 as $n_2) {
-            SaldosReportes::where('codigo',$n_2->acumula)->update([
+            SaldosReportes::where('codigo',$n_2->acumula)->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->update([
                 'cargos'=>$n_2->s_cargos,
                 'abonos'=>$n_2->s_abonos,
                 'anterior'=>$n_2->anterior
             ]);
         }
-        DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id");
-        DB::statement("UPDATE saldos_reportes SET final = (anterior + abonos - cargos) WHERE naturaleza = 'A' AND team_id = $team_id");
+        DB::statement("UPDATE saldos_reportes SET final = (anterior + cargos - abonos) WHERE naturaleza = 'D' AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo");
+        DB::statement("UPDATE saldos_reportes SET final = (anterior + abonos - cargos) WHERE naturaleza = 'A' AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo");
 
         // FASE 1: Invalidar caché después de regenerar saldos
         \App\Services\SaldosCache::invalidate($team_id);

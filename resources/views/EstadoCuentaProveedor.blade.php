@@ -4,7 +4,7 @@
     <?php
         use \Illuminate\Support\Facades\DB;
         use Carbon\Carbon;
-        $empresa = DB::table('teams')->where('id', $team)->first();
+        $empresa = \App\Models\Team::find($team);
         $proveedor = DB::table('proveedores')->where('id', $proveedor_id)->first();
         $query = DB::table('cuentas_pagars')
             ->where('team_id', $team)

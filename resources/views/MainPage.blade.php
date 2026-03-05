@@ -12,7 +12,7 @@
     <?php
         use Filament\Facades\Filament;
         use App\Http\Controllers\MainChartsController;
-        $team = DB::table('teams')->where('id',$team_id)->first();
+        $team = \App\Models\Team::find($team_id);
         $cuenta = '40100000';
         $mes_act = $team->periodo;
         $eje_act = $team->ejercicio;

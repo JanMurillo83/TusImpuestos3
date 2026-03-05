@@ -176,10 +176,14 @@ class SaldosService
             [
                 'team_id' => $team_id,
                 'codigo' => $cuenta->codigo,
+                'ejercicio' => $ejercicio,
+                'periodo' => $periodo,
             ],
             [
                 'team_id' => $team_id,
                 'codigo' => $cuenta->codigo,
+                'ejercicio' => $ejercicio,
+                'periodo' => $periodo,
                 'cuenta' => $cuenta->nombre,
                 'acumula' => $cuenta->acumula ?? 0,
                 'naturaleza' => $cuenta->naturaleza,
@@ -199,7 +203,7 @@ class SaldosService
      * Actualiza las cuentas n1, n2, n3 (acumulación)
      * para reflejar los cambios en la cuenta hija
      */
-    protected function actualizarJerarquiaPadre(int $team_id, CatCuentas $cuenta, int $ejercicio, int $periodo): void
+    public function actualizarJerarquiaPadre(int $team_id, CatCuentas $cuenta, int $ejercicio, int $periodo): void
     {
         $periodoC = 'c' . $periodo;
         $periodoA = 'a' . $periodo;

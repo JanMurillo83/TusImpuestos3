@@ -36,12 +36,12 @@ class IndicadoresWidget extends BaseWidget
 
         // FASE 1: Cachear cálculos de indicadores
         $cache_key = "indicadores_widget:{$team_id}:{$ejercicio}:{$periodo}";
-        $datos = Cache::remember($cache_key, 300, function() use ($team_id) {
-            $ventas_abonos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->abonos ?? 0);
-            $ventas_cargos = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->cargos ?? 0);
-            $ventas_final = floatval(SaldosReportes::where('team_id',$team_id)->where('codigo','40100000')->first()->final ?? 0);
+        $datos = Cache::remember($cache_key, 300, function() use ($team_id, $ejercicio, $periodo) {
+            $ventas_abonos = floatval(SaldosReportes::where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('codigo','40100000')->first()->abonos ?? 0);
+            $ventas_cargos = floatval(SaldosReportes::where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('codigo','40100000')->first()->cargos ?? 0);
+            $ventas_final = floatval(SaldosReportes::where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('codigo','40100000')->first()->final ?? 0);
 
-            $cuentas = DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = $team_id AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ");
+            $cuentas = DB::select("SELECT * FROM saldos_reportes WHERE nivel = 1 AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo AND (COALESCE(anterior,0)+COALESCE(cargos,0)+COALESCE(abonos,0)) != 0 ");
 
             return compact('ventas_abonos', 'ventas_cargos', 'ventas_final', 'cuentas');
         });

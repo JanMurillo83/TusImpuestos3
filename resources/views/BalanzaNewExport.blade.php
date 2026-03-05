@@ -1,109 +1,93 @@
-<?php
-use \Illuminate\Support\Facades\DB;
-$empresas = DB::table('teams')->where('id',$empresa)->get()[0];
-$cuentas = DB::select("SELECT codigo,nombre,
-    coalesce((SELECT sum(cargo) FROM auxiliares INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo = $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) cargos,
-    coalesce((SELECT sum(cargo) FROM auxiliares INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo < $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) cargos_ant,
-    coalesce((SELECT sum(abono) FROM auxiliares
-    INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo = $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) abonos,
-    coalesce((SELECT sum(abono) FROM auxiliares
-    INNER JOIN cat_polizas ON auxiliares.cat_polizas_id = cat_polizas.id
-    WHERE auxiliares.team_id = cat_cuentas.team_id AND periodo < $periodo AND ejercicio = $ejercicio
-    AND substr(auxiliares.codigo,1,3) = substr(cat_cuentas.codigo,1,3)),0) abonos_ant,
-    naturaleza,'NA' rubro FROM cat_cuentas
-    WHERE tipo = 'A' AND team_id = $empresa
-    AND substr(codigo,4,2) = '00' AND substr(codigo,1,3)
-    NOT IN('100','200','300','400','500','600','700','800','900')");
-$fecha = \Carbon\Carbon::now();
-$saldo1 = 0;
-$saldo2 = 0;
-$saldo3 = 0;
-$saldo4 = 0;
-$saldo5 = 0;
-?>
-    <!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Balance General</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <title>Balanza de Comprobación</title>
+    <style>
+        body { font-family: sans-serif; font-size: 10px; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 4px; }
+        th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; font-size: 9px; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+        .bg-gray { background-color: #f9f9f9; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h2 { margin: 0; font-size: 16px; }
+        .header p { margin: 5px 0; font-size: 12px; }
+        .footer-totals { background-color: #eee; font-weight: bold; }
+        .diferencia { margin-top: 10px; text-align: right; font-weight: bold; }
+    </style>
 </head>
 <body>
-<div class="container">
-    <div class="row mt-5">
-        <div class="col-3">
-        </div>
-        <div class="col-6">
-            <center>
-                <h5>{{$empresas->name}}</h5>
-                <div>
-                    Balanza de Comprobacion Periodo {{$periodo}}
-                </div>
-            </center>
-        </div>
-        <div class="col-3">
-            Fecha de Emision: <?php echo $fecha->toDateString('d-m-Y'); ?>
-        </div>
+    <div class="header">
+        <h2>{{ $empresa->name ?? 'Empresa' }}</h2>
+        <p>Balanza de Comprobación</p>
+        <p>Ejercicio: {{ $ejercicio }} | Periodo: {{ str_pad($periodo, 2, '0', STR_PAD_LEFT) }}</p>
+        <p style="font-size: 10px; text-align: right;">Fecha de Emisión: {{ $fecha_emision ?? date('d/m/Y') }}</p>
     </div>
-    <hr>
-    <div class="row mt-2">
-        <div class="col-12">
-            <table class="table border">
-                <tr>
-                    <th style="font-weight: bold">Codigo</th>
-                    <th style="font-weight: bold">Cuenta</th>
-                    <th style="font-weight: bold;text-align: center; justify-content: center;">Saldo Inicial</th>
-                    <th style="font-weight: bold;text-align: center; justify-content: center;">Cargos</th>
-                    <th style="font-weight: bold;text-align: center; justify-content: center;">Abonos</th>
-                    <th style="font-weight: bold;text-align: center; justify-content: center;">Saldo Final</th>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Cuenta</th>
+                <th>Saldo Inicial</th>
+                <th>Cargos</th>
+                <th>Abonos</th>
+                <th>Saldo Final</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($balanza as $cuenta)
+                <tr style="{{ $cuenta['nivel'] == 1 ? 'font-weight: bold; background-color: #f9f9f9;' : '' }}">
+                    <td>
+                        <span style="padding-left: {{ ($cuenta['nivel'] - 1) * 10 }}px;">
+                            {{ $cuenta['codigo'] }}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="padding-left: {{ ($cuenta['nivel'] - 1) * 10 }}px;">
+                            {{ $cuenta['cuenta'] }}
+                        </span>
+                    </td>
+                    <td class="text-right">{{ $cuenta['saldo_anterior'] != 0 ? number_format($cuenta['saldo_anterior'], 2) : '-' }}</td>
+                    <td class="text-right">{{ $cuenta['cargos'] != 0 ? number_format($cuenta['cargos'], 2) : '-' }}</td>
+                    <td class="text-right">{{ $cuenta['abonos'] != 0 ? number_format($cuenta['abonos'], 2) : '-' }}</td>
+                    <td class="text-right">{{ $cuenta['saldo_final'] != 0 ? number_format($cuenta['saldo_final'], 2) : '-' }}</td>
                 </tr>
-                @foreach($cuentas as $cuenta)
-                        <?php $cod = intval(substr($cuenta->codigo,0,3));
-                        $saldo = 0;
-                        $saldo_ant = 0;
-                        if($cuenta->naturaleza == 'D') {
-                            $saldo = $cuenta->cargos - $cuenta->abonos;
-                            $saldo_ant = $cuenta->cargos_ant - $cuenta->abonos_ant;
-                            $saldo3+=$saldo;
-                            $saldo4+=$saldo_ant;
-                        }else{
-                            $saldo = ($cuenta->abonos - $cuenta->cargos);
-                            $saldo_ant = ($cuenta->abonos_ant - $cuenta->cargos_ant);
-                            $saldo3-=$saldo;
-                            $saldo4-=$saldo_ant;
-                        }
-                        $saldo1 += $cuenta->cargos;
-                        $saldo2 += $cuenta->abonos;
-                        ?>
-                    <tr>
-                        <td>{{$cuenta->codigo}}</td>
-                        <td>{{$cuenta->nombre}}</td>
-                        <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo_ant,2)}}</td>
-                        <td style="text-align: end; justify-content: end">{{'$'.number_format($cuenta->cargos,2)}}</td>
-                        <td style="text-align: end; justify-content: end">{{'$'.number_format($cuenta->abonos,2)}}</td>
-                        <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo,2)}}</td>
-                    </tr>
-                @endforeach
-                <tr>
-                    <td colspan="2" style="font-weight: bold">Totales</td>
-                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo4,2)}}</td>
-                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo1,2)}}</td>
-                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo2,2)}}</td>
-                    <td style="text-align: end; justify-content: end">{{'$'.number_format($saldo3,2)}}</td>
-                </tr>
-            </table>
-        </div>
+            @endforeach
+        </tbody>
+        <tfoot>
+            <tr class="footer-totals">
+                <td colspan="2" class="text-right">TOTALES:</td>
+                <td class="text-right">
+                    @php
+                        $saldo_inicial_neto = $totales['saldo_ant_deudor'] - $totales['saldo_ant_acreedor'];
+                    @endphp
+                    {{ number_format($saldo_inicial_neto, 2) }}
+                </td>
+                <td class="text-right">{{ number_format($totales['cargos'], 2) }}</td>
+                <td class="text-right">{{ number_format($totales['abonos'], 2) }}</td>
+                <td class="text-right">
+                    @php
+                        $saldo_final_neto = $totales['saldo_deudor'] - $totales['saldo_acreedor'];
+                    @endphp
+                    {{ number_format($saldo_final_neto, 2) }}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+    @php
+        $diferencia = $totales['saldo_deudor'] - $totales['saldo_acreedor'];
+    @endphp
+    <div class="diferencia">
+        @if(abs($diferencia) > 0.01)
+            <span style="color: red;">Diferencia: ${{ number_format(abs($diferencia), 2) }}</span>
+        @else
+            <span style="color: green;">Balanza Cuadrada</span>
+        @endif
     </div>
-</div>
 </body>
 </html>
-

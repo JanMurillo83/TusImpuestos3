@@ -40,10 +40,12 @@ class CamTent extends Page
     }
     public function cambia_per($data)
     {
-        DB::table('teams')->where('id',$data['empresa'])->update([
+        session(['team_' . $data['empresa'] . '_periodo' => $data['periodo']]);
+        session(['team_' . $data['empresa'] . '_ejercicio' => $data['ejercicio']]);
+        /*DB::table('teams')->where('id',$data['empresa'])->update([
             'periodo'=>$data['periodo'],
             'ejercicio'=>$data['ejercicio'],
-        ]);
+        ]);*/
         Notification::make()
             ->title(' Periodo de Trabajo Actualizado')
             ->success()

@@ -400,8 +400,10 @@ class MainChartsController extends Controller
 
     public function GetUtilidadPeriodo($team_id): float
     {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
         $cuentas = DB::select("SELECT * FROM saldos_reportes
-        WHERE nivel = 1 AND team_id = $team_id
+        WHERE nivel = 1 AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo
         AND (cargos+abonos) != 0");
         $importe = 0;
         foreach ($cuentas as $cuenta) {
@@ -419,8 +421,10 @@ class MainChartsController extends Controller
 
     public function GetUtilidadEjercicio($team_id): float
     {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
         $cuentas = DB::select("SELECT * FROM saldos_reportes
-        WHERE nivel = 1 AND team_id = $team_id
+        WHERE nivel = 1 AND team_id = $team_id AND ejercicio = $ejercicio AND periodo = $periodo
         AND (anterior+cargos+abonos) != 0");
         $importe = 0;
         foreach ($cuentas as $cuenta) {
@@ -438,33 +442,39 @@ class MainChartsController extends Controller
 
     public function GetCobrar($team_id):float
     {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
         $auxiliares = SaldosReportes::where('codigo','10500000')
-        ->where('team_id',$team_id)->first();
+        ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->first();
         return ($auxiliares->anterior+$auxiliares->cargos-$auxiliares->abonos);
     }
 
     public function GetPagar($team_id):float
     {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
         $auxiliares = SaldosReportes::where('codigo','20100000')
-            ->where('team_id',$team_id)->first();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->first();
         return ($auxiliares->anterior+$auxiliares->abonos-$auxiliares->cargos);
     }
     public function GetUtiPer($team_id):float
     {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
         $ventas = SaldosReportes::where('acumula','40000000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $venta = ($ventas->sum('abonos')-$ventas->sum('cargos'));
         $costos = SaldosReportes::where('acumula','50000000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $costo = ($costos->sum('cargos')-$costos->sum('abonos'));
         $gastos = SaldosReportes::where('acumula','60000000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $gasto = ($gastos->sum('cargos')-$gastos->sum('abonos'));
         $gfinans = SaldosReportes::where('codigo','70100000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $gfinan = ($gfinans->sum('cargos')-$gfinans->sum('abonos'));
         $pfinans = SaldosReportes::where('codigo','70200000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $pfinan = ($pfinans->sum('abonos')-$pfinans->sum('cargos'));
         $importe = $venta-$costo-$gasto-$gfinan-$pfinan;
         //dd($venta,$costo,$gasto,$gfinan,$pfinan);
@@ -472,20 +482,22 @@ class MainChartsController extends Controller
     }
     public function GetUtiPerEjer($team_id):float
     {
+        $ejercicio = Filament::getTenant()->ejercicio;
+        $periodo = Filament::getTenant()->periodo;
         $ventas = SaldosReportes::where('acumula','40000000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $venta = ($ventas->sum('anterior')+$ventas->sum('abonos')-$ventas->sum('cargos'));
         $costos = SaldosReportes::where('acumula','50000000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $costo = ($costos->sum('anterior')+$costos->sum('cargos')-$costos->sum('abonos'));
         $gastos = SaldosReportes::where('acumula','60000000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $gasto = ($gastos->sum('anterior')+$gastos->sum('cargos')-$gastos->sum('abonos'));
         $gfinans = SaldosReportes::where('codigo','70100000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $gfinan = ($gfinans->sum('anterior')+$gfinans->sum('cargos')-$gfinans->sum('abonos'));
         $pfinans = SaldosReportes::where('codigo','70200000')
-            ->where('team_id',$team_id)->where('nivel',1)->get();
+            ->where('team_id',$team_id)->where('ejercicio',$ejercicio)->where('periodo',$periodo)->where('nivel',1)->get();
         $pfinan = ($pfinans->sum('anterior')+$pfinans->sum('abonos')-$pfinans->sum('cargos'));
         $importe = $venta-$costo-$gasto-$gfinan-$pfinan;
         //dd($venta,$costo,$gasto,$gfinan,$pfinan);

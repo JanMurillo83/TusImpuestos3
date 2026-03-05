@@ -1736,8 +1736,8 @@ class CatPolizasResource extends Resource
     {
         return [
             'index' => Pages\ListCatPolizas::route('/'),
-            //'create' => Pages\CreateCatPolizas::route('/create'),
-            //'edit' => Pages\EditCatPolizas::route('/{record}/edit'),
+            'create' => Pages\CreateCatPolizas::route('/create'),
+            'edit' => Pages\EditCatPolizas::route('/{record}/edit'),
         ];
     }
 }

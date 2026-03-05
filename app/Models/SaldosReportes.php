@@ -8,5 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class SaldosReportes extends Model
 {
     use HasFactory;
-    protected $fillable = ['codigo','cuenta','acumula','naturaleza','anterior','cargos','abonos','final','team_id'];
+    protected $fillable = ['codigo','cuenta','acumula','naturaleza','anterior','cargos','abonos','final','team_id', 'ejercicio', 'periodo'];
 }

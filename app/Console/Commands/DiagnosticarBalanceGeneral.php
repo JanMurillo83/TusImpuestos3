@@ -67,7 +67,7 @@ class DiagnosticarBalanceGeneral extends Command
 
         // 2. Verificar saldos negativos incorrectos
         $this->info('[2/5] Verificando saldos negativos incorrectos...');
-        $saldosNegativos = $this->verificarSaldosNegativos($teamId);
+        $saldosNegativos = $this->verificarSaldosNegativos($teamId, $periodo, $ejercicio);
         if ($saldosNegativos['count'] > 0) {
             $advertencias[] = [
                 'tipo' => 'Saldos Negativos Sospechosos',
@@ -112,7 +112,7 @@ class DiagnosticarBalanceGeneral extends Command
 
         // 5. Verificar integridad de saldos_reportes
         $this->info('[5/5] Verificando integridad de saldos_reportes...');
-        $integridadSaldos = $this->verificarIntegridadSaldos($teamId);
+        $integridadSaldos = $this->verificarIntegridadSaldos($teamId, $periodo, $ejercicio);
         if (!$integridadSaldos['integro']) {
             $problemas[] = "❌ Inconsistencias en tabla saldos_reportes";
             $advertencias[] = [
@@ -212,11 +212,13 @@ class DiagnosticarBalanceGeneral extends Command
         ];
     }
 
-    protected function verificarSaldosNegativos($teamId)
+    protected function verificarSaldosNegativos($teamId, $periodo, $ejercicio)
     {
         // Detectar cuentas de activo con saldo negativo (naturaleza deudora)
         $saldosNegativos = DB::table('saldos_reportes')
             ->where('team_id', $teamId)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->where('naturaleza', 'D')
             ->whereRaw('(anterior + cargos - abonos) < -0.01')
             ->get();
@@ -281,9 +283,13 @@ class DiagnosticarBalanceGeneral extends Command
         ];
     }
 
-    protected function verificarIntegridadSaldos($teamId)
+    protected function verificarIntegridadSaldos($teamId, $periodo, $ejercicio)
     {
-        $cuentasSaldos = DB::table('saldos_reportes')->where('team_id', $teamId)->count();
+        $cuentasSaldos = DB::table('saldos_reportes')
+            ->where('team_id', $teamId)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
+            ->count();
         $cuentasCatalogo = DB::table('cat_cuentas')->where('team_id', $teamId)->where('tipo', 'D')->count();
 
         $inconsistencias = abs($cuentasSaldos - $cuentasCatalogo);

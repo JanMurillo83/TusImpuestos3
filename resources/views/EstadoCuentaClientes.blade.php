@@ -4,7 +4,7 @@
     <?php
         use \Illuminate\Support\Facades\DB;
         use Carbon\Carbon;
-        $empresa = DB::table('teams')->where('id', $team)->first();
+        $empresa = \App\Models\Team::find($team);
         // Traer todos los clientes del team
         $clientes = DB::table('clientes')
             ->where('team_id', $team)

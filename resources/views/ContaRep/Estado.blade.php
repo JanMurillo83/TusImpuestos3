@@ -3,7 +3,7 @@ use Carbon\Carbon;
 $empresa = $_GET['empresa'];
 $ejercicio = $_GET['ejercicio'];
 $periodo = $_GET['periodo'];
-$empresas = DB::table('teams')->where('id',$empresa)->get()[0];
+$empresas = \App\Models\Team::find($empresa);
 if($periodo == 1) $ini = 'si'; else $ini = 'si';
 $ca = 'c'.$periodo;
 $ab = 'a'.$periodo;

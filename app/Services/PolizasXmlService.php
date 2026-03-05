@@ -10,7 +10,7 @@ class PolizasXmlService
     public function generar(int $empresa, string $ejercicio, string $periodo)
     {
         // Obtener RFC de la empresa
-        $team = DB::table('teams')->where('id', $empresa)->first();
+        $team = \App\Models\Team::find($empresa);
         $rfc = $team->rfc ?? '';
 
         // Obtener pólizas del periodo

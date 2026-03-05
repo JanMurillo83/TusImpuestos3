@@ -41,7 +41,7 @@ class PolizaCierreService
                 ->where(function($query) {
                     $query
                         ->where('tipo', 'D')
-                        ->whereBetween(DB::raw("cast(substring(codigo,1,3) as UNSIGNED)"), [400,799]);
+                        ->whereBetween(DB::raw("cast(codigo as UNSIGNED)"), [40000000,79999999]);
                 })
                 ->get();
 
@@ -165,29 +165,18 @@ class PolizaCierreService
             $totalCargos = $saldos->total_cargos ?? 0;
             $totalAbonos = $saldos->total_abonos ?? 0;
 
-            // Calcular saldo según la naturaleza de la cuenta
-            // Naturaleza 'D' (Deudora - Egresos): saldo = cargos - abonos
-            // Naturaleza 'A' (Acreedora - Ingresos): saldo = abonos - cargos
-            if ($cuenta->naturaleza == 'D') {
-                // Cuenta DEUDORA (Egresos 5xxx): saldo = cargos - abonos
-                $saldo = $totalCargos - $totalAbonos;
-            } else {
-                // Cuenta ACREEDORA (Ingresos 4xxx): saldo = abonos - cargos
-                $saldo = $totalAbonos - $totalCargos;
-            }
+            // Saldo neto de la cuenta (Cargos - Abonos)
+            $diferencia = $totalCargos - $totalAbonos;
 
-            // Para cerrar la cuenta, hacemos el movimiento contrario al saldo
-            // Si la cuenta tiene saldo, la cancelamos con el movimiento opuesto
-            if ($saldo != 0) {
-                // Si es cuenta DEUDORA (Egresos): tiene saldo deudor, se ABONA para cerrar
-                // Si es cuenta ACREEDORA (Ingresos): tiene saldo acreedor, se CARGA para cerrar
-                if ($cuenta->naturaleza == 'D') {
-                    // Egresos: se abonan para cancelar
+            if ($diferencia != 0) {
+                // Para cerrar la cuenta, hacemos el movimiento contrario al saldo neto
+                // Si la diferencia es positiva (Saldo Deudor), debemos ABONAR para cerrar
+                // Si la diferencia es negativa (Saldo Acreedor), debemos CARGAR para cerrar
+                if ($diferencia > 0) {
                     $cargo = 0;
-                    $abono = abs($saldo);
+                    $abono = abs($diferencia);
                 } else {
-                    // Ingresos: se cargan para cancelar
-                    $cargo = abs($saldo);
+                    $cargo = abs($diferencia);
                     $abono = 0;
                 }
 
@@ -198,7 +187,7 @@ class PolizaCierreService
                     'naturaleza' => $cuenta->naturaleza,
                     'cargo' => $cargo,
                     'abono' => $abono,
-                    'saldo_original' => $saldo,
+                    'saldo_original' => $diferencia,
                     'total_cargos' => $totalCargos,
                     'total_abonos' => $totalAbonos,
                 ];

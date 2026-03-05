@@ -2,7 +2,7 @@
 use Carbon\Carbon;
 use \Illuminate\Support\Facades\DB;
 
-$empresas = DB::table('teams')->where('id',$empresa)->get()[0];
+$empresas = \App\Models\Team::find($empresa);
 if($periodo == 1) $ini = 'si'; else $ini = 'si';
 $ca = 'c'.$periodo;
 $ab = 'a'.$periodo;

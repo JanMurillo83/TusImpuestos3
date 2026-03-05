@@ -12,6 +12,23 @@ class Team extends Model
     use HasFactory;
     protected $fillable =['name','taxid','archivokey','archivocer','fielpass','periodo',
     'ejercicio','regimen','codigopos','csdkey','csdcer','csdpass','claveciec','vigencia_fiel','estado_fiel','descarga_cfdi'];
+
+    public function getPeriodoAttribute($value)
+    {
+        if (request()->hasSession() && session()->has('team_' . $this->id . '_periodo')) {
+            return session('team_' . $this->id . '_periodo');
+        }
+        return $value;
+    }
+
+    public function getEjercicioAttribute($value)
+    {
+        if (request()->hasSession() && session()->has('team_' . $this->id . '_ejercicio')) {
+            return session('team_' . $this->id . '_ejercicio');
+        }
+        return $value;
+    }
+
     public function catPolizas(): BelongsToMany
     {
         return $this->belongsToMany(CatPolizas::class);

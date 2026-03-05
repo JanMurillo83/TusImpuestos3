@@ -3,7 +3,7 @@ use \Illuminate\Support\Facades\DB;
 use \App\Models\CatPolizas;
 use \App\Models\Auxiliares;
 use \App\Models\CatCuentas;
-$empresas = DB::table('teams')->where('id',$empresa)->first();
+$empresas = \App\Models\Team::find($empresa);
 $fecha = \Carbon\Carbon::now();
 $polizas = CatPolizas::where('team_id',$empresa)
     ->where('periodo',$periodo)

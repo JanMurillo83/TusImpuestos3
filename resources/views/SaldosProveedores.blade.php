@@ -3,7 +3,7 @@
 <head>
     <?php
     use \Illuminate\Support\Facades\DB;
-    $empresa = DB::table('teams')->where('id',$team)->first();
+    $empresa = \App\Models\Team::find($team);
     $clientes = DB::table('proveedores')->where('team_id',$team)->get();
     $saldo = 0;
     ?>

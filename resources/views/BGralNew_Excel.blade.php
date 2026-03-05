@@ -1,6 +1,6 @@
 <?php
 use \Illuminate\Support\Facades\DB;
-$empresas = DB::table('teams')->where('id',$empresa)->get()[0];
+$empresas = \App\Models\Team::find($empresa);
 $cuentas = DB::select("SELECT * FROM saldos_reportes
     WHERE nivel = 1 AND team_id = $empresa
     AND (anterior+cargos+abonos) != 0");

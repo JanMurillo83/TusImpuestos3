@@ -33,14 +33,14 @@ class ReportesNIFController extends Controller
         // Actualizar saldos antes de generar reporte
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas clasificadas
-        $activo_circulante = $this->obtenerCuentasPorRango($team_id, '100', '149');
-        $activo_no_circulante = $this->obtenerCuentasPorRango($team_id, '150', '199');
-        $pasivo_circulante = $this->obtenerCuentasPorRango($team_id, '200', '249');
-        $pasivo_no_circulante = $this->obtenerCuentasPorRango($team_id, '250', '299');
-        $capital = $this->obtenerCuentasPorRango($team_id, '300', '399');
+        $activo_circulante = $this->obtenerCuentasPorRango($team_id, '100', '149', $periodo, $ejercicio);
+        $activo_no_circulante = $this->obtenerCuentasPorRango($team_id, '150', '199', $periodo, $ejercicio);
+        $pasivo_circulante = $this->obtenerCuentasPorRango($team_id, '200', '249', $periodo, $ejercicio);
+        $pasivo_no_circulante = $this->obtenerCuentasPorRango($team_id, '250', '299', $periodo, $ejercicio);
+        $capital = $this->obtenerCuentasPorRango($team_id, '300', '399', $periodo, $ejercicio);
 
         // Calcular totales
         $total_activo_circulante = $this->calcularTotal($activo_circulante);
@@ -54,7 +54,7 @@ class ReportesNIFController extends Controller
         $total_capital_base = $this->calcularTotal($capital);
 
         // Calcular resultado del ejercicio
-        $resultado_ejercicio = $this->calcularResultadoEjercicio($team_id);
+        $resultado_ejercicio = $this->calcularResultadoEjercicio($team_id, $periodo, $ejercicio);
         $total_capital = $total_capital_base + $resultado_ejercicio;
 
         $total_pasivo_capital = $total_pasivo + $total_capital;
@@ -149,10 +149,12 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas según el filtro
-        $query = SaldosReportes::where('team_id', $team_id);
+        $query = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo);
 
         // Filtrar por nivel si se solicita solo cuentas de mayor
         if ($nivel_detalle === 'mayor') {
@@ -213,10 +215,12 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas según los filtros
-        $query = SaldosReportes::where('team_id', $team_id);
+        $query = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo);
 
         // Filtrar por nivel
         if ($nivel_detalle === 'mayor') {
@@ -277,7 +281,7 @@ class ReportesNIFController extends Controller
         $periodo_fin = $request->periodo_fin;
         $ejercicio_fin = $request->ejercicio_fin;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas en el rango especificado
         $cuentas_query = DB::table('cat_cuentas')
@@ -384,14 +388,22 @@ class ReportesNIFController extends Controller
         $periodo2 = $request->periodo2;
         $ejercicio2 = $request->ejercicio2;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Contabilizar ambos periodos
         app(ReportesController::class)->ContabilizaReporte($ejercicio1, $periodo1, $team_id);
-        $saldos_periodo1 = SaldosReportes::where('team_id', $team_id)->get()->keyBy('codigo');
+        $saldos_periodo1 = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio1)
+            ->where('periodo', $periodo1)
+            ->get()
+            ->keyBy('codigo');
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio2, $periodo2, $team_id);
-        $saldos_periodo2 = SaldosReportes::where('team_id', $team_id)->get()->keyBy('codigo');
+        $saldos_periodo2 = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio2)
+            ->where('periodo', $periodo2)
+            ->get()
+            ->keyBy('codigo');
 
         // Obtener todas las cuentas únicas de ambos periodos
         $codigos = $saldos_periodo1->keys()->merge($saldos_periodo2->keys())->unique();
@@ -458,16 +470,16 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener valores clave para cálculos
-        $activo_circulante = $this->obtenerSaldoRango($team_id, '101', '115');
-        $activo_total = $this->obtenerSaldoRango($team_id, '100', '199');
-        $pasivo_circulante = $this->obtenerSaldoRango($team_id, '201', '215');
-        $pasivo_total = $this->obtenerSaldoRango($team_id, '200', '299');
-        $capital_contable = $this->obtenerSaldoRango($team_id, '300', '399');
-        $ventas_netas = $this->obtenerSaldoRango($team_id, '401', '499');
-        $utilidad_neta = $this->calcularResultadoEjercicio($team_id);
+        $activo_circulante = $this->obtenerSaldoRango($team_id, '101', '115', $periodo, $ejercicio);
+        $activo_total = $this->obtenerSaldoRango($team_id, '100', '199', $periodo, $ejercicio);
+        $pasivo_circulante = $this->obtenerSaldoRango($team_id, '201', '215', $periodo, $ejercicio);
+        $pasivo_total = $this->obtenerSaldoRango($team_id, '200', '299', $periodo, $ejercicio);
+        $capital_contable = $this->obtenerSaldoRango($team_id, '300', '399', $periodo, $ejercicio);
+        $ventas_netas = $this->obtenerSaldoRango($team_id, '401', '499', $periodo, $ejercicio);
+        $utilidad_neta = $this->calcularResultadoEjercicio($team_id, $periodo, $ejercicio);
 
         // Calcular razones financieras
         $razones = [
@@ -522,12 +534,20 @@ class ReportesNIFController extends Controller
         return env('APP_URL') . '/TMPCFDI/RazonesFinancieras_' . $team_id . '.pdf';
     }
 
-    private function obtenerSaldoRango($team_id, $inicio, $fin)
+    private function obtenerSaldoRango($team_id, $inicio, $fin, $periodo = null, $ejercicio = null)
     {
-        return SaldosReportes::where('team_id', $team_id)
+        $query = SaldosReportes::where('team_id', $team_id)
             ->where('codigo', '>=', $inicio)
-            ->where('codigo', '<=', $fin)
-            ->sum('final');
+            ->where('codigo', '<=', $fin);
+
+        if ($ejercicio) {
+            $query->where('ejercicio', $ejercicio);
+        }
+        if ($periodo) {
+            $query->where('periodo', $periodo);
+        }
+
+        return $query->sum('final');
     }
 
     /**
@@ -541,7 +561,7 @@ class ReportesNIFController extends Controller
         $periodo_fin = $request->periodo_fin;
         $ejercicio_fin = $request->ejercicio_fin;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener todas las pólizas del rango de fechas
         $polizas = CatPolizas::where('team_id', $team_id)
@@ -637,7 +657,7 @@ class ReportesNIFController extends Controller
         $periodo = $request->month;
         $ejercicio = $request->year;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener todas las pólizas del periodo
         $polizas = CatPolizas::where('team_id', $team_id)
@@ -710,11 +730,13 @@ class ReportesNIFController extends Controller
         $periodo2 = $request->periodo2;
         $ejercicio2 = $request->ejercicio2;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Contabilizar ambos periodos
         app(ReportesController::class)->ContabilizaReporte($ejercicio1, $periodo1, $team_id);
         $saldos_periodo1 = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio1)
+            ->where('periodo', $periodo1)
             ->where('codigo', '>=', '400')
             ->where('codigo', '<=', '899')
             ->get()
@@ -722,6 +744,8 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio2, $periodo2, $team_id);
         $saldos_periodo2 = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio2)
+            ->where('periodo', $periodo2)
             ->where('codigo', '>=', '400')
             ->where('codigo', '<=', '899')
             ->get()
@@ -792,7 +816,7 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Determinar rango de cuentas según tipo
         if ($tipo == 'cobrar') {
@@ -807,10 +831,11 @@ class ReportesNIFController extends Controller
 
         // Obtener cuentas con saldo
         $cuentas = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->where('codigo', '>=', $cuenta_inicio)
             ->where('codigo', '<=', $cuenta_fin)
             ->where('final', '!=', 0)
-            ->orderBy('codigo')
             ->get();
 
         $cuentas_antigüedad = [];
@@ -901,7 +926,7 @@ class ReportesNIFController extends Controller
         $periodo = $request->month;
         $ejercicio = $request->year;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener CFDIs del periodo usando ejercicio y periodo
         $cfdis_emitidos = Almacencfdis::where('team_id', $team_id)
@@ -986,7 +1011,7 @@ class ReportesNIFController extends Controller
         $periodo = $request->month;
         $ejercicio = $request->year;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener CFDIs del periodo usando ejercicio y periodo
         $cfdis_recibidos = Almacencfdis::where('team_id', $team_id)
@@ -1068,7 +1093,7 @@ class ReportesNIFController extends Controller
         $periodo = $request->month;
         $ejercicio = $request->year;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener CFDIs del periodo usando ejercicio y periodo
         $ret_que_nos_hicieron = [];
@@ -1158,7 +1183,7 @@ class ReportesNIFController extends Controller
         $periodo_fin = $request->periodo_fin;
         $ejercicio_fin = $request->ejercicio_fin;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas en el rango especificado
         $cuentas_query = DB::table('cat_cuentas')
@@ -1315,7 +1340,7 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas de resultados
         $ingresos = $this->obtenerCuentasResultados($team_id, $periodo, $ejercicio, '400', '499');
@@ -1426,7 +1451,7 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener saldos iniciales (año anterior)
         $capital_social_inicial = $this->obtenerSaldoCuenta($team_id, '30001000', $ejercicio - 1);
@@ -1521,7 +1546,7 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         $utilidad_neta = $this->calcularResultadoEjercicio($team_id);
 
@@ -1566,7 +1591,7 @@ class ReportesNIFController extends Controller
         $incremento_neto = $flujo_operacion + $flujo_inversion + $flujo_financiamiento;
 
         // Efectivo inicial y final
-        $efectivo_inicial = $this->obtenerEfectivoInicial($team_id, $ejercicio);
+        $efectivo_inicial = $this->obtenerEfectivoInicial($team_id, $ejercicio, $periodo);
         $efectivo_final = $efectivo_inicial + $incremento_neto;
 
         $data = [
@@ -1614,17 +1639,25 @@ class ReportesNIFController extends Controller
 
     // ========== MÉTODOS AUXILIARES ==========
 
-    private function obtenerCuentasPorRango($team_id, $inicio, $fin)
+    private function obtenerCuentasPorRango($team_id, $inicio, $fin, $periodo = null, $ejercicio = null)
     {
         // Convertir inicio y fin a enteros para comparación correcta
         $inicio_int = intval($inicio);
         $fin_int = intval($fin);
 
-        return SaldosReportes::where('team_id', $team_id)
+        $query = SaldosReportes::where('team_id', $team_id)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) >= ?", [$inicio_int])
             ->whereRaw("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) <= ?", [$fin_int])
-            ->where('nivel', 1) // Solo nivel 1 para no duplicar
-            ->where(function($query) {
+            ->where('nivel', 1); // Solo nivel 1 para no duplicar
+
+        if ($ejercicio) {
+            $query->where('ejercicio', $ejercicio);
+        }
+        if ($periodo) {
+            $query->where('periodo', $periodo);
+        }
+
+        return $query->where(function($query) {
                 $query->where('anterior', '!=', 0)
                       ->orWhere('final', '!=', 0);
             })
@@ -1644,6 +1677,8 @@ class ReportesNIFController extends Controller
         $fin_int = intval($fin);
 
         return SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) >= ?", [$inicio_int])
             ->whereRaw("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) <= ?", [$fin_int])
             ->where('nivel', 1) // Solo nivel 1
@@ -1684,6 +1719,8 @@ class ReportesNIFController extends Controller
     {
 
         return SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->where(function($query) {
                 $query->where('codigo', 'like', '702%')
                       ->orWhere('codigo', 'like', '703%');
@@ -1729,35 +1766,45 @@ class ReportesNIFController extends Controller
         return $cuentas->sum('saldo_acumulado');
     }
 
-    private function calcularResultadoEjercicio($team_id)
+    private function calcularResultadoEjercicio($team_id, $periodo, $ejercicio)
     {
         // Usar el campo 'final' que ya está correctamente calculado
         // Ingresos (naturaleza A - acreedora): el saldo final es positivo cuando abonos > cargos
         $total_ingresos = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 4")
             ->where('nivel', 1)
             ->sum('final');
 
         // Costos (naturaleza D - deudora): el saldo final es positivo cuando cargos > abonos
         $total_costos = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 5")
             ->where('nivel', 1)
             ->sum('final');
 
         // Gastos (naturaleza D - deudora)
         $total_gastos = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 6")
             ->where('nivel', 1)
             ->sum('final');
 
         // Otros gastos y financiamiento (naturaleza puede variar)
         $total_otros = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 7")
             ->where('nivel', 1)
             ->sum('final');
 
         // Impuestos (naturaleza D - deudora)
         $total_impuestos = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 8")
             ->where('nivel', 1)
             ->sum('final');
@@ -1769,8 +1816,10 @@ class ReportesNIFController extends Controller
     private function calcularTotalAnterior($team_id, $inicio, $fin, $ejercicio)
     {
         return SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', 12)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) BETWEEN ? AND ?", [$inicio, $fin])
-            ->sum('anterior');
+            ->sum('final');
     }
 
     private function calcularResultadoEjercicioAnterior($team_id, $ejercicio)
@@ -1791,22 +1840,30 @@ class ReportesNIFController extends Controller
 
     private function obtenerFechaCorte($periodo, $ejercicio)
     {
+        if ($periodo == 13) {
+            return "31/12/$ejercicio (Ajuste)";
+        }
         $ultimo_dia = Carbon::create($ejercicio, $periodo, 1)->endOfMonth()->day;
         return sprintf('%02d/%02d/%d', $ultimo_dia, $periodo, $ejercicio);
     }
 
     private function obtenerFechaInicio($periodo, $ejercicio)
     {
+        if ($periodo == 13) {
+            return "01/12/$ejercicio (Ajuste)";
+        }
         return sprintf('01/%02d/%d', $periodo, $ejercicio);
     }
 
-    private function obtenerSaldoCuenta($team_id, $codigo, $ejercicio)
+    private function obtenerSaldoCuenta($team_id, $codigo, $ejercicio, $periodo = 12)
     {
         $cuenta = SaldosReportes::where('team_id', $team_id)
             ->where('codigo', $codigo)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->first();
 
-        return $cuenta ? $cuenta->anterior : 0;
+        return $cuenta ? $cuenta->final : 0;
     }
 
     private function obtenerMovimientosCuenta($team_id, $codigo, $periodo, $ejercicio)
@@ -1879,9 +1936,11 @@ class ReportesNIFController extends Controller
         return 0; // Implementar lógica específica
     }
 
-    private function obtenerEfectivoInicial($team_id, $ejercicio)
+    private function obtenerEfectivoInicial($team_id, $ejercicio, $periodo = 1)
     {
         return SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->where('codigo', 'like', '101%')
             ->sum('anterior');
     }
@@ -1898,10 +1957,12 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas según los filtros
-        $query = SaldosReportes::where('team_id', $team_id);
+        $query = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo);
 
         // Filtrar por nivel si se solicita solo cuentas de mayor
         if ($nivel_detalle === 'mayor') {
@@ -2067,10 +2128,12 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas según los filtros
-        $query = SaldosReportes::where('team_id', $team_id);
+        $query = SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo);
 
         // Filtrar por nivel
         if ($nivel_detalle === 'mayor') {
@@ -2224,7 +2287,7 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
         $spreadsheet = new Spreadsheet();
 
         // 1. Balanza de Comprobación
@@ -2435,7 +2498,7 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener saldos por categoría
         $activo_circulante = $this->obtenerSaldosCategoria($team_id, '101', '119');
@@ -2702,7 +2765,7 @@ class ReportesNIFController extends Controller
 
         app(ReportesController::class)->ContabilizaReporte($ejercicio, $periodo, $team_id);
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener ingresos y gastos
         $ingresos = $this->obtenerSaldosCategoria($team_id, '401', '499');
@@ -2911,7 +2974,7 @@ class ReportesNIFController extends Controller
         $periodo_fin = $request->periodo_fin;
         $ejercicio_fin = $request->ejercicio_fin;
 
-        $empresa = DB::table('teams')->where('id', $team_id)->first();
+        $empresa = \App\Models\Team::find($team_id);
 
         // Obtener cuentas en el rango
         $cuentas_query = DB::table('cat_cuentas')

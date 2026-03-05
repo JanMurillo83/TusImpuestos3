@@ -157,6 +157,8 @@ class VerificarBalanceGeneral extends Command
         $cuentas = DB::table('saldos_reportes')
             ->where('nivel', 1)
             ->where('team_id', $teamId)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
             ->whereRaw('(anterior + cargos + abonos) != 0')
             ->get();
 

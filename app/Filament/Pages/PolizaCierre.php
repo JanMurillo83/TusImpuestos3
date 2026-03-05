@@ -87,7 +87,8 @@ class PolizaCierre extends Page implements HasForms
                             ->options(function () {
                                 $team_id = Filament::getTenant()->id;
                                 return CatCuentas::where('team_id', $team_id)
-                                    ->where('tipo', 3) // Capital
+                                    ->where('codigo', 'like', '3%')
+                                    ->where('tipo', 'D')
                                     ->pluck('nombre', 'codigo')
                                     ->toArray();
                             })

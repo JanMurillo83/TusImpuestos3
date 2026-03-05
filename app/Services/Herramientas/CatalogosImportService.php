@@ -315,6 +315,8 @@ class CatalogosImportService
     private function normalizeHeader(mixed $header): string
     {
         $header = trim((string) $header);
+        // Remove UTF-8 BOM if present (common in CSV exports).
+        $header = preg_replace('/^\xEF\xBB\xBF/', '', $header);
         if ($header === '') {
             return '';
         }

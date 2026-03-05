@@ -168,10 +168,12 @@ class RecontabilizarSaldos extends Page implements HasForms
                     // Recalcular cada cuenta
                     foreach ($cuentasAfectadas as $cuenta) {
                         try {
-                            // Limpiar saldo existente
+                            // Limpiar saldo existente para este periodo y ejercicio específico
                             DB::table('saldos_reportes')
                                 ->where('team_id', $team->id)
                                 ->where('codigo', $cuenta->codigo)
+                                ->where('ejercicio', $ejProc)
+                                ->where('periodo', $perProc)
                                 ->delete();
 
                             // Recalcular desde auxiliares

@@ -4,7 +4,7 @@
     <?php
         use \Illuminate\Support\Facades\DB;
         use Carbon\Carbon;
-        $empresa = DB::table('teams')->where('id', $team)->first();
+        $empresa = \App\Models\Team::find($team);
         $q = DB::table('facturas')->where('team_id', $team);
         if (!empty($fecha_inicio)) {
             $q->whereDate('fecha', '>=', $fecha_inicio);

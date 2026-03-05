@@ -116,8 +116,8 @@ class SaldosAutoCorrection
      */
     protected static function detectInconsistentBalances(?int $team_id = null): array
     {
-        // Obtener teams con sus ejercicio/periodo actuales
-        $teams = DB::table('teams')
+        // Obtener teams con sus ejercicio/periodo actuales con Eloquent para respetar sesión
+        $teams = \App\Models\Team::query()
             ->select('id', 'ejercicio', 'periodo')
             ->when($team_id, fn($q) => $q->where('id', $team_id))
             ->get();
@@ -129,8 +129,8 @@ class SaldosAutoCorrection
                 SELECT
                     sr.team_id,
                     sr.codigo,
-                    ? as ejercicio,
-                    ? as periodo,
+                    sr.ejercicio,
+                    sr.periodo,
                     sr.final as saldo_actual,
                     COALESCE(SUM(a.cargo - a.abono), 0) as saldo_correcto,
                     ABS(sr.final - COALESCE(SUM(a.cargo - a.abono), 0)) as diferencia
@@ -138,21 +138,19 @@ class SaldosAutoCorrection
                 LEFT JOIN auxiliares a ON
                     a.team_id = sr.team_id AND
                     a.codigo = sr.codigo AND
-                    a.a_ejercicio = ? AND
-                    a.a_periodo = ?
-                WHERE sr.team_id = ?
-                GROUP BY sr.team_id, sr.codigo, sr.final
+                    a.a_ejercicio = sr.ejercicio AND
+                    a.a_periodo = sr.periodo
+                WHERE sr.team_id = ? AND sr.ejercicio = ? AND sr.periodo = ?
+                GROUP BY sr.team_id, sr.codigo, sr.ejercicio, sr.periodo, sr.final
                 HAVING ABS(diferencia) > 0.01
                 ORDER BY diferencia DESC
                 LIMIT 20
             ";
 
             $results = DB::select($query, [
+                $team->id,
                 $team->ejercicio,
-                $team->periodo,
-                $team->ejercicio,
-                $team->periodo,
-                $team->id
+                $team->periodo
             ]);
 
             $inconsistencies = array_merge($inconsistencies, $results);
@@ -166,8 +164,8 @@ class SaldosAutoCorrection
      */
     public static function fixAccountsWithoutMovements(?int $team_id = null, bool $dryRun = false): array
     {
-        // Obtener teams con sus ejercicio/periodo actuales
-        $teams = DB::table('teams')
+        // Obtener teams con sus ejercicio/periodo actuales con Eloquent para respetar sesión
+        $teams = \App\Models\Team::query()
             ->select('id', 'ejercicio', 'periodo')
             ->when($team_id, fn($q) => $q->where('id', $team_id))
             ->get();
@@ -177,15 +175,17 @@ class SaldosAutoCorrection
         foreach ($teams as $team) {
             $query = DB::table('saldos_reportes as sr')
                 ->select('sr.id', 'sr.team_id', 'sr.codigo', 'sr.final')
-                ->leftJoin('auxiliares as a', function($join) use ($team) {
+                ->leftJoin('auxiliares as a', function($join) {
                     $join->on('a.team_id', '=', 'sr.team_id')
                          ->on('a.codigo', '=', 'sr.codigo')
-                         ->where('a.a_ejercicio', '=', $team->ejercicio)
-                         ->where('a.a_periodo', '=', $team->periodo);
+                         ->on('a.a_ejercicio', '=', 'sr.ejercicio')
+                         ->on('a.a_periodo', '=', 'sr.periodo');
                 })
                 ->whereNull('a.id')
                 ->where('sr.final', '!=', 0)
-                ->where('sr.team_id', $team->id);
+                ->where('sr.team_id', $team->id)
+                ->where('sr.ejercicio', $team->ejercicio)
+                ->where('sr.periodo', $team->periodo);
 
             $affected = $query->count();
             $totalAffected += $affected;
@@ -228,9 +228,9 @@ class SaldosAutoCorrection
 
             foreach ($parentAccounts as $account) {
                 try {
-                    // Obtener ejercicio/periodo del team
-                    $team = DB::table('teams')
-                        ->select('ejercicio', 'periodo')
+                    // Obtener ejercicio/periodo del team con Eloquent para respetar sesión
+                    $team = \App\Models\Team::query()
+                        ->select('id', 'ejercicio', 'periodo')
                         ->where('id', $account->team_id)
                         ->first();
 
@@ -325,8 +325,8 @@ class SaldosAutoCorrection
      */
     public static function detectIssues(?int $team_id = null): array
     {
-        // Para accounts_without_movements, iterar por teams
-        $teams = DB::table('teams')
+        // Obtener teams con sus ejercicio/periodo actuales con Eloquent para respetar sesión
+        $teams = \App\Models\Team::query()
             ->select('id', 'ejercicio', 'periodo')
             ->when($team_id, fn($q) => $q->where('id', $team_id))
             ->get();
@@ -334,15 +334,17 @@ class SaldosAutoCorrection
         $accountsWithoutMovements = 0;
         foreach ($teams as $team) {
             $count = DB::table('saldos_reportes as sr')
-                ->leftJoin('auxiliares as a', function($join) use ($team) {
+                ->leftJoin('auxiliares as a', function($join) {
                     $join->on('a.team_id', '=', 'sr.team_id')
                          ->on('a.codigo', '=', 'sr.codigo')
-                         ->where('a.a_ejercicio', '=', $team->ejercicio)
-                         ->where('a.a_periodo', '=', $team->periodo);
+                         ->on('a.a_ejercicio', '=', 'sr.ejercicio')
+                         ->on('a.a_periodo', '=', 'sr.periodo');
                 })
                 ->whereNull('a.id')
                 ->where('sr.final', '!=', 0)
                 ->where('sr.team_id', $team->id)
+                ->where('sr.ejercicio', $team->ejercicio)
+                ->where('sr.periodo', $team->periodo)
                 ->count();
 
             $accountsWithoutMovements += $count;

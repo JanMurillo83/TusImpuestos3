@@ -1,7 +1,7 @@
 <?php
 use \Illuminate\Support\Facades\DB;
 use \App\Models\SaldosReportes;
-$empresas = DB::table('teams')->where('id',$empresa)->get()[0];
+$empresas = \App\Models\Team::find($empresa);
 $cuentas = SaldosReportes::where('team_id',$empresa)->orderBy('codigo')->get();
 $fecha = \Carbon\Carbon::now();
 $saldo1 = 0;

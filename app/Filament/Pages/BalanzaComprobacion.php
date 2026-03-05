@@ -2,11 +2,16 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\BalanzaExport;
+use App\Http\Controllers\ReportesController;
+use App\Models\SaldosReportes;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Actions\Action;
 use Illuminate\Support\Facades\DB;
 
 class BalanzaComprobacion extends Page implements HasForms
@@ -39,6 +44,53 @@ class BalanzaComprobacion extends Page implements HasForms
         ]);
 
         $this->cargarBalanza();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('export_pdf')
+                ->label('PDF')
+                ->color('danger')
+                ->icon('heroicon-o-document-arrow-down')
+                ->action('exportPdf'),
+            Action::make('export_excel')
+                ->label('Excel')
+                ->color('success')
+                ->icon('heroicon-o-document-arrow-down')
+                ->action('exportExcel'),
+        ];
+    }
+
+    public function exportPdf()
+    {
+        $this->cargarBalanza();
+        $team = Filament::getTenant();
+
+        $data = [
+            'balanza' => $this->balanza,
+            'totales' => $this->totales,
+            'ejercicio' => $this->ejercicio,
+            'periodo' => $this->periodo,
+            'empresa' => $team,
+            'fecha_emision' => now()->format('d/m/Y'),
+        ];
+
+        $pdf = Pdf::loadView('BalanzaNewExport', $data)
+            ->setPaper('letter', 'landscape');
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, "Balanza_{$this->ejercicio}_{$this->periodo}.pdf");
+    }
+
+    public function exportExcel()
+    {
+        $this->cargarBalanza();
+        $team = Filament::getTenant();
+
+        return (new BalanzaExport($team->id, $this->periodo, $this->ejercicio))
+            ->download("Balanza_{$this->ejercicio}_{$this->periodo}.xlsx");
     }
 
     protected function getFormSchema(): array
@@ -92,71 +144,26 @@ class BalanzaComprobacion extends Page implements HasForms
 
         $team = Filament::getTenant();
 
-        // Consulta para obtener la balanza de comprobación
-        $query = "
-            SELECT
-                cc.codigo,
-                cc.nombre as cuenta,
-                cc.naturaleza,
-                CHAR_LENGTH(cc.codigo) - CHAR_LENGTH(REPLACE(cc.codigo, '.', '')) + 1 as nivel,
-                COALESCE(
-                    (SELECT SUM(a.cargo - a.abono)
-                     FROM auxiliares a
-                     WHERE a.team_id = :team_id_anterior
-                     AND a.codigo = cc.codigo
-                     AND a.a_ejercicio = :ejercicio_anterior
-                     AND a.a_periodo < :periodo_anterior
-                    ), 0
-                ) as saldo_anterior,
-                COALESCE(
-                    (SELECT SUM(a.cargo)
-                     FROM auxiliares a
-                     WHERE a.team_id = :team_id_periodo
-                     AND a.codigo = cc.codigo
-                     AND a.a_ejercicio = :ejercicio_periodo
-                     AND a.a_periodo = :periodo_periodo
-                    ), 0
-                ) as cargos,
-                COALESCE(
-                    (SELECT SUM(a.abono)
-                     FROM auxiliares a
-                     WHERE a.team_id = :team_id_periodo2
-                     AND a.codigo = cc.codigo
-                     AND a.a_ejercicio = :ejercicio_periodo2
-                     AND a.a_periodo = :periodo_periodo2
-                    ), 0
-                ) as abonos
-            FROM cat_cuentas cc
-            WHERE cc.team_id = :team_id
-            AND EXISTS (
-                SELECT 1 FROM auxiliares a
-                WHERE a.team_id = cc.team_id
-                AND a.codigo = cc.codigo
-                AND a.a_ejercicio = :ejercicio_exists
-                AND a.a_periodo <= :periodo_exists
-            )
-            ORDER BY cc.codigo
-        ";
+        app(ReportesController::class)->ContabilizaReporte($this->ejercicio, $this->periodo, $team->id);
 
-        $results = DB::select($query, [
-            'team_id' => $team->id,
-            'team_id_anterior' => $team->id,
-            'ejercicio_anterior' => $this->ejercicio,
-            'periodo_anterior' => $this->periodo,
-            'team_id_periodo' => $team->id,
-            'ejercicio_periodo' => $this->ejercicio,
-            'periodo_periodo' => $this->periodo,
-            'team_id_periodo2' => $team->id,
-            'ejercicio_periodo2' => $this->ejercicio,
-            'periodo_periodo2' => $this->periodo,
-            'ejercicio_exists' => $this->ejercicio,
-            'periodo_exists' => $this->periodo,
-        ]);
+        $results = SaldosReportes::query()
+            ->where('team_id', $team->id)
+            ->where('ejercicio', $this->ejercicio)
+            ->where('periodo', $this->periodo)
+            ->where(function ($query) {
+                $query->where('anterior', '!=', 0)
+                    ->orWhere('cargos', '!=', 0)
+                    ->orWhere('abonos', '!=', 0)
+                    ->orWhere('final', '!=', 0);
+            })
+            ->orderBy('codigo')
+            ->get();
 
-        // Calcular saldo final y preparar datos
+        // Calcular saldos y preparar datos
         $this->balanza = [];
         $totales = [
-            'saldo_anterior' => 0,
+            'saldo_ant_deudor' => 0,
+            'saldo_ant_acreedor' => 0,
             'cargos' => 0,
             'abonos' => 0,
             'saldo_deudor' => 0,
@@ -164,29 +171,49 @@ class BalanzaComprobacion extends Page implements HasForms
         ];
 
         foreach ($results as $row) {
-            $saldoFinal = $row->saldo_anterior + $row->cargos - $row->abonos;
+            $saldoAnterior = (float)$row->anterior;
+            $saldoFinal = (float)$row->final;
+            $c = (float)$row->cargos;
+            $a = (float)$row->abonos;
+
+            if ($row->naturaleza === 'D') {
+                $saldoAntDeudor = $saldoAnterior > 0 ? $saldoAnterior : 0;
+                $saldoAntAcreedor = $saldoAnterior < 0 ? abs($saldoAnterior) : 0;
+                $saldo_deudor = $saldoFinal > 0 ? $saldoFinal : 0;
+                $saldo_acreedor = $saldoFinal < 0 ? abs($saldoFinal) : 0;
+            } else {
+                $saldoAntDeudor = $saldoAnterior < 0 ? abs($saldoAnterior) : 0;
+                $saldoAntAcreedor = $saldoAnterior > 0 ? $saldoAnterior : 0;
+                $saldo_deudor = $saldoFinal < 0 ? abs($saldoFinal) : 0;
+                $saldo_acreedor = $saldoFinal > 0 ? $saldoFinal : 0;
+            }
 
             $item = [
                 'codigo' => $row->codigo,
                 'cuenta' => $row->cuenta,
                 'naturaleza' => $row->naturaleza,
                 'nivel' => $row->nivel,
-                'saldo_anterior' => (float) $row->saldo_anterior,
-                'cargos' => (float) $row->cargos,
-                'abonos' => (float) $row->abonos,
+                'saldo_ant_deudor' => $saldoAntDeudor,
+                'saldo_ant_acreedor' => $saldoAntAcreedor,
+                'saldo_anterior' => $saldoAnterior,
+                'cargos' => $c,
+                'abonos' => $a,
                 'saldo_final' => $saldoFinal,
-                'saldo_deudor' => $saldoFinal > 0 ? $saldoFinal : 0,
-                'saldo_acreedor' => $saldoFinal < 0 ? abs($saldoFinal) : 0,
+                'saldo_deudor' => $saldo_deudor,
+                'saldo_acreedor' => $saldo_acreedor,
             ];
 
             $this->balanza[] = $item;
 
-            // Acumular totales
-            $totales['saldo_anterior'] += $item['saldo_anterior'];
-            $totales['cargos'] += $item['cargos'];
-            $totales['abonos'] += $item['abonos'];
-            $totales['saldo_deudor'] += $item['saldo_deudor'];
-            $totales['saldo_acreedor'] += $item['saldo_acreedor'];
+            // Acumular totales (solo nivel 1 para evitar duplicidad)
+            if ((int)$row->nivel === 1) {
+                $totales['saldo_ant_deudor'] += $saldoAntDeudor;
+                $totales['saldo_ant_acreedor'] += $saldoAntAcreedor;
+                $totales['cargos'] += $c;
+                $totales['abonos'] += $a;
+                $totales['saldo_deudor'] += $saldo_deudor;
+                $totales['saldo_acreedor'] += $saldo_acreedor;
+            }
         }
 
         $this->totales = $totales;

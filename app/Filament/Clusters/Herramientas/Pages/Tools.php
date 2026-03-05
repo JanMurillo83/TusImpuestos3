@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Herramientas\Pages;
 
 use App\Filament\Clusters\Herramientas;
+use App\Filament\Clusters\Herramientas\Pages\PolizasDescuadradas;
 use App\Models\Admincuentaspagar;
 use App\Models\CatCuentas;
 use App\Models\ContaPeriodos;
@@ -81,6 +82,13 @@ class Tools extends Page implements HasForms, HasActions
     {
         return $form
             ->schema([
+                Actions::make([
+                    Actions\Action::make('polizasDescuadradas')
+                        ->label('Ver Pólizas Descuadradas')
+                        ->icon('heroicon-o-exclamation-triangle')
+                        ->color('warning')
+                        ->url(PolizasDescuadradas::getUrl()),
+                ]),
                 Actions::make([
                     Actions\Action::make('importarCatalogos')
                         ->label('Importar catálogos (Inventario / Clientes / Proveedores)')

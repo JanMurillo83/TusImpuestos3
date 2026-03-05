@@ -110,14 +110,14 @@ class SaldosIntelligence
     /**
      * Precarga datos de dashboard/indicadores
      *
-     * Nota: saldos_reportes no tiene ejercicio/periodo, usa el del team actual
+     * Nota: saldos_reportes ahora tiene ejercicio/periodo para aislamiento por usuario
      */
     protected static function preloadDashboardData(object $pattern): int
     {
         $cacheKey = self::buildCacheKey($pattern);
 
-        // Verificar que el team tenga el ejercicio/periodo del patrón
-        $team = DB::table('teams')
+        // Verificar que el team tenga el ejercicio/periodo del patrón con Eloquent para respetar sesión si existe
+        $team = \App\Models\Team::query()
             ->where('id', $pattern->team_id)
             ->where('ejercicio', $pattern->ejercicio)
             ->where('periodo', $pattern->periodo)
@@ -130,6 +130,8 @@ class SaldosIntelligence
         // Obtener indicadores principales
         $data = DB::table('saldos_reportes')
             ->where('team_id', $pattern->team_id)
+            ->where('ejercicio', $pattern->ejercicio)
+            ->where('periodo', $pattern->periodo)
             ->whereIn('codigo', ['10510100', '20510100', '40100000', '50100000']) // Cuentas principales
             ->get();
 
@@ -148,8 +150,8 @@ class SaldosIntelligence
     {
         $cacheKey = self::buildCacheKey($pattern);
 
-        // Verificar que el team tenga el ejercicio/periodo del patrón
-        $team = DB::table('teams')
+        // Verificar que el team tenga el ejercicio/periodo del patrón con Eloquent para respetar sesión si existe
+        $team = \App\Models\Team::query()
             ->where('id', $pattern->team_id)
             ->where('ejercicio', $pattern->ejercicio)
             ->where('periodo', $pattern->periodo)
@@ -161,6 +163,8 @@ class SaldosIntelligence
 
         $data = DB::table('saldos_reportes')
             ->where('team_id', $pattern->team_id)
+            ->where('ejercicio', $pattern->ejercicio)
+            ->where('periodo', $pattern->periodo)
             ->get();
 
         if ($data->isNotEmpty()) {
@@ -178,8 +182,8 @@ class SaldosIntelligence
     {
         $cacheKey = self::buildCacheKey($pattern);
 
-        // Verificar que el team tenga el ejercicio/periodo del patrón
-        $team = DB::table('teams')
+        // Verificar que el team tenga el ejercicio/periodo del patrón con Eloquent para respetar sesión si existe
+        $team = \App\Models\Team::query()
             ->where('id', $pattern->team_id)
             ->where('ejercicio', $pattern->ejercicio)
             ->where('periodo', $pattern->periodo)
@@ -191,6 +195,8 @@ class SaldosIntelligence
 
         $data = DB::table('saldos_reportes')
             ->where('team_id', $pattern->team_id)
+            ->where('ejercicio', $pattern->ejercicio)
+            ->where('periodo', $pattern->periodo)
             ->where('codigo', $pattern->resource_id)
             ->first();
 

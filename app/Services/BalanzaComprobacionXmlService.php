@@ -13,11 +13,17 @@ class BalanzaComprobacionXmlService
         $rfc = $team->rfc ?? '';
 
         // Obtener balanza de comprobación
-        $balanza = DB::table('reportes')
+        $balanza = DB::table('saldos_reportes')
             ->where('team_id', $empresa)
             ->where('ejercicio', $ejercicio)
             ->where('periodo', $periodo)
-            ->orderBy('cuenta')
+            ->where(function ($query) {
+                $query->where('anterior', '!=', 0)
+                    ->orWhere('cargos', '!=', 0)
+                    ->orWhere('abonos', '!=', 0)
+                    ->orWhere('final', '!=', 0);
+            })
+            ->orderBy('codigo')
             ->get();
 
         // Crear el XML
@@ -53,12 +59,12 @@ class BalanzaComprobacionXmlService
         $totalHaberFinal = 0;
 
         foreach ($balanza as $cuenta) {
-            $totalDebeInicial += floatval($cuenta->saldo_ini_d ?? 0);
-            $totalHaberInicial += floatval($cuenta->saldo_ini_a ?? 0);
+            $totalDebeInicial += floatval($cuenta->anterior ?? 0);
+            $totalHaberInicial += 0;
             $totalDebe += floatval($cuenta->cargos ?? 0);
             $totalHaber += floatval($cuenta->abonos ?? 0);
-            $totalDebeFinal += floatval($cuenta->saldo_fin_d ?? 0);
-            $totalHaberFinal += floatval($cuenta->saldo_fin_a ?? 0);
+            $totalDebeFinal += floatval($cuenta->final ?? 0);
+            $totalHaberFinal += 0;
         }
 
         // Agregar cuentas
@@ -66,11 +72,11 @@ class BalanzaComprobacionXmlService
 
         foreach ($balanza as $cuenta) {
             $ctaElement = $xml->createElement('BCE:Cta');
-            $ctaElement->setAttribute('NumCta', $cuenta->cuenta);
-            $ctaElement->setAttribute('SaldoInicial', number_format($cuenta->saldo_inicial ?? 0, 2, '.', ''));
+            $ctaElement->setAttribute('NumCta', $cuenta->codigo ?? $cuenta->cuenta);
+            $ctaElement->setAttribute('SaldoInicial', number_format($cuenta->anterior ?? 0, 2, '.', ''));
             $ctaElement->setAttribute('Debe', number_format($cuenta->cargos ?? 0, 2, '.', ''));
             $ctaElement->setAttribute('Haber', number_format($cuenta->abonos ?? 0, 2, '.', ''));
-            $ctaElement->setAttribute('SaldoFinal', number_format($cuenta->saldo_final ?? 0, 2, '.', ''));
+            $ctaElement->setAttribute('SaldoFinal', number_format($cuenta->final ?? 0, 2, '.', ''));
 
             $cuentasElement->appendChild($ctaElement);
         }

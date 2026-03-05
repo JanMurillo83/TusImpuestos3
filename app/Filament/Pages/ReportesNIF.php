@@ -22,9 +22,9 @@ class ReportesNIF extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
     protected static ?string $navigationGroup = 'Reportes';
-    protected static ?string $title = 'Reportes NIF';
-    protected static ?string $navigationLabel = 'Reportes NIF (Normas)';
-    protected static ?string $pluralLabel = 'Reportes conforme a NIF';
+    protected static ?string $title = 'Reportes Contables';
+    protected static ?string $navigationLabel = 'Reportes Contables';
+    protected static ?string $pluralLabel = 'Reportes Contables';
     protected static string $view = 'filament.pages.reportes-nif';
     protected static ?int $navigationSort = 2;
 

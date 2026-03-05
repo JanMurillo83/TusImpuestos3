@@ -9,6 +9,7 @@ use App\Models\Auxiliares;
 use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\ContaPeriodos;
+use App\Models\NominaConceptoCuenta;
 use App\Models\Terceros;
 use Asmit\ResizedColumn\HasResizableColumn;
 use Awcodes\TableRepeater\Components\TableRepeater;
@@ -494,8 +495,6 @@ class cfdieo extends Page implements HasForms, HasTable
         $rfc_emi = $record['Emisor_Rfc'];
         $nom_rec = $record['Receptor_Nombre'];
         $nom_emi = $record['Emisor_Nombre'];
-        $subtotal = $record['SubTotal'];
-        $iva = $record['TotalImpuestosTrasladados'];
         $total = $record['Total'];
         $tipoc = $record['TipoCambio'];
         $metodo = $record['MetodoPago'];
@@ -510,6 +509,18 @@ class cfdieo extends Page implements HasForms, HasTable
         $forma = 'CXC';
         if($tipoxml == 'Emitidos'&&$tipocom == 'N')
         {
+            $xml_content = $record->content;
+            $cfdi = Cfdi::newFromString($xml_content);
+            $comp = $cfdi->getQuickReader();
+            $complemento = $comp->Complemento;
+            $nomina = $complemento->Nomina;
+            $percepciones = $nomina->Percepciones;
+            $otros_pagos = $nomina->OtrosPagos;
+            $deducciones = $nomina->Deducciones;
+            $detalle = [];
+            $cargos = 0;
+            $abonos = 0;
+
             $existe = CatCuentas::where('nombre',$nom_rec)->where('acumula','10501000')->where('team_id',Filament::getTenant()->id)->first();
             if($existe)
             {
@@ -540,16 +551,131 @@ class cfdieo extends Page implements HasForms, HasTable
                 $ctaclie = $nuecta;
             }
             $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PV')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
-            Almacencfdis::where('id',$record['id'])->update([
-                'metodo'=>'Bancario'
-            ]);
+            $conceptoQuery = function(string $tipo) {
+                return NominaConceptoCuenta::with('catCuenta')
+                    ->where('team_id', Filament::getTenant()->id)
+                    ->where('tipo', $tipo)
+                    ->where('activo', true);
+            };
+            foreach($percepciones() as $percepcion){
+                $tipo_sat = $percepcion['TipoPercepcion'] ?? null;
+                $clave = $percepcion['Clave'] ?? null;
+                $concepto = $conceptoQuery('PERCEPCION')->where('codigo_sat', $tipo_sat)->first();
+                if(!$concepto && $clave){
+                    $concepto = $conceptoQuery('PERCEPCION')->where('clave', $clave)->first();
+                }
+
+                if(!$concepto){
+                    Notification::make()
+                        ->title('Contabilizar')
+                        ->body('Falta cuenta contable para PERCEPCION '.$tipo_sat)
+                        ->warning()
+                        ->send();
+                    return;
+                }
+
+                $importe = floatval($percepcion['ImporteGravado']) + floatval($percepcion['ImporteExento']);
+                $cargo = $concepto->naturaleza === 'D' ? $importe : 0;
+                $abono = $concepto->naturaleza === 'A' ? $importe : 0;
+                $detalle[] = [
+                    'codigo' => $concepto->catCuenta->codigo,
+                    'cuenta' => $concepto->catCuenta->nombre,
+                    'concepto' => $percepcion['Concepto'],
+                    'cargo' => $cargo,
+                    'abono' => $abono,
+                ];
+                $cargos += $cargo;
+                $abonos += $abono;
+            }
+
+            foreach($otros_pagos() as $otropago){
+                $tipo_sat = $otropago['TipoOtroPago'] ?? null;
+                $clave = $otropago['Clave'] ?? null;
+                $concepto = $conceptoQuery('OTRO_PAGO')->where('codigo_sat', $tipo_sat)->first();
+                if(!$concepto && $clave){
+                    $concepto = $conceptoQuery('OTRO_PAGO')->where('clave', $clave)->first();
+                }
+
+                if(!$concepto){
+                    Notification::make()
+                        ->title('Contabilizar')
+                        ->body('Falta cuenta contable para OTRO PAGO '.$tipo_sat)
+                        ->warning()
+                        ->send();
+                    return;
+                }
+
+                $importe = floatval($otropago['Importe']);
+                $cargo = $concepto->naturaleza === 'D' ? $importe : 0;
+                $abono = $concepto->naturaleza === 'A' ? $importe : 0;
+                $detalle[] = [
+                    'codigo' => $concepto->catCuenta->codigo,
+                    'cuenta' => $concepto->catCuenta->nombre,
+                    'concepto' => $otropago['Concepto'],
+                    'cargo' => $cargo,
+                    'abono' => $abono,
+                ];
+                $cargos += $cargo;
+                $abonos += $abono;
+            }
+
+            foreach($deducciones() as $deduccion){
+                $tipo_sat = $deduccion['TipoDeduccion'] ?? null;
+                $clave = $deduccion['Clave'] ?? null;
+                $concepto = $conceptoQuery('DEDUCCION')->where('codigo_sat', $tipo_sat)->first();
+                if(!$concepto && $clave){
+                    $concepto = $conceptoQuery('DEDUCCION')->where('clave', $clave)->first();
+                }
+
+                if(!$concepto){
+                    Notification::make()
+                        ->title('Contabilizar')
+                        ->body('Falta cuenta contable para DEDUCCION '.$tipo_sat)
+                        ->warning()
+                        ->send();
+                    return;
+                }
+
+                $importe = floatval($deduccion['Importe']);
+                $cargo = $concepto->naturaleza === 'D' ? $importe : 0;
+                $abono = $concepto->naturaleza === 'A' ? $importe : 0;
+                $detalle[] = [
+                    'codigo' => $concepto->catCuenta->codigo,
+                    'cuenta' => $concepto->catCuenta->nombre,
+                    'concepto' => $deduccion['Concepto'],
+                    'cargo' => $cargo,
+                    'abono' => $abono,
+                ];
+                $cargos += $cargo;
+                $abonos += $abono;
+            }
+
+            // Cuenta por cobrar / banco (neto)
+            $detalle[] = [
+                'codigo' => $ctaclie,
+                'cuenta' => $nom_rec,
+                'concepto' => $nom_rec,
+                'cargo' => 0,
+                'abono' => $total,
+            ];
+            $abonos += $total;
+
+            if(round($cargos, 2) !== round($abonos, 2)){
+                Notification::make()
+                    ->title('Contabilizar')
+                    ->body('La póliza no cuadra. Cargos: '.$cargos.' Abonos: '.$abonos)
+                    ->warning()
+                    ->send();
+                return;
+            }
+
             $poliza = CatPolizas::create([
                 'tipo'=>'PV',
                 'folio'=>$nopoliza,
                 'fecha'=>$cffecha,
                 'concepto'=>$nom_rec,
-                'cargos'=>$total,
-                'abonos'=>$total,
+                'cargos'=>$cargos,
+                'abonos'=>$abonos,
                 'periodo'=>$cfperiodo,
                 'ejercicio'=>$cfejercicio,
                 'referencia'=>$serie.$folio,
@@ -559,55 +685,28 @@ class cfdieo extends Page implements HasForms, HasTable
                 'idcfdi'=>$record->id
             ]);
             $polno = $poliza['id'];
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>$ctaclie,
-                'cuenta'=>$nom_rec,
-                'concepto'=>$nom_rec,
-                'cargo'=>$total,
-                'abono'=>0,
-                'factura'=>$serie.$folio,
-                'nopartida'=>1,
-                'uuid'=>$uuid,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>'40101000',
-                'cuenta'=>'Ventas',
-                'concepto'=>$nom_rec,
-                'cargo'=>0,
-                'abono'=>$subtotal,
-                'factura'=>$serie.$folio,
-                'nopartida'=>2,
-                'uuid'=>$uuid,
-                'team_id'=>Filament::getTenant()->id
-            ]);
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
-            $aux = Auxiliares::create([
-                'cat_polizas_id'=>$polno,
-                'codigo'=>'20901000',
-                'cuenta'=>'IVA trasladado no cobrado',
-                'concepto'=>$nom_rec,
-                'cargo'=>0,
-                'abono'=>$iva,
-                'factura'=>$serie.$folio,
-                'nopartida'=>3,
-                'uuid'=>$uuid,
-                'team_id'=>Filament::getTenant()->id
-            ]);
 
-            DB::table('auxiliares_cat_polizas')->insert([
-                'auxiliares_id'=>$aux['id'],
-                'cat_polizas_id'=>$polno
-            ]);
+            $nopartida = 1;
+            foreach($detalle as $partida){
+                $aux = Auxiliares::create([
+                    'cat_polizas_id'=>$polno,
+                    'codigo'=>$partida['codigo'],
+                    'cuenta'=>$partida['cuenta'],
+                    'concepto'=>$partida['concepto'],
+                    'cargo'=>$partida['cargo'],
+                    'abono'=>$partida['abono'],
+                    'factura'=>$serie.$folio,
+                    'nopartida'=>$nopartida,
+                    'uuid'=>$uuid,
+                    'team_id'=>Filament::getTenant()->id
+                ]);
+                DB::table('auxiliares_cat_polizas')->insert([
+                    'auxiliares_id'=>$aux['id'],
+                    'cat_polizas_id'=>$polno
+                ]);
+                $nopartida++;
+            }
+
             DB::table('almacencfdis')->where('id',$record->id)->update([
                 'used'=> 'SI',
                 'metodo'=>$forma

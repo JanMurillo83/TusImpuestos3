@@ -80,13 +80,17 @@ class PolizasDescuadradas extends Page implements HasTable
                             })
                             ->selectRaw('COUNT(*)'),
                     ])
-                    ->whereRaw('
-                        ROUND(COALESCE(cat_polizas.cargos, 0), 2) != ROUND(COALESCE(cat_polizas.abonos, 0), 2)
-                        OR ROUND(COALESCE(sum_cargos, 0), 2) != ROUND(COALESCE(sum_abonos, 0), 2)
-                        OR ROUND(COALESCE(cat_polizas.cargos, 0), 2) != ROUND(COALESCE(sum_cargos, 0), 2)
-                        OR ROUND(COALESCE(cat_polizas.abonos, 0), 2) != ROUND(COALESCE(sum_abonos, 0), 2)
-                        OR invalid_accounts_count > 0
-                    ')
+                    ->where(function ($query) {
+                        $sumCargos = '(select SUM(COALESCE(cargo, 0)) from `auxiliares` where `cat_polizas_id` = `cat_polizas`.`id`)';
+                        $sumAbonos = '(select SUM(COALESCE(abono, 0)) from `auxiliares` where `cat_polizas_id` = `cat_polizas`.`id`)';
+                        $invalidAccounts = '(select COUNT(*) from `auxiliares` where `cat_polizas_id` = `cat_polizas`.`id` and (`codigo` is null or `codigo` = \'\' or not exists (select 1 from `cat_cuentas` where `cat_cuentas`.`codigo` = `auxiliares`.`codigo` and `cat_cuentas`.`team_id` = `cat_polizas`.`team_id`)))';
+
+                        $query->whereRaw('ROUND(COALESCE(cat_polizas.cargos, 0), 2) != ROUND(COALESCE(cat_polizas.abonos, 0), 2)')
+                            ->orWhereRaw("ROUND(COALESCE($sumCargos, 0), 2) != ROUND(COALESCE($sumAbonos, 0), 2)")
+                            ->orWhereRaw("ROUND(COALESCE(cat_polizas.cargos, 0), 2) != ROUND(COALESCE($sumCargos, 0), 2)")
+                            ->orWhereRaw("ROUND(COALESCE(cat_polizas.abonos, 0), 2) != ROUND(COALESCE($sumAbonos, 0), 2)")
+                            ->orWhereRaw("$invalidAccounts > 0");
+                    })
             )
             ->columns([
                 TextColumn::make('ejercicio')

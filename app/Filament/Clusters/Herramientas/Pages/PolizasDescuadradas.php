@@ -80,6 +80,7 @@ class PolizasDescuadradas extends Page implements HasTable
                             })
                             ->selectRaw('COUNT(*)'),
                     ])
+                    ->groupBy('cat_polizas.id')
                     ->havingRaw('
                         ROUND(COALESCE(cat_polizas.cargos, 0), 2) != ROUND(COALESCE(cat_polizas.abonos, 0), 2)
                         OR ROUND(COALESCE(sum_cargos, 0), 2) != ROUND(COALESCE(sum_abonos, 0), 2)

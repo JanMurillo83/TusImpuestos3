@@ -217,15 +217,14 @@
                     // Obtener naturaleza
                     $naturaleza = $cuenta->naturaleza ?? 'D';
 
-                    // Saldos y movimientos
-                    // Para cuentas acreedoras (A), invertir el signo de los saldos para que la balanza cuadre
-                    $multiplicador = ($naturaleza == 'A') ? -1 : 1;
+                    // Saldos ya consideran la naturaleza (D/A). Negativo = saldo contrario a la naturaleza.
+                    $saldo_inicial = $cuenta->anterior ?? 0;
+                    $saldo_final = $cuenta->final ?? 0;
 
-                    $saldo_inicial_raw = $cuenta->anterior ?? 0;
-                    $saldo_final_raw = $cuenta->final ?? 0;
-
-                    $saldo_inicial = $saldo_inicial_raw * $multiplicador;
-                    $saldo_final = $saldo_final_raw * $multiplicador;
+                    // Para el total de saldos, aplicar lógica por naturaleza para cuadrar la balanza.
+                    $multiplicador_totales = ($naturaleza == 'A') ? -1 : 1;
+                    $saldo_inicial_total = $saldo_inicial * $multiplicador_totales;
+                    $saldo_final_total = $saldo_final * $multiplicador_totales;
 
                     $cargos = $cuenta->cargos ?? 0;
                     $abonos = $cuenta->abonos ?? 0;
@@ -236,20 +235,20 @@
 
                     // Acumular totales SOLO para cuentas de mayor (nivel 1)
                     if ($nivel == 1) {
-                        $total_inicial += $saldo_inicial;
+                        $total_inicial += $saldo_inicial_total;
                         $total_cargos += $cargos;
                         $total_abonos += $abonos;
-                        $total_final += $saldo_final;
+                        $total_final += $saldo_final_total;
                     }
                 @endphp
 
                 <tr class="{{ $clase_nivel }}">
                     <td class="codigo">{{ $cuenta->codigo ?? '' }}</td>
                     <td class="cuenta">{{ $cuenta->cuenta ?? $cuenta->nombre ?? '' }}</td>
-                    <td class="numero">{{ $saldo_inicial != 0 ? number_format($saldo_inicial, 2) : '' }}</td>
-                    <td class="numero">{{ $cargos > 0 ? number_format($cargos, 2) : '' }}</td>
-                    <td class="numero">{{ $abonos > 0 ? number_format($abonos, 2) : '' }}</td>
-                    <td class="numero">{{ $saldo_final != 0 ? number_format($saldo_final, 2) : '' }}</td>
+                    <td class="numero">{{ number_format($saldo_inicial, 2) }}</td>
+                    <td class="numero">{{ number_format($cargos, 2) }}</td>
+                    <td class="numero">{{ number_format($abonos, 2) }}</td>
+                    <td class="numero">{{ number_format($saldo_final, 2) }}</td>
                 </tr>
             @endforeach
 
@@ -268,7 +267,7 @@
             Este documento se genera de conformidad con las disposiciones fiscales vigentes en México
         </p>
         <p style="margin-top: 10px;">
-            <strong>Nota:</strong> Los saldos consideran naturalezas contables. Cuentas deudoras (Activo, Gastos) se muestran positivas; Cuentas acreedoras (Pasivo, Capital, Ingresos) se muestran negativas para que la balanza cuadre.
+            <strong>Nota:</strong> Los saldos ya consideran la naturaleza de la cuenta. Un saldo negativo indica saldo contrario (D: abonos mayores; A: cargos mayores).
         </p>
     </div>
 </body>

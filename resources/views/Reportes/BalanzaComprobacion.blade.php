@@ -302,12 +302,12 @@
                 <tr class="{{ $clase_nivel }}">
                     <td class="codigo">{{ $cuenta->codigo ?? '' }}</td>
                     <td class="cuenta">{{ $cuenta->cuenta ?? $cuenta->nombre ?? '' }}</td>
-                    <td class="numero">{{ $inicial_deudor > 0 ? number_format($inicial_deudor, 2) : '' }}</td>
-                    <td class="numero">{{ $inicial_acreedor > 0 ? number_format($inicial_acreedor, 2) : '' }}</td>
-                    <td class="numero">{{ $debe > 0 ? number_format($debe, 2) : '' }}</td>
-                    <td class="numero">{{ $haber > 0 ? number_format($haber, 2) : '' }}</td>
-                    <td class="numero">{{ $final_deudor > 0 ? number_format($final_deudor, 2) : '' }}</td>
-                    <td class="numero">{{ $final_acreedor > 0 ? number_format($final_acreedor, 2) : '' }}</td>
+                    <td class="numero">{{ number_format($inicial_deudor, 2) }}</td>
+                    <td class="numero">{{ number_format($inicial_acreedor, 2) }}</td>
+                    <td class="numero">{{ number_format($debe, 2) }}</td>
+                    <td class="numero">{{ number_format($haber, 2) }}</td>
+                    <td class="numero">{{ number_format($final_deudor, 2) }}</td>
+                    <td class="numero">{{ number_format($final_acreedor, 2) }}</td>
                 </tr>
             @endforeach
 

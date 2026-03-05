@@ -8,7 +8,7 @@
 
             <div class="space-y-2 text-sm">
                 <p>
-                    Esta herramienta detecta cuentas con el <strong>mismo código pero diferentes nombres</strong> en el catálogo de cuentas.
+                    Esta herramienta detecta cuentas con el <strong>mismo código</strong> y también cuentas con la misma <strong>combinación de nombre + acumula</strong> en el catálogo de cuentas de <strong>todas las empresas</strong>.
                 </p>
                 <p class="text-warning-600 dark:text-warning-400 font-semibold">
                     Las cuentas duplicadas pueden causar descuadres en la balanza de comprobación.
@@ -16,6 +16,8 @@
                 <div class="mt-4 p-3 bg-info-50 dark:bg-info-900/20 rounded-lg">
                     <h4 class="font-semibold mb-2">¿Cómo funciona la corrección?</h4>
                     <ol class="list-decimal ml-5 space-y-1">
+                        <li>Para duplicados por <strong>código</strong>: se reasignan códigos.</li>
+                        <li>Para duplicados por <strong>nombre + acumula</strong>: se consolidan auxiliares en la cuenta principal y se elimina la cuenta secundaria.</li>
                         <li>Se mantiene la <strong>primera cuenta</strong> registrada (más antigua)</li>
                         <li>Las cuentas secundarias se reasignan al siguiente código disponible con el mismo prefijo</li>
                         <li>Se actualizan los <strong>auxiliares</strong> que coincidan con código Y nombre</li>
@@ -36,7 +38,11 @@
                 Buscar Duplicadas
             </x-filament::button>
 
-            @if(count($duplicadas) > 0)
+            @php
+                $duplicadasCorregibles = array_filter($duplicadas, fn ($dup) => ($dup['tipo'] ?? 'codigo') === 'codigo');
+                $duplicadasConsolidables = array_filter($duplicadas, fn ($dup) => ($dup['tipo'] ?? 'codigo') === 'nombre_acumula');
+            @endphp
+            @if(count($duplicadasCorregibles) > 0)
                 <x-filament::button
                     color="warning"
                     icon="heroicon-o-wrench-screwdriver"
@@ -45,6 +51,17 @@
                     wire:confirm="¿Está seguro de corregir TODAS las cuentas duplicadas? Esta acción no se puede deshacer."
                 >
                     Corregir Todas
+                </x-filament::button>
+            @endif
+            @if(count($duplicadasConsolidables) > 0)
+                <x-filament::button
+                    color="warning"
+                    icon="heroicon-o-wrench-screwdriver"
+                    wire:click="consolidarTodasNombreAcumula"
+                    wire:loading.attr="disabled"
+                    wire:confirm="¿Está seguro de consolidar TODAS las cuentas duplicadas por nombre + acumula? Se eliminarán las cuentas secundarias."
+                >
+                    Consolidar Todas (Nombre/Acumula)
                 </x-filament::button>
             @endif
         </div>
@@ -61,20 +78,42 @@
                         <x-slot name="heading">
                             <div class="flex items-center justify-between w-full">
                                 <div>
-                                    <span class="font-mono text-lg">{{ $duplicada['codigo'] }}</span>
-                                    <span class="ml-3 text-sm text-gray-500">{{ $duplicada['cantidad'] }} registros duplicados</span>
+                                    @if(($duplicada['tipo'] ?? 'codigo') === 'codigo')
+                                        <span class="font-mono text-lg">{{ $duplicada['codigo'] }}</span>
+                                        <span class="ml-3 text-sm text-gray-500">{{ $duplicada['cantidad'] }} registros duplicados</span>
+                                        <span class="ml-3 text-xs text-gray-500">Empresa: {{ $duplicada['team_name'] }}</span>
+                                    @else
+                                        <span class="text-lg font-semibold">
+                                            {{ $duplicada['nombre'] }} / {{ $duplicada['acumula'] }}
+                                        </span>
+                                        <span class="ml-3 text-sm text-gray-500">{{ $duplicada['cantidad'] }} registros duplicados</span>
+                                        <span class="ml-3 text-xs text-gray-500">Empresa: {{ $duplicada['team_name'] }}</span>
+                                    @endif
                                 </div>
                                 <div>
-                                    <x-filament::button
-                                        color="warning"
-                                        size="sm"
-                                        icon="heroicon-o-wrench"
-                                        wire:click="corregirDuplicada('{{ $duplicada['codigo'] }}')"
-                                        wire:loading.attr="disabled"
-                                        wire:confirm="¿Está seguro de corregir esta cuenta duplicada?"
-                                    >
-                                        Corregir
-                                    </x-filament::button>
+                                    @if(($duplicada['tipo'] ?? 'codigo') === 'codigo')
+                                        <x-filament::button
+                                            color="warning"
+                                            size="sm"
+                                            icon="heroicon-o-wrench"
+                                            wire:click="corregirDuplicada('{{ $duplicada['codigo'] }}', {{ $duplicada['team_id'] }})"
+                                            wire:loading.attr="disabled"
+                                            wire:confirm="¿Está seguro de corregir esta cuenta duplicada?"
+                                        >
+                                            Corregir
+                                        </x-filament::button>
+                                    @else
+                                        <x-filament::button
+                                            color="warning"
+                                            size="sm"
+                                            icon="heroicon-o-wrench"
+                                            wire:click="corregirDuplicadaNombreAcumulaIndex({{ $loop->index }})"
+                                            wire:loading.attr="disabled"
+                                            wire:confirm="¿Está seguro de consolidar estas cuentas? Se eliminarán las cuentas secundarias."
+                                        >
+                                            Consolidar
+                                        </x-filament::button>
+                                    @endif
                                 </div>
                             </div>
                         </x-slot>
@@ -127,16 +166,23 @@
                         </div>
 
                         <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
-                            <p class="font-semibold mb-1">Acción a realizar:</p>
-                            <ul class="list-disc ml-5 space-y-1 text-gray-600 dark:text-gray-400">
-                                <li>La cuenta <strong>"{{ $duplicada['cuentas'][0]['nombre'] }}"</strong> se mantendrá con el código <strong>{{ $duplicada['codigo'] }}</strong></li>
-                                @foreach($duplicada['cuentas'] as $index => $cuenta)
-                                    @if(!$cuenta['es_primera'])
-                                        <li>La cuenta <strong>"{{ $cuenta['nombre'] }}"</strong> se moverá al siguiente código disponible con prefijo <strong>{{ substr($duplicada['codigo'], 0, 5) }}xxx</strong></li>
-                                        <li>Se actualizarán <strong>{{ number_format($cuenta['auxiliares_count']) }} auxiliares</strong> que usen este código Y este nombre</li>
-                                    @endif
-                                @endforeach
-                            </ul>
+                            @if(($duplicada['tipo'] ?? 'codigo') === 'codigo')
+                                <p class="font-semibold mb-1">Acción a realizar:</p>
+                                <ul class="list-disc ml-5 space-y-1 text-gray-600 dark:text-gray-400">
+                                    <li>La cuenta <strong>"{{ $duplicada['cuentas'][0]['nombre'] }}"</strong> se mantendrá con el código <strong>{{ $duplicada['codigo'] }}</strong></li>
+                                    @foreach($duplicada['cuentas'] as $index => $cuenta)
+                                        @if(!$cuenta['es_primera'])
+                                            <li>La cuenta <strong>"{{ $cuenta['nombre'] }}"</strong> se moverá al siguiente código disponible con prefijo <strong>{{ substr($duplicada['codigo'], 0, 5) }}xxx</strong></li>
+                                            <li>Se actualizarán <strong>{{ number_format($cuenta['auxiliares_count']) }} auxiliares</strong> que usen este código Y este nombre</li>
+                                        @endif
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="font-semibold mb-1">Acción recomendada:</p>
+                                <p class="text-gray-600 dark:text-gray-400">
+                                    Se consolidarán auxiliares hacia la cuenta principal y se eliminarán las cuentas secundarias.
+                                </p>
+                            @endif
                         </div>
                     </x-filament::section>
                 @endforeach
@@ -202,7 +248,7 @@
         @endif
 
         {{-- Spinner de carga --}}
-        <div wire:loading wire:target="corregirDuplicada,corregirTodas" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
+        <div wire:loading wire:target="corregirDuplicada,corregirDuplicadaNombreAcumulaIndex,corregirTodas,consolidarTodasNombreAcumula" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl flex items-center space-x-3">
                 <svg class="animate-spin h-8 w-8 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

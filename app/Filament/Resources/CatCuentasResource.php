@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Navigation\NavigationGroup;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class CatCuentasResource extends Resource
 {
@@ -37,8 +38,13 @@ class CatCuentasResource extends Resource
                 Forms\Components\TextInput::make('nombre')
                     ->maxLength(255)
                     ->columnSpan(3),
-                Forms\Components\TextInput::make('acumula')
-                    ->maxLength(255),
+                Forms\Components\Select::make('acumula')
+                    ->searchable()
+                    ->options(
+                        CatCuentas::select(DB::raw('CONCAT(codigo,"-",nombre) as nombre'), 'codigo')
+                            ->where('tipo','A')
+                            ->pluck('nombre','codigo')
+                    ),
                 Forms\Components\Select::make('tipo')
                     ->options([
                         'D'=>'Detalle',

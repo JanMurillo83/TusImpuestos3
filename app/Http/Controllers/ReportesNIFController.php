@@ -1185,12 +1185,20 @@ class ReportesNIFController extends Controller
 
         $empresa = \App\Models\Team::find($team_id);
 
+        $rango_auto = empty($cuenta_inicio) && empty($cuenta_fin);
+        [$cuenta_inicio, $cuenta_fin] = $this->obtenerRangoCuentas($team_id, $cuenta_inicio, $cuenta_fin);
+
         // Obtener cuentas en el rango especificado
         $cuentas_query = DB::table('cat_cuentas')
-            ->where('team_id', $team_id)
-            ->where('codigo', '>=', $cuenta_inicio)
-            ->where('codigo', '<=', $cuenta_fin)
-            ->orderBy('codigo');
+            ->where('team_id', $team_id);
+
+        if (!$rango_auto) {
+            $cuentas_query
+                ->where('codigo', '>=', $cuenta_inicio)
+                ->where('codigo', '<=', $cuenta_fin);
+        }
+
+        $cuentas_query->orderBy('codigo');
 
         $cuentas_data = [];
 
@@ -1209,7 +1217,7 @@ class ReportesNIFController extends Controller
             );
 
             // Solo incluir cuentas con saldo inicial o movimientos
-            if ($saldo_inicial != 0 || count($movimientos) > 0) {
+            if (count($movimientos) > 0) {
                 $cuentas_data[] = (object)[
                     'codigo' => $cuenta->codigo,
                     'nombre' => $cuenta->nombre,
@@ -1316,6 +1324,8 @@ class ReportesNIFController extends Controller
                 'cat_polizas.fecha',
                 'cat_polizas.folio',
                 'cat_polizas.tipo',
+                'cat_polizas.referencia',
+                'auxiliares.factura',
                 'auxiliares.concepto',
                 'auxiliares.cargo',
                 'auxiliares.abono'
@@ -1699,16 +1709,17 @@ class ReportesNIFController extends Controller
 
                 // Para el Estado de Resultados, el acumulado debe ser SOLO del ejercicio actual
                 // No debe incluir años anteriores, aunque existan saldos sin póliza de cierre
-                $acumulado_ejercicio = Auxiliares::where('team_id', $team_id)
-                    ->where('codigo', $cuenta->codigo)
-                    ->where('a_ejercicio', $ejercicio)
-                    ->where('a_periodo', '<=', $periodo)
-                    ->selectRaw('COALESCE(SUM(cargo),0) as total_cargo, COALESCE(SUM(abono),0) as total_abono')
-                    ->first();
+                $acumulado_ejercicio = $this->obtenerMovimientosAcumulados(
+                    $team_id,
+                    $cuenta->codigo,
+                    $ejercicio,
+                    $periodo,
+                    $cuenta->nivel ?? null
+                );
 
                 $cuenta->saldo_acumulado = ($cuenta->naturaleza == 'A')
-                    ? ($acumulado_ejercicio->total_abono - $acumulado_ejercicio->total_cargo)
-                    : ($acumulado_ejercicio->total_cargo - $acumulado_ejercicio->total_abono);
+                    ? ($acumulado_ejercicio->abonos - $acumulado_ejercicio->cargos)
+                    : ($acumulado_ejercicio->cargos - $acumulado_ejercicio->abonos);
 
                 $cuenta->nombre = $cuenta->cuenta;
                 return $cuenta;
@@ -1735,16 +1746,17 @@ class ReportesNIFController extends Controller
                 $cuenta->saldo_periodo = $saldo;
 
                 // Para el Estado de Resultados, el acumulado debe ser SOLO del ejercicio actual
-                $acumulado_ejercicio = Auxiliares::where('team_id', $team_id)
-                    ->where('codigo', $cuenta->codigo)
-                    ->where('a_ejercicio', $ejercicio)
-                    ->where('a_periodo', '<=', $periodo)
-                    ->selectRaw('COALESCE(SUM(cargo),0) as total_cargo, COALESCE(SUM(abono),0) as total_abono')
-                    ->first();
+                $acumulado_ejercicio = $this->obtenerMovimientosAcumulados(
+                    $team_id,
+                    $cuenta->codigo,
+                    $ejercicio,
+                    $periodo,
+                    $cuenta->nivel ?? null
+                );
 
                 $cuenta->saldo_acumulado = ($cuenta->naturaleza == 'A')
-                    ? ($acumulado_ejercicio->total_abono - $acumulado_ejercicio->total_cargo)
-                    : ($acumulado_ejercicio->total_cargo - $acumulado_ejercicio->total_abono);
+                    ? ($acumulado_ejercicio->abonos - $acumulado_ejercicio->cargos)
+                    : ($acumulado_ejercicio->cargos - $acumulado_ejercicio->abonos);
 
                 $cuenta->nombre = $cuenta->cuenta;
                 return $cuenta;
@@ -2055,12 +2067,12 @@ class ReportesNIFController extends Controller
 
             $sheet->setCellValue('A' . $row, $cuenta->codigo);
             $sheet->setCellValue('B' . $row, $cuenta->cuenta);
-            $sheet->setCellValue('C' . $row, $inicial_deudor > 0 ? $inicial_deudor : '');
-            $sheet->setCellValue('D' . $row, $inicial_acreedor > 0 ? $inicial_acreedor : '');
-            $sheet->setCellValue('E' . $row, $debe > 0 ? $debe : '');
-            $sheet->setCellValue('F' . $row, $haber > 0 ? $haber : '');
-            $sheet->setCellValue('G' . $row, $final_deudor > 0 ? $final_deudor : '');
-            $sheet->setCellValue('H' . $row, $final_acreedor > 0 ? $final_acreedor : '');
+            $sheet->setCellValue('C' . $row, $inicial_deudor);
+            $sheet->setCellValue('D' . $row, $inicial_acreedor);
+            $sheet->setCellValue('E' . $row, $debe);
+            $sheet->setCellValue('F' . $row, $haber);
+            $sheet->setCellValue('G' . $row, $final_deudor);
+            $sheet->setCellValue('H' . $row, $final_acreedor);
 
             // Formato de números
             foreach (['C', 'D', 'E', 'F', 'G', 'H'] as $col) {
@@ -2200,15 +2212,9 @@ class ReportesNIFController extends Controller
             // Obtener naturaleza
             $naturaleza = $cuenta->naturaleza ?? 'D';
 
-            // Saldos y movimientos
-            // Para cuentas acreedoras (A), invertir el signo de los saldos para que la balanza cuadre
-            $multiplicador = ($naturaleza == 'A') ? -1 : 1;
-
-            $saldo_inicial_raw = $cuenta->anterior ?? 0;
-            $saldo_final_raw = $cuenta->final ?? 0;
-
-            $saldo_inicial = $saldo_inicial_raw * $multiplicador;
-            $saldo_final = $saldo_final_raw * $multiplicador;
+            // Saldos ya consideran la naturaleza (D/A). Negativo = saldo contrario a la naturaleza.
+            $saldo_inicial = $cuenta->anterior ?? 0;
+            $saldo_final = $cuenta->final ?? 0;
 
             $cargos = $cuenta->cargos ?? 0;
             $abonos = $cuenta->abonos ?? 0;
@@ -2231,12 +2237,17 @@ class ReportesNIFController extends Controller
                 $sheet->getStyle('A' . $row . ':F' . $row)->getFont()->setBold(true);
             }
 
+            // Para el total de saldos, aplicar lógica por naturaleza para cuadrar la balanza.
+            $multiplicador_totales = ($naturaleza == 'A') ? -1 : 1;
+            $saldo_inicial_total = $saldo_inicial * $multiplicador_totales;
+            $saldo_final_total = $saldo_final * $multiplicador_totales;
+
             // Acumular totales solo para nivel 1
             if ($nivel == 1) {
-                $total_inicial += $saldo_inicial;
+                $total_inicial += $saldo_inicial_total;
                 $total_cargos += $cargos;
                 $total_abonos += $abonos;
-                $total_final += $saldo_final;
+                $total_final += $saldo_final_total;
             }
 
             $row++;
@@ -2360,23 +2371,32 @@ class ReportesNIFController extends Controller
         $total_final_acreedor = 0;
 
         foreach ($cuentas as $cuenta) {
+            $naturaleza = $cuenta->naturaleza ?? 'D';
             $saldo_inicial = $cuenta->anterior ?? 0;
-            $inicial_deudor = $saldo_inicial > 0 ? $saldo_inicial : 0;
-            $inicial_acreedor = $saldo_inicial < 0 ? abs($saldo_inicial) : 0;
+            $saldo_final = $cuenta->final ?? 0;
             $debe = $cuenta->cargos ?? 0;
             $haber = $cuenta->abonos ?? 0;
-            $saldo_final = $cuenta->final ?? 0;
-            $final_deudor = $saldo_final > 0 ? $saldo_final : 0;
-            $final_acreedor = $saldo_final < 0 ? abs($saldo_final) : 0;
+
+            if ($naturaleza == 'D') {
+                $inicial_deudor = $saldo_inicial >= 0 ? $saldo_inicial : 0;
+                $inicial_acreedor = $saldo_inicial < 0 ? abs($saldo_inicial) : 0;
+                $final_deudor = $saldo_final >= 0 ? $saldo_final : 0;
+                $final_acreedor = $saldo_final < 0 ? abs($saldo_final) : 0;
+            } else {
+                $inicial_deudor = $saldo_inicial < 0 ? abs($saldo_inicial) : 0;
+                $inicial_acreedor = $saldo_inicial >= 0 ? $saldo_inicial : 0;
+                $final_deudor = $saldo_final < 0 ? abs($saldo_final) : 0;
+                $final_acreedor = $saldo_final >= 0 ? $saldo_final : 0;
+            }
 
             $sheet->setCellValue('A' . $row, $cuenta->codigo);
             $sheet->setCellValue('B' . $row, $cuenta->cuenta);
-            $sheet->setCellValue('C' . $row, $inicial_deudor > 0 ? $inicial_deudor : '');
-            $sheet->setCellValue('D' . $row, $inicial_acreedor > 0 ? $inicial_acreedor : '');
-            $sheet->setCellValue('E' . $row, $debe > 0 ? $debe : '');
-            $sheet->setCellValue('F' . $row, $haber > 0 ? $haber : '');
-            $sheet->setCellValue('G' . $row, $final_deudor > 0 ? $final_deudor : '');
-            $sheet->setCellValue('H' . $row, $final_acreedor > 0 ? $final_acreedor : '');
+            $sheet->setCellValue('C' . $row, $inicial_deudor);
+            $sheet->setCellValue('D' . $row, $inicial_acreedor);
+            $sheet->setCellValue('E' . $row, $debe);
+            $sheet->setCellValue('F' . $row, $haber);
+            $sheet->setCellValue('G' . $row, $final_deudor);
+            $sheet->setCellValue('H' . $row, $final_acreedor);
 
             // Acumular totales SOLO para cuentas de mayor (nivel 1)
             if (($cuenta->nivel ?? 1) == 1) {
@@ -2976,12 +2996,20 @@ class ReportesNIFController extends Controller
 
         $empresa = \App\Models\Team::find($team_id);
 
+        $rango_auto = empty($cuenta_inicio) && empty($cuenta_fin);
+        [$cuenta_inicio, $cuenta_fin] = $this->obtenerRangoCuentas($team_id, $cuenta_inicio, $cuenta_fin);
+
         // Obtener cuentas en el rango
         $cuentas_query = DB::table('cat_cuentas')
-            ->where('team_id', $team_id)
-            ->where('codigo', '>=', $cuenta_inicio)
-            ->where('codigo', '<=', $cuenta_fin)
-            ->orderBy('codigo');
+            ->where('team_id', $team_id);
+
+        if (!$rango_auto) {
+            $cuentas_query
+                ->where('codigo', '>=', $cuenta_inicio)
+                ->where('codigo', '<=', $cuenta_fin);
+        }
+
+        $cuentas_query->orderBy('codigo');
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -2989,19 +3017,19 @@ class ReportesNIFController extends Controller
 
         // Encabezado
         $sheet->setCellValue('A1', $empresa->name);
-        $sheet->mergeCells('A1:G1');
+        $sheet->mergeCells('A1:H1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $sheet->setCellValue('A2', 'REPORTE DE AUXILIARES');
-        $sheet->mergeCells('A2:G2');
+        $sheet->mergeCells('A2:H2');
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         $sheet->setCellValue('A3', 'Del ' . $meses[$periodo_inicio] . ' ' . $ejercicio_inicio . ' al ' . $meses[$periodo_fin] . ' ' . $ejercicio_fin);
-        $sheet->mergeCells('A3:G3');
+        $sheet->mergeCells('A3:H3');
         $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $row = 5;
@@ -3042,10 +3070,10 @@ class ReportesNIFController extends Controller
                 ->orderBy('cat_polizas.folio')
                 ->get();
 
-            if ($auxiliares->count() > 0 || $saldo_inicial != 0) {
+            if ($auxiliares->count() > 0) {
                 // Encabezado de cuenta
                 $sheet->setCellValue('A' . $row, $cuenta->codigo . ' - ' . $cuenta->nombre);
-                $sheet->mergeCells('A' . $row . ':G' . $row);
+                $sheet->mergeCells('A' . $row . ':H' . $row);
                 $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11);
                 $sheet->getStyle('A' . $row)->getFill()
                     ->setFillType(Fill::FILL_SOLID)
@@ -3053,8 +3081,8 @@ class ReportesNIFController extends Controller
                 $row++;
 
                 // Encabezados de columnas
-                $headers = ['Fecha', 'Folio', 'Tipo', 'Concepto', 'Cargo', 'Abono', 'Saldo'];
-                $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+                $headers = ['Fecha', 'Folio', 'Referencia', 'Tipo', 'Concepto', 'Cargo', 'Abono', 'Saldo'];
+                $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
                 foreach ($cols as $index => $col) {
                     $sheet->setCellValue($col . $row, $headers[$index]);
                     $sheet->getStyle($col . $row)->getFont()->setBold(true);
@@ -3065,11 +3093,11 @@ class ReportesNIFController extends Controller
                 $row++;
 
                 // Saldo inicial
-                $sheet->setCellValue('D' . $row, 'SALDO INICIAL');
-                $sheet->setCellValue('G' . $row, $saldo_inicial);
-                $sheet->getStyle('D' . $row)->getFont()->setBold(true);
-                $sheet->getStyle('G' . $row)->getFont()->setBold(true);
-                $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->setCellValue('E' . $row, 'SALDO INICIAL');
+                $sheet->setCellValue('H' . $row, $saldo_inicial);
+                $sheet->getStyle('E' . $row)->getFont()->setBold(true);
+                $sheet->getStyle('H' . $row)->getFont()->setBold(true);
+                $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
                 $saldo_acumulado = $saldo_inicial;
                 $row++;
 
@@ -3081,17 +3109,20 @@ class ReportesNIFController extends Controller
                         $saldo_acumulado += ($auxiliar->abono - $auxiliar->cargo);
                     }
 
-                    $sheet->setCellValue('A' . $row, $auxiliar->fecha ?? '');
-                    $sheet->setCellValue('B' . $row, $auxiliar->poliza_folio ?? '');
-                    $sheet->setCellValue('C' . $row, $auxiliar->tipo ?? '');
-                    $sheet->setCellValue('D' . $row, $auxiliar->concepto ?? '');
-                    $sheet->setCellValue('E' . $row, $auxiliar->cargo);
-                    $sheet->setCellValue('F' . $row, $auxiliar->abono);
-                    $sheet->setCellValue('G' . $row, $saldo_acumulado);
+                    $fecha = $auxiliar->fecha ? Carbon::parse($auxiliar->fecha)->format('d-m-Y') : '';
 
-                    $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet->setCellValue('A' . $row, $fecha);
+                    $sheet->setCellValue('B' . $row, $auxiliar->poliza_folio ?? '');
+                    $sheet->setCellValue('C' . $row, $auxiliar->factura ?? '');
+                    $sheet->setCellValue('D' . $row, $auxiliar->tipo ?? '');
+                    $sheet->setCellValue('E' . $row, $auxiliar->concepto ?? '');
+                    $sheet->setCellValue('F' . $row, $auxiliar->cargo);
+                    $sheet->setCellValue('G' . $row, $auxiliar->abono);
+                    $sheet->setCellValue('H' . $row, $saldo_acumulado);
+
                     $sheet->getStyle('F' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
                     $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
 
                     $row++;
                 }
@@ -3103,11 +3134,12 @@ class ReportesNIFController extends Controller
         // Ajustar anchos
         $sheet->getColumnDimension('A')->setWidth(12);
         $sheet->getColumnDimension('B')->setWidth(10);
-        $sheet->getColumnDimension('C')->setWidth(8);
-        $sheet->getColumnDimension('D')->setWidth(40);
-        $sheet->getColumnDimension('E')->setWidth(15);
+        $sheet->getColumnDimension('C')->setWidth(15);
+        $sheet->getColumnDimension('D')->setWidth(8);
+        $sheet->getColumnDimension('E')->setWidth(40);
         $sheet->getColumnDimension('F')->setWidth(15);
         $sheet->getColumnDimension('G')->setWidth(15);
+        $sheet->getColumnDimension('H')->setWidth(15);
 
         $filename = 'Auxiliares_' . $periodo_inicio . '_' . $ejercicio_inicio . '_' . $periodo_fin . '_' . $ejercicio_fin . '.xlsx';
         $filepath = public_path('TMPCFDI/' . $filename);
@@ -3131,12 +3163,13 @@ class ReportesNIFController extends Controller
 
         foreach ($cuentas as $cuenta) {
             // Sumar todos los movimientos desde inicio del ejercicio hasta el periodo fin
-            $movimientos = Auxiliares::where('team_id', $team_id)
-                ->where('codigo', $cuenta->codigo)
-                ->where('a_ejercicio', $ejercicio)
-                ->where('a_periodo', '<=', $periodo_fin)
-                ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos'))
-                ->first();
+            $movimientos = $this->obtenerMovimientosAcumulados(
+                $team_id,
+                $cuenta->codigo,
+                $ejercicio,
+                $periodo_fin,
+                $cuenta->nivel ?? null
+            );
 
             if ($cuenta->naturaleza == 'D') {
                 $saldo_total += ($movimientos->cargos - $movimientos->abonos);
@@ -3157,17 +3190,64 @@ class ReportesNIFController extends Controller
 
         if (!$cuenta) return 0;
 
-        $movimientos = Auxiliares::where('team_id', $team_id)
-            ->where('codigo', $codigo)
-            ->where('a_ejercicio', $ejercicio)
-            ->where('a_periodo', '<=', $periodo_fin)
-            ->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos'))
-            ->first();
+        $movimientos = $this->obtenerMovimientosAcumulados(
+            $team_id,
+            $codigo,
+            $ejercicio,
+            $periodo_fin
+        );
 
         if ($cuenta->naturaleza == 'D') {
             return $movimientos->cargos - $movimientos->abonos;
         } else {
             return $movimientos->abonos - $movimientos->cargos;
         }
+    }
+
+    private function obtenerRangoCuentas($team_id, $cuenta_inicio = null, $cuenta_fin = null)
+    {
+        $min_codigo = DB::table('cat_cuentas')
+            ->where('team_id', $team_id)
+            ->orderBy('codigo')
+            ->value('codigo');
+
+        $max_codigo = DB::table('cat_cuentas')
+            ->where('team_id', $team_id)
+            ->orderBy('codigo', 'desc')
+            ->value('codigo');
+
+        $inicio = $cuenta_inicio ?: $min_codigo;
+        $fin = $cuenta_fin ?: $max_codigo;
+
+        if ($inicio && $fin && strcmp($inicio, $fin) > 0) {
+            [$inicio, $fin] = [$fin, $inicio];
+        }
+
+        return [$inicio, $fin];
+    }
+
+    private function obtenerMovimientosAcumulados($team_id, $codigo, $ejercicio, $periodo_fin, $nivel = null)
+    {
+        if ($nivel === null) {
+            $nivel = 1;
+            $n2 = intval(substr($codigo, 3, 2));
+            $n3 = intval(substr($codigo, 5, 3));
+            if ($n2 > 0) $nivel++;
+            if ($n3 > 0) $nivel++;
+        }
+
+        $query = Auxiliares::where('team_id', $team_id)
+            ->where('a_ejercicio', $ejercicio)
+            ->where('a_periodo', '<=', $periodo_fin);
+
+        if ($nivel == 1) {
+            $prefijo = substr($codigo, 0, 3);
+            $query->where('codigo', 'like', $prefijo . '%');
+        } else {
+            $query->where('codigo', $codigo);
+        }
+
+        return $query->select(DB::raw('COALESCE(SUM(cargo),0) as cargos, COALESCE(SUM(abono),0) as abonos'))
+            ->first();
     }
 }

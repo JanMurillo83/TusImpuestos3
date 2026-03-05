@@ -103,6 +103,12 @@
             font-family: 'Courier New', monospace;
         }
 
+        .referencia {
+            text-align: center;
+            width: 90px;
+            font-family: 'Courier New', monospace;
+        }
+
         .concepto {
             text-align: left;
             padding-left: 8px;
@@ -169,7 +175,7 @@
         }
 
         .cuenta-section {
-            page-break-inside: avoid;
+            page-break-inside: auto;
             margin-bottom: 20px;
         }
 
@@ -211,7 +217,7 @@
             }
 
             tr {
-                page-break-inside: avoid;
+                page-break-inside: auto;
                 page-break-after: auto;
             }
         }
@@ -255,6 +261,7 @@
                     <tr>
                         <th class="fecha">FECHA</th>
                         <th class="folio">FOLIO</th>
+                        <th class="referencia">REFERENCIA</th>
                         <th class="concepto">CONCEPTO</th>
                         <th class="numero">CARGO</th>
                         <th class="numero">ABONO</th>
@@ -284,8 +291,11 @@
                             }
                         @endphp
                         <tr>
-                            <td class="fecha">{{ $movimiento->fecha ?? '' }}</td>
+                            <td class="fecha">
+                                {{ $movimiento->fecha ? \Carbon\Carbon::parse($movimiento->fecha)->format('d-m-Y') : '' }}
+                            </td>
                             <td class="folio">{{ $movimiento->tipo ?? '' }}-{{ $movimiento->folio ?? '' }}</td>
+                            <td class="referencia">{{ $movimiento->factura ?? '' }}</td>
                             <td class="concepto">{{ $movimiento->concepto ?? '' }}</td>
                             <td class="numero">{{ $cargo > 0 ? number_format($cargo, 2) : '' }}</td>
                             <td class="numero">{{ $abono > 0 ? number_format($abono, 2) : '' }}</td>
@@ -300,7 +310,7 @@
 
                     <!-- Totales por cuenta -->
                     <tr class="totales-cuenta">
-                        <td colspan="3" style="text-align: right;">TOTAL CUENTA {{ $cuenta->codigo }}:</td>
+                        <td colspan="4" style="text-align: right;">TOTAL CUENTA {{ $cuenta->codigo }}:</td>
                         <td class="numero">${{ number_format($total_cuenta_cargo, 2) }}</td>
                         <td class="numero">${{ number_format($total_cuenta_abono, 2) }}</td>
                         <td></td>
@@ -313,9 +323,6 @@
             </div>
         </div>
 
-        @if(!$loop->last)
-            <div class="page-break"></div>
-        @endif
     @endforeach
 
     <!-- Totales globales al final del reporte -->

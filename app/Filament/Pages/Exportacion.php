@@ -422,8 +422,7 @@ class Exportacion extends Page implements HasForms
                                                         ->orderBy('codigo')
                                                         ->pluck(\Illuminate\Support\Facades\DB::raw("CONCAT(codigo, ' - ', nombre)"), 'codigo');
                                                 })
-                                                ->required()
-                                                ->placeholder('Seleccione una cuenta'),
+                                                ->placeholder('Opcional (toma la primera cuenta)'),
 
                                             Select::make('cuenta_fin')
                                                 ->label('Cuenta Final')
@@ -435,8 +434,7 @@ class Exportacion extends Page implements HasForms
                                                         ->orderBy('codigo')
                                                         ->pluck(\Illuminate\Support\Facades\DB::raw("CONCAT(codigo, ' - ', nombre)"), 'codigo');
                                                 })
-                                                ->required()
-                                                ->placeholder('Seleccione una cuenta'),
+                                                ->placeholder('Opcional (toma la última cuenta)'),
                                         ]),
 
                                     \Filament\Forms\Components\Grid::make(2)
@@ -501,10 +499,10 @@ class Exportacion extends Page implements HasForms
 
                                     try {
                                         $controller = new ReportesNIFController();
-                                        $request = request();
-                                        $request->merge([
-                                            'cuenta_inicio' => $data['cuenta_inicio'],
-                                            'cuenta_fin' => $data['cuenta_fin'],
+                                    $request = request();
+                                    $request->merge([
+                                            'cuenta_inicio' => $data['cuenta_inicio'] ?? null,
+                                            'cuenta_fin' => $data['cuenta_fin'] ?? null,
                                             'periodo_inicio' => $data['periodo_inicio'],
                                             'ejercicio_inicio' => $data['ejercicio_inicio'],
                                             'periodo_fin' => $data['periodo_fin'],

@@ -36,6 +36,7 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-gray-50 dark:bg-gray-800">
+                                    <th class="p-2 border dark:border-gray-700">Acciones</th>
                                     <th class="p-2 border dark:border-gray-700">ID Póliza</th>
                                     <th class="p-2 border dark:border-gray-700">Fecha</th>
                                     <th class="p-2 border dark:border-gray-700">Tipo/Folio</th>
@@ -47,6 +48,14 @@
                             <tbody>
                                 @foreach($resultados['polizas_descuadradas'] as $row)
                                     <tr>
+                                        <td class="p-2 border dark:border-gray-700">
+                                            <a
+                                                class="inline-flex items-center gap-1 text-primary-600 hover:text-primary-500 font-semibold"
+                                                href="{{ \App\Filament\Resources\CatPolizasResource::getUrl('edit', ['record' => $row->poliza_id]) }}"
+                                            >
+                                                Corregir
+                                            </a>
+                                        </td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->poliza_id }}</td>
                                         <td class="p-2 border dark:border-gray-700">{{ \Carbon\Carbon::parse($row->fecha)->format('d/m/Y') }}</td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->tipo }}-{{ $row->folio }}</td>
@@ -69,6 +78,7 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-gray-50 dark:bg-gray-800">
+                                    <th class="p-2 border dark:border-gray-700">Acciones</th>
                                     <th class="p-2 border dark:border-gray-700">Póliza</th>
                                     <th class="p-2 border dark:border-gray-700">Periodo</th>
                                     <th class="p-2 border dark:border-gray-700">Ejercicio</th>
@@ -79,6 +89,18 @@
                             <tbody>
                                 @foreach($resultados['movimientos_sin_cuenta'] as $row)
                                     <tr>
+                                        <td class="p-2 border dark:border-gray-700">
+                                            @if(!empty($row->poliza_id))
+                                                <a
+                                                    class="inline-flex items-center gap-1 text-primary-600 hover:text-primary-500 font-semibold"
+                                                    href="{{ \App\Filament\Resources\CatPolizasResource::getUrl('edit', ['record' => $row->poliza_id]) }}"
+                                                >
+                                                    Corregir
+                                                </a>
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->tipo }}-{{ $row->folio }}</td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->periodo }}</td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->ejercicio }}</td>
@@ -210,6 +232,7 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-gray-50 dark:bg-gray-800">
+                                    <th class="p-2 border dark:border-gray-700">Acciones</th>
                                     <th class="p-2 border dark:border-gray-700">ID Mov</th>
                                     <th class="p-2 border dark:border-gray-700">Póliza</th>
                                     <th class="p-2 border dark:border-gray-700">Periodo</th>
@@ -222,6 +245,18 @@
                             <tbody>
                                 @foreach($resultados['importes_invalidos'] as $row)
                                     <tr>
+                                        <td class="p-2 border dark:border-gray-700">
+                                            @if(!empty($row->poliza_id))
+                                                <a
+                                                    class="inline-flex items-center gap-1 text-primary-600 hover:text-primary-500 font-semibold"
+                                                    href="{{ \App\Filament\Resources\CatPolizasResource::getUrl('edit', ['record' => $row->poliza_id]) }}"
+                                                >
+                                                    Corregir
+                                                </a>
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->id }}</td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->tipo }}-{{ $row->folio }}</td>
                                         <td class="p-2 border dark:border-gray-700">{{ $row->periodo }}</td>

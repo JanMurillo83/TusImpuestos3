@@ -87,6 +87,7 @@ class DiagnosticoContable extends Page
             })
             ->join('cat_polizas as p', 'a.cat_polizas_id', '=', 'p.id')
             ->select(
+                'p.id as poliza_id',
                 'p.tipo',
                 'p.folio',
                 'p.periodo',
@@ -177,7 +178,7 @@ class DiagnosticoContable extends Page
     {
         return DB::table('auxiliares as a')
             ->join('cat_polizas as p', 'a.cat_polizas_id', '=', 'p.id')
-            ->select('a.id', 'p.tipo', 'p.folio', 'p.periodo', 'p.ejercicio', 'a.cargo', 'a.abono')
+            ->select('a.id', 'p.id as poliza_id', 'p.tipo', 'p.folio', 'p.periodo', 'p.ejercicio', 'a.cargo', 'a.abono')
             ->where('a.team_id', $teamId)
             ->where(function($query) {
                 $query->where(function($q) {

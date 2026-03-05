@@ -98,12 +98,13 @@ class BalanzaComprobacion extends Page implements HasForms
         $team = Filament::getTenant();
 
         // Obtener ejercicios disponibles
-        $ejercicios = DB::table('auxiliares')
+        /*$ejercicios = DB::table('auxiliares')
             ->where('team_id', $team->id)
             ->distinct('a_ejercicio')
             ->orderBy('a_ejercicio', 'desc')
             ->pluck('a_ejercicio', 'a_ejercicio')
-            ->toArray();
+            ->toArray();*/
+        $ejercicios = [2023=>2023,2024=>2024,2025=>2025,2026=>2026,2027=>2027,2028=>2028];
 
         return [
             Select::make('ejercicio')

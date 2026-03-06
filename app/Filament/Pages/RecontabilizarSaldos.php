@@ -121,7 +121,14 @@ class RecontabilizarSaldos extends Page implements HasForms
 
             // Obtener lista de periodos a procesar
             $periodosAProcesar = $this->obtenerPeriodosAProcesar($team->id, $ejercicio, $periodo);
-
+            DB::table('cat_cuentas')
+                ->where('acumula','10500')
+                ->orWhere('acumula','10501')
+                ->update(['acumula'=>'10501000']);
+            DB::table('cat_cuentas')
+                ->where('acumula','20100')
+                ->orWhere('acumula','20101')
+                ->update(['acumula'=>'20101000']);
             if (empty($periodosAProcesar)) {
                 Notification::make()
                     ->warning()

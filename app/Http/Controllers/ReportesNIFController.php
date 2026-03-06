@@ -1368,16 +1368,16 @@ class ReportesNIFController extends Controller
         $total_ingresos_periodo = $this->calcularTotalPeriodo($ingresos);
         $total_costos_periodo = $this->calcularTotalPeriodo($costos);
         $total_gastos_periodo = $this->calcularTotalPeriodo($gastos_operacion);
-        $total_financiamiento_periodo = $this->calcularTotalPeriodo($financiamiento);
-        $total_otros_periodo = $this->calcularTotalPeriodo($otros_resultados);
+        $total_financiamiento_periodo = $this->calcularTotalFirmado($financiamiento, 'saldo_periodo');
+        $total_otros_periodo = $this->calcularTotalFirmado($otros_resultados, 'saldo_periodo');
         $total_impuestos_periodo = $this->calcularTotalPeriodo($impuestos);
 
         // Calcular totales acumulados
         $total_ingresos_acumulado = $this->calcularTotalAcumulado($ingresos);
         $total_costos_acumulado = $this->calcularTotalAcumulado($costos);
         $total_gastos_acumulado = $this->calcularTotalAcumulado($gastos_operacion);
-        $total_financiamiento_acumulado = $this->calcularTotalAcumulado($financiamiento);
-        $total_otros_acumulado = $this->calcularTotalAcumulado($otros_resultados);
+        $total_financiamiento_acumulado = $this->calcularTotalFirmado($financiamiento, 'saldo_acumulado');
+        $total_otros_acumulado = $this->calcularTotalFirmado($otros_resultados, 'saldo_acumulado');
         $total_impuestos_acumulado = $this->calcularTotalAcumulado($impuestos);
 
         // Calcular utilidades
@@ -1778,6 +1778,14 @@ class ReportesNIFController extends Controller
         return $cuentas->sum('saldo_acumulado');
     }
 
+    private function calcularTotalFirmado($cuentas, string $campoSaldo)
+    {
+        return $cuentas->sum(function ($cuenta) use ($campoSaldo) {
+            $monto = $cuenta->{$campoSaldo} ?? 0;
+            return ($cuenta->naturaleza ?? 'D') === 'A' ? $monto : -$monto;
+        });
+    }
+
     private function calcularResultadoEjercicio($team_id, $periodo, $ejercicio)
     {
         // Usar el campo 'final' que ya está correctamente calculado
@@ -1806,12 +1814,14 @@ class ReportesNIFController extends Controller
             ->sum('final');
 
         // Otros gastos y financiamiento (naturaleza puede variar)
+        // Aplicar signo según naturaleza: A suma, D resta.
         $total_otros = SaldosReportes::where('team_id', $team_id)
             ->where('ejercicio', $ejercicio)
             ->where('periodo', $periodo)
             ->whereRaw("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 7")
             ->where('nivel', 1)
-            ->sum('final');
+            ->selectRaw("SUM(CASE WHEN naturaleza = 'A' THEN final ELSE -final END) as total")
+            ->value('total') ?? 0;
 
         // Impuestos (naturaleza D - deudora)
         $total_impuestos = SaldosReportes::where('team_id', $team_id)
@@ -2527,20 +2537,8 @@ class ReportesNIFController extends Controller
         $pasivo_largo_plazo = $this->obtenerSaldosCategoria($team_id, '220', '299');
         $capital = $this->obtenerSaldosCategoria($team_id, '301', '399');
 
-        // Calcular resultado del ejercicio
-        // Obtener todas las cuentas de resultados
-        $ingresos = $this->obtenerSaldosCategoria($team_id, '401', '499'); // Solo ingresos
-        $costo_ventas = $this->obtenerSaldosCategoria($team_id, '501', '509'); // Costo de ventas
-        $gastos_operacion = $this->obtenerSaldosCategoria($team_id, '510', '599'); // Gastos de operación
-        $otros_ingresos_bg = $this->obtenerSaldosCategoria($team_id, '601', '699'); // Otros ingresos
-        $otros_gastos_bg = $this->obtenerSaldosCategoria($team_id, '701', '799'); // Otros gastos
-
-        // Los ingresos tienen saldo positivo pero son acreedores (naturaleza A)
-        // Los gastos tienen saldo positivo y son deudores (naturaleza D)
-        // Resultado = Ingresos - Gastos
-        $total_ingresos_bg = abs($ingresos->sum('final')) + abs($otros_ingresos_bg->sum('final'));
-        $total_gastos_bg = abs($costo_ventas->sum('final')) + abs($gastos_operacion->sum('final')) + abs($otros_gastos_bg->sum('final'));
-        $resultado_ejercicio = $total_ingresos_bg - $total_gastos_bg;
+        // Calcular resultado del ejercicio con signo por naturaleza
+        $resultado_ejercicio = $this->calcularResultadoEjercicio($team_id, $periodo, $ejercicio);
 
         $total_activo_circulante = $activo_circulante->sum('final');
         $total_activo_no_circulante = $activo_no_circulante->sum('final');
@@ -2803,7 +2801,8 @@ class ReportesNIFController extends Controller
 
         $total_otros_ingresos = abs($otros_ingresos->sum('final'));
         $total_otros_gastos = abs($otros_gastos->sum('final'));
-        $utilidad_neta = $utilidad_operacion + $total_otros_ingresos - $total_otros_gastos;
+        $total_otros_gastos_signed = $this->calcularTotalFirmado($otros_gastos, 'final');
+        $utilidad_neta = $utilidad_operacion + $total_otros_ingresos + $total_otros_gastos_signed;
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -2825,7 +2824,8 @@ class ReportesNIFController extends Controller
 
         $total_otros_ingresos_acum = abs($otros_ingresos_acum);
         $total_otros_gastos_acum = abs($otros_gastos_acum);
-        $utilidad_neta_acum = $utilidad_operacion_acum + $total_otros_ingresos_acum - $total_otros_gastos_acum;
+        $total_otros_gastos_acum_signed = $otros_gastos_acum;
+        $utilidad_neta_acum = $utilidad_operacion_acum + $total_otros_ingresos_acum + $total_otros_gastos_acum_signed;
 
         // Encabezado
         $sheet->setCellValue('A1', $empresa->name);

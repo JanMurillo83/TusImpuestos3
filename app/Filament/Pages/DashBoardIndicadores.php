@@ -81,21 +81,82 @@ class DashBoardIndicadores extends Page
         $periodo = Filament::getTenant()->periodo;
         $periodo_ant = Filament::getTenant()->periodo - 1;
         $ejercicio = Filament::getTenant()->ejercicio;
-        $datos = SaldosReportes::where('team_id',Filament::getTenant()->id)->where('codigo','40100000')->first();
-        $importe = ($datos?->abonos ?? 0) - ($datos?->cargos ?? 0);
-        $importe_a = ($datos?->anterior ?? 0) + ($datos?->abonos ?? 0) - ($datos?->cargos ?? 0);
+        $periodo_ant = max($periodo_ant, 0);
+
+        $sum_periodo = function (int $periodo_calc, string $condicion, bool $signed = false) use ($team_id, $ejercicio) : float {
+            if ($periodo_calc < 1) {
+                return 0.0;
+            }
+            $expr = $signed
+                ? "SUM(CASE WHEN naturaleza = 'A' THEN (abonos - cargos) ELSE -(cargos - abonos) END)"
+                : "SUM(CASE WHEN naturaleza = 'A' THEN (abonos - cargos) ELSE (cargos - abonos) END)";
+            return (float) (SaldosReportes::where('team_id', $team_id)
+                ->where('ejercicio', $ejercicio)
+                ->where('periodo', $periodo_calc)
+                ->where('nivel', 1)
+                ->whereRaw($condicion)
+                ->selectRaw("COALESCE($expr,0) as total")
+                ->value('total') ?? 0);
+        };
+
+        $sum_acum = function (string $condicion, bool $signed = false) use ($team_id, $ejercicio, $periodo) : float {
+            $expr = $signed
+                ? "SUM(CASE WHEN naturaleza = 'A' THEN final ELSE -final END)"
+                : "SUM(final)";
+            return (float) (SaldosReportes::where('team_id', $team_id)
+                ->where('ejercicio', $ejercicio)
+                ->where('periodo', $periodo)
+                ->where('nivel', 1)
+                ->whereRaw($condicion)
+                ->selectRaw("COALESCE($expr,0) as total")
+                ->value('total') ?? 0);
+        };
+
+        $ingresos_periodo = $sum_periodo($periodo, "CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 4");
+        $ingresos_acum = $sum_acum("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 4");
+
+        $costos_periodo = $sum_periodo($periodo, "CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 5");
+        $costos_acum = $sum_acum("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 5");
+
+        $gastos_periodo = $sum_periodo($periodo, "CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 6");
+        $gastos_acum = $sum_acum("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 6");
+
+        $financiamiento_periodo = $sum_periodo($periodo, "CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) BETWEEN 702 AND 703", true);
+        $financiamiento_acum = $sum_acum("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) BETWEEN 702 AND 703", true);
+
+        $otros_periodo = $sum_periodo($periodo, "CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) BETWEEN 700 AND 701", true);
+        $otros_acum = $sum_acum("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) BETWEEN 700 AND 701", true);
+
+        $impuestos_periodo = $sum_periodo($periodo, "CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 8");
+        $impuestos_acum = $sum_acum("CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 8");
+
+        $utilidad_bruta_periodo = $ingresos_periodo - $costos_periodo;
+        $utilidad_operacion_periodo = $utilidad_bruta_periodo - $gastos_periodo;
+        $utilidad_antes_impuestos_periodo = $utilidad_operacion_periodo + $financiamiento_periodo + $otros_periodo;
+        $utilidad_neta_periodo = $utilidad_antes_impuestos_periodo - $impuestos_periodo;
+
+        $utilidad_bruta_acum = $ingresos_acum - $costos_acum;
+        $utilidad_operacion_acum = $utilidad_bruta_acum - $gastos_acum;
+        $utilidad_antes_impuestos_acum = $utilidad_operacion_acum + $financiamiento_acum + $otros_acum;
+        $utilidad_neta_acum = $utilidad_antes_impuestos_acum - $impuestos_acum;
+
         //------------------------------------------------------------------------------------------------------------------------------------------
-        $ventas = floatval($importe);
-        $ventas_anuales = floatval($importe_a);
+        $ventas = floatval($ingresos_periodo);
+        $ventas_anuales = floatval($ingresos_acum);
         //------------------------------------------------------------------------------------------------------------------------------------------
-        $ventas_pa = floatval(app(MainChartsController::class)->GeneraAbonos($team_id,'40100000',$periodo_ant,$ejercicio));
+        $ventas_pa = floatval($sum_periodo($periodo_ant, "CAST(SUBSTR(codigo, 1, 1) AS UNSIGNED) = 4"));
         //------------------------------------------------------------------------------------------------------------------------------------------
         //$cobrar_importe = app(MainChartsController::class)->GetCobrar($team_id);
         //------------------------------------------------------------------------------------------------------------------------------------------
         $ventas_dif = $ventas-$ventas_pa;
         //------------------------------------------------------------------------------------------------------------------------------------------
+        $cobrar_importe = (float) (SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
+            ->where('nivel', 1)
+            ->whereRaw("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) = 105")
+            ->sum('final'));
         $cuentas_x_cobrar = EstadCXC_F::all();
-        $cobrar_importe = $cuentas_x_cobrar->sum('saldo');
         $cuentas_x_cobrar_top3 = EstadCXC_F::orderBy('saldo','desc')->take(3)->get();
         //dd($cuentas_x_cobrar);
         //------------------------------------------------------------------------------------------------------------------------------------------
@@ -123,12 +184,17 @@ class DashBoardIndicadores extends Page
         $vencido_c = array_column($facturas_vencidas, 'saldo');
         $vencido = array_sum($vencido_c);
         //------------------------------------------------------------------------------------------------------------------------------------------
+        $pagar_importe = (float) (SaldosReportes::where('team_id', $team_id)
+            ->where('ejercicio', $ejercicio)
+            ->where('periodo', $periodo)
+            ->where('nivel', 1)
+            ->whereRaw("CAST(SUBSTR(codigo, 1, 3) AS UNSIGNED) = 201")
+            ->sum('final'));
         $cuentas_x_pagar = EstadCXP_F::all();
-        $pagar_importe = $cuentas_x_pagar->sum('saldo');
         $cuentas_x_pagar_top3 = EstadCXP_F::orderBy('saldo','desc')->take(3)->get();
         //------------------------------------------------------------------------------------------------------------------------------------------
-        $utilidad_importe = app(MainChartsController::class)->GetUtiPer($team_id);
-        $utilidad_ejercicio = app(MainChartsController::class)->GetUtiPerEjer($team_id);
+        $utilidad_importe = $utilidad_neta_periodo;
+        $utilidad_ejercicio = $utilidad_neta_acum;
         $impuesto_estimado = floatval($utilidad_ejercicio) * 0.30;
         //------------------------------------------------------------------------------------------------------------------------------------------
         $importe_inventario = (float) Inventario::where('team_id',$team_id)

@@ -101,4 +101,9 @@ class Team extends Model
         return $this->belongsToMany(CuentasPagar::class);
     }
 
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(Pagos::class);
+    }
+
 }

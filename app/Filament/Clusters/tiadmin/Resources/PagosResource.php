@@ -13,6 +13,8 @@ use App\Models\Facturas;
 use App\Models\Mailconfig;
 use App\Models\Pagos;
 use App\Models\ParPagos;
+use Awcodes\TableRepeater\Components\TableRepeater;
+use Awcodes\TableRepeater\Header;
 use Carbon\Carbon;
 use CfdiUtils\Cleaner\Cleaner;
 use Filament\Facades\Filament;
@@ -150,11 +152,19 @@ class PagosResource extends Resource
 
                         ])->columns(6),
                         Forms\Components\Fieldset::make('Pagos')->schema([
-                            Forms\Components\Repeater::make('Partidas')
+                            TableRepeater::make('Partidas')
                                 ->label('Partidas')
                                 ->relationship()
-                                ->collapsible()
-                                ->itemLabel(fn(array $state): ?string => $state['uuidrel'] ?? null)
+                                ->streamlined()
+                                ->headers([
+                                    Header::make('uuidrel')->label('Factura'),
+                                    Header::make('moneda')->label('Moneda'),
+                                    Header::make('saldoant')->label('Saldo Anterior'),
+                                    Header::make('imppagado')->label('Monto del Pago'),
+                                    Header::make('insoluto')->label('Saldo Insoluto'),
+                                    Header::make('equivalencia')->label('Equivalencia'),
+                                    Header::make('parcialidad')->label('Parcialidad'),
+                                ])
                                 ->schema([
                                     Forms\Components\Select::make('uuidrel')
                                         ->label('Factura')
@@ -168,9 +178,9 @@ class PagosResource extends Resource
                                         ->live(onBlur: true)->required()
                                         ->afterStateUpdated(
                                             function (Forms\Get $get, Forms\Set $set) {
-                                                $facturas = Facturas::where('id', $get('uuidrel'))->get();
-                                                //dd($facturas);
-                                                $total = floatval($facturas[0]->pendiente_pago);
+                                                $factura = Facturas::find($get('uuidrel'));
+                                                if (!$factura) return;
+                                                $total = floatval($factura->pendiente_pago);
                                                 $tc = floatval($get('../../tcambio'));
                                                 if($tc == 0) $tc = 1;
                                                 $total_mxn = $total * $tc;
@@ -185,7 +195,7 @@ class PagosResource extends Resource
                                                 $set('montoiva', $iva);
                                                 $set('insoluto', 0);
                                                 $set('tasaiva', 0.16);
-                                                $set('moneda', $facturas[0]->moneda);
+                                                $set('moneda', $factura->moneda);
                                                 $set('equivalencia', $tc);
                                             }
                                         ),
@@ -244,7 +254,7 @@ class PagosResource extends Resource
                                         ->default(0),
                                     Forms\Components\Hidden::make('team_id')
                                         ->default(Filament::getTenant()->id),
-                                ])->columns(7)->columnSpanFull()
+                                ])->columnSpanFull()
                         ])->columnspanfull(),
                 Select::make('tipo_compro')->label('Tipo de comprobante')
                 ->options(['MUL'=>'Multi Nodo','UNI'=>'Unico Nodo'])
@@ -267,8 +277,7 @@ class PagosResource extends Resource
                     ->label('Cliente')
                     ->searchable()
                     ->state(function ($record): string {
-                        $clientes = Clientes::where('id', $record->cve_clie)->get();
-                        return $clientes[0]->nombre;
+                        return Clientes::find($record->cve_clie)?->nombre ?? '';
                     }),
                 Tables\Columns\TextColumn::make('fecha_doc')
                     ->label('Fecha')
@@ -595,77 +604,13 @@ class PagosResource extends Resource
             ],Tables\Enums\ActionsPosition::BeforeColumns)
             //->recordUrl(fn(Pagos $record): string => Pages\ViewPagos::getUrl([$record->id]))
         ->headerActions([
-            Tables\Actions\CreateAction::make('Agregar')
-            ->icon('fas-circle-plus')
-            ->label('Agregar')->modalSubmitActionLabel('Grabar')
-            ->modalCancelActionLabel('Cerrar')
-            ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color('success')->icon('fas-save'))
-            ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color('danger')->icon('fas-ban'))
-            ->createAnother(false)
-            ->modalWidth('full')
-            ->after(function($record,$data){
-                $data = $record;
-                $factura = $record->getKey();
-                $receptor = $data->cve_clie;
-                $emisor = $data->dat_fiscal;
-                $serie = $data->serie;
-                //DB::statement("UPDATE series_facs SET folio = folio + 1 WHERE id = $serie");
-                if($data['tipo_compro'] == 'MUL')
-                    $res = app(TimbradoController::class)->TimbrarPagos($factura,$emisor,$receptor);
-                else
-                    $res = app(TimbradoController::class)->TimbrarPagos_Uni($factura,$emisor,$receptor);
-                $resultado = json_decode($res);
-                $codigores = $resultado->codigo;
-                if($codigores == "200")
-                {
-                    $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
-                    foreach($partidas_pagos as $partida){
-                        $fact_pag = Facturas::where('id',$partida->uuidrel)->first();
-                        Facturas::where('id',$partida->uuidrel)->decrement('pendiente_pago', $partida->imppagado);
-                        CuentasCobrar::where('team_id',Filament::getTenant()->id)->where('concepto',1)->where('documento',$fact_pag->docto)->decrement('saldo',$partida->imppagado);
-                        CuentasCobrar::create([
-                            'cliente'=>$record->cve_clie,
-                            'concepto'=>9,
-                            'descripcion'=>'Pago Factura',
-                            'documento'=>$record->serie.$record->folio,
-                            'fecha'=>Carbon::now(),
-                            'vencimiento'=>Carbon::now(),
-                            'importe'=>$partida->imppagado,
-                            'saldo'=> 0,
-                            'team_id'=>Filament::getTenant()->id,
-                            'refer'=>$fact_pag->id
-                        ]);
-                    }
-                    //$pdf_file = app(TimbradoController::class)->genera_pdf($resultado->cfdi);
-                    $date = new \DateTime('now', new \DateTimeZone('America/Mexico_City'));
-                    $facturamodel = Pagos::where('id',$factura)->first();
-                    $facturamodel->timbrado = 'SI';
-                    $facturamodel->xml = $resultado->cfdi;
-                    $facturamodel->fecha_tim = $date;
-                    //$facturamodel->pdf_file = $pdf_file;
-                    $facturamodel->save();
-                    $res2 = app(TimbradoController::class)->actualiza_pag_tim($factura,$resultado->cfdi,"P");
-                    $mensaje_tipo = "1";
-                    $mensaje_graba = 'Comprobante Timbrado Se genero el CFDI UUID: '.$res2;
-                    self::makePrint($record);
-                    Notification::make()
-                        ->success()
-                        ->title('Pago Timbrado Correctamente')
-                        ->body($mensaje_graba)
-                        ->duration(2000)
-                        ->send();
-                }
-                else{
-                    $mensaje_tipo = "2";
-                    $mensaje_graba = $resultado->mensaje;
-                    Notification::make()
-                        ->warning()
-                        ->title('Error al Timbrar el Documento')
-                        ->body($mensaje_graba)
-                        ->persistent()
-                        ->send();
-                }
-            })
+            Tables\Actions\CreateAction::make()
+                ->icon('fas-circle-plus')
+                ->label('Agregar')->modalSubmitActionLabel('Grabar')
+                ->modalCancelActionLabel('Cerrar')
+                ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color('success')->icon('fas-save'))
+                ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color('danger')->icon('fas-ban'))
+                ->createAnother(false)
         ],Tables\Actions\HeaderActionsPosition::Bottom);
     }
 
@@ -697,8 +642,8 @@ class PagosResource extends Resource
     {
         return [
             'index' => Pages\ListPagos::route('/'),
-            //'create' => Pages\CreatePagos::route('/create'),
-            //'edit' => Pages\EditPagos::route('/{record}/edit'),
+            'create' => Pages\CreatePagos::route('/create'),
+            'edit' => Pages\EditPagos::route('/{record}/edit'),
         ];
     }
 }

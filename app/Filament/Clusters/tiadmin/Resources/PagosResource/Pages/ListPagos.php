@@ -21,7 +21,7 @@ class ListPagos extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            //Actions\CreateAction::make(),
+           // Actions\CreateAction::make(),
             Html2MediaAction::make('Imprimir_Doc_P')
                 ->visible(false)
                 ->print(false)

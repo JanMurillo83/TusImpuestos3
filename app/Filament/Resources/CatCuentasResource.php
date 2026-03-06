@@ -40,10 +40,11 @@ class CatCuentasResource extends Resource
                     ->columnSpan(3),
                 Forms\Components\Select::make('acumula')
                     ->searchable()
-                    ->options(
-                        CatCuentas::select(DB::raw('CONCAT(codigo,"-",nombre) as nombre'), 'codigo')
-                            ->where('tipo','A')
-                            ->pluck('nombre','codigo')
+                    ->options(function() {
+                        return CatCuentas::select(DB::raw('CONCAT(codigo,"-",nombre) as nombre'), 'codigo')
+                            ->where('tipo', 'A')
+                            ->pluck('nombre', 'codigo');
+                            }
                     ),
                 Forms\Components\Select::make('tipo')
                     ->options([

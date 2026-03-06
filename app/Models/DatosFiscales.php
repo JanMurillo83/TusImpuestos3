@@ -9,7 +9,8 @@ class DatosFiscales extends Model
 {
     protected $fillable = ['nombre','rfc','regimen','codigo','cer','key',
     'csdpass','logo','logo64','team_id','direccion','correo','telefono','coeficiente','porcentaje',
-    'banco','cuenta','clabe','beneficiario','leyenda_cotizaciones','leyenda_facturas'];
+    'banco','cuenta','clabe','beneficiario','leyenda_cotizaciones','leyenda_facturas',
+    'mostrar_clave_partidas','logo_ancho'];
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

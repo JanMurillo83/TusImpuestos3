@@ -8,6 +8,7 @@ use App\Models\Claves;
 use App\Models\Insumo;
 use App\Models\InsumosSalida;
 use App\Models\Lineasprod;
+use App\Models\ListaPrecio;
 use App\Models\Unidades;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -48,6 +49,17 @@ class InsumosResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $teamId = Filament::getTenant()->id;
+        $listas = ListaPrecio::where('team_id', $teamId)
+            ->orderBy('lista')
+            ->get(['lista', 'nombre'])
+            ->keyBy('lista');
+        $label1 = $listas->get(1)->nombre ?? 'Precio Publico';
+        $label2 = $listas->get(2)->nombre ?? 'Precio2';
+        $label3 = $listas->get(3)->nombre ?? 'Precio3';
+        $label4 = $listas->get(4)->nombre ?? 'Precio4';
+        $label5 = $listas->get(5)->nombre ?? 'Precio5';
+
         return $form
             ->columns(3)
             ->schema([
@@ -100,31 +112,35 @@ class InsumosResource extends Resource
                     ->visible(false)
                     ->schema([
                         Forms\Components\TextInput::make('precio1')
-                            ->label('Precio Publico')
+                            ->label($label1)
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 2)
                             ->prefix('$')
                             ->required()
                             ->numeric()
                             ->default(0.00000000),
                         Forms\Components\TextInput::make('precio2')
+                            ->label($label2)
                             ->required()
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 2)
                             ->prefix('$')
                             ->numeric()
                             ->default(0.00000000),
                         Forms\Components\TextInput::make('precio3')
+                            ->label($label3)
                             ->required()
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 2)
                             ->prefix('$')
                             ->numeric()
                             ->default(0.00000000),
                         Forms\Components\TextInput::make('precio4')
+                            ->label($label4)
                             ->required()
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 2)
                             ->prefix('$')
                             ->numeric()
                             ->default(0.00000000),
                         Forms\Components\TextInput::make('precio5')
+                            ->label($label5)
                             ->required()
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 2)
                             ->prefix('$')
@@ -177,6 +193,13 @@ class InsumosResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $teamId = Filament::getTenant()->id;
+        $listas = ListaPrecio::where('team_id', $teamId)
+            ->orderBy('lista')
+            ->get(['lista', 'nombre'])
+            ->keyBy('lista');
+        $label1 = $listas->get(1)->nombre ?? 'Precio Publico';
+
         return $table
             ->recordClasses('row_gral')
             ->defaultPaginationPageOption(5)
@@ -202,7 +225,7 @@ class InsumosResource extends Resource
                 Tables\Columns\TextColumn::make('modelo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('precio1')
-                    ->label('Precio Publico')
+                    ->label($label1)
                     ->prefix('$')
                     ->numeric(decimalPlaces: 2, decimalSeparator: '.')
                     ->sortable(),

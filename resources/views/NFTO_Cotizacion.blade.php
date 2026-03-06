@@ -2,6 +2,8 @@
 <?php
     $empresa = \App\Models\Team::where('id',$team_id)->first();
     $fiscales = \App\Models\DatosFiscales::where('team_id',$team_id)->first();
+    $mostrarClave = $fiscales?->mostrar_clave_partidas ?? true;
+    $logoAncho = (int) ($fiscales?->logo_ancho ?? 200);
     $docto = \App\Models\Cotizaciones::where('id',$idcotiza)->first();
     $part = \App\Models\CotizacionesPartidas::where('cotizaciones_id',$docto->id)->get();
     $clie = \App\Models\Clientes::where('id',$clie_id)->first();
@@ -19,8 +21,8 @@
         <header class="flex justify-between items-start border-b pb-2 mb-2">
             <div class="flex items-center gap-2">
                 @if($fiscales && $fiscales->logo64)
-                    <div class="max-h-12 max-w-[150px] overflow-hidden">
-                        <img src="{{$fiscales->logo64}}" alt="Logo" class="h-auto w-full object-contain">
+                    <div class="max-h-12 overflow-hidden" style="max-width: {{$logoAncho}}px;">
+                        <img src="{{$fiscales->logo64}}" alt="Logo" class="h-auto w-full object-contain" style="width: {{$logoAncho}}px;">
                     </div>
                 @else
                     <div class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
@@ -93,7 +95,9 @@
                     <thead class="bg-slate-100 text-slate-700">
                     <tr>
                         <th class="py-1 px-2 text-left">#</th>
-                        <th class="py-1 px-2 text-left">Item</th>
+                        @if($mostrarClave)
+                            <th class="py-1 px-2 text-left">Clave</th>
+                        @endif
                         <th class="py-1 px-2 text-left">Descripción</th>
                         <th class="py-1 px-2 text-right">Cantidad</th>
                         <th class="py-1 px-2 text-left">Unidad</th>
@@ -108,12 +112,14 @@
                         <td class="py-1 px-2 text-slate-600 text-[10px]">
                             {{$count}}
                         </td>
-                        <td class="py-1 px-2 font-mono text-slate-700 text-[10px]">
-                            <?php
-                                $inv_par = \App\Models\Inventario::where('id',$par->item)->first()->clave ?? '';
-                            ?>
-                            {{$inv_par}}
-                        </td>
+                        @if($mostrarClave)
+                            <td class="py-1 px-2 font-mono text-slate-700 text-[10px]">
+                                <?php
+                                    $inv_par = \App\Models\Inventario::where('id',$par->item)->first()->clave ?? '';
+                                ?>
+                                {{$inv_par}}
+                            </td>
+                        @endif
                         <td class="py-1 px-2 text-slate-800 leading-tight">
                             {{$par->descripcion}}
                         </td>
@@ -132,7 +138,7 @@
                     </tr>
                     @if($par->observa)
                         <tr class="bg-slate-50/50">
-                            <td colspan="7" class="py-0.5 px-2 text-slate-500 italic text-[10px]">
+                            <td colspan="{{ $mostrarClave ? 7 : 6 }}" class="py-0.5 px-2 text-slate-500 italic text-[10px]">
                                 <span class="font-semibold not-italic">Obs:</span> {{$par->observa}}
                             </td>
                         </tr>
@@ -236,4 +242,3 @@
         </footer>
     </div>
 </div>
-

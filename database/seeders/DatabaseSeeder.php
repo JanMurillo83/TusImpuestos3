@@ -299,7 +299,16 @@ class DatabaseSeeder extends Seeder
                 'csdpass'=>'',
                 'logo'=>'',
                 'logo64'=>'',
+                'mostrar_clave_partidas' => 1,
+                'logo_ancho' => 200,
                 'team_id'=>1
+            ]);
+            DB::table('listas_precios')->insert([
+                ['lista' => 1, 'nombre' => 'Precio Publico', 'team_id' => 1],
+                ['lista' => 2, 'nombre' => 'Precio2', 'team_id' => 1],
+                ['lista' => 3, 'nombre' => 'Precio3', 'team_id' => 1],
+                ['lista' => 4, 'nombre' => 'Precio4', 'team_id' => 1],
+                ['lista' => 5, 'nombre' => 'Precio5', 'team_id' => 1],
             ]);
             DB::table('listareportes')->insert([
                 'nombre'=>'Balanza',

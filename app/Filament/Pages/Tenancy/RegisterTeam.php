@@ -499,8 +499,18 @@ class RegisterTeam extends RegisterTenant
             'csdpass'=>'',
             'logo'=>'',
             'logo64'=>'',
+            'mostrar_clave_partidas' => 1,
+            'logo_ancho' => 200,
             'team_id'=>$empresa
         ]);
+        $listasPrecios = [
+            ['lista' => 1, 'nombre' => 'Precio Publico', 'team_id' => $empresa],
+            ['lista' => 2, 'nombre' => 'Precio2', 'team_id' => $empresa],
+            ['lista' => 3, 'nombre' => 'Precio3', 'team_id' => $empresa],
+            ['lista' => 4, 'nombre' => 'Precio4', 'team_id' => $empresa],
+            ['lista' => 5, 'nombre' => 'Precio5', 'team_id' => $empresa],
+        ];
+        DB::table('listas_precios')->insert($listasPrecios);
         DB::table('historico_tcs')->insert([
             'fecha'=>Carbon::now(),
             'tipo_cambio'=>1,

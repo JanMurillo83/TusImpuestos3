@@ -9,6 +9,7 @@ use App\Livewire\CuentasCobrarWidget;
 use App\Models\CatCuentas;
 use App\Models\Clientes;
 use App\Models\Inventario;
+use App\Models\ListaPrecio;
 use App\Models\Regimenes;
 use Awcodes\TableRepeater\Components\TableRepeater;
 use Awcodes\TableRepeater\Header;
@@ -172,13 +173,22 @@ class ClientesResource extends Resource
                                             ->suffix('%'),
                                         Forms\Components\Select::make('lista')
                                             ->label('Lista de Precios')
-                                            ->options([
-                                                1 =>'Precio Publico',
-                                                2 =>'Lista de Precios 2',
-                                                3 =>'Lista de Precios 3',
-                                                4 =>'Lista de Precios 4',
-                                                5 =>'Lista de Precios 5'
-                                            ])->default(1),
+                                            ->options(function () {
+                                                $teamId = Filament::getTenant()->id;
+                                                $listas = ListaPrecio::where('team_id', $teamId)
+                                                    ->orderBy('lista')
+                                                    ->pluck('nombre', 'lista')
+                                                    ->all();
+
+                                                return $listas + [
+                                                    1 => 'Precio Publico',
+                                                    2 => 'Precio2',
+                                                    3 => 'Precio3',
+                                                    4 => 'Precio4',
+                                                    5 => 'Precio5',
+                                                ];
+                                            })
+                                            ->default(1),
                                         Forms\Components\TextInput::make('saldo')
                                             ->prefix('$')->readOnly()->default(0.00)
                                             ->numeric()->currencyMask(decimalSeparator:'.',precision:2)

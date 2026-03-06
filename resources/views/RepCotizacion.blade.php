@@ -5,7 +5,10 @@ use Filament\Facades\Filament;
     $partidas = DB::table('cotizaciones_partidas')->where('cotizaciones_id',$idorden)->get();
     $prove = DB::table('clientes')->where('id',$orden->clie)->get();
     $prove = $prove[0];
-    $logo = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->get()[0]->logo64 ?? '';
+    $fiscales = DB::table('datos_fiscales')->where('team_id',Filament::getTenant()->id)->first();
+    $logo = $fiscales?->logo64 ?? '';
+    $mostrarClave = $fiscales?->mostrar_clave_partidas ?? 1;
+    $logoAncho = $fiscales?->logo_ancho ?? 200;
 ?>
 <!DOCTYPE html>
 <html>
@@ -19,7 +22,7 @@ use Filament\Facades\Filament;
         <div class="container mt-5">
             <div class="row">
                 <div class="text-start col-2">
-                    <img src="{{$logo}}" alt="Logo" width="200px">
+                    <img src="{{$logo}}" alt="Logo" width="{{$logoAncho}}px">
                 </div>
                 <div class="text-center col-7">
                     <h5>COTIZACION</h5>
@@ -81,14 +84,25 @@ use Filament\Facades\Filament;
                 <table class="table table-striped">
                     <tr>
                         <th><b>Cantidad</b></th>
-                        <th colspan="3"><b>Descripcion</b></th>
+                        @if($mostrarClave)
+                            <th><b>Clave</b></th>
+                        @endif
+                        <th colspan="{{ $mostrarClave ? 2 : 3 }}"><b>Descripcion</b></th>
                         <th><b>Precio Unitario</b></th>
                         <th><b>Total</b></th>
                     </tr>
                     @foreach ($partidas as $part)
                     <tr>
                         <td>{{$part->cant}}</td>
-                        <td colspan="3">{{$part->item.'  '.$part->descripcion}}</td>
+                        @if($mostrarClave)
+                            <?php
+                                $inv_par = \App\Models\Inventario::where('id',$part->item)->first()->clave ?? $part->item;
+                            ?>
+                            <td>{{$inv_par}}</td>
+                            <td colspan="2">{{$part->descripcion}}</td>
+                        @else
+                            <td colspan="3">{{$part->item.'  '.$part->descripcion}}</td>
+                        @endif
                         <td>{{'$ '.number_format($part->precio, 2, '.')}}</td>
                         <td>{{'$ '.number_format($part->subtotal, 2, '.')}}</td>
                     </tr>

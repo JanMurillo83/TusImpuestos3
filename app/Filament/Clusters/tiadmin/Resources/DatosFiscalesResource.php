@@ -6,6 +6,7 @@ use App\Filament\Clusters\tiadmin;
 use App\Filament\Clusters\tiadmin\Resources\DatosFiscalesResource\Pages;
 use App\Filament\Clusters\tiadmin\Resources\DatosFiscalesResource\RelationManagers;
 use App\Models\DatosFiscales;
+use App\Models\ListaPrecio;
 use App\Models\Regimenes;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,6 +18,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
+use Filament\Facades\Filament;
 
 class DatosFiscalesResource extends Resource
 {
@@ -99,6 +102,40 @@ class DatosFiscalesResource extends Resource
                                     ->label('Leyenda en Facturas')
                                     ->rows(3),
                             ])->columns(1),
+                        Forms\Components\Tabs\Tab::make('Formatos')
+                            ->schema([
+                                Forms\Components\Toggle::make('mostrar_clave_partidas')
+                                    ->label('Mostrar columna Clave en Cotizaciones y Facturas')
+                                    ->default(true),
+                                Forms\Components\TextInput::make('logo_ancho')
+                                    ->label('Ancho del Logo (px)')
+                                    ->numeric()
+                                    ->minValue(40)
+                                    ->maxValue(600)
+                                    ->default(200)
+                                    ->helperText('Se aplica al ancho de la imagen en formatos de cotizaciones y facturas.'),
+                            ])->columns(2),
+                        Forms\Components\Tabs\Tab::make('Listas de precios')
+                            ->schema([
+                                Forms\Components\Repeater::make('listas_precios')
+                                    ->label('Nombres de listas de precios')
+                                    ->schema([
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('lista')
+                                                    ->label('Lista')
+                                                    ->numeric()
+                                                    ->readOnly(),
+                                                Forms\Components\TextInput::make('nombre')
+                                                    ->label('Nombre')
+                                                    ->required()
+                                                    ->maxLength(255),
+                                            ]),
+                                    ])
+                                    ->disableItemCreation()
+                                    ->disableItemDeletion()
+                                    ->disableItemMovement(),
+                            ])->columns(1),
                     ])->columnSpanFull(),
             ]);
     }
@@ -128,6 +165,58 @@ class DatosFiscalesResource extends Resource
                 ->modalSubmitAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Green)->icon('fas-save'))
                 ->modalCancelAction(fn (\Filament\Actions\StaticAction $action) => $action->color(Color::Red)->icon('fas-ban'))
                 ->modalFooterActionsAlignment(Alignment::Left)
+                ->mutateRecordDataUsing(function (array $data, $record) {
+                    $teamId = $record->team_id ?? Filament::getTenant()->id;
+                    $listas = DB::table('listas_precios')
+                        ->where('team_id', $teamId)
+                        ->orderBy('lista')
+                        ->get(['lista', 'nombre'])
+                        ->map(fn ($row) => ['lista' => (int) $row->lista, 'nombre' => $row->nombre])
+                        ->values()
+                        ->all();
+
+                    if (count($listas) === 0) {
+                        $defaults = [
+                            ['lista' => 1, 'nombre' => 'Precio Publico', 'team_id' => $teamId],
+                            ['lista' => 2, 'nombre' => 'Precio2', 'team_id' => $teamId],
+                            ['lista' => 3, 'nombre' => 'Precio3', 'team_id' => $teamId],
+                            ['lista' => 4, 'nombre' => 'Precio4', 'team_id' => $teamId],
+                            ['lista' => 5, 'nombre' => 'Precio5', 'team_id' => $teamId],
+                        ];
+                        DB::table('listas_precios')->insert($defaults);
+
+                        $listas = DB::table('listas_precios')
+                            ->where('team_id', $teamId)
+                            ->orderBy('lista')
+                            ->get(['lista', 'nombre'])
+                            ->map(fn ($row) => ['lista' => (int) $row->lista, 'nombre' => $row->nombre])
+                            ->values()
+                            ->all();
+                    }
+
+                    $data['listas_precios'] = $listas;
+
+                    return $data;
+                })
+                ->using(function (array $data, $record) {
+                    $listas = $data['listas_precios'] ?? [];
+                    unset($data['listas_precios']);
+
+                    $record->update($data);
+
+                    if (is_array($listas) && count($listas) > 0) {
+                        $teamId = $record->team_id ?? Filament::getTenant()->id;
+                        foreach ($listas as $listaData) {
+                            if (!isset($listaData['lista'])) {
+                                continue;
+                            }
+                            ListaPrecio::updateOrCreate(
+                                ['team_id' => $teamId, 'lista' => (int) $listaData['lista']],
+                                ['nombre' => (string) ($listaData['nombre'] ?? '')]
+                            );
+                        }
+                    }
+                })
                 ->after(function($record){
                     $logo = $record->logo;
                     if($logo == null) {

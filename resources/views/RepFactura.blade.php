@@ -6,6 +6,8 @@ $orden = DB::table('facturas')->where('id',$idorden)->first();
 $partidas = DB::table('facturas_partidas')->where('facturas_id',$idorden)->get();
 $prove = DB::table('clientes')->where('id',$orden->clie)->first();
 $dafis = DB::table('datos_fiscales')->where('team_id',$id_empresa)->first();
+$mostrarClave = $dafis?->mostrar_clave_partidas ?? 1;
+$logoAncho = $dafis?->logo_ancho ?? 200;
 $emisor = \App\Models\DatosFiscales::where('team_id',$id_empresa)->first();
 $a_xml = $orden->xml;
 $parameters = null;
@@ -56,7 +58,7 @@ $logo = public_path('storage/'.$dafis->logo);
     <div style="border-top: 1px solid black"></div>
     <div class="row">
         <div class="col-3">
-            <img src="{{$logo}}" alt="Tus Impuestos" width="300px" style="margin-top: 1rem !important;">
+            <img src="{{$logo}}" alt="Tus Impuestos" width="{{$logoAncho}}px" style="margin-top: 1rem !important;">
         </div>
         <div class="col-3" style="font-size: 12px !important;">
             <b>{{$dafis->nombre}}</b><br>
@@ -109,6 +111,9 @@ $logo = public_path('storage/'.$dafis->logo);
         <table style="width: 98% !important;">
             <tr>
                 <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CANTIDAD</th>
+                @if($mostrarClave)
+                    <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CLAVE</th>
+                @endif
                 <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CLAVE PROD/SERV</th>
                 <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">CLAVE UNIDAD</th>
                 <th style="font-weight: bold; border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;" colspan="2">DESCRIPCION</th>
@@ -119,6 +124,12 @@ $logo = public_path('storage/'.$dafis->logo);
             @foreach ($partidas as $part)
                 <tr style="font-size: 11px !important;">
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{number_format(floatval($part->cant), 2, '.')}}</td>
+                    @if($mostrarClave)
+                        <?php
+                            $inv_par = \App\Models\Inventario::where('id',$part->item)->first()->clave ?? $part->item;
+                        ?>
+                        <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{$inv_par}}</td>
+                    @endif
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{$part->cvesat}}</td>
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center;vertical-align: top !important;">{{$part->unidad}}</td>
                     <td style="border-style: solid; border-width: 1px; border-color: #1a1e21; text-align: center; align-content: center; font-size: 10px !important;vertical-align: top !important;" colspan="2">{{$part->descripcion}}</td>

@@ -8,6 +8,7 @@ use App\Filament\Clusters\tiadmin\Resources\InventarioResource\RelationManagers;
 use App\Models\Claves;
 use App\Models\Esquemasimp;
 use App\Models\Inventario;
+use App\Models\ListaPrecio;
 use App\Models\Lineasprod;
 use App\Models\Movinventario;
 use App\Models\Unidades;
@@ -64,6 +65,17 @@ class InventarioResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $teamId = Filament::getTenant()->id;
+        $listas = ListaPrecio::where('team_id', $teamId)
+            ->orderBy('lista')
+            ->get(['lista', 'nombre'])
+            ->keyBy('lista');
+        $label1 = $listas->get(1)->nombre ?? 'Precio Publico';
+        $label2 = $listas->get(2)->nombre ?? 'Precio2';
+        $label3 = $listas->get(3)->nombre ?? 'Precio3';
+        $label4 = $listas->get(4)->nombre ?? 'Precio4';
+        $label5 = $listas->get(5)->nombre ?? 'Precio5';
+
         return $form
             ->columns(3)
             ->schema([
@@ -115,31 +127,35 @@ class InventarioResource extends Resource
                 Fieldset::make('Ventas')
                 ->schema([
                 Forms\Components\TextInput::make('precio1')
-                    ->label('Precio Publico')
+                    ->label($label1)
                     ->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
                     ->prefix('$')
                     ->required()
                     ->numeric()
                     ->default(0.00000000),
                 Forms\Components\TextInput::make('precio2')
+                    ->label($label2)
                     ->required()
                     ->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
                     ->prefix('$')
                     ->numeric()
                     ->default(0.00000000),
                 Forms\Components\TextInput::make('precio3')
+                    ->label($label3)
                     ->required()
                     ->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
                     ->prefix('$')
                     ->numeric()
                     ->default(0.00000000),
                 Forms\Components\TextInput::make('precio4')
+                    ->label($label4)
                     ->required()
                     ->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
                     ->prefix('$')
                     ->numeric()
                     ->default(0.00000000),
                 Forms\Components\TextInput::make('precio5')
+                    ->label($label5)
                     ->required()
                     ->currencyMask(thousandSeparator: ',',decimalSeparator: '.',precision: 2)
                     ->prefix('$')
@@ -197,6 +213,13 @@ class InventarioResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $teamId = Filament::getTenant()->id;
+        $listas = ListaPrecio::where('team_id', $teamId)
+            ->orderBy('lista')
+            ->get(['lista', 'nombre'])
+            ->keyBy('lista');
+        $label1 = $listas->get(1)->nombre ?? 'Precio Publico';
+
         return $table
             ->recordClasses('row_gral')
             ->defaultPaginationPageOption(5)
@@ -221,7 +244,7 @@ class InventarioResource extends Resource
                 Tables\Columns\TextColumn::make('modelo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('precio1')
-                    ->label('Precio Publico')
+                    ->label($label1)
                     ->prefix('$')
                     ->numeric(decimalPlaces:2,decimalSeparator:'.')
                     ->sortable(),
@@ -317,12 +340,17 @@ class InventarioResource extends Resource
                     })
                     ->form(function (Model $record) {
                         $tabs = [];
-                        $nombreListas = [
-                            1 => 'Precio Público',
-                            2 => 'Lista 2',
-                            3 => 'Lista 3',
-                            4 => 'Lista 4',
-                            5 => 'Lista 5'
+                        $teamId = Filament::getTenant()->id;
+                        $nombreListas = ListaPrecio::where('team_id', $teamId)
+                            ->orderBy('lista')
+                            ->pluck('nombre', 'lista')
+                            ->all();
+                        $nombreListas = $nombreListas + [
+                            1 => 'Precio Publico',
+                            2 => 'Precio2',
+                            3 => 'Precio3',
+                            4 => 'Precio4',
+                            5 => 'Precio5',
                         ];
 
                         for ($lista = 1; $lista <= 5; $lista++) {
@@ -784,7 +812,7 @@ class InventarioResource extends Resource
         // Agregar información del producto en las primeras filas como comentario
         $sheet->setCellValue('A2', '# SKU: ' . $record->clave);
         $sheet->setCellValue('A3', '# Producto: ' . $record->descripcion);
-        $sheet->setCellValue('A4', '# Lista_Precio: 1 a 5 (1=Público, 2=Lista2, etc)');
+        $sheet->setCellValue('A4', '# Lista_Precio: 1 a 5 (según nombres configurados en Datos Fiscales)');
         $sheet->setCellValue('A5', '# Activo: SI o NO');
         $sheet->setCellValue('A6', '# Dejar Cantidad_Hasta vacío para sin límite');
 
@@ -940,7 +968,7 @@ class InventarioResource extends Resource
 
         // Agregar información de ayuda
         $sheet->setCellValue('A2', '# SKU: Clave del producto');
-        $sheet->setCellValue('A3', '# Lista_Precio: 1 a 5 (1=Público, 2=Lista2, etc)');
+        $sheet->setCellValue('A3', '# Lista_Precio: 1 a 5 (según nombres configurados en Datos Fiscales)');
         $sheet->setCellValue('A4', '# Activo: SI o NO');
         $sheet->setCellValue('A5', '# Dejar Cantidad_Hasta vacío para sin límite');
         $sheet->setCellValue('A6', '# Ejemplo:');

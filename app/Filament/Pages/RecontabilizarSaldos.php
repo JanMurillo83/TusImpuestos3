@@ -50,13 +50,7 @@ class RecontabilizarSaldos extends Page implements HasForms
         $team = Filament::getTenant();
 
         // Obtener ejercicios disponibles de auxiliares
-        $ejercicios = DB::table('auxiliares')
-            ->select('a_ejercicio')
-            ->where('team_id', $team->id)
-            ->distinct()
-            ->orderBy('a_ejercicio', 'desc')
-            ->pluck('a_ejercicio', 'a_ejercicio')
-            ->toArray();
+        $ejercicios = [2022=>2022,2023=>2023,2024=>2024,2025=>2025,2026=>2026,2027=>2027,2028=>2028,2029=>2029,2030=>2030];
 
         // Obtener periodos disponibles
         $periodos = [];

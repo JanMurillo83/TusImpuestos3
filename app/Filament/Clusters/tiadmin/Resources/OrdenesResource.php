@@ -230,7 +230,7 @@ class OrdenesResource extends Resource
                                 Select::make('item')
                                     ->searchable()
                                     ->options(Inventario::where('team_id', Filament::getTenant()->id)
-                                        ->select('id', DB::raw('CONCAT("Item: ",descripcion,"  Exist: ",FORMAT(exist,2)) as descripcion'))
+                                        ->select('id', DB::raw('CONCAT("SKU:",clave,"  |Item: ",descripcion,"  |Exist: ",FORMAT(exist,2)) as descripcion'))
                                         ->pluck('descripcion', 'id'))
                                     ->createOptionForm(function ($form) {
                                         return $form

@@ -273,5 +273,109 @@ class NominaConceptoCuentasSeeder extends Seeder
                 }
             }
         }
+
+        $defaults = [
+            [
+                'tipo' => 'PERCEPCION',
+                'codigo_sat' => '001',
+                'clave' => '001',
+                'descripcion' => 'Sueldo',
+                'cuenta' => '50102000',
+                'naturaleza' => 'D',
+            ],
+            [
+                'tipo' => 'DEDUCCION',
+                'codigo_sat' => '052',
+                'clave' => '001',
+                'descripcion' => 'I.M.S.S.',
+                'cuenta' => '21611000',
+                'naturaleza' => 'A',
+            ],
+            [
+                'tipo' => 'DEDUCCION',
+                'codigo_sat' => '045',
+                'clave' => '002',
+                'descripcion' => 'I.S.R. mes',
+                'cuenta' => '21601000',
+                'naturaleza' => 'A',
+            ],
+            [
+                'tipo' => 'OTRO_PAGO',
+                'codigo_sat' => '035',
+                'clave' => '002',
+                'descripcion' => 'Subsidio para el Empleo',
+                'cuenta' => '21601000',
+                'naturaleza' => 'D',
+            ],
+        ];
+
+        foreach ($teamIds as $teamId) {
+            foreach ($defaults as $item) {
+                $codigoSat = $this->normalizeCodigo($item['codigo_sat']);
+                $clave = $this->normalizeCodigo($item['clave']);
+                $cuentaId = CatCuentas::query()
+                    ->where('team_id', $teamId)
+                    ->where('codigo', $item['cuenta'])
+                    ->value('id');
+
+                $record = NominaConceptoCuenta::query()
+                    ->where('team_id', $teamId)
+                    ->where('tipo', $item['tipo'])
+                    ->where('codigo_sat', $codigoSat)
+                    ->first();
+
+                if (! $record) {
+                    $record = NominaConceptoCuenta::query()
+                        ->where('team_id', $teamId)
+                        ->where('tipo', $item['tipo'])
+                        ->where('clave', $clave)
+                        ->first();
+                }
+
+                if (! $record) {
+                    NominaConceptoCuenta::create([
+                        'team_id' => $teamId,
+                        'tipo' => $item['tipo'],
+                        'codigo_sat' => $codigoSat,
+                        'clave' => $clave,
+                        'descripcion' => $item['descripcion'],
+                        'cat_cuentas_id' => $cuentaId,
+                        'naturaleza' => $item['naturaleza'],
+                        'activo' => true,
+                    ]);
+                    continue;
+                }
+
+                $needsUpdate = false;
+                if ($record->codigo_sat !== $codigoSat) {
+                    $record->codigo_sat = $codigoSat;
+                    $needsUpdate = true;
+                }
+                if ($record->clave !== $clave) {
+                    $record->clave = $clave;
+                    $needsUpdate = true;
+                }
+                if ($record->descripcion !== $item['descripcion']) {
+                    $record->descripcion = $item['descripcion'];
+                    $needsUpdate = true;
+                }
+                if ($cuentaId !== null && $record->cat_cuentas_id !== $cuentaId) {
+                    $record->cat_cuentas_id = $cuentaId;
+                    $needsUpdate = true;
+                }
+                if ($record->naturaleza !== $item['naturaleza']) {
+                    $record->naturaleza = $item['naturaleza'];
+                    $needsUpdate = true;
+                }
+                if ($record->activo !== true) {
+                    $record->activo = true;
+                    $needsUpdate = true;
+                }
+
+                if ($needsUpdate) {
+                    $record->save();
+                }
+            }
+        }
     }
 }

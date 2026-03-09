@@ -6,6 +6,7 @@
     $part = \App\Models\OrdenesPartidas::where('ordenes_id',$docto->id)->get();
     $prove = \App\Models\Proveedores::where('id',$prov_id)->first();
     $hoy = \Carbon\Carbon::now()->format('d-m-Y');
+    $mostrarClave = $fiscales?->mostrar_clave_partidas ?? true;
 ?>
 <div class="bg-slate-100">
     <div class="max-w-3xl mx-auto my-8 bg-white p-8 rounded-xl shadow text-slate-800 text-base">
@@ -90,7 +91,9 @@
                     <thead class="bg-slate-100 text-slate-700">
                     <tr>
                         <th class="py-2 px-2 text-left">#</th>
-                        <th class="py-2 px-2 text-left">SKU</th>
+                        @if($mostrarClave)
+                            <th class="py-2 px-2 text-left">SKU</th>
+                        @endif
                         <th class="py-2 px-2 text-left">Descripción</th>
                         <th class="py-2 px-2 text-right">Cantidad</th>
                         <th class="py-2 px-2 text-left">Unidad</th>
@@ -106,9 +109,11 @@
                         <td class="py-1.5 px-2 text-slate-600">
                             {{$count}}
                         </td>
-                        <td class="py-1.5 px-2 font-mono text-slate-700">
-                            {{$par->item}}
-                        </td>
+                        @if($mostrarClave)
+                            <td class="py-1.5 px-2 font-mono text-slate-700">
+                                {{$par->item}}
+                            </td>
+                        @endif
                         <td class="py-1.5 px-2 text-slate-800">
                             {{$par->descripcion}}
                         </td>
@@ -126,7 +131,7 @@
                         </td>
                     </tr>
                         <tr>
-                            <td colspan="7" class="py-1.5 px-2 text-slate-600">
+                            <td colspan="{{ $mostrarClave ? 7 : 6 }}" class="py-1.5 px-2 text-slate-600">
                                 {{$par->observa}}
                             </td>
                         </tr>

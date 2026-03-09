@@ -6,6 +6,8 @@
     $prove = $prove[0];
     $empresa = DB::table('teams')->where('id',$id_empresa)->get();
     $empresa = $empresa[0];
+    $fiscales = DB::table('datos_fiscales')->where('team_id',$id_empresa)->first();
+    $mostrarClave = $fiscales?->mostrar_clave_partidas ?? 1;
 ?>
 <!DOCTYPE html>
 <html>
@@ -168,7 +170,9 @@
                     <thead class="table-dark">
                         <tr>
                             <th style="width: 8%"><b>Cantidad</b></th>
-                            <th style="width: 12%"><b>Clave</b></th>
+                            @if($mostrarClave)
+                                <th style="width: 12%"><b>Clave</b></th>
+                            @endif
                             <th><b>Descripción</b></th>
                             <th style="width: 12%"><b>Costo Unit.</b></th>
                             <th style="width: 12%"><b>Subtotal</b></th>
@@ -178,7 +182,9 @@
                         @foreach ($partidas as $part)
                         <tr>
                             <td class="text-center">{{number_format($part->cant, 2, '.', ',')}}</td>
-                            <td>{{$part->item}}</td>
+                            @if($mostrarClave)
+                                <td>{{$part->item}}</td>
+                            @endif
                             <td>{{$part->descripcion}}</td>
                             <td class="text-end">$ {{number_format($part->costo, 2, '.', ',')}}</td>
                             <td class="text-end">$ {{number_format($part->subtotal, 2, '.', ',')}}</td>

@@ -105,7 +105,7 @@ class DatosFiscalesResource extends Resource
                         Forms\Components\Tabs\Tab::make('Formatos')
                             ->schema([
                                 Forms\Components\Toggle::make('mostrar_clave_partidas')
-                                    ->label('Mostrar columna Clave en Cotizaciones y Facturas')
+                                    ->label('Mostrar columna Clave en Cotizaciones, Facturas y Órdenes de Compra')
                                     ->default(true),
                                 Forms\Components\TextInput::make('logo_ancho')
                                     ->label('Ancho del Logo (px)')

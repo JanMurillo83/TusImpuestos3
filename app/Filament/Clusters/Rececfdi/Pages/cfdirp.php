@@ -251,10 +251,10 @@ class cfdirp extends Page implements HasForms, HasTable
     {
         $tipoxml = $record['xml_type'];
         $tipocom = $record['TipoDeComprobante'];
-        $rfc_rec = $record['Receptor_Rfc'];
-        $rfc_emi = $record['Emisor_Rfc'];
-        $nom_rec = $record['Receptor_Nombre'];
-        $nom_emi = $record['Emisor_Nombre'];
+        $rfc_rec = strtoupper(trim($record['Receptor_Rfc'] ?? ''));
+        $rfc_emi = strtoupper(trim($record['Emisor_Rfc'] ?? ''));
+        $nom_rec = trim($record['Receptor_Nombre'] ?? '');
+        $nom_emi = trim($record['Emisor_Nombre'] ?? '');
         $subtotal = $record['SubTotal'];
         $iva = $record['TotalImpuestosTrasladados'];
         $total = $record['Total'];
@@ -271,34 +271,32 @@ class cfdirp extends Page implements HasForms, HasTable
         $ctagas = $data['detallegas'];
         if($tipoxml == 'Recibidos'&&$tipocom == 'P')
         {
-            $existe = CatCuentas::where('nombre',$nom_rec)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first();
-            if($existe)
-            {
-                $ctaclie = $existe->codigo;
-            }
-            else
-            {
-                $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20101000')->max('codigo')) + 1;
-                CatCuentas::firstOrCreate([
-                    'nombre' =>  $nom_rec,
+            $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20101000')->max('codigo')) + 1;
+            $cta = CatCuentas::firstOrCreate(
+                [
+                    'nombre' => $nom_rec,
                     'team_id' => Filament::getTenant()->id,
-                    'codigo'=>$nuecta,
-                    'acumula'=>'20101000',
-                    'tipo'=>'D',
-                    'naturaleza'=>'D',
-                ]);
+                    'acumula' => '20101000',
+                ],
+                [
+                    'codigo' => $nuecta,
+                    'tipo' => 'D',
+                    'naturaleza' => 'D',
+                ]
+            );
+            $ctaclie = $cta->codigo;
+            if ($cta->wasRecentlyCreated) {
                 Terceros::create([
                     'rfc'=>$rfc_rec,
                     'nombre'=>$nom_rec,
                     'tipo'=>'Proveedor',
-                    'cuenta'=>$nuecta,
+                    'cuenta'=>$ctaclie,
                     'telefono'=>'',
                     'correo'=>'',
                     'contacto'=>'',
                     'tax_id'=>$rfc_emi,
                     'team_id'=>Filament::getTenant()->id
                 ]);
-                $ctaclie = $nuecta;
             }
             $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
             Almacencfdis::where('id',$record['id'])->update([

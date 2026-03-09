@@ -331,77 +331,6 @@ class cfdiri extends Page implements HasForms, HasTable
                             return;
                         }
                         $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
-                        $cta_con = '20101001';
-                        $cta_nombres = 'Proveedor Global';
-
-                        if(!Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->exists())
-                        {
-
-                            if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists())
-                            {
-                                $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
-                            }
-                            else
-                            {
-                                $nuecta = intval(DB::table('cat_cuentas')
-                                        ->where('team_id',Filament::getTenant()->id)
-                                        ->where('acumula','20101000')->max('codigo')) + 1;
-                                $n_cta = CatCuentas::create([
-                                    'nombre' =>  $record['Emisor_Nombre'],
-                                    'team_id' => Filament::getTenant()->id,
-                                    'codigo'=>$nuecta,
-                                    'acumula'=>'20101000',
-                                    'tipo'=>'D',
-                                    'naturaleza'=>'A',
-                                ]);
-                                $cta_con = $n_cta->codigo;
-                                $cta_nombres = $n_cta->nombre;
-                            }
-                            $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
-                            Proveedores::create([
-                                'clave' => $nuevocli,
-                                'rfc'=>$record['Emisor_Rfc'],
-                                'nombre'=>$record['Emisor_Nombre'],
-                                'cuenta_contable'=>$cta_con,
-                                'team_id' => Filament::getTenant()->id,
-                            ]);
-                        }
-                        else
-                        {
-                            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->first()->cuenta_contable;
-                            if($cuen != ''&&$cuen != null)
-                            {
-                                $cta_con = $cuen;
-                                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
-                            }
-                            else
-                            {
-                                if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists()){
-                                    $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                                    $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
-                                }
-                                else
-                                {
-                                    $nuecta = intval(DB::table('cat_cuentas')
-                                            ->where('team_id',Filament::getTenant()->id)
-                                            ->where('acumula','20101000')->max('codigo')) + 1;
-                                    $n_cta = CatCuentas::create([
-                                        'nombre' =>  $record['Emisor_Nombre'],
-                                        'team_id' => Filament::getTenant()->id,
-                                        'codigo'=>$nuecta,
-                                        'acumula'=>'20101000',
-                                        'tipo'=>'D',
-                                        'naturaleza'=>'A',
-                                    ]);
-                                    $cta_con = $n_cta->codigo;
-                                    $cta_nombres =$n_cta->nombre;
-                                }
-                            }
-                            Proveedores::where('team_id',Filament::getTenant()->id)
-                                ->where('rfc',$record['Emisor_Rfc'])
-                                ->update(['cuenta_contable'=>$cta_con]);
-                        }
                         self::contabiliza_r($record,$data,$livewire,$nopoliza);
                     }),
                 ActionGroup::make([
@@ -898,76 +827,6 @@ class cfdiri extends Page implements HasForms, HasTable
                 ->action(function(Collection $records,array $data,$livewire){
                     $nopoliza = intval(DB::table('cat_polizas')->where('team_id',Filament::getTenant()->id)->where('tipo','PG')->where('periodo',Filament::getTenant()->periodo)->where('ejercicio',Filament::getTenant()->ejercicio)->max('folio')) + 1;
                     foreach($records as $record){
-                        $cta_con = '20101001';
-                        $cta_nombres = 'Proveedor Global';
-                        if(!Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->exists())
-                        {
-
-                            if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists())
-                            {
-                                $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
-                            }
-                            else
-                            {
-                                $nuecta = intval(DB::table('cat_cuentas')
-                                        ->where('team_id',Filament::getTenant()->id)
-                                        ->where('acumula','20101000')->max('codigo')) + 1;
-                                $n_cta = CatCuentas::create([
-                                    'nombre' =>  $record['Emisor_Nombre'],
-                                    'team_id' => Filament::getTenant()->id,
-                                    'codigo'=>$nuecta,
-                                    'acumula'=>'20101000',
-                                    'tipo'=>'D',
-                                    'naturaleza'=>'A',
-                                ]);
-                                $cta_con = $n_cta->codigo;
-                                $cta_nombres = $n_cta->nombre;
-                            }
-                            $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
-                            Proveedores::create([
-                                'clave' => $nuevocli,
-                                'rfc'=>$record['Emisor_Rfc'],
-                                'nombre'=>$record['Emisor_Nombre'],
-                                'cuenta_contable'=>$cta_con,
-                                'team_id' => Filament::getTenant()->id,
-                            ]);
-                        }
-                        else
-                        {
-                            $cuen = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->first()->cuenta_contable;
-                            if($cuen != ''&&$cuen != null)
-                            {
-                                $cta_con = $cuen;
-                                $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre ?? '';
-                            }
-                            else
-                            {
-                                if(CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->exists()){
-                                    $cta_con = CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->codigo;
-                                    $cta_nombres =CatCuentas::where('nombre',$record['Emisor_Nombre'])->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first()->nombre;
-                                }
-                                else
-                                {
-                                    $nuecta = intval(DB::table('cat_cuentas')
-                                            ->where('team_id',Filament::getTenant()->id)
-                                            ->where('acumula','20101000')->max('codigo')) + 1;
-                                    $n_cta = CatCuentas::create([
-                                        'nombre' =>  $record['Emisor_Nombre'],
-                                        'team_id' => Filament::getTenant()->id,
-                                        'codigo'=>$nuecta,
-                                        'acumula'=>'20101000',
-                                        'tipo'=>'D',
-                                        'naturaleza'=>'A',
-                                    ]);
-                                    $cta_con = $n_cta->codigo;
-                                    $cta_nombres =$n_cta->nombre;
-                                }
-                            }
-                            Proveedores::where('team_id',Filament::getTenant()->id)
-                                ->where('rfc',$record['Emisor_Rfc'])
-                                ->update(['cuenta_contable'=>$cta_con]);
-                        }
                         $uuid_v = $record->UUID;
                         $pols = CatPolizas::where('team_id',Filament::getTenant()->id)
                             ->where('tipo','PG')->pluck('id');
@@ -1027,10 +886,10 @@ class cfdiri extends Page implements HasForms, HasTable
     {
         $tipoxml = $record['xml_type'];
         $tipocom = $record['TipoDeComprobante'];
-        $rfc_rec = $record['Receptor_Rfc'];
-        $rfc_emi = $record['Emisor_Rfc'];
-        $nom_rec = $record['Receptor_Nombre'];
-        $nom_emi = $record['Emisor_Nombre'];
+        $rfc_rec = strtoupper(trim($record['Receptor_Rfc'] ?? ''));
+        $rfc_emi = strtoupper(trim($record['Emisor_Rfc'] ?? ''));
+        $nom_rec = trim($record['Receptor_Nombre'] ?? '');
+        $nom_emi = trim($record['Emisor_Nombre'] ?? '');
         $descuento = $record['Descuento'];
         $subtotal = $record['SubTotal'];
         $iva = $record['TotalImpuestosTrasladados'];
@@ -1065,7 +924,7 @@ class cfdiri extends Page implements HasForms, HasTable
         if($tipoc == null||$tipoc == ''||$tipoc ==0) $tipoc = 1;
         if($tipoxml == 'Recibidos'&&$tipocom == 'I')
         {
-            if(!DB::table('proveedores')->where('team_id',$record->team_id)->where('rfc',$rfc_emi)->exists())
+            if(!DB::table('proveedores')->where('team_id',$record->team_id)->whereRaw('UPPER(rfc) = ?', [$rfc_emi])->exists())
             {
                 $clave = count(DB::table('proveedores')->where('team_id',$record->team_id)->get()) + 1;
                 \App\Models\Proveedores::create([
@@ -1076,15 +935,33 @@ class cfdiri extends Page implements HasForms, HasTable
                     'dias_credito'=>30
                 ]);
             }
-            $existe = CatCuentas::where('rfc_asociado',$rfc_emi)->where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->first();
+            $existe = null;
+            if ($rfc_emi !== '') {
+                $existe = CatCuentas::where('rfc_asociado',$rfc_emi)
+                    ->where('acumula','20101000')
+                    ->where('team_id',Filament::getTenant()->id)
+                    ->first();
+            }
+            if (! $existe && $nom_emi !== '') {
+                $existe = CatCuentas::where('nombre',$nom_emi)
+                    ->where('acumula','20101000')
+                    ->where('team_id',Filament::getTenant()->id)
+                    ->first();
+            }
             if($existe)
             {
                 $ctaclie = $existe->codigo;
+                if ($rfc_emi !== '' && $existe->rfc_asociado !== $rfc_emi) {
+                    $existe->update(['rfc_asociado' => $rfc_emi]);
+                }
+                Proveedores::whereRaw('UPPER(rfc) = ?', [$rfc_emi])
+                    ->where('team_id',Filament::getTenant()->id)
+                    ->update(['cuenta_contable' => $ctaclie]);
             }
             else
             {
                 $nuecta = intval(DB::table('cat_cuentas')->where('team_id',Filament::getTenant()->id)->where('acumula','20101000')->max('codigo')) + 1;
-                CatCuentas::firstOrCreate([
+                CatCuentas::create([
                     'nombre' =>  $nom_emi,
                     'team_id' => Filament::getTenant()->id,
                     'codigo'=>$nuecta,
@@ -1093,9 +970,9 @@ class cfdiri extends Page implements HasForms, HasTable
                     'naturaleza'=>'A',
                     'rfc_asociado'=>$rfc_emi
                 ]);
-                Proveedores::where('rfc',$rfc_emi)
-                ->where('team_id',Filament::getTenant()->id)
-                ->update(['cuenta_contable'=>$nuecta]);
+                Proveedores::whereRaw('UPPER(rfc) = ?', [$rfc_emi])
+                    ->where('team_id',Filament::getTenant()->id)
+                    ->update(['cuenta_contable'=>$nuecta]);
 
                 $ctaclie = $nuecta;
             }
@@ -1106,7 +983,9 @@ class cfdiri extends Page implements HasForms, HasTable
             $nsubtotal = floatval($subtotal) - floatval($descuento);
             //dd($ntotal,$nsubtotal,$total,$subtotal);
             if($data['forma'] == 'CXP') {
-                $prov_ee = Proveedores::where('rfc',$rfc_emi)->where('team_id',Filament::getTenant()->id)->first();
+                $prov_ee = Proveedores::whereRaw('UPPER(rfc) = ?', [$rfc_emi])
+                    ->where('team_id',Filament::getTenant()->id)
+                    ->first();
                 $dias_cred = intval($prov_ee->dias_credito);
                 $saldo_ant = floatval($prov_ee->saldo);
                 $saldo_nue = $saldo_ant + ($ntotal*$tipoc);
@@ -1434,64 +1313,66 @@ class cfdiri extends Page implements HasForms, HasTable
     public static function ValProveedor($record) : int
     {
         $prov_id = 0;
-        if(Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->exists())
+        $team_id = Filament::getTenant()->id;
+        $rfc_emi = strtoupper(trim($record['Emisor_Rfc'] ?? ''));
+        $nom_emi = trim($record['Emisor_Nombre'] ?? '');
+
+        $prov = Proveedores::whereRaw('UPPER(rfc) = ?', [$rfc_emi])
+            ->where('team_id',$team_id)
+            ->first();
+        if(! $prov){
+            $nuevocli = Count(Proveedores::where('team_id',$team_id)->get()) + 1;
+            $prov = Proveedores::create([
+                'clave' => $nuevocli,
+                'rfc'=>$rfc_emi,
+                'nombre'=>$nom_emi,
+                'team_id' => $team_id,
+            ]);
+        }
+        $prov_id = $prov->id;
+
+        if($prov->cuenta_contable == ''||$prov->cuenta_contable == null)
         {
-            $prov = Proveedores::where('team_id',Filament::getTenant()->id)->where('rfc',$record['Emisor_Rfc'])->first();
-            $prov_id = $prov->id;
-            if($prov->cuenta_contable == ''||$prov->cuenta_contable == null)
-            {
-                if(CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$prov->nombre)->exists())
-                {
-                    $cta = CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$prov->nombre)->first();
-                    Proveedores::where('id',$prov_id)->update([
-                       'cuenta_contable'=> $cta->codigo
-                    ]);
-                }else{
-                    $nuecta = intval(DB::table('cat_cuentas')
-                            ->where('team_id',Filament::getTenant()->id)
-                            ->where('acumula','20101000')->max('codigo')) + 1;
-                    $n_cta = CatCuentas::create([
-                        'nombre' =>  $record['Emisor_Nombre'],
-                        'team_id' => Filament::getTenant()->id,
-                        'codigo'=>$nuecta,
-                        'acumula'=>'20101000',
-                        'tipo'=>'D',
-                        'naturaleza'=>'A',
-                    ]);
-                    $cta_con = $n_cta->codigo;
-                    Proveedores::where('id',$prov_id)->update([
-                        'cuenta_contable'=> $cta_con
-                    ]);
-                }
+            $cta = null;
+            if ($rfc_emi !== '') {
+                $cta = CatCuentas::where('acumula','20101000')
+                    ->where('team_id',$team_id)
+                    ->where('rfc_asociado',$rfc_emi)
+                    ->first();
             }
-        }else{
-            $new_cta = '';
-            if(CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$record['Emisor_Nombre'])->exists())
-            {
-                $cta = CatCuentas::where('acumula','20101000')->where('team_id',Filament::getTenant()->id)->where('nombre',$record['Emisor_Nombre'])->first();
-                $new_cta = $cta->codigo;
+            if (! $cta && $nom_emi !== '') {
+                $cta = CatCuentas::where('acumula','20101000')
+                    ->where('team_id',$team_id)
+                    ->where('nombre',$nom_emi)
+                    ->first();
+            }
+            if($cta){
+                if ($rfc_emi !== '' && $cta->rfc_asociado !== $rfc_emi) {
+                    $cta->update(['rfc_asociado' => $rfc_emi]);
+                }
+                $prov->update(['cuenta_contable'=> $cta->codigo]);
             }else{
                 $nuecta = intval(DB::table('cat_cuentas')
-                        ->where('team_id',Filament::getTenant()->id)
+                        ->where('team_id',$team_id)
                         ->where('acumula','20101000')->max('codigo')) + 1;
-                $n_cta = CatCuentas::create([
-                    'nombre' =>  $record['Emisor_Nombre'],
-                    'team_id' => Filament::getTenant()->id,
-                    'codigo'=>$nuecta,
-                    'acumula'=>'20101000',
-                    'tipo'=>'D',
-                    'naturaleza'=>'A',
-                ]);
-                $new_cta = $n_cta->codigo;
+                $cta = CatCuentas::firstOrCreate(
+                    [
+                        'nombre' => $nom_emi,
+                        'team_id' => $team_id,
+                        'acumula' => '20101000',
+                    ],
+                    [
+                        'codigo'=>$nuecta,
+                        'tipo'=>'D',
+                        'naturaleza'=>'A',
+                        'rfc_asociado'=>$rfc_emi,
+                    ]
+                );
+                if ($rfc_emi !== '' && $cta->rfc_asociado !== $rfc_emi) {
+                    $cta->update(['rfc_asociado' => $rfc_emi]);
+                }
+                $prov->update(['cuenta_contable'=> $cta->codigo]);
             }
-            $nuevocli = Count(Proveedores::where('team_id',Filament::getTenant()->id)->get()) + 1;
-            $prov_id = Proveedores::insertGetId([
-                'clave' => $nuevocli,
-                'rfc'=>$record['Emisor_Rfc'],
-                'nombre'=>$record['Emisor_Nombre'],
-                'cuenta_contable'=>$new_cta,
-                'team_id' => Filament::getTenant()->id,
-            ]);
         }
         return $prov_id;
     }

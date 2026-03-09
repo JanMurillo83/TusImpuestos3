@@ -157,10 +157,13 @@
             @foreach($surtidos as $row)
                 @php
                     $item = $items[$row->item_id] ?? null;
-                    $inv = \App\Models\Inventario::where('id',$row->item_id)->first();
+                    $item_alt = \App\Models\Inventario::where('descripcion',$row->descr)->first();
+                    $clave_ = $item?->clave ?? '';
+                    $cve = $clave_;
+                    if($clave_ == '') $cve = $item_alt?->clave ?? '';
                 @endphp
                 <tr>
-                    <td>{{ $inv?->clave ?? '' }}</td>
+                    <td>{{ $cve}}</td>
                     <td>{{ $row->descr }}</td>
                     <td>{{ number_format($row->cant, 2) }}</td>
                     <td>${{ number_format($row->precio_u, 2) }}</td>

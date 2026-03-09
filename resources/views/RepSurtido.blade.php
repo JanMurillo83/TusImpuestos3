@@ -162,9 +162,13 @@
         <tbody>
             @php
                 $item = \App\Models\Inventario::find($surtido->item_id);
+                $item_alt = \App\Models\Inventario::where('descripcion',$surtido->descr)->first();
+                $clave_ = $item?->clave ?? '';
+                    $cve = $clave_;
+                    if($clave_ == '') $cve = $item_alt?->clave ?? '';
             @endphp
             <tr>
-                <td>{{ $item->clave ?? $surtido->item_id }}</td>
+                <td>{{ $cve }}</td>
                 <td>{{ $surtido->descr }}</td>
                 <td>{{ number_format($surtido->cant, 2) }}</td>
                 <td>${{ number_format($surtido->precio_u, 2) }}</td>

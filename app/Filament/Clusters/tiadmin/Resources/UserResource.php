@@ -52,7 +52,7 @@ class UserResource extends Resource
                     ->password()
                     ->required()
                     ->maxLength(255)
-                    ->visibleOn('create'),
+                    ->default('Admin123'),
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id),
                 Forms\Components\Hidden::make('is_admin')

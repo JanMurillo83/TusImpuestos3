@@ -48,11 +48,7 @@ class UserResource extends Resource
                     ->disabledOn('edit'),
                 Forms\Components\Hidden::make('email_verified_at')
                 ->default(Carbon::now()),
-                Forms\Components\TextInput::make('password')
-                    ->password()
-                    ->required()
-                    ->maxLength(255)
-                    ->default('Admin123'),
+                Forms\Components\Hidden::make('password')->default('Admin123'),
                 Forms\Components\Hidden::make('team_id')
                     ->default(Filament::getTenant()->id),
                 Forms\Components\Hidden::make('is_admin')

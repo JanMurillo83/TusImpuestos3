@@ -189,7 +189,7 @@ class NotasdeCreditoResource extends Resource
                                     TextInput::make('cant')->numeric()
                                         ->default(1)->label('Cantidad')
                                         ->live()
-                                        ->currencyMask(decimalSeparator:'.',precision:2)
+                                        ->currencyMask(decimalSeparator:'.',precision:4)
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = $get('cant');
                                             $cost = $get('precio');
@@ -375,7 +375,7 @@ class NotasdeCreditoResource extends Resource
                             Forms\Components\TextInput::make('ieps')->inlineLabel()->label('Retención IEPS')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                             Forms\Components\TextInput::make('total')
                                 ->numeric()->inlineLabel()
-                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                             Actions::make([
                                 ActionsAction::make('ImportarExcel')
                                     ->visible(function(Get $get){

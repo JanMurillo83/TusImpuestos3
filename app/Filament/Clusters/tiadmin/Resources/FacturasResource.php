@@ -267,7 +267,7 @@ class FacturasResource extends Resource
                             ->default(1)->label('Cantidad')
                             ->minValue(1)
                             ->live()
-                            ->currencyMask(decimalSeparator:'.',precision:2)
+                            ->currencyMask(decimalSeparator:'.',precision:4)
                             ->afterStateUpdated(function(Get $get, Set $set){
                                 $cant = floatval($get('cant'));
                                 $cost = floatval($get('precio'));
@@ -490,7 +490,7 @@ class FacturasResource extends Resource
                         Forms\Components\TextInput::make('ieps')->inlineLabel()->label('Retención IEPS')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                         Forms\Components\TextInput::make('total')
                             ->numeric()->inlineLabel()
-                            ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                            ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                         /*Actions::make([
                             ActionsAction::make('ImportarExcel')
                                 ->visible(function(Get $get){

@@ -342,7 +342,7 @@ class ComprasResource extends Resource
                                 TextInput::make('descripcion'),
                                 TextInput::make('costo')
                                     ->numeric()
-                                    ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
+                                    ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
                                     ->live()
                                     ->afterStateUpdated(function(Get $get, Set $set){
                                         $cant = $get('cant');
@@ -360,7 +360,7 @@ class ComprasResource extends Resource
                                     }),
                                 TextInput::make('subtotal')
                                     ->numeric()
-                                    ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                    ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                                 Hidden::make('iva'),
                                 Hidden::make('retiva'),
                                 Hidden::make('retisr'),
@@ -387,17 +387,17 @@ class ComprasResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('subtotal')
                         ->readOnly()
-                        ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                        ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                     Forms\Components\TextInput::make('Impuestos')
                         ->readOnly()
-                        ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                        ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                     Forms\Components\Hidden::make('iva'),
                     Forms\Components\Hidden::make('retiva'),
                     Forms\Components\Hidden::make('retisr'),
                     Forms\Components\Hidden::make('ieps'),
                     Forms\Components\TextInput::make('total')
                         ->numeric()
-                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                     Actions::make([
                         Action::make('ImportarOrden')
                             ->visible(function(Get $get){

@@ -178,7 +178,7 @@ class RemisionesResource extends Resource
                                 ])->schema([
                                     TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
                                         ->live()
-                                        ->currencyMask(decimalSeparator:'.',precision:2)
+                                        ->currencyMask(decimalSeparator:'.',precision:4)
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = $get('cant');
                                             $cost = $get('precio');
@@ -287,7 +287,7 @@ class RemisionesResource extends Resource
                                     TextInput::make('descripcion'),
                                     TextInput::make('precio')
                                         ->numeric()
-                                        ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
+                                        ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
                                         ->live()
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = $get('cant');
@@ -312,7 +312,7 @@ class RemisionesResource extends Resource
                                         }),
                                     TextInput::make('subtotal')
                                         ->numeric()
-                                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                                     Hidden::make('iva'),
                                     Hidden::make('retiva'),
                                     Hidden::make('retisr'),
@@ -331,17 +331,17 @@ class RemisionesResource extends Resource
                         ->schema([
                             Forms\Components\TextInput::make('subtotal')
                                 ->readOnly()
-                                ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                             Forms\Components\TextInput::make('Impuestos')
                                 ->readOnly()
-                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                             Forms\Components\Hidden::make('iva'),
                             Forms\Components\Hidden::make('retiva'),
                             Forms\Components\Hidden::make('retisr'),
                             Forms\Components\Hidden::make('ieps'),
                             Forms\Components\TextInput::make('total')
                                 ->numeric()
-                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
                             Actions::make([
                                 ActionsAction::make('ImportarExcel')
                                     ->visible(function(Get $get){

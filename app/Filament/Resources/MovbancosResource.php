@@ -1691,13 +1691,14 @@ class MovbancosResource extends Resource
                                         $set('concepto_poliza','NOMINA '.$receptor['Nombre']);
                                         $set('pol_referencia',$comp['serie'].$comp['folio']);
                                         $set('pol_uuid',$fisc['UUID']);
-                                        $detalle = $get('detalle_nomina');
+                                        $detalle = $get('detalle_nomina') ?? [];
                                         $banco_cta = BancoCuentas::where('id',$record->cuenta)->first();
                                         $cta_con_ban = CatCuentas::where('codigo',$banco_cta->codigo)
                                             ->where('team_id',Filament::getTenant()->id)
                                             ->first();
                                         $cargos_t = 0;
                                         $abonos_t = 0;
+                                        $addedBankLine = false;
                                         if($get('used_ban') == 'NO') {
                                             $detalle[] = [
                                                 'Cuenta_Con' => $cta_con_ban->id,
@@ -1709,103 +1710,117 @@ class MovbancosResource extends Resource
                                                 'Referencia' => $comp['serie'] . $comp['folio'],
                                                 'UUID' => $fisc['UUID'],
                                             ];
-
-                                            $set('used_ban','SI');
+                                            $addedBankLine = true;
                                         }
                                         $abonos_t += floatval($record->importe);
                                         foreach($percepciones() as $percepcion){
-                                            $ctaFallback = null;
-                                            $cuentaNomina = self::resolveNominaCuenta(
-                                                'percepcion',
-                                                $percepcion['TipoPercepcion'] ?? null,
-                                                $percepcion['Clave'] ?? null,
-                                                $percepcion['Concepto'] ?? null,
+                                            $tipoSat = $percepcion['TipoPercepcion'] ?? null;
+                                            $clave = $percepcion['Clave'] ?? null;
+                                            $conceptoNomina = self::resolveNominaConcepto(
+                                                'PERCEPCION',
+                                                $tipoSat,
+                                                $clave,
                                                 Filament::getTenant()->id
                                             );
-                                            if (! $cuentaNomina) {
-                                                $ctaFallback = '50102000';
-                                                if(($percepcion['Clave'] ?? null) === '052') $ctaFallback = '21611000';
-                                                if(($percepcion['Clave'] ?? null) === '045') $ctaFallback = '21601000';
-                                                if(($percepcion['Clave'] ?? null) === '016') $ctaFallback = '21612000';
-                                                $cuentaNomina = CatCuentas::where('codigo',$ctaFallback)
-                                                    ->where('team_id',Filament::getTenant()->id)
-                                                    ->first();
+                                            if (! $conceptoNomina?->catCuenta) {
+                                                Notification::make()
+                                                    ->title('Contabilizar')
+                                                    ->body('Falta cuenta contable para PERCEPCION '.($tipoSat ?: $clave ?: ''))
+                                                    ->warning()
+                                                    ->send();
+                                                return;
                                             }
+                                            $cuentaNomina = $conceptoNomina->catCuenta;
+                                            $importe = floatval($percepcion['ImporteGravado'] ?? 0) + floatval($percepcion['ImporteExento'] ?? 0);
+                                            $cargo = $conceptoNomina->naturaleza === 'D' ? $importe : 0;
+                                            $abono = $conceptoNomina->naturaleza === 'A' ? $importe : 0;
                                             $detalle[] = [
-                                                'Cuenta_Con'=>$cuentaNomina?->id ?? '',
-                                                'Cuenta'=>$cuentaNomina?->codigo ?? ($ctaFallback ?? ''),
-                                                'Nombre'=>trim(($percepcion['Clave'] ?? '').' '.($percepcion['Concepto'] ?? '')),
+                                                'Cuenta_Con'=>$cuentaNomina->id,
+                                                'Cuenta'=>$cuentaNomina->codigo,
+                                                'Nombre'=>$cuentaNomina->nombre,
                                                 'Concepto'=>$conce,
-                                                'Cargo'=>floatval($percepcion['ImporteGravado'] ?? 0)+floatval($percepcion['ImporteExento'] ?? 0),
-                                                'Abono'=>0,
+                                                'Cargo'=>$cargo,
+                                                'Abono'=>$abono,
                                                 'Referencia'=>$comp['serie'].$comp['folio'],
                                                 'UUID'=>$fisc['UUID'],
                                             ];
-                                            $cargos_t+=floatval($percepcion['ImporteGravado'] ?? 0)+floatval($percepcion['ImporteExento'] ?? 0);
+                                            $cargos_t += $cargo;
+                                            $abonos_t += $abono;
                                         }
                                         foreach($otros_pagos() as $otropago){
                                             if(floatval($otropago['Importe'] ?? 0) > 0) {
-                                                $ctaFallback = null;
-                                                $cuentaNomina = self::resolveNominaCuenta(
-                                                    'otro_pago',
-                                                    $otropago['TipoOtroPago'] ?? null,
-                                                    $otropago['Clave'] ?? null,
-                                                    $otropago['Concepto'] ?? null,
+                                                $tipoSat = $otropago['TipoOtroPago'] ?? null;
+                                                $clave = $otropago['Clave'] ?? null;
+                                                $conceptoNomina = self::resolveNominaConcepto(
+                                                    'OTRO_PAGO',
+                                                    $tipoSat,
+                                                    $clave,
                                                     Filament::getTenant()->id
                                                 );
-                                                if (! $cuentaNomina) {
-                                                    $ctaFallback = '50102000';
-                                                    if(($otropago['Clave'] ?? null) === '052') $ctaFallback = '21611000';
-                                                    if(($otropago['Clave'] ?? null) === '045') $ctaFallback = '21601000';
-                                                    if(($otropago['Clave'] ?? null) === '016') $ctaFallback = '21612000';
-                                                    $cuentaNomina = CatCuentas::where('codigo',$ctaFallback)
-                                                        ->where('team_id',Filament::getTenant()->id)
-                                                        ->first();
+                                                if (! $conceptoNomina?->catCuenta) {
+                                                    Notification::make()
+                                                        ->title('Contabilizar')
+                                                        ->body('Falta cuenta contable para OTRO PAGO '.($tipoSat ?: $clave ?: ''))
+                                                        ->warning()
+                                                        ->send();
+                                                    return;
                                                 }
+                                                $cuentaNomina = $conceptoNomina->catCuenta;
+                                                $importe = floatval($otropago['Importe'] ?? 0);
+                                                $cargo = $conceptoNomina->naturaleza === 'D' ? $importe : 0;
+                                                $abono = $conceptoNomina->naturaleza === 'A' ? $importe : 0;
                                                 $detalle[] = [
-                                                    'Cuenta_Con' => $cuentaNomina?->id ?? '',
-                                                    'Cuenta' => $cuentaNomina?->codigo ?? ($ctaFallback ?? ''),
-                                                    'Nombre' => trim(($otropago['Clave'] ?? '').' '.($otropago['Concepto'] ?? '')),
+                                                    'Cuenta_Con' => $cuentaNomina->id,
+                                                    'Cuenta' => $cuentaNomina->codigo,
+                                                    'Nombre' => $cuentaNomina->nombre,
                                                     'Concepto' => $conce,
-                                                    'Cargo' => floatval($otropago['Importe'] ?? 0),
-                                                    'Abono' => 0,
+                                                    'Cargo' => $cargo,
+                                                    'Abono' => $abono,
                                                     'Referencia' => $comp['serie'] . $comp['folio'],
                                                     'UUID' => $fisc['UUID'],
                                                 ];
-                                                $cargos_t+=floatval($otropago['Importe'] ?? 0);
+                                                $cargos_t += $cargo;
+                                                $abonos_t += $abono;
                                             }
                                         }
                                         foreach($deducciones() as $deduccion){
-                                            $ctaFallback = null;
-                                            $cuentaNomina = self::resolveNominaCuenta(
-                                                'deduccion',
-                                                $deduccion['TipoDeduccion'] ?? null,
-                                                $deduccion['Clave'] ?? null,
-                                                $deduccion['Concepto'] ?? null,
+                                            $tipoSat = $deduccion['TipoDeduccion'] ?? null;
+                                            $clave = $deduccion['Clave'] ?? null;
+                                            $conceptoNomina = self::resolveNominaConcepto(
+                                                'DEDUCCION',
+                                                $tipoSat,
+                                                $clave,
                                                 Filament::getTenant()->id
                                             );
-                                            if (! $cuentaNomina) {
-                                                $ctaFallback = '50102000';
-                                                if(($deduccion['Clave'] ?? null) === '052') $ctaFallback = '21611000';
-                                                if(($deduccion['Clave'] ?? null) === '045') $ctaFallback = '21601000';
-                                                if(($deduccion['Clave'] ?? null) === '016') $ctaFallback = '21612000';
-                                                $cuentaNomina = CatCuentas::where('codigo',$ctaFallback)
-                                                    ->where('team_id',Filament::getTenant()->id)
-                                                    ->first();
+                                            if (! $conceptoNomina?->catCuenta) {
+                                                Notification::make()
+                                                    ->title('Contabilizar')
+                                                    ->body('Falta cuenta contable para DEDUCCION '.($tipoSat ?: $clave ?: ''))
+                                                    ->warning()
+                                                    ->send();
+                                                return;
                                             }
+                                            $cuentaNomina = $conceptoNomina->catCuenta;
+                                            $importe = floatval($deduccion['Importe'] ?? 0);
+                                            $cargo = $conceptoNomina->naturaleza === 'D' ? $importe : 0;
+                                            $abono = $conceptoNomina->naturaleza === 'A' ? $importe : 0;
                                             $detalle[] = [
-                                                'Cuenta_Con'=>$cuentaNomina?->id ?? '',
-                                                'Cuenta'=>$cuentaNomina?->codigo ?? ($ctaFallback ?? ''),
-                                                'Nombre'=>trim(($deduccion['Clave'] ?? '').' '.($deduccion['Concepto'] ?? '')),
+                                                'Cuenta_Con'=>$cuentaNomina->id,
+                                                'Cuenta'=>$cuentaNomina->codigo,
+                                                'Nombre'=>$cuentaNomina->nombre,
                                                 'Concepto'=>$conce,
-                                                'Cargo'=>0,
-                                                'Abono'=>floatval($deduccion['Importe'] ?? 0),
+                                                'Cargo'=>$cargo,
+                                                'Abono'=>$abono,
                                                 'Referencia'=>$comp['serie'].$comp['folio'],
                                                 'UUID'=>$fisc['UUID'],
                                             ];
-                                            $abonos_t+=floatval($deduccion['Importe'] ?? 0);
+                                            $cargos_t += $cargo;
+                                            $abonos_t += $abono;
                                         }
                                         //dd($detalle);
+                                        if ($addedBankLine) {
+                                            $set('used_ban','SI');
+                                        }
                                         $set('detalle_nomina',$detalle);
                                         $set('cargos_poliza',round($cargos_t,2));
                                         $set('abonos_poliza',round($abonos_t,2));
@@ -2003,52 +2018,23 @@ class MovbancosResource extends Resource
         $set('../../abonos_poliza',round($abonos,2));
     }
 
-    private static function resolveNominaCuenta(string $tipo, ?string $codigoSat, ?string $clave, ?string $descripcion, int $teamId): ?CatCuentas
+    private static function resolveNominaConcepto(string $tipo, ?string $codigoSat, ?string $clave, int $teamId): ?NominaConceptoCuenta
     {
-        $tipos = self::nominaTipoAliases($tipo);
-        $query = NominaConceptoCuenta::query()
+        $query = NominaConceptoCuenta::with('catCuenta')
             ->where('team_id', $teamId)
+            ->where('tipo', $tipo)
             ->where('activo', true);
 
-        if (! empty($tipos)) {
-            $query->whereIn('tipo', $tipos);
-        }
-
-        $query->where(function ($q) use ($codigoSat, $clave, $descripcion) {
+        $query->where(function ($q) use ($codigoSat, $clave) {
             if ($codigoSat !== null && $codigoSat !== '') {
                 $q->orWhere('codigo_sat', $codigoSat);
             }
             if ($clave !== null && $clave !== '') {
                 $q->orWhere('clave', $clave);
             }
-            if ($descripcion !== null && $descripcion !== '') {
-                $q->orWhere('descripcion', $descripcion);
-            }
         });
 
-        $concepto = $query->first();
-        return $concepto?->catCuenta;
-    }
-
-    private static function nominaTipoAliases(string $tipo): array
-    {
-        $raw = trim($tipo);
-        if ($raw === '') {
-            return [];
-        }
-
-        $norm = strtolower($raw);
-        $aliases = [$raw];
-
-        if (in_array($norm, ['p', 'per', 'percepcion', 'percepciones'], true)) {
-            $aliases = array_merge($aliases, ['P', 'PER', 'PERCEPCION', 'PERCEPCIONES', 'Percepcion', 'Percepciones']);
-        } elseif (in_array($norm, ['d', 'ded', 'deduccion', 'deducciones'], true)) {
-            $aliases = array_merge($aliases, ['D', 'DED', 'DEDUCCION', 'DEDUCCIONES', 'Deduccion', 'Deducciones']);
-        } elseif (in_array($norm, ['op', 'otro_pago', 'otro pago', 'otros_pagos', 'otros pagos'], true)) {
-            $aliases = array_merge($aliases, ['OP', 'OTRO_PAGO', 'OTROS_PAGOS', 'OtroPago', 'OtrosPagos', 'Otro Pago', 'Otros Pagos']);
-        }
-
-        return array_values(array_unique($aliases));
+        return $query->first();
     }
     public static function sumas(Get $get,Set $set,$data) :void
     {

@@ -209,7 +209,7 @@ class FacturasResource extends Resource
                             else return false;
                         })
                         ->numeric()->default(1)->prefix('$')
-                        ->currencyMask(decimalSeparator:'.',precision:4),
+                        ->currencyMask(decimalSeparator:'.',precision:2),
                     Forms\Components\TextInput::make('condiciones')
                         ->columnSpan(2)->default('CONTADO'),
                     Forms\Components\Select::make('forma')
@@ -267,7 +267,7 @@ class FacturasResource extends Resource
                             ->default(1)->label('Cantidad')
                             ->minValue(1)
                             ->live()
-                            ->currencyMask(decimalSeparator:'.',precision:4)
+                            ->currencyMask(decimalSeparator:'.',precision:2)
                             ->afterStateUpdated(function(Get $get, Set $set){
                                 $cant = floatval($get('cant'));
                                 $cost = floatval($get('precio'));
@@ -291,7 +291,7 @@ class FacturasResource extends Resource
                                         TextInput::make('clave')->label('SKU')->required(),
                                         TextInput::make('descripcion')->columnSpan(3)->required(),
                                         TextInput::make('precio')->required()->default(0)
-                                        ->currencyMask(decimalSeparator:'.',precision:4),
+                                        ->currencyMask(decimalSeparator:'.',precision:2),
                                         Forms\Components\TextInput::make('cvesat')
                                             ->label('Clave SAT')
                                             ->default(function(Get $get): string{
@@ -400,7 +400,7 @@ class FacturasResource extends Resource
                             TextInput::make('precio')
                                 ->numeric()
                                 ->minValue(0.01)
-                                ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
+                                ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function(Get $get, Set $set){
                                     $cant = floatval($get('cant'));
@@ -422,7 +422,7 @@ class FacturasResource extends Resource
                                 }),
                             TextInput::make('subtotal')
                                 ->numeric()
-                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Hidden::make('iva'),
                             Hidden::make('retiva'),
                             Hidden::make('retisr'),
@@ -481,16 +481,16 @@ class FacturasResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('subtotal')
                             ->readOnly()->inlineLabel()
-                            ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                            ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                         Forms\Components\Hidden::make('Impuestos')
                             ->default(0.00),
-                        Forms\Components\TextInput::make('iva')->inlineLabel()->label('IVA')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
-                        Forms\Components\TextInput::make('retiva')->inlineLabel()->label('Retención IVA')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
-                        Forms\Components\TextInput::make('retisr')->inlineLabel()->label('Retención ISR')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
-                        Forms\Components\TextInput::make('ieps')->inlineLabel()->label('Retención IEPS')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                        Forms\Components\TextInput::make('iva')->inlineLabel()->label('IVA')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                        Forms\Components\TextInput::make('retiva')->inlineLabel()->label('Retención IVA')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                        Forms\Components\TextInput::make('retisr')->inlineLabel()->label('Retención ISR')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
+                        Forms\Components\TextInput::make('ieps')->inlineLabel()->label('Retención IEPS')->readOnly()->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                         Forms\Components\TextInput::make('total')
                             ->numeric()->inlineLabel()
-                            ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                            ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                         /*Actions::make([
                             ActionsAction::make('ImportarExcel')
                                 ->visible(function(Get $get){

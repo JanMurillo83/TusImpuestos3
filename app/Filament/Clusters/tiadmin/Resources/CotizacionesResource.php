@@ -406,7 +406,7 @@ class CotizacionesResource extends Resource
                                 ])->schema([
                                     TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
                                         ->live(onBlur: true)
-                                        ->currencyMask(decimalSeparator:'.',precision:4)
+                                        ->currencyMask(decimalSeparator:'.',precision:2)
                                         ->afterStateUpdated(function(Get $get, Set $set, $state, $old){
                                             // Solo recalcular si el valor realmente cambió
                                             if ($state == $old) {
@@ -530,7 +530,7 @@ class CotizacionesResource extends Resource
                                                     TextInput::make('clave')->label('SKU')->required(),
                                                     TextInput::make('descripcion')->columnSpan(3)->required(),
                                                     TextInput::make('precio')->required()->default(0)
-                                                        ->currencyMask(decimalSeparator:'.',precision:4),
+                                                        ->currencyMask(decimalSeparator:'.',precision:2),
                                                     Forms\Components\TextInput::make('cvesat')
                                                         ->label('Clave SAT')
                                                         ->default(function(Get $get): string{
@@ -650,7 +650,7 @@ class CotizacionesResource extends Resource
                                     TextInput::make('descripcion'),
                                     TextInput::make('precio')
                                         ->numeric()
-                                        ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
+                                        ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function(Get $get, Set $set, $state, $old){
                                             // Solo recalcular si el valor realmente cambió
@@ -673,7 +673,7 @@ class CotizacionesResource extends Resource
                                         }),
                                     TextInput::make('subtotal')
                                         ->numeric()
-                                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                                     Hidden::make('iva')->default(0),
                                     Hidden::make('retiva')->default(0),
                                     Hidden::make('retisr')->default(0),
@@ -820,27 +820,27 @@ class CotizacionesResource extends Resource
                         ->schema([
                             Forms\Components\TextInput::make('subtotal')
                                 ->readOnly()
-                                ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\Hidden::make('Impuestos'),
                             Forms\Components\TextInput::make('iva')
                                 ->label('IVA')
                                 ->readOnly()
-                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('retiva')
                                 ->label('Ret IVA')
                                 ->readOnly()
-                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('retisr')
                                 ->label('Ret ISR')
                                 ->readOnly()
-                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('ieps')
                                 ->label('IEPS')
                                 ->readOnly()
-                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('total')
                                 ->numeric()
-                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
+                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                 ->suffixActions([
                                     Actions\Action::make('Calcular Total')
                                     ->icon('fas-calculator')
@@ -1075,6 +1075,7 @@ class CotizacionesResource extends Resource
                 Tables\Columns\TextColumn::make('docto')
                     ->label('Cotizacion')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha')
                     ->date('d-m-Y')

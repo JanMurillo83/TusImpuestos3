@@ -238,7 +238,7 @@ class OrdenesResource extends Resource
                                                 TextInput::make('clave')->label('SKU')->required(),
                                                 TextInput::make('descripcion')->columnSpan(3)->required(),
                                                 TextInput::make('precio')->required()->default(0)
-                                                    ->currencyMask(decimalSeparator:'.',precision:4),
+                                                    ->currencyMask(decimalSeparator:'.',precision:2),
                                                 Forms\Components\TextInput::make('cvesat')
                                                     ->label('Clave SAT')
                                                     ->default(function(Get $get): string{
@@ -323,7 +323,7 @@ class OrdenesResource extends Resource
                                 TextInput::make('descripcion'),
                                 TextInput::make('costo')
                                     ->numeric()
-                                    ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
+                                    ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(function(Get $get, Set $set){
                                         $cant = $get('cant');
@@ -341,7 +341,7 @@ class OrdenesResource extends Resource
                                     }),
                                 TextInput::make('subtotal')
                                     ->numeric()
-                                    ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                    ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                                 Hidden::make('iva'),
                                 Hidden::make('retiva'),
                                 Hidden::make('retisr'),
@@ -389,17 +389,17 @@ class OrdenesResource extends Resource
                         ->schema([
                             Forms\Components\TextInput::make('subtotal')
                             ->readOnly()
-                            ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                            ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                         Forms\Components\TextInput::make('Impuestos')
                             ->readOnly()
-                            ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                            ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                         Forms\Components\Hidden::make('iva'),
                         Forms\Components\Hidden::make('retiva'),
                         Forms\Components\Hidden::make('retisr'),
                         Forms\Components\Hidden::make('ieps'),
                         Forms\Components\TextInput::make('total')
                             ->numeric()
-                            ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                            ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                         Actions::make([
                             Action::make('ImportarExcel')
                                 ->visible(function(Get $get){

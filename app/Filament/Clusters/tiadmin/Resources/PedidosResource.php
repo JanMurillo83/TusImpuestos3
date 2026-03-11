@@ -142,7 +142,7 @@ class PedidosResource extends Resource
                                 ])->schema([
                                     TextInput::make('cant')->numeric()->default(1)->label('Cantidad')
                                         ->live()
-                                        ->currencyMask(decimalSeparator:'.',precision:4)
+                                        ->currencyMask(decimalSeparator:'.',precision:2)
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = $get('cant');
                                             $cost = $get('precio');
@@ -248,7 +248,7 @@ class PedidosResource extends Resource
                                     TextInput::make('descripcion'),
                                     TextInput::make('precio')
                                         ->numeric()
-                                        ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4)
+                                        ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
                                         ->live()
                                         ->afterStateUpdated(function(Get $get, Set $set){
                                             $cant = $get('cant');
@@ -273,7 +273,7 @@ class PedidosResource extends Resource
                                         }),
                                     TextInput::make('subtotal')
                                         ->numeric()
-                                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                        ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                                     Hidden::make('iva'),
                                     Hidden::make('retiva'),
                                     Hidden::make('retisr'),
@@ -292,17 +292,17 @@ class PedidosResource extends Resource
                         ->schema([
                             Forms\Components\TextInput::make('subtotal')
                                 ->readOnly()
-                                ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->numeric()->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\TextInput::make('Impuestos')
                                 ->readOnly()
-                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->numeric()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Forms\Components\Hidden::make('iva'),
                             Forms\Components\Hidden::make('retiva'),
                             Forms\Components\Hidden::make('retisr'),
                             Forms\Components\Hidden::make('ieps'),
                             Forms\Components\TextInput::make('total')
                                 ->numeric()
-                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:4),
+                                ->readOnly()->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2),
                             Actions::make([
                                 ActionsAction::make('ImportarExcel')
                                     ->visible(function(Get $get){

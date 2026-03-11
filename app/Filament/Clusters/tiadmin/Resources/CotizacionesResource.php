@@ -234,16 +234,22 @@ class CotizacionesResource extends Resource
                                 ->currencyMask(decimalSeparator:'.', precision:6),
                             Actions::make([
                                 ActionsAction::make('ImportarExcel')
-                                    ->visible(function(Get $get){
-                                        // Solo visible en nuevas cotizaciones (sin id) y con cliente seleccionado
-                                        return !$get('id') && $get('clie') > 0;
-                                    })
+                                    ->disabled(fn (Get $get) => ! $get('clie'))
                                     ->label('Importar Partidas')
                                     ->badge()->tooltip('Importar Partidas desde Excel')
                                     ->modalCancelActionLabel('Cancelar')
                                     ->modalSubmitActionLabel('Importar')
                                     ->icon('fas-file-excel')
                                     ->form([
+                                        Select::make('modo_importacion')
+                                            ->label('¿Qué hacer con las partidas actuales?')
+                                            ->options([
+                                                'reemplazar' => 'Reemplazar (elimina las actuales)',
+                                                'agregar' => 'Agregar (conservar actuales)',
+                                            ])
+                                            ->default('reemplazar')
+                                            ->required()
+                                            ->helperText('Si ya hay partidas puedes elegir si reemplazar o agregar.'),
                                         Actions::make([
                                             ActionsAction::make('downloadLayoutPartidas')
                                                 ->label('Descargar Layout')
@@ -338,12 +344,21 @@ class CotizacionesResource extends Resource
                                             }
 
                                             if(!empty($partidas)) {
+                                                $importadas = count($partidas);
+                                                $modo = $data['modo_importacion'] ?? 'reemplazar';
+                                                if ($modo === 'agregar') {
+                                                    $actuales = $get('partidas') ?? [];
+                                                    $partidas = array_values(array_merge($actuales, $partidas));
+                                                }
+                                                $total = count($partidas);
                                                 $set('partidas', $partidas);
                                                 Self::updateTotals2($get, $set);
 
                                                 Notification::make()
                                                     ->title('Importación exitosa')
-                                                    ->body(count($partidas).' partidas importadas')
+                                                    ->body($modo === 'agregar'
+                                                        ? "{$importadas} partidas importadas (total {$total})."
+                                                        : "{$importadas} partidas importadas.")
                                                     ->success()
                                                     ->send();
                                             } else {
@@ -972,7 +987,7 @@ class CotizacionesResource extends Resource
 
         $headers = [
             'Cantidad',
-            'Clave',
+            'Clave (SKU)',
             'Descripcion',
             'Precio Unitario',
             'Observaciones',
@@ -981,6 +996,21 @@ class CotizacionesResource extends Resource
         foreach ($headers as $index => $header) {
             $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
         }
+
+        $sheet->setTitle('Layout');
+
+        $exampleSheet = $spreadsheet->createSheet();
+        $exampleSheet->setTitle('Ejemplo');
+        foreach ($headers as $index => $header) {
+            $exampleSheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+        $exampleSheet->setCellValueByColumnAndRow(1, 2, 1);
+        $exampleSheet->setCellValueByColumnAndRow(2, 2, 'CLAVE-001');
+        $exampleSheet->setCellValueByColumnAndRow(3, 2, 'Descripcion ejemplo');
+        $exampleSheet->setCellValueByColumnAndRow(4, 2, 123.4567);
+        $exampleSheet->setCellValueByColumnAndRow(5, 2, 'Observaciones');
+        $exampleSheet->setCellValueByColumnAndRow(1, 4, 'Usa la clave/SKU del item, no el ID.');
+        $exampleSheet->mergeCells('A4:E4');
 
         $writer = new Xlsx($spreadsheet);
         $fileName = 'layout_partidas_cotizacion.xlsx';
@@ -997,7 +1027,7 @@ class CotizacionesResource extends Resource
 
         $headers = [
             'Cantidad',
-            'Clave',
+            'Clave (SKU)',
             'Descripcion',
             'Precio Unitario',
             'Observaciones',

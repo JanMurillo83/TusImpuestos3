@@ -16,6 +16,7 @@ use Filament\Tables\Table;
 use Filament\Forms\Components\Actions as FormActions;
 use Filament\Forms\Components\FileUpload;
 use Filament\Support\Colors\Color;
+use Illuminate\Database\Eloquent\Builder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\IReader;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -113,6 +114,16 @@ class PreciosProductos extends Page implements HasTable
                     ])
                     ->action(function (array $data) use ($teamId) {
                         static::importarPrecios($teamId, $data);
+                    }),
+                Action::make('exportar_precios')
+                    ->label('Exportar')
+                    ->icon('fas-file-excel')
+                    ->badge()
+                    ->action(function ($livewire) use ($teamId) {
+                        $query = method_exists($livewire, 'getTableQueryForExport')
+                            ? $livewire->getTableQueryForExport()
+                            : $livewire->getFilteredTableQuery();
+                        return static::exportarPrecios($query, $teamId);
                     }),
             ]);
     }
@@ -238,6 +249,52 @@ class PreciosProductos extends Page implements HasTable
             ->success()
             ->body($mensaje)
             ->send();
+    }
+
+    public static function exportarPrecios(Builder $query, int $teamId)
+    {
+        $listas = ListaPrecio::where('team_id', $teamId)
+            ->orderBy('lista')
+            ->pluck('nombre', 'lista')
+            ->all();
+        $labels = [
+            $listas[1] ?? 'Precio1',
+            $listas[2] ?? 'Precio2',
+            $listas[3] ?? 'Precio3',
+            $listas[4] ?? 'Precio4',
+            $listas[5] ?? 'Precio5',
+        ];
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = array_merge(['SKU', 'Descripcion'], $labels);
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+        }
+
+        $rows = $query->select(['clave', 'descripcion', 'precio1', 'precio2', 'precio3', 'precio4', 'precio5'])
+            ->orderBy('clave')
+            ->get();
+
+        $rowIndex = 2;
+        foreach ($rows as $row) {
+            $sheet->setCellValueByColumnAndRow(1, $rowIndex, $row->clave);
+            $sheet->setCellValueByColumnAndRow(2, $rowIndex, $row->descripcion);
+            $sheet->setCellValueByColumnAndRow(3, $rowIndex, $row->precio1);
+            $sheet->setCellValueByColumnAndRow(4, $rowIndex, $row->precio2);
+            $sheet->setCellValueByColumnAndRow(5, $rowIndex, $row->precio3);
+            $sheet->setCellValueByColumnAndRow(6, $rowIndex, $row->precio4);
+            $sheet->setCellValueByColumnAndRow(7, $rowIndex, $row->precio5);
+            $rowIndex++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'precios_productos.xlsx';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
     private static function parsePrice($value): ?float

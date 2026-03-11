@@ -52,6 +52,80 @@ class PolizaCierre extends Page implements HasForms
         return $form
             ->statePath('data')
             ->schema([
+                Fieldset::make('Cuentas de Cierre Requeridas')
+                    ->schema([
+                        Placeholder::make('estado_cuentas_cierre')
+                            ->label('Validación de Cuentas')
+                            ->content(function () {
+                                $teamId = Filament::getTenant()->id;
+                                $acum = CatCuentas::where('team_id', $teamId)
+                                    ->where('codigo', '30400000')
+                                    ->first();
+                                $detalle = CatCuentas::where('team_id', $teamId)
+                                    ->where('codigo', '30401000')
+                                    ->first();
+
+                                $acumOk = $acum && $acum->acumula === '0' && $acum->tipo === 'A';
+                                $detOk = $detalle && $detalle->acumula === '30400000' && $detalle->tipo === 'D';
+
+                                $acumText = $acumOk
+                                    ? '✓ 30400000 Cierre del Ejercicio Acumulativa (Acumula 0)'
+                                    : '❌ 30400000 Cierre del Ejercicio Acumulativa (Acumula 0)';
+                                $detText = $detOk
+                                    ? '✓ 30401000 Cierre del Ejercicio Detalle (Acumula 30400000)'
+                                    : '❌ 30401000 Cierre del Ejercicio Detalle (Acumula 30400000)';
+
+                                $colorAcum = $acumOk ? 'green' : 'red';
+                                $colorDet = $detOk ? 'green' : 'red';
+
+                                return new HtmlString("
+                                    <div class='text-sm space-y-1'>
+                                        <div class='text-{$colorAcum}-600 font-semibold'>{$acumText}</div>
+                                        <div class='text-{$colorDet}-600 font-semibold'>{$detText}</div>
+                                    </div>
+                                ");
+                            }),
+                        Actions::make([
+                            Actions\Action::make('crear_cuentas_cierre')
+                                ->label('Crear Cuentas de Cierre')
+                                ->icon('heroicon-o-plus-circle')
+                                ->color('warning')
+                                ->visible(function () {
+                                    return ! $this->cuentasCierreValidas();
+                                })
+                                ->action(function () {
+                                    $teamId = Filament::getTenant()->id;
+
+                                    CatCuentas::updateOrCreate(
+                                        ['team_id' => $teamId, 'codigo' => '30400000'],
+                                        [
+                                            'nombre' => 'Cierre del Ejercicio Acumulativa',
+                                            'acumula' => '0',
+                                            'tipo' => 'A',
+                                            'naturaleza' => 'A',
+                                        ]
+                                    );
+
+                                    CatCuentas::updateOrCreate(
+                                        ['team_id' => $teamId, 'codigo' => '30401000'],
+                                        [
+                                            'nombre' => 'Cierre del Ejercicio Detalle',
+                                            'acumula' => '30400000',
+                                            'tipo' => 'D',
+                                            'naturaleza' => 'A',
+                                        ]
+                                    );
+
+                                    Notification::make()
+                                        ->title('Cuentas de cierre creadas')
+                                        ->success()
+                                        ->send();
+
+                                    $this->dispatch('refreshStatus');
+                                }),
+                        ])->columnSpanFull(),
+                    ])->columns(2),
+
                 Fieldset::make('Configuración General')
                     ->schema([
                         Select::make('ejercicio')
@@ -235,12 +309,22 @@ class PolizaCierre extends Page implements HasForms
                                 ->label('Generar Póliza de Cierre')
                                 ->icon('heroicon-o-document-check')
                                 ->color('primary')
+                                ->disabled(fn () => ! $this->cuentasCierreValidas())
                                 ->requiresConfirmation()
                                 ->modalHeading('Generar Póliza de Cierre')
                                 ->modalDescription(fn () => 'Se generará la póliza de cierre del ejercicio ' . ($this->data['ejercicio'] ?? '') . ' en el periodo ' . ($this->data['periodo'] ?? '') . '. Esta póliza cancelará todas las cuentas de resultados.')
                                 ->modalSubmitActionLabel('Generar')
                                 ->action(function () {
                                     try {
+                                        if (! $this->cuentasCierreValidas()) {
+                                            Notification::make()
+                                                ->title('Faltan cuentas de cierre')
+                                                ->warning()
+                                                ->body('Crea las cuentas 30400000 y 30401000 antes de generar la póliza de cierre.')
+                                                ->send();
+                                            return;
+                                        }
+
                                         $state = $this->form->getState();
                                         $team_id = Filament::getTenant()->id;
                                         $ejercicio = $state['ejercicio'];
@@ -369,5 +453,22 @@ class PolizaCierre extends Page implements HasForms
                             ')),
                     ]),
             ]);
+    }
+
+    private function cuentasCierreValidas(): bool
+    {
+        $teamId = Filament::getTenant()->id;
+        $acumOk = CatCuentas::where('team_id', $teamId)
+            ->where('codigo', '30400000')
+            ->where('acumula', '0')
+            ->where('tipo', 'A')
+            ->exists();
+        $detOk = CatCuentas::where('team_id', $teamId)
+            ->where('codigo', '30401000')
+            ->where('acumula', '30400000')
+            ->where('tipo', 'D')
+            ->exists();
+
+        return $acumOk && $detOk;
     }
 }

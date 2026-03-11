@@ -573,7 +573,7 @@ class MovbancosResource extends Resource
                                             }
                                             $data+= [
                                                 $item->id.'|'.$item->xml_id =>
-                                                    'Tercero: '.$alm->Emisor_Nombre.' |'.
+                                                    'Tercero: '.$alm?->Emisor_Nombre ?? ''.' |'.
                                                     'Referencia: '.$item->referencia.' |'.
                                                     'Importe: '.$tot.' |'.
                                                     'Pendiente: '.$pend.' |'.

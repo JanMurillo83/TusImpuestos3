@@ -11,6 +11,8 @@ use App\Services\Herramientas\CatalogosImportService;
 use App\Services\Herramientas\CatalogosLayoutService;
 use App\Services\Herramientas\CatalogosResetService;
 use App\Services\Herramientas\MovimientosResetService;
+use App\Services\PolizaCierreService;
+use App\Services\SaldosCache;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -28,6 +30,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Torgodly\Html2Media\Actions\Html2MediaAction;
 
 class Tools extends Page implements HasForms, HasActions
@@ -82,6 +85,98 @@ class Tools extends Page implements HasForms, HasActions
     {
         return $form
             ->schema([
+                Actions::make([
+                    Actions\Action::make('repararEmpresa')
+                        ->label('Reparar Empresa')
+                        ->icon('heroicon-o-wrench-screwdriver')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Reparar Empresa')
+                        ->modalDescription('Ejecutará: 1) Corregir Cuentas Duplicadas, 2) Corregir Naturaleza de Cuentas, 3) Habilitar periodo 13, validar/crear cuentas de cierre y generar póliza de cierre en periodo 13, 4) Recontabilizar saldos.')
+                        ->modalSubmitActionLabel('Ejecutar')
+                        ->form([
+                            Select::make('ejercicio')
+                                ->label('Ejercicio')
+                                ->options(function () {
+                                    $anioActual = date('Y');
+                                    $opciones = [];
+                                    for ($i = $anioActual - 5; $i <= $anioActual + 1; $i++) {
+                                        $opciones[$i] = $i;
+                                    }
+                                    return $opciones;
+                                })
+                                ->default(Filament::getTenant()->ejercicio)
+                                ->required(),
+                        ])
+                        ->action(function (array $data) {
+                            $tenant = Filament::getTenant();
+                            if (! $tenant) {
+                                Notification::make()->title('No se encontró el tenant activo.')->danger()->send();
+                                return;
+                            }
+
+                            $teamId = $tenant->id;
+                            $ejercicio = (int) ($data['ejercicio'] ?? $tenant->ejercicio);
+                            $resumen = [];
+
+                            try {
+                                // 1) Corregir Cuentas Duplicadas
+                                $code = Artisan::call('app:corregir-cuentas-duplicadas');
+                                $resumen[] = $code === 0
+                                    ? '✓ Cuentas duplicadas corregidas'
+                                    : '⚠ Error al corregir cuentas duplicadas';
+
+                                // 2) Corregir Naturaleza de Cuentas
+                                $code = Artisan::call('cuentas:validar-naturalezas', [
+                                    '--team_id' => $teamId,
+                                    '--corregir' => true,
+                                    '--no-interaction' => true,
+                                ]);
+                                $resumen[] = $code === 0
+                                    ? '✓ Naturaleza de cuentas validada/corregida'
+                                    : '⚠ Error al corregir naturaleza de cuentas';
+
+                                // 3) Habilitar periodo 13, validar/crear cuentas de cierre y generar póliza
+                                $polizaService = app(PolizaCierreService::class);
+                                $polizaService->habilitarPeriodoAjuste($teamId, $ejercicio);
+                                $this->asegurarCuentasCierre($teamId);
+
+                                try {
+                                    $polizaService->generarPolizaCierre($teamId, $ejercicio, 13, '30401000');
+                                    $resumen[] = "✓ Póliza de cierre generada en periodo 13 ({$ejercicio})";
+                                } catch (\Exception $e) {
+                                    $msg = $e->getMessage();
+                                    if (str_contains($msg, 'Ya existe una póliza de cierre')) {
+                                        $resumen[] = "ℹ Ya existe póliza de cierre en periodo 13 ({$ejercicio})";
+                                    } else {
+                                        $resumen[] = "⚠ Error al generar póliza de cierre: {$msg}";
+                                    }
+                                }
+
+                                // 4) Recontabilizar Saldos
+                                $reconta = $this->recontabilizarSaldos($teamId, $ejercicio, null);
+                                $resumen[] = "✓ Recontabilización completada: {$reconta['cuentas']} cuentas, {$reconta['periodos']} periodos, {$reconta['errores']} errores";
+
+                                Notification::make()
+                                    ->title('Reparación de empresa completada')
+                                    ->success()
+                                    ->body(implode("\n", $resumen))
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Log::error('Error en Reparar Empresa', [
+                                    'team_id' => $teamId,
+                                    'ejercicio' => $ejercicio,
+                                    'error' => $e->getMessage(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('Error al reparar empresa')
+                                    ->danger()
+                                    ->body($e->getMessage())
+                                    ->send();
+                            }
+                        }),
+                ])->columnSpanFull(),
                 Actions::make([
                     Actions\Action::make('polizasDescuadradas')
                         ->label('Ver Pólizas Descuadradas')
@@ -662,4 +757,239 @@ class Tools extends Page implements HasForms, HasActions
             ]);
     }
 
+    private function asegurarCuentasCierre(int $teamId): void
+    {
+        CatCuentas::updateOrCreate(
+            ['team_id' => $teamId, 'codigo' => '30400000'],
+            [
+                'nombre' => 'Cierre del Ejercicio Acumulativa',
+                'acumula' => '0',
+                'tipo' => 'A',
+                'naturaleza' => 'A',
+            ]
+        );
+
+        CatCuentas::updateOrCreate(
+            ['team_id' => $teamId, 'codigo' => '30401000'],
+            [
+                'nombre' => 'Cierre del Ejercicio Detalle',
+                'acumula' => '30400000',
+                'tipo' => 'D',
+                'naturaleza' => 'A',
+            ]
+        );
+    }
+
+    private function recontabilizarSaldos(int $teamId, ?int $ejercicio, ?int $periodo): array
+    {
+        $periodosAProcesar = $this->obtenerPeriodosAProcesar($teamId, $ejercicio, $periodo);
+        if (empty($periodosAProcesar)) {
+            return [
+                'periodos' => 0,
+                'cuentas' => 0,
+                'errores' => 0,
+            ];
+        }
+
+        $cuentasActualizadas = 0;
+        $errores = 0;
+
+        DB::beginTransaction();
+        try {
+            DB::table('cat_cuentas')
+                ->where('team_id', $teamId)
+                ->where(function ($q) {
+                    $q->where('acumula', '10500')
+                        ->orWhere('acumula', '10501');
+                })
+                ->update(['acumula' => '10501000']);
+
+            DB::table('cat_cuentas')
+                ->where('team_id', $teamId)
+                ->where(function ($q) {
+                    $q->where('acumula', '20100')
+                        ->orWhere('acumula', '20101');
+                })
+                ->update(['acumula' => '20101000']);
+
+            foreach ($periodosAProcesar as $periodoData) {
+                $ejProc = $periodoData->ejercicio;
+                $perProc = $periodoData->periodo;
+
+                $cuentasAfectadas = DB::table('auxiliares')
+                    ->select('codigo')
+                    ->where('team_id', $teamId)
+                    ->where('a_ejercicio', $ejProc)
+                    ->where('a_periodo', $perProc)
+                    ->distinct()
+                    ->get();
+
+                foreach ($cuentasAfectadas as $cuenta) {
+                    try {
+                        DB::table('saldos_reportes')
+                            ->where('team_id', $teamId)
+                            ->where('codigo', $cuenta->codigo)
+                            ->where('ejercicio', $ejProc)
+                            ->where('periodo', $perProc)
+                            ->delete();
+
+                        $this->recalcularCuenta($teamId, $cuenta->codigo, $ejProc, $perProc);
+                        $cuentasActualizadas++;
+                    } catch (\Exception $e) {
+                        $errores++;
+                        Log::error('Error al recalcular cuenta (Reparar Empresa)', [
+                            'team_id' => $teamId,
+                            'codigo' => $cuenta->codigo,
+                            'ejercicio' => $ejProc,
+                            'periodo' => $perProc,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            $this->recalcularJerarquiaCuentas($teamId);
+
+            SaldosCache::invalidate($teamId);
+            try {
+                cache()->tags(['saldos'])->flush();
+            } catch (\BadMethodCallException $e) {
+                // El driver actual no soporta tags, ignorar
+            }
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return [
+            'periodos' => count($periodosAProcesar),
+            'cuentas' => $cuentasActualizadas,
+            'errores' => $errores,
+        ];
+    }
+
+    private function obtenerPeriodosAProcesar(int $teamId, ?int $ejercicio, ?int $periodo): array
+    {
+        $query = DB::table('auxiliares')
+            ->select('a_ejercicio as ejercicio', 'a_periodo as periodo')
+            ->where('team_id', $teamId)
+            ->distinct();
+
+        if ($ejercicio) {
+            $query->where('a_ejercicio', $ejercicio);
+        }
+
+        if ($periodo) {
+            $query->where('a_periodo', $periodo);
+        }
+
+        return $query->orderBy('ejercicio')->orderBy('periodo')->get()->toArray();
+    }
+
+    private function recalcularCuenta(int $teamId, string $codigo, int $ejercicio, int $periodo): void
+    {
+        $catCuenta = DB::table('cat_cuentas')
+            ->where('team_id', $teamId)
+            ->where('codigo', $codigo)
+            ->select('nombre', 'acumula', 'naturaleza')
+            ->first();
+
+        if (! $catCuenta) {
+            $catCuenta = (object) [
+                'nombre' => $codigo,
+                'acumula' => 'S',
+                'naturaleza' => 'D',
+            ];
+        }
+
+        $nivel = substr_count($codigo, '.') + 1;
+
+        $saldoAnterior = DB::table('auxiliares')
+            ->where('team_id', $teamId)
+            ->where('codigo', $codigo)
+            ->where('a_ejercicio', $ejercicio)
+            ->where('a_periodo', '<', $periodo)
+            ->selectRaw('COALESCE(SUM(cargo - abono), 0) as saldo')
+            ->value('saldo') ?? 0;
+
+        $movimientos = DB::table('auxiliares')
+            ->where('team_id', $teamId)
+            ->where('codigo', $codigo)
+            ->where('a_ejercicio', $ejercicio)
+            ->where('a_periodo', $periodo)
+            ->selectRaw('
+                COALESCE(SUM(cargo), 0) as cargos,
+                COALESCE(SUM(abono), 0) as abonos
+            ')
+            ->first();
+
+        $cargos = $movimientos->cargos ?? 0;
+        $abonos = $movimientos->abonos ?? 0;
+        $saldoFinal = $saldoAnterior + $cargos - $abonos;
+
+        DB::table('saldos_reportes')->updateOrInsert(
+            [
+                'team_id' => $teamId,
+                'codigo' => $codigo,
+            ],
+            [
+                'cuenta' => $catCuenta->nombre,
+                'acumula' => $catCuenta->acumula,
+                'naturaleza' => $catCuenta->naturaleza,
+                'nivel' => $nivel,
+                'anterior' => $saldoAnterior,
+                'cargos' => $cargos,
+                'abonos' => $abonos,
+                'final' => $saldoFinal,
+                'updated_at' => now(),
+            ]
+        );
+    }
+
+    private function recalcularJerarquiaCuentas(int $teamId): void
+    {
+        $cuentasPadre = DB::table('cat_cuentas')
+            ->where('team_id', $teamId)
+            ->where('acumula', '!=', 'N')
+            ->whereRaw('LENGTH(codigo) - LENGTH(REPLACE(codigo, ".", "")) < 2')
+            ->orderBy('codigo')
+            ->get();
+
+        foreach ($cuentasPadre as $padre) {
+            $saldoHijas = DB::table('saldos_reportes')
+                ->where('team_id', $teamId)
+                ->where('codigo', 'LIKE', $padre->codigo . '.%')
+                ->where('nivel', '>', substr_count($padre->codigo, '.') + 1)
+                ->selectRaw('
+                    COALESCE(SUM(anterior), 0) as total_anterior,
+                    COALESCE(SUM(cargos), 0) as total_cargos,
+                    COALESCE(SUM(abonos), 0) as total_abonos,
+                    COALESCE(SUM(final), 0) as total_final
+                ')
+                ->first();
+
+            if ($saldoHijas) {
+                DB::table('saldos_reportes')->updateOrInsert(
+                    [
+                        'team_id' => $teamId,
+                        'codigo' => $padre->codigo,
+                    ],
+                    [
+                        'cuenta' => $padre->nombre,
+                        'acumula' => $padre->acumula,
+                        'naturaleza' => $padre->naturaleza,
+                        'nivel' => substr_count($padre->codigo, '.') + 1,
+                        'anterior' => $saldoHijas->total_anterior,
+                        'cargos' => $saldoHijas->total_cargos,
+                        'abonos' => $saldoHijas->total_abonos,
+                        'final' => $saldoHijas->total_final,
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+        }
+    }
 }

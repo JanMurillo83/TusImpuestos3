@@ -35,6 +35,8 @@ Route::prefix('{tenantSlug}')->group(function () {
         return redirect("/{$tenantSlug}/tiadmin/comercial");
     });
     Route::middleware('auth')->group(function () {
+        Route::get('/dash-board-indicadores/pdf', \App\Http\Controllers\DashBoardIndicadoresPdfController::class)
+            ->name('dash-board-indicadores.pdf');
         Route::get('/tiadmin/comercial-embed', [\App\Http\Controllers\ComercialDashboardController::class, 'index'])
             ->name('tiadmin.comercial.embed');
         Route::get('/tiadmin/comercial/api/bootstrap', [\App\Http\Controllers\ComercialDashboardController::class, 'bootstrap'])

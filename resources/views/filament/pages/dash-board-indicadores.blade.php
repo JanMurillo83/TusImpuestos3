@@ -1,12 +1,29 @@
 <x-filament-panels::page>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://kit.fontawesome.com/48953f55c7.js" crossorigin="anonymous"></script>
-<div class="bg-slate-300" style="margin-top: -2rem !important; margin-bottom: 2rem !important; margin-left: -1rem !important; margin-right: -1rem !important;">
+<style>
+    .print-only { display: none; }
+    @media print {
+        @page { size: letter; margin: 10mm; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { background: #ffffff !important; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        .dashboard-wrapper { background: #ffffff !important; margin: 0 !important; }
+        .min-h-screen { min-height: auto !important; }
+        .shadow-sm { box-shadow: none !important; }
+        a { text-decoration: none !important; color: #0f172a !important; }
+        .fi-sidebar, .fi-topbar, .fi-breadcrumbs, .fi-page-header, .fi-footer, .fi-page-subnavigation { display: none !important; }
+        .fi-main, .fi-page { padding: 0 !important; }
+    }
+</style>
+<div class="bg-slate-300 dashboard-wrapper" style="margin-top: -2rem !important; margin-bottom: 2rem !important; margin-left: -1rem !important; margin-right: -1rem !important;">
     <div class="min-h-screen">
         <!-- Barra superior -->
         <header class="bg-white shadow-sm">
             <div class="max-w-full px-6 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
+                    <img src="{{ asset('images/MainLogoTR.png') }}" alt="Logo" class="h-10 w-auto">
                     <div>
                         <h1 class="text-lg font-bold text-slate-800">
                             Dashboard general
@@ -20,6 +37,12 @@
                     <p>Usuario: <span class="font-semibold">{{$usuario}}</span></p>
                     <p>Fecha: {{$fecha}}</p>
                     <p>Periodo de Trabajo: <span class="font-semibold">{{$mes_actual}}</span></p>
+                    <p class="print-only">Reporte ejecutivo para impresión</p>
+                </div>
+                <div class="no-print">
+                    <a href="{{ url('/'.$team_id.'/dash-board-indicadores/pdf') }}" target="_blank" class="text-xs px-4 py-2 rounded-full bg-slate-800 text-white hover:bg-slate-700">
+                        PDF ejecutivo
+                    </a>
                 </div>
             </div>
         </header>
@@ -378,7 +401,7 @@
                                 @endforeach
                                 <?php
                                 $impt_p = $pagar_importe - $imptp;
-                                $porc_tp = $impt_o * 100 / max($cobrar_importe,1);
+                                $porc_tp = $impt_p * 100 / max($pagar_importe,1);
                                 ?>
                                 <tr class="border-t">
                                     <td class="py-1 pr-2" style="color: black !important;">Otros Proveedores</td>

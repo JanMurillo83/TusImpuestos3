@@ -209,7 +209,7 @@ class FacturasResource extends Resource
                             else return false;
                         })
                         ->numeric()->default(1)->prefix('$')
-                        ->currencyMask(decimalSeparator:'.',precision:2),
+                        ->currencyMask(decimalSeparator:'.',precision:6),
                     Forms\Components\TextInput::make('condiciones')
                         ->columnSpan(2)->default('CONTADO'),
                     Forms\Components\Select::make('forma')

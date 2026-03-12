@@ -1030,56 +1030,13 @@ class CatPolizasResource extends Resource
                                 \Log::info('Registro DIOT guardado exitosamente', [
                                     'auxiliares_id' => $auxiliar->id,
                                     'diot_id' => $diotRecord->id,
-                                    'rfc_proveedor' => $diotRecord->rfc_proveedor
-            ]);
-    }
-
-    public static function syncPartidasMeta(CatPolizas $record): void
-    {
-        $partidas = $record->partidas()->orderBy('id')->get();
-        $cargos = 0;
-        $abonos = 0;
-        $partida = 0;
-
-        foreach ($partidas as $aux) {
-            $partida++;
-            $cargos += floatval($aux->cargo ?? 0);
-            $abonos += floatval($aux->abono ?? 0);
-
-            $concepto = trim((string) ($aux->concepto ?? ''));
-            if ($concepto === '') {
-                $concepto = (string) $record->concepto;
-            }
-
-            $aux->update([
-                'cat_polizas_id' => $record->id,
-                'a_ejercicio' => $record->ejercicio,
-                'a_periodo' => $record->periodo,
-                'team_id' => $record->team_id,
-                'nopartida' => $partida,
-                'concepto' => $concepto,
-            ]);
-
-            DB::table('auxiliares_cat_polizas')->updateOrInsert(
-                [
-                    'auxiliares_id' => $aux->id,
-                    'cat_polizas_id' => $record->id,
-                ],
-                [
-                    'auxiliares_id' => $aux->id,
-                    'cat_polizas_id' => $record->id,
-                ]
-            );
-        }
-
-        $record->update([
-            'cargos' => bcdiv($cargos, 1, 2),
-            'abonos' => bcdiv($abonos, 1, 2),
-        ]);
-    }
-}
+                                    'rfc_proveedor' => $diotRecord->rfc_proveedor,
+                                ]);
+                            }
+                        }
                     }
-                })->visible(function(){
+                })
+                ->visible(function(){
                         $team = Filament::getTenant()->id;
                         $periodo = Filament::getTenant()->periodo;
                         $ejercicio = Filament::getTenant()->ejercicio;
@@ -1754,6 +1711,50 @@ class CatPolizasResource extends Resource
                        else return false;
                     })
             ], layout: Tables\Enums\FiltersLayout::Modal);
+    }
+
+    public static function syncPartidasMeta(CatPolizas $record): void
+    {
+        $partidas = $record->partidas()->orderBy('id')->get();
+        $cargos = 0;
+        $abonos = 0;
+        $partida = 0;
+
+        foreach ($partidas as $aux) {
+            $partida++;
+            $cargos += floatval($aux->cargo ?? 0);
+            $abonos += floatval($aux->abono ?? 0);
+
+            $concepto = trim((string) ($aux->concepto ?? ''));
+            if ($concepto === '') {
+                $concepto = (string) $record->concepto;
+            }
+
+            $aux->update([
+                'cat_polizas_id' => $record->id,
+                'a_ejercicio' => $record->ejercicio,
+                'a_periodo' => $record->periodo,
+                'team_id' => $record->team_id,
+                'nopartida' => $partida,
+                'concepto' => $concepto,
+            ]);
+
+            DB::table('auxiliares_cat_polizas')->updateOrInsert(
+                [
+                    'auxiliares_id' => $aux->id,
+                    'cat_polizas_id' => $record->id,
+                ],
+                [
+                    'auxiliares_id' => $aux->id,
+                    'cat_polizas_id' => $record->id,
+                ]
+            );
+        }
+
+        $record->update([
+            'cargos' => bcdiv($cargos, 1, 2),
+            'abonos' => bcdiv($abonos, 1, 2),
+        ]);
     }
 
     public static function suma_apertura(Get $get,Set $set): void

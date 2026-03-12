@@ -86,6 +86,8 @@
 
         <div class="actions">
           <button class="btn" id="btnSeed">Recargar</button>
+          <button class="btn ok" id="btnExportExcel">Exportar Excel</button>
+          <button class="btn primary" id="btnExportPdf">PDF ejecutivo</button>
         </div>
       </div>
 
@@ -524,6 +526,7 @@
 
 <script>
 const API_BASE = "{{ url('/' . $tenant_slug . '/tiadmin/comercial/api') }}";
+const EXPORT_BASE = "{{ url('/' . $tenant_slug . '/tiadmin/comercial') }}";
 const CSRF_TOKEN = (document.querySelector('meta[name=\"csrf-token\"]')?.getAttribute('content')) || "{{ csrf_token() }}";
 
 /* ========= Catálogos ========= */
@@ -602,6 +605,21 @@ function setButtonLoading(btnId, isLoading, loadingLabel){
     btn.textContent = btn.dataset.label || btn.textContent;
     btn.disabled = false;
   }
+}
+function buildExportParams(){
+  const params = new URLSearchParams();
+  const effSeller = isManager() ? state.filters.sellerId : state.auth.sellerId;
+  if(state.filters.from) params.set("from", state.filters.from);
+  if(state.filters.to) params.set("to", state.filters.to);
+  if(state.filters.channel && state.filters.channel !== "ALL") params.set("channel", state.filters.channel);
+  if(state.filters.segment && state.filters.segment !== "ALL") params.set("segment", state.filters.segment);
+  if(effSeller && effSeller !== "ALL") params.set("sellerId", effSeller);
+  return params.toString();
+}
+function openExport(type){
+  const qs = buildExportParams();
+  const url = `${EXPORT_BASE}/${type}${qs ? `?${qs}` : ""}`;
+  window.open(url, "_blank");
 }
 function validateDateRange(from, to){
   if(from && to){
@@ -820,6 +838,12 @@ $("btnResetFilters").addEventListener("click", ()=>{
 
 $("btnSeed").addEventListener("click", async ()=>{
   await loadBootstrap();
+});
+$("btnExportExcel").addEventListener("click", ()=>{
+  openExport("export-excel");
+});
+$("btnExportPdf").addEventListener("click", ()=>{
+  openExport("export-pdf");
 });
 
 /* ========= Selectores por filtros + rol ========= */

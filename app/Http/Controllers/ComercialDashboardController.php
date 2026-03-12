@@ -17,10 +17,14 @@ use App\Models\Inventario;
 use App\Models\SeriesFacturas;
 use App\Models\Team;
 use App\Models\User;
+use App\Exports\ComercialArraySheet;
+use App\Exports\ComercialDashboardExport;
 use App\Services\FacturaFolioService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ComercialDashboardController extends Controller
 {
@@ -501,6 +505,40 @@ class ComercialDashboardController extends Controller
         return $this->bootstrap($request, $tenantSlug);
     }
 
+    public function exportExcel(Request $request, string $tenantSlug)
+    {
+        $exportData = $this->buildExportData($request, $tenantSlug);
+        $sheets = $this->buildExcelSheets($exportData);
+
+        $teamId = $exportData['team']['id'];
+        $periodLabel = $exportData['payload']['period']['label'] ?? 'periodo';
+        $filename = 'comercial-resumen-' . $teamId . '-' . str_replace(' ', '_', $periodLabel) . '.xlsx';
+
+        return Excel::download(new ComercialDashboardExport($sheets), $filename);
+    }
+
+    public function exportPdf(Request $request, string $tenantSlug)
+    {
+        $exportData = $this->buildExportData($request, $tenantSlug);
+
+        $logoPath = public_path('images/MainLogoTR.png');
+        $logoData = null;
+        if (is_file($logoPath)) {
+            $logoData = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        $exportData['logo_data'] = $logoData;
+
+        $pdf = Pdf::loadView('tiadmin.comercial-dashboard-pdf', $exportData)
+            ->setPaper('letter', 'portrait');
+
+        $teamId = $exportData['team']['id'];
+        $periodLabel = $exportData['payload']['period']['label'] ?? 'periodo';
+        $filename = 'comercial-resumen-' . $teamId . '-' . str_replace(' ', '_', $periodLabel) . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
     private function resolveTeam(string $tenantSlug): Team
     {
         if (ctype_digit($tenantSlug)) {
@@ -546,6 +584,404 @@ class ComercialDashboardController extends Controller
             return $start->translatedFormat('F Y');
         }
         return $start->translatedFormat('F Y');
+    }
+
+    private function buildExportData(Request $request, string $tenantSlug): array
+    {
+        $payload = $this->bootstrap($request, $tenantSlug)->getData(true);
+        $user = $request->user();
+        $team = $this->resolveTeam($tenantSlug);
+
+        $filters = [
+            'sellerId' => $request->query('sellerId', 'ALL'),
+            'channel' => $request->query('channel', 'ALL'),
+            'segment' => $request->query('segment', 'ALL'),
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+        ];
+
+        $isManager = $this->isManager($user);
+        $effectiveSellerId = $isManager ? $filters['sellerId'] : ($payload['auth']['sellerId'] ?? $user->id);
+
+        $catalog = $payload['catalog'] ?? ['segments' => [], 'channels' => [], 'winReasons' => [], 'lossReasons' => []];
+        $segmentMap = collect($catalog['segments'])->pluck('nombre', 'id')->all();
+        $channelMap = collect($catalog['channels'])->pluck('nombre', 'id')->all();
+        $winReasonMap = collect($catalog['winReasons'])->pluck('nombre', 'id')->all();
+        $lossReasonMap = collect($catalog['lossReasons'])->pluck('nombre', 'id')->all();
+        $sellerMap = collect($payload['sellers'] ?? [])->pluck('name', 'id')->all();
+
+        $from = $filters['from'] ? Carbon::parse($filters['from'])->startOfDay() : null;
+        $to = $filters['to'] ? Carbon::parse($filters['to'])->endOfDay() : null;
+
+        $quotes = array_values(array_filter($payload['quotes'] ?? [], function (array $q) use ($effectiveSellerId, $filters, $from, $to) {
+            if ($effectiveSellerId !== 'ALL' && (string) ($q['sellerId'] ?? '') !== (string) $effectiveSellerId) {
+                return false;
+            }
+            if ($filters['channel'] !== 'ALL' && (string) ($q['channelId'] ?? '') !== (string) $filters['channel']) {
+                return false;
+            }
+            if ($filters['segment'] !== 'ALL' && (string) ($q['segmentId'] ?? '') !== (string) $filters['segment']) {
+                return false;
+            }
+            $createdAt = isset($q['createdAt']) ? Carbon::parse($q['createdAt']) : null;
+            if ($from && $createdAt && $createdAt->lt($from)) {
+                return false;
+            }
+            if ($to && $createdAt && $createdAt->gt($to)) {
+                return false;
+            }
+            return true;
+        }));
+
+        $invoices = array_values(array_filter($payload['invoices'] ?? [], function (array $inv) use ($effectiveSellerId, $filters, $from, $to) {
+            if ($effectiveSellerId !== 'ALL' && (string) ($inv['sellerId'] ?? '') !== (string) $effectiveSellerId) {
+                return false;
+            }
+            if ($filters['channel'] !== 'ALL' && (string) ($inv['channelId'] ?? '') !== (string) $filters['channel']) {
+                return false;
+            }
+            if ($filters['segment'] !== 'ALL' && (string) ($inv['segmentId'] ?? '') !== (string) $filters['segment']) {
+                return false;
+            }
+            $issuedAt = isset($inv['issuedAt']) ? Carbon::parse($inv['issuedAt']) : null;
+            if ($from && $issuedAt && $issuedAt->lt($from)) {
+                return false;
+            }
+            if ($to && $issuedAt && $issuedAt->gt($to)) {
+                return false;
+            }
+            return true;
+        }));
+
+        $quotes = array_map(function (array $q) use ($segmentMap, $channelMap, $winReasonMap, $lossReasonMap, $sellerMap) {
+            $q['segmentLabel'] = $segmentMap[$q['segmentId'] ?? ''] ?? '—';
+            $q['channelLabel'] = $channelMap[$q['channelId'] ?? ''] ?? '—';
+            $q['sellerLabel'] = $q['sellerName'] ?? ($sellerMap[$q['sellerId'] ?? ''] ?? 'Sin vendedor');
+            $q['winReasonLabel'] = $winReasonMap[$q['winReasonId'] ?? ''] ?? '';
+            $q['lossReasonLabel'] = $lossReasonMap[$q['lostReasonId'] ?? ''] ?? ($q['lostReasonId'] ? (string) $q['lostReasonId'] : '(Sin motivo)');
+            $q['statusLabel'] = $this->statusLabel($q['status'] ?? '');
+            return $q;
+        }, $quotes);
+
+        $invoices = array_map(function (array $inv) use ($segmentMap, $channelMap, $winReasonMap, $sellerMap) {
+            $inv['segmentLabel'] = $segmentMap[$inv['segmentId'] ?? ''] ?? '—';
+            $inv['channelLabel'] = $channelMap[$inv['channelId'] ?? ''] ?? '—';
+            $inv['sellerLabel'] = $inv['sellerName'] ?? ($sellerMap[$inv['sellerId'] ?? ''] ?? 'Sin vendedor');
+            $inv['winReasonLabel'] = $winReasonMap[$inv['winReasonId'] ?? ''] ?? '';
+            return $inv;
+        }, $invoices);
+
+        $kpis = $this->computeKPIs($quotes, $invoices);
+        $lossReasons = $this->computeLossReasons($quotes, $lossReasonMap);
+        $pipeline = $this->computePipelineSummary($quotes);
+        $latestQuotes = collect($quotes)->sortByDesc('createdAt')->take(8)->values()->all();
+        $topInvoices = collect($invoices)->sortByDesc('issuedAt')->take(8)->values()->all();
+        $vendors = $this->computeVendorsSummary($payload['sellers'] ?? [], $quotes, $invoices, $isManager, $effectiveSellerId);
+
+        return [
+            'team' => ['id' => $team->id, 'name' => $team->name],
+            'payload' => $payload,
+            'filters' => $filters,
+            'effectiveSellerId' => $effectiveSellerId,
+            'maps' => [
+                'segments' => $segmentMap,
+                'channels' => $channelMap,
+                'winReasons' => $winReasonMap,
+                'lossReasons' => $lossReasonMap,
+                'sellers' => $sellerMap,
+            ],
+            'quotes' => $quotes,
+            'invoices' => $invoices,
+            'kpis' => $kpis,
+            'lossReasons' => $lossReasons,
+            'pipeline' => $pipeline,
+            'latestQuotes' => $latestQuotes,
+            'topInvoices' => $topInvoices,
+            'vendors' => $vendors,
+            'isManager' => $isManager,
+        ];
+    }
+
+    private function computeKPIs(array $quotes, array $invoices): array
+    {
+        $totalInvoiced = array_reduce($invoices, fn ($a, $i) => $a + (float) ($i['total'] ?? 0), 0.0);
+        $invoicedFromQuotes = array_values(array_filter($invoices, fn ($i) => ! empty($i['quoteId'])));
+        $invoicedFromQuotesValue = array_reduce($invoicedFromQuotes, fn ($a, $i) => $a + (float) ($i['total'] ?? 0), 0.0);
+        $invoicedDirectValue = $totalInvoiced - $invoicedFromQuotesValue;
+
+        $totalQuotes = count($quotes);
+        $totalQuoted = array_reduce($quotes, fn ($a, $q) => $a + (float) ($q['total'] ?? 0), 0.0);
+
+        $invoicedQuoteIds = array_unique(array_map(fn ($i) => $i['quoteId'], $invoicedFromQuotes));
+        $invoicedQuotesCount = count($invoicedQuoteIds);
+
+        $conversion = $totalQuotes ? ($invoicedQuotesCount / $totalQuotes) : 0;
+        $weighted = $totalQuoted ? ($invoicedFromQuotesValue / $totalQuoted) : 0;
+
+        $cycles = [];
+        foreach ($invoicedFromQuotes as $inv) {
+            $quote = collect($quotes)->firstWhere('id', $inv['quoteId']);
+            if (! $quote) {
+                continue;
+            }
+            $created = isset($quote['createdAt']) ? Carbon::parse($quote['createdAt']) : null;
+            $issued = isset($inv['issuedAt']) ? Carbon::parse($inv['issuedAt']) : null;
+            if ($created && $issued) {
+                $cycles[] = max(0, $created->diffInDays($issued));
+            }
+        }
+        $avgCycle = count($cycles) ? (array_sum($cycles) / count($cycles)) : 0;
+
+        $paidPctWeighted = $totalInvoiced
+            ? array_reduce($invoices, fn ($a, $i) => $a + ((float) ($i['paidPct'] ?? 0)) * (float) ($i['total'] ?? 0), 0.0) / $totalInvoiced
+            : 0;
+        $marginPctWeighted = $totalInvoiced
+            ? array_reduce($invoices, fn ($a, $i) => $a + ((float) ($i['marginPct'] ?? 0)) * (float) ($i['total'] ?? 0), 0.0) / $totalInvoiced
+            : 0;
+
+        $avgDiscount = $totalQuotes
+            ? array_reduce($quotes, fn ($a, $q) => $a + (float) ($q['discountPct'] ?? 0), 0.0) / $totalQuotes
+            : 0;
+
+        $openCount = count(array_filter($quotes, fn ($q) => in_array($q['status'] ?? '', ['OPEN', 'NEGOTIATION'], true)));
+        $lostCount = count(array_filter($quotes, fn ($q) => in_array($q['status'] ?? '', ['LOST', 'EXPIRED'], true)));
+
+        return [
+            'totalQuotes' => $totalQuotes,
+            'totalQuoted' => $totalQuoted,
+            'totalInvoiced' => $totalInvoiced,
+            'invoicedFromQuotesValue' => $invoicedFromQuotesValue,
+            'invoicedDirectValue' => $invoicedDirectValue,
+            'invoicedQuotesCount' => $invoicedQuotesCount,
+            'openCount' => $openCount,
+            'lostCount' => $lostCount,
+            'conversion' => $conversion,
+            'weighted' => $weighted,
+            'avgCycle' => $avgCycle,
+            'avgDiscount' => $avgDiscount,
+            'paidPctWeighted' => $paidPctWeighted,
+            'marginPctWeighted' => $marginPctWeighted,
+        ];
+    }
+
+    private function computeLossReasons(array $quotes, array $lossReasonMap): array
+    {
+        $lost = array_filter($quotes, fn ($q) => in_array($q['status'] ?? '', ['LOST', 'EXPIRED'], true));
+        $map = [];
+        foreach ($lost as $q) {
+            $key = $q['lostReasonId'] ?? '(Sin motivo)';
+            $label = $q['lostReasonId'] ? ($lossReasonMap[$q['lostReasonId']] ?? '(Sin motivo)') : '(Sin motivo)';
+            if (! isset($map[$key])) {
+                $map[$key] = ['reason' => $label, 'count' => 0, 'amount' => 0.0];
+            }
+            $map[$key]['count'] += 1;
+            $map[$key]['amount'] += (float) ($q['total'] ?? 0);
+        }
+
+        $rows = array_values($map);
+        usort($rows, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+        return $rows;
+    }
+
+    private function computePipelineSummary(array $quotes): array
+    {
+        $statusGroups = [
+            'OPEN' => ['title' => 'Abiertas', 'statuses' => ['OPEN']],
+            'NEGOTIATION' => ['title' => 'Negociación', 'statuses' => ['NEGOTIATION']],
+            'WON' => ['title' => 'Facturadas', 'statuses' => ['WON']],
+            'LOST' => ['title' => 'Perdidas/Expiradas', 'statuses' => ['LOST', 'EXPIRED']],
+        ];
+
+        $byStatus = [];
+        foreach ($statusGroups as $key => $meta) {
+            $list = array_filter($quotes, fn ($q) => in_array($q['status'] ?? '', $meta['statuses'], true));
+            $byStatus[] = [
+                'key' => $key,
+                'title' => $meta['title'],
+                'count' => count($list),
+                'total' => array_reduce($list, fn ($a, $q) => $a + (float) ($q['total'] ?? 0), 0.0),
+            ];
+        }
+
+        $open = array_filter($quotes, fn ($q) => in_array($q['status'] ?? '', ['OPEN', 'NEGOTIATION'], true));
+        $today = Carbon::today();
+        $buckets = [
+            ['label' => '0-7', 'min' => 0, 'max' => 7],
+            ['label' => '8-15', 'min' => 8, 'max' => 15],
+            ['label' => '16-30', 'min' => 16, 'max' => 30],
+            ['label' => '31-60', 'min' => 31, 'max' => 60],
+            ['label' => '+60', 'min' => 61, 'max' => 9999],
+        ];
+        $aging = [];
+        foreach ($buckets as $bucket) {
+            $count = 0;
+            foreach ($open as $q) {
+                $created = isset($q['createdAt']) ? Carbon::parse($q['createdAt']) : null;
+                if (! $created) {
+                    continue;
+                }
+                $age = max(0, $created->diffInDays($today));
+                if ($age >= $bucket['min'] && $age <= $bucket['max']) {
+                    $count++;
+                }
+            }
+            $aging[] = ['label' => $bucket['label'], 'count' => $count];
+        }
+
+        return [
+            'byStatus' => $byStatus,
+            'aging' => $aging,
+        ];
+    }
+
+    private function computeVendorsSummary(array $sellers, array $quotes, array $invoices, bool $isManager, string|int $effectiveSellerId = 'ALL'): array
+    {
+        $rows = [];
+        if ($isManager) {
+            foreach ($sellers as $seller) {
+                $qs = array_filter($quotes, fn ($q) => (string) ($q['sellerId'] ?? '') === (string) ($seller['id'] ?? ''));
+                $inv = array_filter($invoices, fn ($i) => (string) ($i['sellerId'] ?? '') === (string) ($seller['id'] ?? ''));
+                $k = $this->computeKPIs($qs, $inv);
+                $rows[] = [
+                    'seller' => $seller['name'] ?? '—',
+                    'quotes' => count($qs),
+                    'kpis' => $k,
+                ];
+            }
+            usort($rows, fn ($a, $b) => $b['kpis']['totalInvoiced'] <=> $a['kpis']['totalInvoiced']);
+            return $rows;
+        }
+
+        $k = $this->computeKPIs($quotes, $invoices);
+        $sellerName = collect($sellers)->firstWhere('id', $effectiveSellerId)['name'] ?? 'Mi desempeño';
+        return [[
+            'seller' => $sellerName,
+            'quotes' => count($quotes),
+            'kpis' => $k,
+        ]];
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'OPEN' => 'Abierta',
+            'NEGOTIATION' => 'En negociación',
+            'WON' => 'Facturada',
+            'LOST' => 'Perdida',
+            'EXPIRED' => 'Expirada',
+            default => $status ?: '—',
+        };
+    }
+
+    private function buildExcelSheets(array $data): array
+    {
+        $k = $data['kpis'];
+        $payload = $data['payload'];
+        $filters = $data['filters'];
+        $maps = $data['maps'];
+
+        $filterSeller = $filters['sellerId'] === 'ALL'
+            ? 'Todos'
+            : ($maps['sellers'][$filters['sellerId']] ?? (string) $filters['sellerId']);
+        $filterChannel = $filters['channel'] === 'ALL'
+            ? 'Todos'
+            : ($maps['channels'][$filters['channel']] ?? (string) $filters['channel']);
+        $filterSegment = $filters['segment'] === 'ALL'
+            ? 'Todos'
+            : ($maps['segments'][$filters['segment']] ?? (string) $filters['segment']);
+
+        $dashboardRows = [
+            ['Contexto', 'Periodo', $payload['period']['label'] ?? '', ($payload['period']['from'] ?? '').' a '.($payload['period']['to'] ?? '')],
+            ['Contexto', 'Usuario', $payload['auth']['userName'] ?? '', $payload['auth']['role'] ?? ''],
+            ['Filtros', 'Vendedor', $filterSeller, ''],
+            ['Filtros', 'Canal', $filterChannel, ''],
+            ['Filtros', 'Segmento', $filterSegment, ''],
+            ['KPIs', 'Cotizaciones (total)', $k['totalQuotes'], 'Abiertas: '.$k['openCount'].' · Perdidas: '.$k['lostCount'].' · Facturadas: '.$k['invoicedQuotesCount']],
+            ['KPIs', '$ Cotizado', $k['totalQuoted'], ''],
+            ['KPIs', '$ Facturado total', $k['totalInvoiced'], 'Desde cotizaciones: '.$k['invoicedFromQuotesValue']],
+            ['KPIs', '$ Ventas directas', $k['invoicedDirectValue'], 'Facturas sin cotización'],
+            ['KPIs', 'Conversión %', round($k['conversion'] * 100, 1), 'Facturadas / Totales'],
+            ['KPIs', 'Conversión ponderada %', round($k['weighted'] * 100, 1), '$ Facturado / $ Cotizado'],
+            ['KPIs', 'Ciclo promedio (días)', round($k['avgCycle'], 1), ''],
+            ['KPIs', 'Descuento promedio %', round($k['avgDiscount'], 1), ''],
+            ['KPIs', 'Margen ponderado %', round($k['marginPctWeighted'] * 100, 1), ''],
+            ['KPIs', 'Cobranza ponderada %', round($k['paidPctWeighted'] * 100, 1), ''],
+        ];
+
+        $quotesRows = array_map(function (array $q) {
+            $latestAct = ! empty($q['activities']) ? $q['activities'][0] : null;
+            $lastTxt = $latestAct ? ($latestAct['type'].' · '.$latestAct['date']) : '—';
+            return [
+                $q['id'] ?? '',
+                $q['createdAt'] ?? '',
+                $q['client'] ?? '',
+                $q['sellerLabel'] ?? '',
+                $q['channelLabel'] ?? '',
+                $q['segmentLabel'] ?? '',
+                $q['statusLabel'] ?? '',
+                (float) ($q['total'] ?? 0),
+                (float) ($q['discountPct'] ?? 0),
+                round((float) ($q['probability'] ?? 0) * 100, 1),
+                $q['invoiceId'] ?? '',
+                $lastTxt,
+                $q['lossReasonLabel'] ?? '',
+                $q['winReasonLabel'] ?? '',
+                $q['notes'] ?? '',
+            ];
+        }, $data['quotes']);
+
+        $invoicesRows = array_map(function (array $inv) {
+            $origin = ! empty($inv['quoteId']) ? ('Cotización '.$inv['quoteId']) : 'Directa';
+            return [
+                $inv['id'] ?? '',
+                $inv['issuedAt'] ?? '',
+                $inv['client'] ?? '',
+                $inv['sellerLabel'] ?? '',
+                $inv['channelLabel'] ?? '',
+                $inv['segmentLabel'] ?? '',
+                (float) ($inv['total'] ?? 0),
+                $origin,
+                round((float) ($inv['paidPct'] ?? 0) * 100, 1),
+                round((float) ($inv['marginPct'] ?? 0) * 100, 1),
+                $inv['notes'] ?? '',
+            ];
+        }, $data['invoices']);
+
+        $pipelineRows = [];
+        foreach ($data['pipeline']['byStatus'] as $row) {
+            $pipelineRows[] = ['Estatus', $row['title'], $row['count'], $row['total']];
+        }
+        foreach ($data['pipeline']['aging'] as $row) {
+            $pipelineRows[] = ['Aging', $row['label'], $row['count'], ''];
+        }
+
+        $lossRows = array_map(fn ($r) => [$r['reason'], $r['count'], $r['amount']], $data['lossReasons']);
+
+        $vendorRows = array_map(function (array $row) {
+            $k = $row['kpis'];
+            return [
+                $row['seller'],
+                $row['quotes'],
+                $k['totalQuoted'],
+                $k['totalInvoiced'],
+                round($k['conversion'] * 100, 1),
+                round($k['weighted'] * 100, 1),
+                round($k['avgCycle'], 1),
+                round($k['avgDiscount'], 1),
+                round($k['marginPctWeighted'] * 100, 1),
+                round($k['paidPctWeighted'] * 100, 1),
+                $k['invoicedDirectValue'],
+            ];
+        }, $data['vendors']);
+
+        return [
+            new ComercialArraySheet('Dashboard', ['Seccion', 'Indicador', 'Valor', 'Detalle'], $dashboardRows),
+            new ComercialArraySheet('Cotizaciones', ['Folio', 'Fecha', 'Cliente', 'Vendedor', 'Canal', 'Segmento', 'Estatus', 'Monto', 'Descuento %', 'Probabilidad %', 'Factura', 'Ultimo seguimiento', 'Motivo perdida', 'Motivo ganada', 'Notas'], $quotesRows),
+            new ComercialArraySheet('Pipeline', ['Tipo', 'Etiqueta', 'Cantidad', 'Total'], $pipelineRows),
+            new ComercialArraySheet('Facturas', ['Factura', 'Fecha', 'Cliente', 'Vendedor', 'Canal', 'Segmento', 'Total', 'Origen', 'Cobranza %', 'Margen %', 'Notas'], $invoicesRows),
+            new ComercialArraySheet('Vendedores', ['Vendedor', 'Cotizaciones', '$ Cotizado', '$ Facturado', 'Conversion %', 'Ponderada %', 'Ciclo prom', 'Descuento prom %', 'Margen %', 'Cobranza %', '$ Directo'], $vendorRows),
+            new ComercialArraySheet('Motivos perdida', ['Motivo', 'Cotizaciones', 'Monto'], $lossRows),
+        ];
     }
 
     private function ensureTeamAccess(User $user, Team $team): void

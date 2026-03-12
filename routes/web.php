@@ -41,6 +41,8 @@ Route::prefix('{tenantSlug}')->group(function () {
             ->name('tiadmin.comercial.embed');
         Route::get('/tiadmin/hris-demo-embed', [\App\Http\Controllers\HrisDemoController::class, 'embed'])
             ->name('tiadmin.hris.embed');
+        Route::get('/reportes/resumen-ejecutivo/pdf', \App\Http\Controllers\ReporteResumenEjecutivoPdfController::class)
+            ->name('reportes.resumen-ejecutivo.pdf');
         Route::get('/tiadmin/comercial/export-excel', [\App\Http\Controllers\ComercialDashboardController::class, 'exportExcel'])
             ->name('tiadmin.comercial.export.excel');
         Route::get('/tiadmin/comercial/export-pdf', [\App\Http\Controllers\ComercialDashboardController::class, 'exportPdf'])

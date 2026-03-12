@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'ia' => [
+        'token' => env('IA_API_TOKEN'),
+        'endpoint' => env('IA_API_ENDPOINT'),
+        'model' => env('IA_API_MODEL', 'gpt-4.1-mini'),
+    ],
+
 ];

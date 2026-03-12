@@ -10,6 +10,7 @@ use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class CreateCatPolizas extends CreateRecord
 {
@@ -35,21 +36,33 @@ class CreateCatPolizas extends CreateRecord
     }
     protected function afterCreate(): void
     {
-        $partidas = $this->record['partidas'];
+        CatPolizasResource::syncPartidasMeta($this->record);
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $detalle = $data['detalle'] ?? [];
         $cargos = 0;
         $abonos = 0;
-        $part = 0;
-        foreach($partidas as $partida)
-        {
-            $part++;
-            $partida['cat_polizas_id'] = $this->record->getKey();
-            $partida['nopartida'] = $part;
-            $cargos += $partida['cargo'];
-            $abonos += $partida['abono'];
+
+        foreach ($detalle as $partida) {
+            $cargos += floatval($partida['cargo'] ?? 0);
+            $abonos += floatval($partida['abono'] ?? 0);
         }
-        $this->record['cargos'] = $cargos;
-        $this->record['abonos'] = $abonos;
-        $this->record->save();
+
+        $cargos = bcdiv($cargos, 1, 2);
+        $abonos = bcdiv($abonos, 1, 2);
+
+        if ($cargos != $abonos) {
+            throw ValidationException::withMessages([
+                'detalle' => 'Cargos y abonos no cuadran. Revise las partidas antes de guardar.',
+            ]);
+        }
+
+        $data['cargos'] = $cargos;
+        $data['abonos'] = $abonos;
+
+        return $data;
     }
     protected function getCancelFormAction(): Action
     {

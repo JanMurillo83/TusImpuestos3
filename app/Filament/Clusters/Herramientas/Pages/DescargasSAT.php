@@ -21,6 +21,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -490,31 +491,87 @@ class DescargasSAT extends Page implements HasTable,HasForms
                         ->label('Importar XML')
                         ->icon('fas-upload')
                         ->form([
-                            FileUpload::make('archivo_xml')
+                            Select::make('xml_type')
+                                ->label('Tipo de CFDI')
+                                ->options([
+                                    'Emitidos' => 'Emitidos',
+                                    'Recibidos' => 'Recibidos',
+                                ])
+                                ->required(),
+                            FileUpload::make('archivos_xml')
+                                ->label('Archivos XML')
+                                ->disk('public')
                                 ->directory('TMPCFDI')
-                                ->preserveFilenames(),
-                            TextInput::make('ruta_archivo')->readOnly(),
+                                ->preserveFilenames()
+                                ->multiple()
+                                ->acceptedFileTypes(['text/xml', 'application/xml'])
+                                ->required(),
                         ])
                         ->action(function($data,$record){
-                            $team_id = $record->id;
-                            $archivo = storage_path('app/public/').$data['archivo_xml'];
-                            //dd($archivo);
-                            $xmlContents = \file_get_contents($archivo);
-                            $cfdi = Cfdi::newFromString($xmlContents);
-                            $comprobante = $cfdi->getQuickReader();
-                            $emisor = $comprobante->Emisor;
-                            $receptor = $comprobante->Receptor;
+                            $teamId = $record->id;
+                            $xmlType = $data['xml_type'] ?? 'Emitidos';
+                            $files = $data['archivos_xml'] ?? [];
 
-                            $tipo = 'CFDI no pertenece a la Razón Social';
-                            if($emisor['Rfc']) {
-                                self::ProcesaEmitidos_imp($archivo,$team_id);
-                                $tipo = 'CFDI Emitido Procesado';
+                            if (!is_array($files)) {
+                                $files = [$files];
                             }
-                            if($receptor['Rfc']) {
-                                self::ProcesaRecibidos_imp($archivo,$team_id);
-                                $tipo = 'CFDI Recibido Procesado';
+
+                            if (count($files) === 0) {
+                                Notification::make()
+                                    ->title('Sin archivos')
+                                    ->body('No se seleccionaron archivos XML para importar.')
+                                    ->warning()
+                                    ->send();
+                                return;
                             }
-                            Notification::make()->title($tipo)->success()->send();
+
+                            $processor = new XmlProcessorService();
+                            $success = 0;
+                            $skipped = 0;
+                            $errors = 0;
+                            $errorMessages = [];
+
+                            foreach ($files as $relativePath) {
+                                if (!is_string($relativePath) || $relativePath === '') {
+                                    $errors++;
+                                    $errorMessages[] = 'Archivo inválido o vacío.';
+                                    continue;
+                                }
+
+                                $filePath = storage_path('app/public/') . $relativePath;
+                                $result = $processor->processXmlFile($filePath, $teamId, $xmlType);
+
+                                if (!empty($result['success'])) {
+                                    $success++;
+                                } elseif (!empty($result['skipped'])) {
+                                    $skipped++;
+                                } else {
+                                    $errors++;
+                                    $errorMessages[] = basename($filePath) . ': ' . ($result['error'] ?? 'Error desconocido');
+                                }
+                            }
+
+                            $body = "Importados: {$success}, Duplicados: {$skipped}, Errores: {$errors}";
+                            $notification = Notification::make()
+                                ->title('Importación completada')
+                                ->body($body);
+
+                            if ($errors > 0) {
+                                $notification->warning();
+                            } else {
+                                $notification->success();
+                            }
+
+                            $notification->send();
+
+                            if ($errors > 0) {
+                                $detalle = implode("\n", array_slice($errorMessages, 0, 5));
+                                Notification::make()
+                                    ->title('Errores de importación')
+                                    ->body($detalle)
+                                    ->danger()
+                                    ->send();
+                            }
                         })
             ])
             ],ActionsPosition::BeforeColumns)

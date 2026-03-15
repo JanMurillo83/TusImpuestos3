@@ -1732,10 +1732,17 @@ class ReportesNIFController extends Controller
         return SaldosReportes::where('team_id', $team_id)
             ->where('ejercicio', $ejercicio)
             ->where('periodo', $periodo)
+            ->where('nivel', 1) // Solo nivel 1 para evitar duplicar cuentas acumuladas
             ->where(function($query) {
                 $query->where('codigo', 'like', '702%')
                       ->orWhere('codigo', 'like', '703%');
             })
+            ->where(function($query) {
+                $query->where('cargos', '!=', 0)
+                      ->orWhere('abonos', '!=', 0)
+                      ->orWhere('final', '!=', 0);
+            })
+            ->orderBy('codigo')
             ->get()
             ->map(function($cuenta) use ($team_id, $periodo, $ejercicio) {
                 // Saldo del periodo actual
@@ -2785,47 +2792,44 @@ class ReportesNIFController extends Controller
 
         $empresa = \App\Models\Team::find($team_id);
 
-        // Obtener ingresos y gastos
-        $ingresos = $this->obtenerSaldosCategoria($team_id, '401', '499');
-        $costo_ventas = $this->obtenerSaldosCategoria($team_id, '501', '509');
-        $gastos_operacion = $this->obtenerSaldosCategoria($team_id, '510', '599');
-        $otros_ingresos = $this->obtenerSaldosCategoria($team_id, '601', '699');
-        $otros_gastos = $this->obtenerSaldosCategoria($team_id, '701', '799');
+        // Obtener cuentas conforme NIF B-3
+        $ingresos = $this->obtenerCuentasResultados($team_id, $periodo, $ejercicio, '400', '499');
+        $costos = $this->obtenerCuentasResultados($team_id, $periodo, $ejercicio, '500', '599');
+        $gastos_operacion = $this->obtenerCuentasResultados($team_id, $periodo, $ejercicio, '600', '699');
+        $financiamiento = $this->obtenerCuentasFinanciamiento($team_id, $periodo, $ejercicio);
+        $otros_resultados = $this->obtenerCuentasResultados($team_id, $periodo, $ejercicio, '700', '701');
+        $impuestos = $this->obtenerCuentasResultados($team_id, $periodo, $ejercicio, '800', '899');
 
-        $total_ingresos = abs($ingresos->sum('final'));
-        $total_costo = abs($costo_ventas->sum('final'));
-        $utilidad_bruta = $total_ingresos - $total_costo;
+        // Totales del periodo
+        $total_ingresos_periodo = $this->calcularTotalPeriodo($ingresos);
+        $total_costos_periodo = $this->calcularTotalPeriodo($costos);
+        $total_gastos_periodo = $this->calcularTotalPeriodo($gastos_operacion);
+        $total_financiamiento_periodo = $this->calcularTotalFirmado($financiamiento, 'saldo_periodo');
+        $total_otros_periodo = $this->calcularTotalFirmado($otros_resultados, 'saldo_periodo');
+        $total_impuestos_periodo = $this->calcularTotalPeriodo($impuestos);
 
-        $total_gastos_op = abs($gastos_operacion->sum('final'));
-        $utilidad_operacion = $utilidad_bruta - $total_gastos_op;
+        // Totales acumulados
+        $total_ingresos_acumulado = $this->calcularTotalAcumulado($ingresos);
+        $total_costos_acumulado = $this->calcularTotalAcumulado($costos);
+        $total_gastos_acumulado = $this->calcularTotalAcumulado($gastos_operacion);
+        $total_financiamiento_acumulado = $this->calcularTotalFirmado($financiamiento, 'saldo_acumulado');
+        $total_otros_acumulado = $this->calcularTotalFirmado($otros_resultados, 'saldo_acumulado');
+        $total_impuestos_acumulado = $this->calcularTotalAcumulado($impuestos);
 
-        $total_otros_ingresos = abs($otros_ingresos->sum('final'));
-        $total_otros_gastos = abs($otros_gastos->sum('final'));
-        $total_otros_gastos_signed = $this->calcularTotalFirmado($otros_gastos, 'final');
-        $utilidad_neta = $utilidad_operacion + $total_otros_ingresos + $total_otros_gastos_signed;
+        // Utilidades
+        $utilidad_bruta_periodo = $total_ingresos_periodo - $total_costos_periodo;
+        $utilidad_operacion_periodo = $utilidad_bruta_periodo - $total_gastos_periodo;
+        $utilidad_antes_impuestos_periodo = $utilidad_operacion_periodo + $total_financiamiento_periodo + $total_otros_periodo;
+        $utilidad_neta_periodo = $utilidad_antes_impuestos_periodo - $total_impuestos_periodo;
+
+        $utilidad_bruta_acumulado = $total_ingresos_acumulado - $total_costos_acumulado;
+        $utilidad_operacion_acumulado = $utilidad_bruta_acumulado - $total_gastos_acumulado;
+        $utilidad_antes_impuestos_acumulado = $utilidad_operacion_acumulado + $total_financiamiento_acumulado + $total_otros_acumulado;
+        $utilidad_neta_acumulado = $utilidad_antes_impuestos_acumulado - $total_impuestos_acumulado;
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Estado de Resultados');
-
-        // Calcular acumulados (del inicio del ejercicio al periodo actual)
-        $ingresos_acum = $this->obtenerSaldosAcumulados($team_id, '401', '499', $ejercicio, $periodo);
-        $costo_ventas_acum = $this->obtenerSaldosAcumulados($team_id, '501', '509', $ejercicio, $periodo);
-        $gastos_operacion_acum = $this->obtenerSaldosAcumulados($team_id, '510', '599', $ejercicio, $periodo);
-        $otros_ingresos_acum = $this->obtenerSaldosAcumulados($team_id, '601', '699', $ejercicio, $periodo);
-        $otros_gastos_acum = $this->obtenerSaldosAcumulados($team_id, '701', '799', $ejercicio, $periodo);
-
-        $total_ingresos_acum = abs($ingresos_acum);
-        $total_costo_acum = abs($costo_ventas_acum);
-        $utilidad_bruta_acum = $total_ingresos_acum - $total_costo_acum;
-
-        $total_gastos_op_acum = abs($gastos_operacion_acum);
-        $utilidad_operacion_acum = $utilidad_bruta_acum - $total_gastos_op_acum;
-
-        $total_otros_ingresos_acum = abs($otros_ingresos_acum);
-        $total_otros_gastos_acum = abs($otros_gastos_acum);
-        $total_otros_gastos_acum_signed = $otros_gastos_acum;
-        $utilidad_neta_acum = $utilidad_operacion_acum + $total_otros_ingresos_acum + $total_otros_gastos_acum_signed;
 
         // Encabezado
         $sheet->setCellValue('A1', $empresa->name);
@@ -2858,7 +2862,7 @@ class ReportesNIFController extends Controller
         $row++;
 
         // INGRESOS
-        $sheet->setCellValue('A' . $row, 'INGRESOS');
+        $sheet->setCellValue('A' . $row, 'INGRESOS NETOS');
         $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11);
         $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
             ->setFillType(Fill::FILL_SOLID)
@@ -2867,18 +2871,17 @@ class ReportesNIFController extends Controller
         $row++;
 
         foreach ($ingresos as $cuenta) {
-            $cuenta_acum = $this->obtenerSaldoCuentaAcumulado($team_id, $cuenta->codigo, $ejercicio, $periodo);
-            $sheet->setCellValue('A' . $row, '  ' . $cuenta->cuenta);
-            $sheet->setCellValue('C' . $row, abs($cuenta->final));
-            $sheet->setCellValue('D' . $row, abs($cuenta_acum));
+            $sheet->setCellValue('A' . $row, '  ' . $cuenta->nombre);
+            $sheet->setCellValue('C' . $row, $cuenta->saldo_periodo);
+            $sheet->setCellValue('D' . $row, $cuenta->saldo_acumulado);
             $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
             $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
             $row++;
         }
 
-        $sheet->setCellValue('A' . $row, 'Total Ingresos');
-        $sheet->setCellValue('C' . $row, $total_ingresos);
-        $sheet->setCellValue('D' . $row, $total_ingresos_acum);
+        $sheet->setCellValue('A' . $row, 'TOTAL INGRESOS');
+        $sheet->setCellValue('C' . $row, $total_ingresos_periodo);
+        $sheet->setCellValue('D' . $row, $total_ingresos_acumulado);
         $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
         $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
@@ -2888,17 +2891,38 @@ class ReportesNIFController extends Controller
         $row += 2;
 
         // COSTO DE VENTAS
-        $sheet->setCellValue('A' . $row, 'Costo de Ventas');
-        $sheet->setCellValue('C' . $row, $total_costo);
-        $sheet->setCellValue('D' . $row, $total_costo_acum);
+        $sheet->setCellValue('A' . $row, 'COSTO DE VENTAS');
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF2C3E50');
+        $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+        $row++;
+
+        foreach ($costos as $cuenta) {
+            $sheet->setCellValue('A' . $row, '  ' . $cuenta->nombre);
+            $sheet->setCellValue('C' . $row, $cuenta->saldo_periodo);
+            $sheet->setCellValue('D' . $row, $cuenta->saldo_acumulado);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL COSTO DE VENTAS');
+        $sheet->setCellValue('C' . $row, $total_costos_periodo);
+        $sheet->setCellValue('D' . $row, $total_costos_acumulado);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
         $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
-        $row++;
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFECF0F1');
+        $row += 2;
 
         // UTILIDAD BRUTA
         $sheet->setCellValue('A' . $row, 'UTILIDAD BRUTA');
-        $sheet->setCellValue('C' . $row, $utilidad_bruta);
-        $sheet->setCellValue('D' . $row, $utilidad_bruta_acum);
+        $sheet->setCellValue('C' . $row, $utilidad_bruta_periodo);
+        $sheet->setCellValue('D' . $row, $utilidad_bruta_acumulado);
         $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true)->setSize(11);
         $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
@@ -2909,17 +2933,38 @@ class ReportesNIFController extends Controller
         $row += 2;
 
         // GASTOS DE OPERACIÓN
-        $sheet->setCellValue('A' . $row, 'Gastos de Operación');
-        $sheet->setCellValue('C' . $row, $total_gastos_op);
-        $sheet->setCellValue('D' . $row, $total_gastos_op_acum);
+        $sheet->setCellValue('A' . $row, 'GASTOS DE OPERACIÓN');
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF2C3E50');
+        $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+        $row++;
+
+        foreach ($gastos_operacion as $cuenta) {
+            $sheet->setCellValue('A' . $row, '  ' . $cuenta->nombre);
+            $sheet->setCellValue('C' . $row, $cuenta->saldo_periodo);
+            $sheet->setCellValue('D' . $row, $cuenta->saldo_acumulado);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL GASTOS DE OPERACIÓN');
+        $sheet->setCellValue('C' . $row, $total_gastos_periodo);
+        $sheet->setCellValue('D' . $row, $total_gastos_acumulado);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
         $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
-        $row++;
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFECF0F1');
+        $row += 2;
 
         // UTILIDAD DE OPERACIÓN
         $sheet->setCellValue('A' . $row, 'UTILIDAD DE OPERACIÓN');
-        $sheet->setCellValue('C' . $row, $utilidad_operacion);
-        $sheet->setCellValue('D' . $row, $utilidad_operacion_acum);
+        $sheet->setCellValue('C' . $row, $utilidad_operacion_periodo);
+        $sheet->setCellValue('D' . $row, $utilidad_operacion_acumulado);
         $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true)->setSize(11);
         $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
@@ -2929,33 +2974,112 @@ class ReportesNIFController extends Controller
         $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
         $row += 2;
 
+        // RESULTADO INTEGRAL DE FINANCIAMIENTO
+        $sheet->setCellValue('A' . $row, 'RESULTADO INTEGRAL DE FINANCIAMIENTO');
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF2C3E50');
+        $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+        $row++;
+
+        foreach ($financiamiento as $cuenta) {
+            $sheet->setCellValue('A' . $row, '  ' . $cuenta->nombre);
+            $sheet->setCellValue('C' . $row, $cuenta->saldo_periodo);
+            $sheet->setCellValue('D' . $row, $cuenta->saldo_acumulado);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL RESULTADO INTEGRAL DE FINANCIAMIENTO');
+        $sheet->setCellValue('C' . $row, $total_financiamiento_periodo);
+        $sheet->setCellValue('D' . $row, $total_financiamiento_acumulado);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFECF0F1');
+        $row += 2;
+
         // OTROS INGRESOS Y GASTOS
-        if ($total_otros_ingresos > 0) {
-            $sheet->setCellValue('A' . $row, 'Otros Ingresos');
-            $sheet->setCellValue('C' . $row, $total_otros_ingresos);
-            $sheet->setCellValue('D' . $row, $total_otros_ingresos_acum);
+        if ($otros_resultados->count() > 0) {
+            $sheet->setCellValue('A' . $row, 'OTROS INGRESOS Y GASTOS');
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11);
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FF2C3E50');
+            $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+            $row++;
+
+            foreach ($otros_resultados as $cuenta) {
+                $sheet->setCellValue('A' . $row, '  ' . $cuenta->nombre);
+                $sheet->setCellValue('C' . $row, $cuenta->saldo_periodo);
+                $sheet->setCellValue('D' . $row, $cuenta->saldo_acumulado);
+                $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $row++;
+            }
+
+            $sheet->setCellValue('A' . $row, 'TOTAL OTROS INGRESOS Y GASTOS');
+            $sheet->setCellValue('C' . $row, $total_otros_periodo);
+            $sheet->setCellValue('D' . $row, $total_otros_acumulado);
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FFECF0F1');
+            $row += 2;
+        }
+
+        // UTILIDAD ANTES DE IMPUESTOS
+        $sheet->setCellValue('A' . $row, 'UTILIDAD ANTES DE IMPUESTOS');
+        $sheet->setCellValue('C' . $row, $utilidad_antes_impuestos_periodo);
+        $sheet->setCellValue('D' . $row, $utilidad_antes_impuestos_acumulado);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF34495E');
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+        $row += 2;
+
+        // IMPUESTOS
+        $sheet->setCellValue('A' . $row, 'IMPUESTOS');
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF2C3E50');
+        $sheet->getStyle('A' . $row)->getFont()->getColor()->setARGB('FFFFFFFF');
+        $row++;
+
+        foreach ($impuestos as $cuenta) {
+            $sheet->setCellValue('A' . $row, '  ' . $cuenta->nombre);
+            $sheet->setCellValue('C' . $row, $cuenta->saldo_periodo);
+            $sheet->setCellValue('D' . $row, $cuenta->saldo_acumulado);
             $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
             $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
             $row++;
         }
 
-        if ($total_otros_gastos > 0) {
-            $sheet->setCellValue('A' . $row, 'Otros Gastos');
-            $sheet->setCellValue('C' . $row, $total_otros_gastos);
-            $sheet->setCellValue('D' . $row, $total_otros_gastos_acum);
-            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
-            $row++;
-        }
-
-        if ($total_otros_ingresos > 0 || $total_otros_gastos > 0) {
-            $row++;
-        }
+        $sheet->setCellValue('A' . $row, 'TOTAL IMPUESTOS');
+        $sheet->setCellValue('C' . $row, $total_impuestos_periodo);
+        $sheet->setCellValue('D' . $row, $total_impuestos_acumulado);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('A' . $row . ':D' . $row)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFECF0F1');
+        $row += 2;
 
         // UTILIDAD NETA
         $sheet->setCellValue('A' . $row, 'UTILIDAD NETA');
-        $sheet->setCellValue('C' . $row, $utilidad_neta);
-        $sheet->setCellValue('D' . $row, $utilidad_neta_acum);
+        $sheet->setCellValue('C' . $row, $utilidad_neta_periodo);
+        $sheet->setCellValue('D' . $row, $utilidad_neta_acumulado);
         $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true)->setSize(12);
         $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');

@@ -12,6 +12,7 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Colors\Color;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
 use Spatie\Browsershot\Browsershot;
@@ -51,10 +52,8 @@ class EditCotizaciones extends EditRecord
         $record->fixPartidasSubtotalFromCantidadPrecio();
         $record->recalculateTotalsFromPartidas();
 
-        $partidas = CotizacionesPartidas::where('cotizaciones_id', $record->id)->get();
-        foreach ($partidas as $partida) {
-            $partida->update(['pendientes' => $partida->cant]);
-        }
+        CotizacionesPartidas::where('cotizaciones_id', $record->id)
+            ->update(['pendientes' => DB::raw('cant')]);
 
         if (! $record->nombre_elaboro) {
             Cotizaciones::where('id', $record->id)->update([

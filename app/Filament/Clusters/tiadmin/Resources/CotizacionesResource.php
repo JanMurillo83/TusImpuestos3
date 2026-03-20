@@ -521,9 +521,8 @@ class CotizacionesResource extends Resource
                                         }),
                                     Select::make('item')
                                         ->searchable()
-                                        ->options(Inventario::where('team_id',Filament::getTenant()->id)
-                                            ->select('id',DB::raw('CONCAT("SKU: ",clave,"  |Desc: ",descripcion,"  |Exist: ",FORMAT(exist,2)) as descripcion'))
-                                            ->pluck('descripcion','id'))
+                                        ->getSearchResultsUsing(fn (string $search): array => static::searchInventarioOptions($search))
+                                        ->getOptionLabelUsing(fn ($value): ?string => static::getInventarioOptionLabel($value))
                                         ->createOptionForm(function ($form) {
                                             return $form
                                                 ->schema([
@@ -944,40 +943,124 @@ class CotizacionesResource extends Resource
 
     public static function updateTotals(Get $get, Set $set): void
     {
-        $subtotal = collect($get('../../partidas'))->pluck('subtotal')->sum();
-        $impuesto1 = collect($get('../../partidas'))->pluck('iva')->sum();
-        $impuesto2 = collect($get('../../partidas'))->pluck('retiva')->sum();
-        $impuesto3 = collect($get('../../partidas'))->pluck('retisr')->sum();
-        $impuesto4 = collect($get('../../partidas'))->pluck('ieps')->sum();
-        $total = collect($get('../../partidas'))->pluck('total')->sum();
-        $set('../../subtotal',$subtotal);
-        $set('../../iva',$impuesto1);
-        $set('../../retiva',$impuesto2);
-        $set('../../retisr',$impuesto3);
-        $set('../../ieps',$impuesto4);
-        $traslados = floatval($impuesto1) + floatval($impuesto4);
-        $retenciones = floatval($impuesto2) + floatval($impuesto3);
-        $set('../../Impuestos',$traslados-$retenciones);
-        $set('../../total',$total);
+        $totals = static::calculateTotalsFromPartidas($get('../../partidas'));
+        static::applyTotals($set, '../../', $totals);
     }
 
     public static function updateTotals2(Get $get, Set $set): void
     {
-        $subtotal = collect($get('partidas'))->pluck('subtotal')->sum();
-        $impuesto1 = collect($get('partidas'))->pluck('iva')->sum();
-        $impuesto2 = collect($get('partidas'))->pluck('retiva')->sum();
-        $impuesto3 = collect($get('partidas'))->pluck('retisr')->sum();
-        $impuesto4 = collect($get('partidas'))->pluck('ieps')->sum();
-        $total = collect($get('partidas'))->pluck('total')->sum();
-        $set('subtotal',$subtotal);
-        $set('iva',$impuesto1);
-        $set('retiva',$impuesto2);
-        $set('retisr',$impuesto3);
-        $set('ieps',$impuesto4);
-        $traslados = floatval($impuesto1) + floatval($impuesto4);
-        $retenciones = floatval($impuesto2) + floatval($impuesto3);
-        $set('Impuestos',$traslados-$retenciones);
-        $set('total',$total);
+        $totals = static::calculateTotalsFromPartidas($get('partidas'));
+        static::applyTotals($set, '', $totals);
+    }
+
+    private static function searchInventarioOptions(string $search): array
+    {
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return [];
+        }
+
+        $search = trim($search);
+        $query = Inventario::query()
+            ->where('team_id', $tenant->id)
+            ->select('id', 'clave', 'descripcion', 'exist');
+
+        if ($search !== '') {
+            $query->where(function (Builder $q) use ($search): void {
+                $q->where('clave', 'like', "%{$search}%")
+                    ->orWhere('descripcion', 'like', "%{$search}%");
+            });
+        }
+
+        return $query
+            ->orderBy('clave')
+            ->limit(50)
+            ->get()
+            ->mapWithKeys(function (Inventario $item): array {
+                return [$item->id => static::formatInventarioOptionLabel($item)];
+            })
+            ->toArray();
+    }
+
+    private static function getInventarioOptionLabel($value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return null;
+        }
+
+        static $labelCache = [];
+        $cacheKey = $tenant->id . ':' . $value;
+        if (array_key_exists($cacheKey, $labelCache)) {
+            return $labelCache[$cacheKey];
+        }
+
+        $item = Inventario::query()
+            ->where('team_id', $tenant->id)
+            ->whereKey($value)
+            ->select('id', 'clave', 'descripcion', 'exist')
+            ->first();
+
+        if (! $item) {
+            $labelCache[$cacheKey] = null;
+            return null;
+        }
+
+        $labelCache[$cacheKey] = static::formatInventarioOptionLabel($item);
+
+        return $labelCache[$cacheKey];
+    }
+
+    private static function formatInventarioOptionLabel(Inventario $item): string
+    {
+        return sprintf(
+            'SKU: %s  |Desc: %s  |Exist: %s',
+            (string) $item->clave,
+            (string) $item->descripcion,
+            number_format((float) $item->exist, 2, '.', ',')
+        );
+    }
+
+    private static function calculateTotalsFromPartidas(?array $partidas): array
+    {
+        $totals = [
+            'subtotal' => 0.0,
+            'iva' => 0.0,
+            'retiva' => 0.0,
+            'retisr' => 0.0,
+            'ieps' => 0.0,
+            'total' => 0.0,
+        ];
+
+        foreach (($partidas ?? []) as $partida) {
+            if (! is_array($partida)) {
+                continue;
+            }
+
+            $totals['subtotal'] += (float) ($partida['subtotal'] ?? 0);
+            $totals['iva'] += (float) ($partida['iva'] ?? 0);
+            $totals['retiva'] += (float) ($partida['retiva'] ?? 0);
+            $totals['retisr'] += (float) ($partida['retisr'] ?? 0);
+            $totals['ieps'] += (float) ($partida['ieps'] ?? 0);
+            $totals['total'] += (float) ($partida['total'] ?? 0);
+        }
+
+        return $totals;
+    }
+
+    private static function applyTotals(Set $set, string $prefix, array $totals): void
+    {
+        $set($prefix . 'subtotal', $totals['subtotal']);
+        $set($prefix . 'iva', $totals['iva']);
+        $set($prefix . 'retiva', $totals['retiva']);
+        $set($prefix . 'retisr', $totals['retisr']);
+        $set($prefix . 'ieps', $totals['ieps']);
+        $set($prefix . 'Impuestos', ($totals['iva'] + $totals['ieps']) - ($totals['retiva'] + $totals['retisr']));
+        $set($prefix . 'total', $totals['total']);
     }
 
     public static function downloadLayoutPartidas()

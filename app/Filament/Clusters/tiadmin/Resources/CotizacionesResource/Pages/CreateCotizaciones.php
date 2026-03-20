@@ -11,6 +11,7 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Support\Colors\Color;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
 use Spatie\Browsershot\Browsershot;
@@ -74,10 +75,8 @@ class CreateCotizaciones extends CreateRecord
         $record->fixPartidasSubtotalFromCantidadPrecio();
         $record->recalculateTotalsFromPartidas();
 
-        $partidas = CotizacionesPartidas::where('cotizaciones_id', $record->id)->get();
-        foreach ($partidas as $partida) {
-            $partida->update(['pendientes' => $partida->cant]);
-        }
+        CotizacionesPartidas::where('cotizaciones_id', $record->id)
+            ->update(['pendientes' => DB::raw('cant')]);
 
         $idorden = $record->id;
         $id_empresa = Filament::getTenant()->id;

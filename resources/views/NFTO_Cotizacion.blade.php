@@ -6,6 +6,8 @@
     $logoAncho = (int) ($fiscales?->logo_ancho ?? 200);
     $docto = \App\Models\Cotizaciones::where('id',$idcotiza)->first();
     $part = \App\Models\CotizacionesPartidas::where('cotizaciones_id',$docto->id)->get();
+    $clavesInventario = \App\Models\Inventario::whereIn('id', $part->pluck('item')->filter()->unique()->values())
+        ->pluck('clave', 'id');
     $clie = \App\Models\Clientes::where('id',$clie_id)->first();
     $hoy = \Carbon\Carbon::now()->format('d-m-Y');
     $vendedor = \Filament\Facades\Filament::auth()->user()->name;
@@ -115,7 +117,7 @@
                         @if($mostrarClave)
                             <td class="py-1 px-2 font-mono text-slate-700 text-[10px]">
                                 <?php
-                                    $inv_par = \App\Models\Inventario::where('id',$par->item)->first()->clave ?? '';
+                                    $inv_par = $clavesInventario->get($par->item, '');
                                 ?>
                                 {{$inv_par}}
                             </td>

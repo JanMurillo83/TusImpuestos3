@@ -52,6 +52,24 @@ class PagosResource extends Resource
         return auth()->user()->hasRole(['administrador', 'contador', 'ventas', 'facturista', 'operador_comercial']);
     }
 
+    public static function canEdit(Model $record): bool
+    {
+        if ($record instanceof Pagos && $record->estado === 'Timbrada') {
+            return false;
+        }
+
+        return parent::canEdit($record);
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        if ($record instanceof Pagos && $record->estado === 'Timbrada') {
+            return false;
+        }
+
+        return parent::canDelete($record);
+    }
+
     public static function form(Form $form): Form
     {
         $sumMoney = static function (?array $partidas, string $key): float {
@@ -333,6 +351,7 @@ class PagosResource extends Resource
                     Tables\Actions\Action::make('Cancelar')
                         ->icon('fas-ban')
                         ->color('danger')
+                        ->visible(fn (Model $record): bool => $record->estado === 'Activa')
                         ->form([
                             Select::make('motivo')
                                 ->label('Motivo')->options([
@@ -352,38 +371,7 @@ class PagosResource extends Resource
                                 )
                         ])
                         ->action(function (Model $record,$data) {
-                            $est = $record->estado;
-                            $factura = $record->id;
-                            $receptor = $record->cve_clie;
-                            $folio = $data['Folio'] ?? null;
-                            if($est == 'Activa'||$est == 'Timbrada') {
-
-                                if ($est == 'Timbrada') {
-                                    $res = app(TimbradoController::class)->CancelarPago($factura, $receptor, $data['motivo'], $folio);
-                                    $resultado = json_decode($res);
-
-                                    if ($resultado->codigo == 201) {
-                                        Pagos::where('id', $record->id)->update([
-                                            'fecha_cancela' => Carbon::now(),
-                                            'motivo' => $data['motivo'],
-                                            'sustituye' => $folio,
-                                            'xml_cancela' => $resultado->acuse,
-                                        ]);
-                                        $partidas_pagos = ParPagos::where('pagos_id',$factura)->get();
-                                        foreach($partidas_pagos as $partida){
-                                            Facturas::where('id',$partida->uuidrel)->increment('pendiente_pago', $partida->imppagado);
-                                        }
-                                        Notification::make()
-                                            ->title($resultado->mensaje)
-                                            ->success()
-                                            ->send();
-                                    } else {
-                                        Notification::make()
-                                            ->title($resultado->mensaje)
-                                            ->warning()
-                                            ->send();
-                                    }
-                                }
+                            if($record->estado == 'Activa') {
                                 Pagos::where('id', $record->id)->update([
                                     'estado' => 'Cancelada'
                                 ]);

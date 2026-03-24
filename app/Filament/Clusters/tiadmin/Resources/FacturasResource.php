@@ -257,11 +257,13 @@ class FacturasResource extends Resource
                         })
                         ->headers([
                             Header::make('Cantidad')->width('70px'),
-                            Header::make('Item')->width('300px'),
-                            Header::make('Descripción')->width('400px'),
+                            Header::make('Item')->width('200px'),
+                            Header::make('Descripción')->width('300px'),
+                            Header::make('Clave SAT')->width('150px'),
+                            Header::make('Unidad SAT')->width('120px'),
                             Header::make('Unitario'),
                             Header::make('Subtotal'),
-                            Header::make('Observaciones')->width('200px'),
+                            Header::make('Observaciones')->width('100px'),
                         ])->schema([
                             TextInput::make('cant')->numeric()
                             ->default(1)->label('Cantidad')
@@ -397,6 +399,42 @@ class FacturasResource extends Resource
                                 Self::updateTotals($get,$set);
                             }),
                             TextInput::make('descripcion'),
+                            Forms\Components\TextInput::make('cvesat')
+                                ->label('Clave SAT')
+                                ->default(function(Get $get): string{
+                                    if($get('cvesat'))
+                                        $val = $get('cvesat');
+                                    else
+                                        $val = '01010101';
+                                    return $val;
+                                })
+                                ->required()
+                                ->suffixAction(
+                                    \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat_partida')
+                                        ->label('Buscador')
+                                        ->icon('fas-circle-question')
+                                        ->form([
+                                            Forms\Components\TextInput::make('cvesat_search')
+                                                ->label('Buscar')
+                                                ->live(debounce: 400),
+                                            Forms\Components\Select::make('CatCveSat')
+                                                ->label('Claves SAT')
+                                                ->options(fn (Get $get): array => Claves::getCachedOptions($get('cvesat_search') ?? '', 25))
+                                                ->reactive(),
+                                        ])
+                                        ->modalCancelAction(false)
+                                        ->modalSubmitActionLabel('Seleccionar')
+                                        ->modalWidth('sm')
+                                        ->action(function(Set $set,$data){
+                                            $set('cvesat',$data['CatCveSat']);
+                                        })
+                                ),
+                            Select::make('unidad')
+                                ->label('Unidad SAT')
+                                ->searchable()
+                                ->required()
+                                ->options(Unidades::all()->pluck('mostrar','clave'))
+                                ->default('H87'),
                             TextInput::make('precio')
                                 ->numeric()
                                 ->minValue(0.01)
@@ -428,8 +466,6 @@ class FacturasResource extends Resource
                             Hidden::make('retisr'),
                             Hidden::make('ieps'),
                             Hidden::make('total'),
-                            Hidden::make('unidad'),
-                            Hidden::make('cvesat'),
                             Hidden::make('clie'),
                             TextInput::make('observa'),
                             Hidden::make('siguiente'),

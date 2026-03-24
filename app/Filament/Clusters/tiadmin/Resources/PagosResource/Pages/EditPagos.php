@@ -10,6 +10,15 @@ class EditPagos extends EditRecord
 {
     protected static string $resource = PagosResource::class;
 
+    protected function authorizeAccess(): void
+    {
+        parent::authorizeAccess();
+
+        if (($this->getRecord()?->estado ?? null) === 'Timbrada') {
+            abort(403, 'Los comprobantes de pago timbrados solo se pueden consultar.');
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [

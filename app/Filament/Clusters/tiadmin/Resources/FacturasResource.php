@@ -1047,23 +1047,28 @@ class FacturasResource extends Resource
         })
 
         ->columns([
-            Tables\Columns\TextColumn::make('serie')
-                ->label('Serie')
-                ->numeric()
-                ->sortable()->width('20%')
+            Tables\Columns\TextColumn::make('docto')
+                ->label('Factura')
+                ->width('20%')
+                ->getStateUsing(fn ($record) => ($record->serie ?? '') . ($record->folio ?? ''))
                 ->searchable(query: function (Builder $query, string $search): Builder {
-                    return $query->where('facturas.serie', 'like', "%{$search}%");
-                }),
-            Tables\Columns\TextColumn::make('folio')
-                ->label('Folio')
-                ->numeric(thousandsSeparator: '',decimalPlaces: 0)
-                ->sortable()->width('20%')
-                ->searchable(query: function (Builder $query, string $search): Builder {
-                    return $query->where('facturas.folio', 'like', "%{$search}%");
-                }),
+                    return $query->where(function (Builder $q) use ($search): void {
+                        $q->where('facturas.docto', 'like', "%{$search}%")
+                            ->orWhere('facturas.serie', 'like', "%{$search}%")
+                            ->orWhere('facturas.folio', 'like', "%{$search}%")
+                            ->orWhereRaw("CONCAT(COALESCE(facturas.serie, ''), COALESCE(facturas.folio, '')) like ?", ["%{$search}%"]);
+                    });
+                })
+                ->sortable(),
             Tables\Columns\TextColumn::make('fecha')
                 ->date('d-m-Y')
-                ->sortable()->width('20%'),
+                ->sortable()->width('20%')
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->where(function (Builder $q) use ($search): void {
+                        $q->where('facturas.fecha', 'like', "%{$search}%")
+                            ->orWhereRaw("DATE_FORMAT(facturas.fecha, '%d-%m-%Y') like ?", ["%{$search}%"]);
+                    });
+                }),
             Tables\Columns\TextColumn::make('nombre')
                 ->searchable(query: function (Builder $query, string $search): Builder {
                     return $query->where('facturas.nombre', 'like', "%{$search}%");
@@ -1084,14 +1089,17 @@ class FacturasResource extends Resource
             Tables\Columns\TextColumn::make('subtotal')
                 ->numeric()
                 ->sortable()
+                ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('facturas.subtotal', 'like', "%{$search}%"))
                 ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('iva')
                 ->numeric()
                 ->sortable()
+                ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('facturas.iva', 'like', "%{$search}%"))
                 ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('total')
                 ->numeric()
                 ->sortable()
+                ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('facturas.total', 'like', "%{$search}%"))
                 ->currency('USD',true)->width('10%'),
             Tables\Columns\TextColumn::make('estado')
                 ->searchable(query: function (Builder $query, string $search): Builder {
@@ -1121,6 +1129,18 @@ class FacturasResource extends Resource
                     'Sin póliza' => 'warning',
                     default => 'success',
                 })
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->whereRaw(
+                        "(
+                            CASE
+                                WHEN facturas.estado <> 'Timbrada' OR facturas.uuid IS NULL OR facturas.uuid = '' THEN 'N/A'
+                                WHEN facturas_agg.poliza_tipo IS NULL OR facturas_agg.poliza_folio IS NULL THEN 'Sin póliza'
+                                ELSE CONCAT(facturas_agg.poliza_tipo, '-', facturas_agg.poliza_folio)
+                            END
+                        ) like ?",
+                        ["%{$search}%"]
+                    );
+                })
                 ->sortable(false),
             Tables\Columns\TextColumn::make('estado_cobro')
                 ->label('Estado Cobro')
@@ -1147,6 +1167,20 @@ class FacturasResource extends Resource
                     'Parcial' => 'warning',
                     'Pendiente' => 'danger',
                     default => 'gray',
+                })
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->whereRaw(
+                        "(
+                            CASE
+                                WHEN facturas.estado <> 'Timbrada' OR facturas.uuid IS NULL OR facturas.uuid = '' THEN 'N/A'
+                                WHEN facturas_agg.pendientemxn IS NULL OR facturas_agg.totalmxn IS NULL THEN 'Sin registro'
+                                WHEN facturas_agg.pendientemxn <= 0.10 THEN 'Pagado'
+                                WHEN facturas_agg.pendientemxn < facturas_agg.totalmxn THEN 'Parcial'
+                                ELSE 'Pendiente'
+                            END
+                        ) like ?",
+                        ["%{$search}%"]
+                    );
                 })
                 ->sortable(false),
             Tables\Columns\TextColumn::make('complemento_pago')
@@ -1182,6 +1216,24 @@ class FacturasResource extends Resource
                     'PUE' => 'Pago en una sola exhibición - No requiere complemento',
                     'N/A' => 'Factura no timbrada',
                     default => '',
+                })
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->whereRaw(
+                        "(
+                            CASE
+                                WHEN facturas.estado <> 'Timbrada' THEN 'N/A'
+                                WHEN facturas.forma = 'PUE' THEN 'PUE'
+                                WHEN EXISTS (
+                                    SELECT 1
+                                    FROM par_pagos pp
+                                    WHERE pp.uuidrel = facturas.id
+                                      AND pp.team_id = facturas.team_id
+                                ) THEN 'Aplicado'
+                                ELSE 'Pendiente'
+                            END
+                        ) like ?",
+                        ["%{$search}%"]
+                    );
                 })
                 ->sortable(false),
             ])

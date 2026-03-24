@@ -266,32 +266,56 @@ class PagosResource extends Resource
     {
         return $table
             ->recordClasses('row_gral')
+            ->defaultSort('pagos.created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('serie')
                     ->label('Documento')
-                    ->searchable()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $q) use ($search): void {
+                            $q->where('pagos.serie', 'like', "%{$search}%")
+                                ->orWhere('pagos.folio', 'like', "%{$search}%")
+                                ->orWhereRaw("CONCAT(COALESCE(pagos.serie, ''), COALESCE(pagos.folio, '')) like ?", ["%{$search}%"]);
+                        });
+                    })
                 ->formatStateUsing(function ($record){
                     return $record->serie.$record->folio;
                 }),
                 Tables\Columns\TextColumn::make('cve_clie')
                     ->label('Cliente')
-                    ->searchable()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $q) use ($search): void {
+                            $q->where('pagos.cve_clie', 'like', "%{$search}%")
+                                ->orWhereIn('pagos.cve_clie', Clientes::query()
+                                    ->select('id')
+                                    ->where('nombre', 'like', "%{$search}%")
+                                    ->orWhere('rfc', 'like', "%{$search}%"));
+                        });
+                    })
                     ->state(function ($record): string {
                         return Clientes::find($record->cve_clie)?->nombre ?? '';
                     }),
                 Tables\Columns\TextColumn::make('fecha_doc')
                     ->label('Fecha')
                     ->dateTime('d-m-Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $q) use ($search): void {
+                            $q->where('pagos.fecha_doc', 'like', "%{$search}%")
+                                ->orWhereRaw("DATE_FORMAT(pagos.fecha_doc, '%d-%m-%Y') like ?", ["%{$search}%"]);
+                        });
+                    }),
                 Tables\Columns\TextColumn::make('subtotal')
                     ->numeric()->currency('USD',true)
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('pagos.subtotal', 'like', "%{$search}%")),
                 Tables\Columns\TextColumn::make('iva')
                     ->numeric()->currency('USD',true)
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('pagos.iva', 'like', "%{$search}%")),
                 Tables\Columns\TextColumn::make('total')
                     ->numeric()->currency('USD',true)
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('pagos.total', 'like', "%{$search}%")),
                 Tables\Columns\TextColumn::make('estado')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('uuid')

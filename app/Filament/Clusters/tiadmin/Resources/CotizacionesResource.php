@@ -1162,7 +1162,13 @@ class CotizacionesResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha')
                     ->date('d-m-Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $q) use ($search): void {
+                            $q->where('cotizaciones.fecha', 'like', "%{$search}%")
+                                ->orWhereRaw("DATE_FORMAT(cotizaciones.fecha, '%d-%m-%Y') like ?", ["%{$search}%"]);
+                        });
+                    }),
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()
                     ->label('Cliente'),
@@ -1184,14 +1190,17 @@ class CotizacionesResource extends Resource
                 Tables\Columns\TextColumn::make('subtotal')
                     ->numeric()
                     ->sortable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('cotizaciones.subtotal', 'like', "%{$search}%"))
                     ->currency('USD',true),
                 Tables\Columns\TextColumn::make('iva')
                     ->numeric()
                     ->sortable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('cotizaciones.iva', 'like', "%{$search}%"))
                     ->currency('USD',true),
                 Tables\Columns\TextColumn::make('total')
                     ->numeric()
                     ->sortable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('cotizaciones.total', 'like', "%{$search}%"))
                     ->currency('USD',true),
                 Tables\Columns\TextColumn::make('moneda')
                     ->label('Moneda')
@@ -1200,6 +1209,7 @@ class CotizacionesResource extends Resource
                     ->label('T.Cambio')
                     ->numeric()
                     ->formatStateUsing(fn($state) => number_format((float)$state, 6))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('cotizaciones.tcambio', 'like', "%{$search}%"))
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('estado')
                     ->searchable(),

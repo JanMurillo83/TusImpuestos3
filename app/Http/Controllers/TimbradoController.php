@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Almacencfdis;
 use App\Models\DoctosRelacionados;
 use App\Models\Facturas;
+use App\Models\Inventario;
 use Carbon\Carbon;
 use CfdiUtils\SumasPagos20\Currencies;
 use CfdiUtils\SumasPagos20\PagosWriter;
@@ -116,7 +117,7 @@ class TimbradoController extends Controller
         $inventarioById = collect();
         $itemIds = collect($pardata)->pluck('item')->filter()->unique()->values();
         if ($itemIds->isNotEmpty()) {
-            $inventarioQuery = DB::table('inventario')
+            $inventarioQuery = Inventario::query()
                 ->whereIn('id', $itemIds)
                 ->select('id', 'clave', 'descripcion', 'cvesat', 'unidad');
 

@@ -92,7 +92,7 @@ class TimbradoController extends Controller
     }
     public function TimbrarFactura($factura,$receptor):string
     {
-	    $objConexion = new ConexionController($this->url);
+		    $objConexion = new ConexionController($this->url);
         $tipodoc = 'F';
         //-------------------------------------------
         $datetime = new DateTime();
@@ -107,6 +107,67 @@ class TimbradoController extends Controller
         $facdata = DB::table('facturas')->where('id',$factura)->get();
         $esquema = DB::table('esquemasimps')->where('id',$facdata[0]->esquema)->first();
         $pardata = DB::table('facturas_partidas')->where('facturas_id',$factura)->get();
+        $teamId = $facdata[0]->team_id ?? Filament::getTenant()?->id;
+
+        // Resolver Clave SAT/Unidad SAT por partida:
+        // 1) usar lo capturado en la partida
+        // 2) fallback al artículo
+        // 3) si falta en ambos, bloquear timbrado
+        $inventarioById = collect();
+        $itemIds = collect($pardata)->pluck('item')->filter()->unique()->values();
+        if ($itemIds->isNotEmpty()) {
+            $inventarioQuery = DB::table('inventario')
+                ->whereIn('id', $itemIds)
+                ->select('id', 'clave', 'descripcion', 'cvesat', 'unidad');
+
+            if ($teamId) {
+                $inventarioQuery->where('team_id', $teamId);
+            }
+
+            $inventarioById = $inventarioQuery->get()->keyBy('id');
+        }
+
+        $partidasInvalidas = [];
+        foreach ($pardata as $index => $partida) {
+            $satPartida = trim((string) ($partida->cvesat ?? ''));
+            $unidadPartida = trim((string) ($partida->unidad ?? ''));
+            $articulo = $inventarioById->get($partida->item);
+            $satArticulo = trim((string) ($articulo->cvesat ?? ''));
+            $unidadArticulo = trim((string) ($articulo->unidad ?? ''));
+
+            $satFinal = $satPartida !== '' ? $satPartida : $satArticulo;
+            $unidadFinal = $unidadPartida !== '' ? $unidadPartida : $unidadArticulo;
+
+            $faltantes = [];
+            if ($satFinal === '') {
+                $faltantes[] = 'Clave SAT';
+            }
+            if ($unidadFinal === '') {
+                $faltantes[] = 'Unidad SAT';
+            }
+
+            if ($faltantes !== []) {
+                $desc = trim((string) ($partida->descripcion ?? ''));
+                $labelPartida = $desc !== '' ? $desc : ('Ítem #' . ($partida->item ?? 'N/A'));
+                $partidasInvalidas[] = 'Partida ' . ($index + 1) . ' (' . $labelPartida . '): falta ' . implode(' y ', $faltantes) . '.';
+                continue;
+            }
+
+            $partida->cvesat = $satFinal;
+            $partida->unidad = $unidadFinal;
+        }
+
+        if ($partidasInvalidas !== []) {
+            $mensaje = "No se puede timbrar la factura porque faltan Clave SAT/Unidad SAT en partidas. "
+                . "Capture esos datos en la partida o en el artículo:\n- "
+                . implode("\n- ", $partidasInvalidas);
+
+            return json_encode([
+                'codigo' => '422',
+                'mensaje' => $mensaje,
+            ], JSON_UNESCAPED_UNICODE);
+        }
+
         $fecha = Carbon::create($facdata[0]->fecha)->format('Y-m-d');
         $hora = $datetime->format('H:i:s');
         $fechahora = $fecha.'T'.$hora;

@@ -18,9 +18,11 @@ use App\Models\CatCuentas;
 use App\Models\CatPolizas;
 use App\Models\ContaPeriodos;
 use App\Models\CuentasDetalle;
+use App\Models\Facturas;
 use App\Models\IngresosEgresos;
 use App\Models\Movbancos;
 use App\Models\NominaConceptoCuenta;
+use App\Models\ParPagos;
 use App\Models\Regimenes;
 use App\Models\Terceros;
 use Awcodes\TableRepeater\Components\TableRepeater;
@@ -84,6 +86,8 @@ class MovbancosResource extends Resource
     protected static ?string $label = 'Movimiento Bancario';
     protected static ?string $pluralLabel = 'Movimientos Bancarios';
     protected static ?string $navigationIcon ='fas-money-bill-transfer';
+    protected static array $facturasRelacionadasCache = [];
+    protected static array $complementosPagoCache = [];
 
     public static function shouldRegisterNavigation () : bool
     {
@@ -264,6 +268,36 @@ class MovbancosResource extends Resource
                 Tables\Columns\TextColumn::make('factura')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('factura_relacionada')
+                    ->label('Factura Rel.')
+                    ->getStateUsing(function (Model $record): string {
+                        return count(self::getFacturasRelacionadas($record)) > 0 ? 'Si' : 'No';
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Si' ? 'success' : 'gray')
+                    ->sortable(false),
+                Tables\Columns\TextColumn::make('complemento_pago')
+                    ->label('Comp. Pago')
+                    ->getStateUsing(function (Model $record): string {
+                        return self::getEstadoComplementoPago(self::getFacturasRelacionadas($record));
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Aplicado' => 'success',
+                        'Pendiente' => 'danger',
+                        'PUE' => 'info',
+                        'Mixto' => 'warning',
+                        default => 'gray',
+                    })
+                    ->tooltip(fn (string $state): string => match ($state) {
+                        'Aplicado' => 'Tiene complemento(s) de pago aplicado',
+                        'Pendiente' => 'Requiere complemento de pago (PPD)',
+                        'PUE' => 'Pago en una sola exhibicion - No requiere complemento',
+                        'Mixto' => 'Hay facturas con estados distintos de complemento de pago',
+                        'N/A' => 'Sin factura relacionada o no timbrada',
+                        default => '',
+                    })
+                    ->sortable(false),
                 Tables\Columns\TextColumn::make('importe')
                     ->numeric()
                     ->sortable()
@@ -2003,6 +2037,141 @@ class MovbancosResource extends Resource
             )
             ->deferFilters()
             ->defaultSort('Fecha', 'asc');
+    }
+
+    private static function getFacturasRelacionadas(Model $record): array
+    {
+        $recordId = intval($record->id ?? 0);
+
+        if ($recordId > 0 && array_key_exists($recordId, self::$facturasRelacionadasCache)) {
+            return self::$facturasRelacionadasCache[$recordId];
+        }
+
+        $teamId = intval($record->team_id ?? Filament::getTenant()?->id ?? 0);
+        $uuid = trim((string) ($record->uuid ?? ''));
+        $referencia = trim((string) ($record->factura ?? ''));
+        $facturas = [];
+
+        if ($recordId > 0 && $teamId > 0) {
+            $facturaIds = DB::table('ingresos_egresos_movbancos as iem')
+                ->join('ingresos_egresos as ie', 'ie.id', '=', 'iem.ingresos_egresos_id')
+                ->join('almacencfdis as cfdi', 'cfdi.id', '=', 'ie.xml_id')
+                ->join('facturas as f', function ($join) use ($teamId) {
+                    $join->on('f.uuid', '=', 'cfdi.UUID')
+                        ->where('f.team_id', '=', $teamId);
+                })
+                ->where('iem.movbancos_id', $recordId)
+                ->distinct()
+                ->pluck('f.id');
+
+            if ($facturaIds->count() > 0) {
+                $facturas = Facturas::query()
+                    ->where('team_id', $teamId)
+                    ->whereIn('id', $facturaIds->all())
+                    ->get()
+                    ->all();
+            }
+        }
+
+        if (count($facturas) === 0) {
+            $factura = self::buscarFacturaRelacionada($teamId, $uuid, $referencia);
+            if ($factura) {
+                $facturas = [$factura];
+            }
+        }
+
+        if ($recordId > 0) {
+            self::$facturasRelacionadasCache[$recordId] = $facturas;
+        }
+
+        return $facturas;
+    }
+
+    private static function buscarFacturaRelacionada(int $teamId, string $uuid, string $referencia): ?Facturas
+    {
+        if (
+            $teamId > 0
+            && $uuid !== ''
+            && ! in_array(strtoupper($uuid), ['N/A', 'N/I'], true)
+        ) {
+            $factura = Facturas::query()
+                ->where('team_id', $teamId)
+                ->where('uuid', $uuid)
+                ->first();
+            if ($factura) {
+                return $factura;
+            }
+        }
+
+        if (
+            $teamId > 0
+            && $referencia !== ''
+            && ! in_array(strtoupper($referencia), ['N/A', 'N/I', 'S/F'], true)
+        ) {
+            return Facturas::query()
+                ->where('team_id', $teamId)
+                ->where(function (Builder $query) use ($referencia) {
+                    $query->where('docto', $referencia)
+                        ->orWhereRaw("CONCAT(COALESCE(serie,''),COALESCE(folio,'')) = ?", [$referencia]);
+                })
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        return null;
+    }
+
+    private static function getEstadoComplementoPago(array $facturas): string
+    {
+        if (count($facturas) === 0) {
+            return 'N/A';
+        }
+
+        $estados = [];
+        foreach ($facturas as $factura) {
+            if (! $factura instanceof Facturas) {
+                continue;
+            }
+            $estado = self::getEstadoComplementoFactura($factura);
+            $estados[$estado] = true;
+        }
+
+        $estadosUnicos = array_keys($estados);
+        if (count($estadosUnicos) === 0) {
+            return 'N/A';
+        }
+
+        if (count($estadosUnicos) === 1) {
+            return $estadosUnicos[0];
+        }
+
+        if (in_array('Pendiente', $estadosUnicos, true)) {
+            return 'Pendiente';
+        }
+
+        return 'Mixto';
+    }
+
+    private static function getEstadoComplementoFactura(Facturas $factura): string
+    {
+        if ($factura->estado !== 'Timbrada') {
+            return 'N/A';
+        }
+
+        if ($factura->forma === 'PUE') {
+            return 'PUE';
+        }
+
+        $facturaId = intval($factura->id);
+
+        if (! array_key_exists($facturaId, self::$complementosPagoCache)) {
+            self::$complementosPagoCache[$facturaId] = ParPagos::query()
+                ->where('uuidrel', $factura->id)
+                ->where('team_id', $factura->team_id)
+                ->exists();
+        }
+
+        return self::$complementosPagoCache[$facturaId] ? 'Aplicado' : 'Pendiente';
     }
 
     public static function sumas_nomina(Get $get,Set $set) :void

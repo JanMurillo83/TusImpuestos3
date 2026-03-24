@@ -358,6 +358,11 @@ class Pagos extends Page implements HasForms
             'team_id' => Filament::getTenant()->id,
             'idmovb' => $this->record_id
         ]);
+        // Reemplazar relaciones previas del movimiento para reflejar la seleccion actual.
+        DB::table('ingresos_egresos_movbancos')
+            ->where('movbancos_id', $this->record_id)
+            ->delete();
+
         $polno = $poliza['id'];
         $no_intera = 0;
         $id_cta_banco = 0;
@@ -371,6 +376,10 @@ class Pagos extends Page implements HasForms
                 $fac_id = $factura['id_xml'];
                 $partida = 1;
                 $igeg = IngresosEgresos::where('xml_id', $fac_id)->first();
+                if (! $igeg) {
+                    continue;
+                }
+                $this->vincularMovimientoIngresoEgreso($this->record_id, intval($igeg->id));
                 $fss = DB::table('almacencfdis')->where('id', $igeg->xml_id)->first();
                 $ban = DB::table('banco_cuentas')->where('id', $this->datos_mov->cuenta)->first();
                 $ban_com = CatCuentas::where('id', $ban->complementaria)->first();
@@ -1380,6 +1389,29 @@ class Pagos extends Page implements HasForms
 
 
         return $nopoliza;
+    }
+
+    private function vincularMovimientoIngresoEgreso(int $movimientoId, int $ingresoEgresoId): void
+    {
+        $exists = DB::table('ingresos_egresos_movbancos')
+            ->where('movbancos_id', $movimientoId)
+            ->where('ingresos_egresos_id', $ingresoEgresoId)
+            ->exists();
+
+        if ($exists) {
+            DB::table('ingresos_egresos_movbancos')
+                ->where('movbancos_id', $movimientoId)
+                ->where('ingresos_egresos_id', $ingresoEgresoId)
+                ->update(['updated_at' => now()]);
+            return;
+        }
+
+        DB::table('ingresos_egresos_movbancos')->insert([
+            'movbancos_id' => $movimientoId,
+            'ingresos_egresos_id' => $ingresoEgresoId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public static function get_cta_provee($record):string

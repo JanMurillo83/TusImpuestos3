@@ -351,7 +351,7 @@ class PagosResource extends Resource
                     Tables\Actions\Action::make('Cancelar')
                         ->icon('fas-ban')
                         ->color('danger')
-                        ->visible(fn (Model $record): bool => $record->estado === 'Activa')
+                        ->visible(fn (Model $record): bool => in_array($record->estado, ['Activa', 'Timbrada'], true))
                         ->form([
                             Select::make('motivo')
                                 ->label('Motivo')->options([
@@ -371,7 +371,41 @@ class PagosResource extends Resource
                                 )
                         ])
                         ->action(function (Model $record,$data) {
-                            if($record->estado == 'Activa') {
+                            if ($record->estado === 'Timbrada') {
+                                $factura = $record->id;
+                                $receptor = $record->cve_clie;
+                                $folio = $data['Folio'] ?? null;
+                                $res = app(TimbradoController::class)->CancelarPago($factura, $receptor, $data['motivo'], $folio);
+                                $resultado = json_decode($res);
+
+                                if (($resultado->codigo ?? null) == 201) {
+                                    Pagos::where('id', $record->id)->update([
+                                        'fecha_cancela' => Carbon::now(),
+                                        'motivo' => $data['motivo'],
+                                        'sustituye' => $folio,
+                                        'xml_cancela' => $resultado->acuse ?? null,
+                                        'estado' => 'Cancelada',
+                                    ]);
+
+                                    $partidas_pagos = ParPagos::where('pagos_id', $factura)->get();
+                                    foreach($partidas_pagos as $partida){
+                                        Facturas::where('id', $partida->uuidrel)->increment('pendiente_pago', $partida->imppagado);
+                                    }
+
+                                    Notification::make()
+                                        ->title($resultado->mensaje ?? 'Comprobante cancelado')
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title($resultado->mensaje ?? 'No fue posible cancelar el comprobante')
+                                        ->warning()
+                                        ->send();
+                                }
+                                return;
+                            }
+
+                            if ($record->estado === 'Activa') {
                                 Pagos::where('id', $record->id)->update([
                                     'estado' => 'Cancelada'
                                 ]);

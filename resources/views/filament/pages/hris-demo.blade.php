@@ -43,6 +43,9 @@
       position: sticky;
       top: 0;
       height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .brand {
@@ -77,6 +80,10 @@
 
     .nav-group {
       margin-top: 18px;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     .nav-title {
@@ -523,6 +530,10 @@
       .sidebar {
         position: relative;
         height: auto;
+        overflow: visible;
+      }
+      .nav-group {
+        overflow: visible;
       }
       .hero, .grid-2, .grid-3, .grid-4, .form-grid, .org-chart {
         grid-template-columns: 1fr;
@@ -554,10 +565,6 @@
         <button class="nav-btn" data-tab="portal"><span class="nav-icon">👤</span>Portal del colaborador</button>
       </div>
 
-      <div class="sidebar-footer">
-        <strong>Objetivo de esta demo</strong>
-        <div style="margin-top:8px;">Mostrar una vista integral de RH con navegación, métricas y acciones simuladas para validar UX, flujo y alcance funcional.</div>
-      </div>
     </aside>
 
     <main class="main">

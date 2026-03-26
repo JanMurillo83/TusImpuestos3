@@ -521,6 +521,7 @@ class CotizacionesResource extends Resource
                                         }),
                                     Select::make('item')
                                         ->searchable()
+                                        ->searchDebounce(500)
                                         ->getSearchResultsUsing(fn (string $search): array => static::searchInventarioOptions($search))
                                         ->getOptionLabelUsing(fn ($value): ?string => static::getInventarioOptionLabel($value))
                                         ->createOptionForm(function ($form) {
@@ -961,25 +962,33 @@ class CotizacionesResource extends Resource
         }
 
         $search = trim($search);
-        $query = Inventario::query()
-            ->where('team_id', $tenant->id)
-            ->select('id', 'clave', 'descripcion', 'exist');
+        if ($search === '') {
+            return [];
+        }
 
-        if ($search !== '') {
+        try {
+            $query = Inventario::query()
+                ->where('team_id', $tenant->id)
+                ->select('id', 'clave', 'descripcion', 'exist');
+
             $query->where(function (Builder $q) use ($search): void {
                 $q->where('clave', 'like', "%{$search}%")
                     ->orWhere('descripcion', 'like', "%{$search}%");
             });
-        }
 
-        return $query
-            ->orderBy('clave')
-            ->limit(50)
-            ->get()
-            ->mapWithKeys(function (Inventario $item): array {
-                return [$item->id => static::formatInventarioOptionLabel($item)];
-            })
-            ->toArray();
+            return $query
+                ->orderBy('clave')
+                ->limit(50)
+                ->get()
+                ->mapWithKeys(function (Inventario $item): array {
+                    return [$item->id => static::formatInventarioOptionLabel($item)];
+                })
+                ->toArray();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return [];
+        }
     }
 
     private static function getInventarioOptionLabel($value): ?string
@@ -999,11 +1008,18 @@ class CotizacionesResource extends Resource
             return $labelCache[$cacheKey];
         }
 
-        $item = Inventario::query()
-            ->where('team_id', $tenant->id)
-            ->whereKey($value)
-            ->select('id', 'clave', 'descripcion', 'exist')
-            ->first();
+        try {
+            $item = Inventario::query()
+                ->where('team_id', $tenant->id)
+                ->whereKey($value)
+                ->select('id', 'clave', 'descripcion', 'exist')
+                ->first();
+        } catch (\Throwable $exception) {
+            report($exception);
+            $labelCache[$cacheKey] = null;
+
+            return null;
+        }
 
         if (! $item) {
             $labelCache[$cacheKey] = null;

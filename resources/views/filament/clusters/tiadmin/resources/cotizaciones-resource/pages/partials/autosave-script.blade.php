@@ -91,10 +91,77 @@
         dispatchToLivewire('cotizaciones-force-autosave', { targetId });
     };
 
+    const getSearchContainer = (element) => {
+        if (!(element instanceof HTMLElement)) {
+            return null;
+        }
+
+        return (
+            element.closest('.choices') ||
+            element.closest('.ts-wrapper') ||
+            element.closest('.ts-control') ||
+            element.closest('.fi-fo-select')
+        );
+    };
+
+    const hasNoSearchResults = (element) => {
+        const container = getSearchContainer(element);
+        if (!container) {
+            return false;
+        }
+
+        const choicesResults = container.querySelectorAll('.choices__list--dropdown .choices__item--choice:not(.choices__placeholder):not(.is-disabled)');
+        if (choicesResults.length > 0) {
+            return false;
+        }
+
+        const tomSelectResults = container.querySelectorAll('.ts-dropdown .option:not(.disabled)');
+        if (tomSelectResults.length > 0) {
+            return false;
+        }
+
+        const hasNoResultsLabel = container.querySelector('.choices__item--no-results, .ts-dropdown .no-results');
+
+        return Boolean(hasNoResultsLabel || (choicesResults.length === 0 && tomSelectResults.length === 0));
+    };
+
+    const onSearchEnter = (event) => {
+        if (event.key !== 'Enter') {
+            return;
+        }
+
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        if (!getSearchContainer(target)) {
+            return;
+        }
+
+        if (!hasNoSearchResults(target)) {
+            return;
+        }
+
+        // Evita submit accidental del formulario cuando no hay coincidencias.
+        event.preventDefault();
+        event.stopPropagation();
+    };
+
+    const formEl = document.getElementById('form');
+    const onSubmitGuard = (event) => {
+        const active = document.activeElement;
+        if (!event.submitter && active instanceof HTMLElement && getSearchContainer(active)) {
+            event.preventDefault();
+        }
+    };
+
     window.addEventListener('cotizaciones-local-draft-store', onStore);
     window.addEventListener('cotizaciones-local-draft-clear', onClear);
     window.addEventListener('cotizaciones-local-draft-request', onRequest);
     window.addEventListener('beforeunload', triggerAutosave);
+    document.addEventListener('keydown', onSearchEnter, true);
+    formEl?.addEventListener('submit', onSubmitGuard, true);
 
     const intervalId = window.setInterval(triggerAutosave, 15000);
 
@@ -104,6 +171,8 @@
         window.removeEventListener('cotizaciones-local-draft-clear', onClear);
         window.removeEventListener('cotizaciones-local-draft-request', onRequest);
         window.removeEventListener('beforeunload', triggerAutosave);
+        document.removeEventListener('keydown', onSearchEnter, true);
+        formEl?.removeEventListener('submit', onSubmitGuard, true);
         delete window.__cotizacionesAutosaveInstances[targetId];
     }, { once: true });
 

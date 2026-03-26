@@ -49,6 +49,4 @@
     @endif
 
     <x-filament-panels::page.unsaved-data-changes-alert />
-
-    @include('filament.clusters.tiadmin.resources.cotizaciones-resource.pages.partials.autosave-script')
 </x-filament-panels::page>

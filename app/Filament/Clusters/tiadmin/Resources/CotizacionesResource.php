@@ -520,10 +520,42 @@ class CotizacionesResource extends Resource
                                             Self::updateTotals($get,$set);
                                         }),
                                     Select::make('item')
-                                        ->searchable()
-                                        ->searchDebounce(500)
-                                        ->getSearchResultsUsing(fn (string $search): array => static::searchInventarioOptions($search))
-                                        ->getOptionLabelUsing(fn ($value): ?string => static::getInventarioOptionLabel($value))
+                                        ->options(fn (Get $get): array => static::getInventarioSelectedOption($get('item')))
+                                        ->suffixAction(
+                                            \Filament\Forms\Components\Actions\Action::make('buscar_item')
+                                                ->label('Buscador')
+                                                ->icon('fas-circle-question')
+                                                ->form([
+                                                    Forms\Components\TextInput::make('item_search')
+                                                        ->label('Buscar item')
+                                                        ->live(debounce: 400)
+                                                        ->helperText('Escribe al menos 2 caracteres para buscar por SKU o descripcion.'),
+                                                    Forms\Components\Select::make('item_result')
+                                                        ->label('Resultados')
+                                                        ->options(fn (Get $get): array => static::searchInventarioOptions($get('item_search') ?? ''))
+                                                        ->reactive()
+                                                        ->live()
+                                                        ->afterStateUpdated(function ($state, $livewire): void {
+                                                            if (! $state) {
+                                                                return;
+                                                            }
+
+                                                            $livewire->callMountedFormComponentAction();
+                                                        })
+                                                        ->required(),
+                                                ])
+                                                ->modalCancelActionLabel('Cancelar')
+                                                ->modalSubmitAction(false)
+                                                ->modalWidth('md')
+                                                ->action(function (Set $set, array $data): void {
+                                                    $itemId = $data['item_result'] ?? null;
+                                                    if (! $itemId) {
+                                                        return;
+                                                    }
+
+                                                    $set('item', (int) $itemId);
+                                                })
+                                        )
                                         ->createOptionForm(function ($form) {
                                             return $form
                                                 ->schema([
@@ -962,7 +994,7 @@ class CotizacionesResource extends Resource
         }
 
         $search = trim($search);
-        if ($search === '') {
+        if (mb_strlen($search) < 2) {
             return [];
         }
 
@@ -1029,6 +1061,16 @@ class CotizacionesResource extends Resource
         $labelCache[$cacheKey] = static::formatInventarioOptionLabel($item);
 
         return $labelCache[$cacheKey];
+    }
+
+    private static function getInventarioSelectedOption($value): array
+    {
+        $label = static::getInventarioOptionLabel($value);
+        if (! $value || $label === null) {
+            return [];
+        }
+
+        return [(int) $value => $label];
     }
 
     private static function formatInventarioOptionLabel(Inventario $item): string

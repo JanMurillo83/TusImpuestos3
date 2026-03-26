@@ -36,6 +36,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -100,6 +101,7 @@ class ListFacturas extends ListRecords
                 ->visible(false)
                 ->modalSubmitAction(false)
                 ->modalCancelAction(false)
+                ->modalWidth('7xl')
                 ->mountUsing(function (Form $form, $livewire, Actions\Action $action) {
                     $action->close();
                     $cotId = $livewire->requ;
@@ -125,6 +127,8 @@ class ListFacturas extends ListRecords
 
                     $form->fill([
                         'partidas' => $partidas,
+                        'condiciones_factura' => $record->condiciones_pago ?? $record->condiciones ?? 'CONTADO',
+                        'observaciones_factura' => $record->observa ?? '',
                     ]);
                 })
                 ->form([
@@ -176,6 +180,19 @@ class ListFacturas extends ListRecords
                                     ->default('G03')
                                     ->columnSpan(1)->required(),
                             ]),
+                            Grid::make(3)
+                                ->schema([
+                                    TextInput::make('condiciones_factura')
+                                        ->label('Condiciones de pago')
+                                        ->required()
+                                        ->default(fn ($livewire) => Cotizaciones::find($livewire->requ)?->condiciones_pago ?? Cotizaciones::find($livewire->requ)?->condiciones ?? 'CONTADO')
+                                        ->columnSpan(1),
+                                    Textarea::make('observaciones_factura')
+                                        ->label('Observaciones')
+                                        ->rows(2)
+                                        ->default(fn ($livewire) => Cotizaciones::find($livewire->requ)?->observa)
+                                        ->columnSpan(2),
+                                ]),
                             Grid::make(3)
                                 ->schema([
                                     Placeholder::make('origen_folio')
@@ -250,6 +267,8 @@ class ListFacturas extends ListRecords
                                     }
                                     $fechaFactura = $get('fecha_factura') ?? now();
                                     $fechaFactura = $fechaFactura ? Carbon::parse($fechaFactura)->format('Y-m-d') : now()->format('Y-m-d');
+                                    $condicionesFactura = trim((string) ($get('condiciones_factura') ?? ''));
+                                    $observacionesFactura = trim((string) ($get('observaciones_factura') ?? ''));
 
                                     $factura = FacturaFolioService::crearConFolioSeguro($serieId, [
                                         'fecha' => $fechaFactura,
@@ -264,14 +283,14 @@ class ListFacturas extends ListRecords
                                         'total' => 0,
                                         'moneda' => $cot->moneda ?? 'MXN',
                                         'tcambio' => $cot->tcambio ?? 1,
-                                        'observa' => 'Generada desde Cotización #' . $cot->folio,
+                                        'observa' => $observacionesFactura !== '' ? $observacionesFactura : ('Generada desde Cotización #' . $cot->folio),
                                         'estado' => 'Activa',
                                         'cotizacion_id' => $cot->id,
                                         'team_id' => Filament::getTenant()->id,
                                         'metodo' => $get('metodo') ?? 'PPD',
                                         'forma' => $get('forma') ?? '99',
                                         'uso' => $get('uso') ?? 'G03',
-                                        'condiciones' => $cot->condiciones ?? 'CONTADO',
+                                        'condiciones' => $condicionesFactura !== '' ? $condicionesFactura : ($cot->condiciones_pago ?? $cot->condiciones ?? 'CONTADO'),
                                     ]);
 
                                     $subtotal = 0;

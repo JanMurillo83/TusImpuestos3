@@ -27,7 +27,10 @@ class UserResource extends Resource
     protected static ?string $navigationGroup = 'Configuracion';
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole(['administrador']);
+        if(auth()->user()->hasRole(['administrador'])||auth()->user()->hasRole(['contador']))
+        return true;
+        else
+        return false;
     }
     protected static ?string $label = 'Usuario';
     protected static ?string $pluralLabel = 'Usuarios';

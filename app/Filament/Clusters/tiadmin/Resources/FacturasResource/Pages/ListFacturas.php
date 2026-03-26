@@ -202,11 +202,19 @@ class ListFacturas extends ListRecords
                                     Placeholder::make('pendiente')
                                         ->label('Pendiente')
                                         ->content(fn ($get) => $get('cantidad_pendiente')),
-                                    Hidden::make('cantidad_a_facturar'),
+                                    TextInput::make('cantidad_a_facturar')
+                                        ->label('A Facturar')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(fn ($get) => $get('cantidad_pendiente'))
+                                        ->minValue(0)
+                                        ->maxValue(fn ($get) => $get('cantidad_pendiente'))
+                                        ->helperText('Ajusta cantidad o elimina la partida para dejarla pendiente.')
+                                        ->reactive(),
                                 ]),
                         ])
                         ->addable(false)
-                        ->deletable(false)
+                        ->deletable(true)
                         ->reorderable(false),
                     Grid::make(3)
                         ->schema([
@@ -276,7 +284,13 @@ class ListFacturas extends ListRecords
                                     foreach ($partidasSeleccionadas as $pData) {
                                         $parOriginal = CotizacionesPartidas::find($pData['partida_id']);
                                         if (!$parOriginal) continue;
-                                        $cantFacturar = $pData['cantidad_a_facturar'];
+
+                                        $pendienteActual = (float) ($parOriginal->pendientes ?? $parOriginal->cant);
+                                        $cantFacturar = min((float) ($pData['cantidad_a_facturar'] ?? 0), $pendienteActual);
+                                        if ($cantFacturar <= 0) {
+                                            continue;
+                                        }
+
                                         $factor = $parOriginal->cant > 0 ? ($cantFacturar / $parOriginal->cant) : 0;
                                         $lineSubtotal = $parOriginal->precio * $cantFacturar;
                                         $lineIva = $parOriginal->iva * $factor;
@@ -315,8 +329,8 @@ class ListFacturas extends ListRecords
                                             'cant' => $cantFacturar,
                                             'precio_u' => $parOriginal->precio,
                                             'costo_u' => $parOriginal->costo,
-                                            'precio_total' => $parOriginal->precio * $parOriginal->cant,
-                                            'costo_total' => $parOriginal->costo * $parOriginal->cant,
+                                            'precio_total' => $parOriginal->precio * $cantFacturar,
+                                            'costo_total' => $parOriginal->costo * $cantFacturar,
                                             'team_id' => Filament::getTenant()->id
                                         ]);
                                         $subtotal += $lineSubtotal;
@@ -326,7 +340,7 @@ class ListFacturas extends ListRecords
                                         $ieps += $lineIeps;
                                         $total += $lineTotal;
 
-                                        $parOriginal->update(['pendientes' => max(0, ($parOriginal->pendientes ?? $parOriginal->cant) - $cantFacturar)]);
+                                        $parOriginal->update(['pendientes' => max(0, $pendienteActual - $cantFacturar)]);
                                     }
 
                                     $factura->update([

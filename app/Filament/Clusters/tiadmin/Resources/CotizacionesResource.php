@@ -399,8 +399,9 @@ class CotizacionesResource extends Resource
                                 ->headers([
                                     Header::make('Cantidad')->width('80px'),
                                     Header::make('Clave Cliente')->width('80px'),
-                                    Header::make('Item')->width('300px'),
-                                    Header::make('Descripcion')->width('300px'),
+                                    Header::make('SKU')->width('150px'),
+                                    //Header::make('Item')->width('320px'),
+                                    Header::make('Descripcion')->width('400px'),
                                     Header::make('Unitario'),
                                     Header::make('Subtotal'),
                                 ])->schema([
@@ -475,9 +476,7 @@ class CotizacionesResource extends Resource
                                                 return;
                                             }
 
-                                            $prod = Inventario::where('team_id', Filament::getTenant()->id)
-                                                ->where('clave', $equiv->clave_articulo)
-                                                ->first();
+                                            $prod = static::findInventarioBySku((string) $equiv->clave_articulo);
 
                                             if (!$prod) {
                                                 Notification::make()
@@ -488,39 +487,52 @@ class CotizacionesResource extends Resource
                                                 return;
                                             }
 
-                                            $set('item', $prod->id);
-                                            $descripcionCliente = trim((string) $equiv->descripcion_cliente);
-                                            $descripcionArticulo = trim((string) $equiv->descripcion_articulo);
-                                            $set('descripcion', $descripcionCliente !== '' ? $descripcionCliente : ($descripcionArticulo !== '' ? $descripcionArticulo : ($prod->descripcion ?? '')));
-                                            $set('unidad', $prod->unidad ?? 'H87');
-                                            $set('cvesat', $prod->cvesat ?? '01010101');
-                                            $set('costo', $prod->p_costo ?? 0);
-
-                                            $cantidad = floatval($get('cant')) ?: 1;
-                                            $precio = floatval($equiv->precio_cliente);
-                                            if ($precio <= 0) {
-                                                $precio = PrecioCalculator::calcularPrecio(
-                                                    $prod->id,
-                                                    $clienteId,
-                                                    $cantidad,
-                                                    Filament::getTenant()->id
-                                                );
+                                            $itemIdActual = (int) ($get('item') ?? 0);
+                                            if ($itemIdActual === (int) $prod->id) {
+                                                static::applyInventarioToPartida($get, $set, $prod, $equiv, setItem: false);
+                                                return;
                                             }
 
-                                            $set('precio', $precio);
-                                            $subt = $precio * $cantidad;
-                                            $set('subtotal', $subt);
-                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
-                                            $set('iva', $taxes['iva']);
-                                            $set('retiva', $taxes['retiva']);
-                                            $set('retisr', $taxes['retisr']);
-                                            $set('ieps', $taxes['ieps']);
-                                            $set('total', $taxes['total']);
-                                            $set('clie', $clienteId);
-                                            Self::updateTotals($get,$set);
+                                            $set('item', (int) $prod->id);
+                                            static::applyInventarioToPartida($get, $set, $prod, $equiv, setItem: false);
                                         }),
-                                    Select::make('item')
-                                        ->options(fn (Get $get): array => static::getInventarioSelectedOption($get('item')))
+                                    TextInput::make('sku')
+                                        ->label('SKU')
+                                        ->dehydrated(false)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state): void {
+                                            $sku = trim((string) $state);
+                                            if ($sku === '') {
+                                                return;
+                                            }
+
+                                            $prod = static::findInventarioBySku($sku);
+                                            if (! $prod) {
+                                                Notification::make()
+                                                    ->title('SKU no encontrado')
+                                                    ->body("No existe inventario con SKU '{$sku}'.")
+                                                    ->warning()
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $itemIdActual = (int) ($get('item') ?? 0);
+                                            if ($itemIdActual === (int) $prod->id) {
+                                                $equiv = static::findEquivalenciaByClaveCliente(
+                                                    (int) ($get('../../clie') ?? 0),
+                                                    (string) ($get('clave_cliente') ?? '')
+                                                );
+                                                static::applyInventarioToPartida($get, $set, $prod, $equiv, setItem: false);
+                                                return;
+                                            }
+
+                                            $equiv = static::findEquivalenciaByClaveCliente(
+                                                (int) ($get('../../clie') ?? 0),
+                                                (string) ($get('clave_cliente') ?? '')
+                                            );
+                                            $set('item', (int) $prod->id);
+                                            static::applyInventarioToPartida($get, $set, $prod, $equiv, setItem: false);
+                                        })
                                         ->suffixAction(
                                             \Filament\Forms\Components\Actions\Action::make('buscar_item')
                                                 ->label('Buscador')
@@ -547,137 +559,63 @@ class CotizacionesResource extends Resource
                                                 ->modalCancelActionLabel('Cancelar')
                                                 ->modalSubmitAction(false)
                                                 ->modalWidth('md')
-                                                ->action(function (Set $set, array $data): void {
+                                                ->action(function (Get $get, Set $set, array $data): void {
                                                     $itemId = $data['item_result'] ?? null;
                                                     if (! $itemId) {
                                                         return;
                                                     }
 
+                                                    $itemId = (int) $itemId;
+                                                    $prod = static::findInventarioById($itemId);
+                                                    if (! $prod) {
+                                                        return;
+                                                    }
+
+                                                    $equiv = static::findEquivalenciaByClaveCliente(
+                                                        (int) ($get('../../clie') ?? 0),
+                                                        (string) ($get('clave_cliente') ?? '')
+                                                    );
                                                     $set('item', (int) $itemId);
+                                                    static::applyInventarioToPartida($get, $set, $prod, $equiv, setItem: false);
                                                 })
-                                        )
-                                        ->createOptionForm(function ($form) {
-                                            return $form
-                                                ->schema([
-                                                    TextInput::make('clave')->label('SKU')->required(),
-                                                    TextInput::make('descripcion')->columnSpan(3)->required(),
-                                                    TextInput::make('precio')->required()->default(0)
-                                                        ->currencyMask(decimalSeparator:'.',precision:2),
-                                                    Forms\Components\TextInput::make('cvesat')
-                                                        ->label('Clave SAT')
-                                                        ->default(function(Get $get): string{
-                                                            if($get('cvesat'))
-                                                                $val = $get('cvesat');
-                                                            else
-                                                                $val = '01010101';
-                                                            return $val;
-                                                        })
-                                                        ->required()
-                                                        ->suffixAction(
-                                                            \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat')
-                                                                ->label('Buscador')
-                                                                ->icon('fas-circle-question')
-                                                                ->form([
-                                                                    Forms\Components\TextInput::make('cvesat_search')
-                                                                        ->label('Buscar')
-                                                                        ->live(debounce: 400),
-                                                                    Forms\Components\Select::make('CatCveSat')
-                                                                        ->label('Claves SAT')
-                                                                        ->options(fn (Get $get): array => Claves::getCachedOptions($get('cvesat_search') ?? '', 25))
-                                                                        ->reactive(),
-                                                                ])
-                                                                ->modalCancelAction(false)
-                                                                ->modalSubmitActionLabel('Seleccionar')
-                                                                ->modalWidth('sm')
-                                                                ->action(function(Set $set,$data){
-                                                                    $set('cvesat',$data['CatCveSat']);
-                                                                })
-                                                        ),
-                                                    Select::make('unidad')
-                                                        ->label('Unidad de Medida')
-                                                        ->searchable()
-                                                        ->required()
-                                                        ->options(Unidades::all()->pluck('mostrar','clave'))
-                                                        ->default('H87'),
-                                                    Select::make('servicio')->label('Servicio')
-                                                        ->options(['SI'=>'SI','NO'=>'NO'])->default('NO'),
-                                                ])->columns(4);
-                                        })->createOptionUsing(function ($data) {
-                                            return Inventario::create([
-                                                'clave'=> $data['clave'],
-                                                'descripcion'=> $data['descripcion'],
-                                                'linea'=>1,
-                                                'marca'=>'',
-                                                'modelo'=>'',
-                                                'u_costo'=>0,
-                                                'p_costo'=>0,
-                                                'precio1'=> $data['precio'],
-                                                'precio2'=>0,
-                                                'precio3'=>0,
-                                                'precio4'=>0,
-                                                'precio5'=>0,
-                                                'exist'=>0,
-                                                'esquema'=>Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id,
-                                                'servicio'=>$data['servicio'],
-                                                'unidad'=>$data['unidad'],
-                                                'cvesat'=>$data['cvesat'],
-                                                'team_id'=>Filament::getTenant()->id
-                                            ])->getKey();
-                                        })
+                                        ),
+                                    Hidden::make('item_text'),
+                                    Hidden::make('item')
                                         ->required()
                                         ->live(onBlur:true)
-                                        ->afterStateUpdated(function(Get $get, Set $set){
-                                            $cli = $get('../../clie');
-                                            $prod = Inventario::where('id',$get('item'))->first();
-                                            if(!$prod) return;
-                                            $equiv = null;
-                                            $claveCliente = trim((string) $get('clave_cliente'));
-                                            if ($claveCliente !== '' && $cli) {
-                                                $equiv = EquivalenciaInventarioCliente::where('team_id', Filament::getTenant()->id)
-                                                    ->where('cliente_id', $cli)
-                                                    ->where('clave_cliente', $claveCliente)
-                                                    ->first();
+                                        ->afterStateHydrated(function (Get $get, Set $set, $state): void {
+                                            $itemId = (int) ($state ?? 0);
+                                            if ($itemId <= 0) {
+                                                return;
                                             }
 
-                                            $usarEquiv = $equiv && $equiv->clave_articulo === $prod->clave;
-                                            if ($usarEquiv) {
-                                                $descripcionCliente = trim((string) $equiv->descripcion_cliente);
-                                                $descripcionArticulo = trim((string) $equiv->descripcion_articulo);
-                                                $set('descripcion', $descripcionCliente !== '' ? $descripcionCliente : ($descripcionArticulo !== '' ? $descripcionArticulo : ($prod->descripcion ?? '')));
-                                            } else {
-                                                $set('descripcion',$prod->descripcion ?? 'No se selecciono producto');
-                                            }
-                                            $set('unidad',$prod->unidad ?? 'H87');
-                                            $set('cvesat',$prod->cvesat ?? '01010101');
-                                            $set('costo',$prod->p_costo ?? 0);
-
-                                            // Obtener cantidad actual
-                                            $cantidad = floatval($get('cant')) ?: 1;
-
-                                            // Calcular precio usando el nuevo sistema de precios por volumen
-                                            if($prod) {
-                                                if ($usarEquiv && floatval($equiv->precio_cliente) > 0) {
-                                                    $precio = floatval($equiv->precio_cliente);
-                                                } else {
-                                                    $precio = PrecioCalculator::calcularPrecio(
-                                                        $prod->id,
-                                                        $cli,
-                                                        $cantidad,
-                                                        Filament::getTenant()->id
-                                                    );
-                                                }
+                                            $prod = static::findInventarioById($itemId);
+                                            if (! $prod) {
+                                                return;
                                             }
 
-                                            $set('precio',$precio);
-                                            $cant = floatval($get('cant')) ?: 1;
-                                            $subt = $precio * $cant;
-                                            $set('subtotal',$subt);
-                                            $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
-                                            $set('iva', $taxes['iva']);
-                                            $set('retiva', $taxes['retiva']);
-                                            $set('retisr', $taxes['retisr']);
-                                            $set('ieps', $taxes['ieps']);
-                                            $set('total', $taxes['total']);
+                                            $set('sku', (string) $prod->clave);
+                                            $set('item_text', static::formatInventarioOptionLabel($prod));
+                                        })
+                                        ->afterStateUpdated(function(Get $get, Set $set): void {
+                                            $itemId = (int) ($get('item') ?? 0);
+                                            if ($itemId <= 0) {
+                                                $set('sku', null);
+                                                $set('item_text', null);
+                                                return;
+                                            }
+
+                                            $prod = static::findInventarioById($itemId);
+                                            if (! $prod) {
+                                                return;
+                                            }
+
+                                            $equiv = static::findEquivalenciaByClaveCliente(
+                                                (int) ($get('../../clie') ?? 0),
+                                                (string) ($get('clave_cliente') ?? '')
+                                            );
+
+                                            static::applyInventarioToPartida($get, $set, $prod, $equiv, setItem: false);
                                         }),
                                     TextInput::make('descripcion'),
                                     TextInput::make('precio')
@@ -986,6 +924,134 @@ class CotizacionesResource extends Resource
         static::applyTotals($set, '', $totals);
     }
 
+    private static function findInventarioById(int $itemId): ?Inventario
+    {
+        if ($itemId <= 0) {
+            return null;
+        }
+
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return null;
+        }
+
+        try {
+            return Inventario::query()
+                ->where('team_id', $tenant->id)
+                ->whereKey($itemId)
+                ->select('id', 'clave', 'descripcion', 'exist', 'unidad', 'cvesat', 'p_costo', 'precio1')
+                ->first();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+    }
+
+    private static function findInventarioBySku(string $sku): ?Inventario
+    {
+        $sku = trim($sku);
+        if ($sku === '') {
+            return null;
+        }
+
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return null;
+        }
+
+        try {
+            return Inventario::query()
+                ->where('team_id', $tenant->id)
+                ->where(function (Builder $query) use ($sku): void {
+                    $query->where('clave', $sku)
+                        ->orWhereRaw('LOWER(clave) = ?', [mb_strtolower($sku)]);
+                })
+                ->select('id', 'clave', 'descripcion', 'exist', 'unidad', 'cvesat', 'p_costo', 'precio1')
+                ->first();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+    }
+
+    private static function findEquivalenciaByClaveCliente(?int $clienteId, string $claveCliente): ?EquivalenciaInventarioCliente
+    {
+        $claveCliente = trim($claveCliente);
+        if (! $clienteId || $claveCliente === '') {
+            return null;
+        }
+
+        $tenant = Filament::getTenant();
+        if (! $tenant) {
+            return null;
+        }
+
+        try {
+            return EquivalenciaInventarioCliente::query()
+                ->where('team_id', $tenant->id)
+                ->where('cliente_id', $clienteId)
+                ->where('clave_cliente', $claveCliente)
+                ->first();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+    }
+
+    private static function applyInventarioToPartida(Get $get, Set $set, Inventario $prod, ?EquivalenciaInventarioCliente $equiv = null, bool $setItem = true): void
+    {
+        if ($setItem) {
+            $set('item', (int) $prod->id);
+        }
+
+        $clienteId = (int) ($get('../../clie') ?? 0);
+        $cantidad = floatval($get('cant')) ?: 1;
+        $usarEquiv = $equiv && ((string) $equiv->clave_articulo === (string) $prod->clave);
+
+        $set('sku', (string) ($prod->clave ?? ''));
+        $set('item_text', static::formatInventarioOptionLabel($prod));
+
+        if ($usarEquiv) {
+            $descripcionCliente = trim((string) $equiv->descripcion_cliente);
+            $descripcionArticulo = trim((string) $equiv->descripcion_articulo);
+            $set('descripcion', $descripcionCliente !== '' ? $descripcionCliente : ($descripcionArticulo !== '' ? $descripcionArticulo : ($prod->descripcion ?? '')));
+        } else {
+            $set('descripcion', $prod->descripcion ?? 'No se selecciono producto');
+        }
+
+        $set('unidad', $prod->unidad ?? 'H87');
+        $set('cvesat', $prod->cvesat ?? '01010101');
+        $set('costo', $prod->p_costo ?? 0);
+
+        if ($usarEquiv && floatval($equiv->precio_cliente) > 0) {
+            $precio = floatval($equiv->precio_cliente);
+        } elseif ($clienteId > 0 && Filament::getTenant()) {
+            $precio = PrecioCalculator::calcularPrecio(
+                $prod->id,
+                $clienteId,
+                $cantidad,
+                Filament::getTenant()->id
+            );
+        } else {
+            $precio = floatval($prod->precio1 ?? 0);
+        }
+
+        $set('precio', $precio);
+        $subt = $precio * $cantidad;
+        $set('subtotal', $subt);
+        $taxes = ImpuestosCalculator::fromEsquema($get('../../esquema'), $subt);
+        $set('iva', $taxes['iva']);
+        $set('retiva', $taxes['retiva']);
+        $set('retisr', $taxes['retisr']);
+        $set('ieps', $taxes['ieps']);
+        $set('total', $taxes['total']);
+        $set('clie', $clienteId > 0 ? $clienteId : null);
+        static::updateTotals($get, $set);
+    }
+
     private static function searchInventarioOptions(string $search): array
     {
         $tenant = Filament::getTenant();
@@ -1021,56 +1087,6 @@ class CotizacionesResource extends Resource
 
             return [];
         }
-    }
-
-    private static function getInventarioOptionLabel($value): ?string
-    {
-        if (! $value) {
-            return null;
-        }
-
-        $tenant = Filament::getTenant();
-        if (! $tenant) {
-            return null;
-        }
-
-        static $labelCache = [];
-        $cacheKey = $tenant->id . ':' . $value;
-        if (array_key_exists($cacheKey, $labelCache)) {
-            return $labelCache[$cacheKey];
-        }
-
-        try {
-            $item = Inventario::query()
-                ->where('team_id', $tenant->id)
-                ->whereKey($value)
-                ->select('id', 'clave', 'descripcion', 'exist')
-                ->first();
-        } catch (\Throwable $exception) {
-            report($exception);
-            $labelCache[$cacheKey] = null;
-
-            return null;
-        }
-
-        if (! $item) {
-            $labelCache[$cacheKey] = null;
-            return null;
-        }
-
-        $labelCache[$cacheKey] = static::formatInventarioOptionLabel($item);
-
-        return $labelCache[$cacheKey];
-    }
-
-    private static function getInventarioSelectedOption($value): array
-    {
-        $label = static::getInventarioOptionLabel($value);
-        if (! $value || $label === null) {
-            return [];
-        }
-
-        return [(int) $value => $label];
     }
 
     private static function formatInventarioOptionLabel(Inventario $item): string

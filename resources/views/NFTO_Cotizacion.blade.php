@@ -98,6 +98,7 @@
                     <tr>
                         <th class="py-1 px-2 text-left">#</th>
                         @if($mostrarClave)
+                            <th class="py-1 px-2 text-left">Clave SAT</th>
                             <th class="py-1 px-2 text-left">Clave</th>
                         @endif
                         <th class="py-1 px-2 text-left">Descripción</th>
@@ -115,6 +116,9 @@
                             {{$count}}
                         </td>
                         @if($mostrarClave)
+                            <td class="py-1 px-2 font-mono text-slate-700 text-[10px]">
+                                {{$par->cvesat ?? ''}}
+                            </td>
                             <td class="py-1 px-2 font-mono text-slate-700 text-[10px]">
                                 <?php
                                     $inv_par = $clavesInventario->get($par->item, '');
@@ -140,7 +144,7 @@
                     </tr>
                     @if($par->observa)
                         <tr class="bg-slate-50/50">
-                            <td colspan="{{ $mostrarClave ? 7 : 6 }}" class="py-0.5 px-2 text-slate-500 italic text-[10px]">
+                            <td colspan="{{ $mostrarClave ? 8 : 6 }}" class="py-0.5 px-2 text-slate-500 italic text-[10px]">
                                 <span class="font-semibold not-italic">Obs:</span> {{$par->observa}}
                             </td>
                         </tr>

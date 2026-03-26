@@ -85,9 +85,12 @@ use Filament\Facades\Filament;
                     <tr>
                         <th><b>Cantidad</b></th>
                         @if($mostrarClave)
+                            <th><b>Clave SAT</b></th>
                             <th><b>Clave</b></th>
+                            <th><b>Descripcion</b></th>
+                        @else
+                            <th colspan="3"><b>Descripcion</b></th>
                         @endif
-                        <th colspan="{{ $mostrarClave ? 2 : 3 }}"><b>Descripcion</b></th>
                         <th><b>Precio Unitario</b></th>
                         <th><b>Total</b></th>
                     </tr>
@@ -98,8 +101,9 @@ use Filament\Facades\Filament;
                             <?php
                                 $inv_par = \App\Models\Inventario::where('id',$part->item)->first()->clave ?? $part->item;
                             ?>
+                            <td>{{$part->cvesat ?? ''}}</td>
                             <td>{{$inv_par}}</td>
-                            <td colspan="2">{{$part->descripcion}}</td>
+                            <td>{{$part->descripcion}}</td>
                         @else
                             <td colspan="3">{{$part->item.'  '.$part->descripcion}}</td>
                         @endif

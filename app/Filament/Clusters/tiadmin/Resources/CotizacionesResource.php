@@ -397,11 +397,13 @@ class CotizacionesResource extends Resource
                                 })
                                 ->addActionLabel('Agregar')
                                 ->headers([
-                                    Header::make('Cantidad')->width('80px'),
+                                    Header::make('Cantidad')->width('70px'),
                                     Header::make('Clave Cliente')->width('80px'),
-                                    Header::make('SKU')->width('150px'),
+                                    Header::make('SKU')->width('110px'),
                                     //Header::make('Item')->width('320px'),
-                                    Header::make('Descripcion')->width('400px'),
+                                    Header::make('Descripcion')->width('300px'),
+                                    Header::make('Clave SAT')->width('140px'),
+                                    Header::make('Unidad SAT')->width('100px'),
                                     Header::make('Unitario'),
                                     Header::make('Subtotal'),
                                 ])->schema([
@@ -618,6 +620,42 @@ class CotizacionesResource extends Resource
                                             static::applyInventarioToPartida($get, $set, $prod, $equiv, setItem: false);
                                         }),
                                     TextInput::make('descripcion'),
+                                    Forms\Components\TextInput::make('cvesat')
+                                        ->label('Clave SAT')
+                                        ->default(function(Get $get): string{
+                                            if($get('cvesat'))
+                                                $val = $get('cvesat');
+                                            else
+                                                $val = '01010101';
+                                            return $val;
+                                        })
+                                        ->required()
+                                        ->suffixAction(
+                                            \Filament\Forms\Components\Actions\Action::make('Cat_cve_sat_partida')
+                                                ->label('Buscador')
+                                                ->icon('fas-circle-question')
+                                                ->form([
+                                                    Forms\Components\TextInput::make('cvesat_search')
+                                                        ->label('Buscar')
+                                                        ->live(debounce: 400),
+                                                    Forms\Components\Select::make('CatCveSat')
+                                                        ->label('Claves SAT')
+                                                        ->options(fn (Get $get): array => Claves::getCachedOptions($get('cvesat_search') ?? '', 25))
+                                                        ->reactive(),
+                                                ])
+                                                ->modalCancelAction(false)
+                                                ->modalSubmitActionLabel('Seleccionar')
+                                                ->modalWidth('sm')
+                                                ->action(function(Set $set,$data){
+                                                    $set('cvesat',$data['CatCveSat']);
+                                                })
+                                        ),
+                                    Select::make('unidad')
+                                        ->label('Unidad SAT')
+                                        ->searchable()
+                                        ->required()
+                                        ->options(Unidades::all()->pluck('mostrar','clave'))
+                                        ->default('H87'),
                                     TextInput::make('precio')
                                         ->numeric()
                                         ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
@@ -649,8 +687,6 @@ class CotizacionesResource extends Resource
                                     Hidden::make('retisr')->default(0),
                                     Hidden::make('ieps')->default(0),
                                     Hidden::make('total')->default(0),
-                                    Hidden::make('unidad'),
-                                    Hidden::make('cvesat'),
                                     Hidden::make('clie'),
                                     Hidden::make('observa'),
                                     Hidden::make('siguiente'),

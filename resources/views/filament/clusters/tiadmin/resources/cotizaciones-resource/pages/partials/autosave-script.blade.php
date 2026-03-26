@@ -1,91 +1,15 @@
 <script>
 (() => {
     const targetId = @js($this->getId());
-    const storageKey = @js($this->getLocalDraftStorageKey());
-
-    if (!targetId || !storageKey) {
+    if (!targetId) {
         return;
     }
 
-    window.__cotizacionesAutosaveInstances = window.__cotizacionesAutosaveInstances || {};
-    if (window.__cotizacionesAutosaveInstances[targetId]) {
+    window.__cotizacionesSearchGuardInstances = window.__cotizacionesSearchGuardInstances || {};
+    if (window.__cotizacionesSearchGuardInstances[targetId]) {
         return;
     }
-    window.__cotizacionesAutosaveInstances[targetId] = true;
-
-    const dispatchToLivewire = (eventName, payload = {}) => {
-        if (!window.Livewire || typeof window.Livewire.dispatch !== 'function') {
-            return;
-        }
-
-        window.Livewire.dispatch(eventName, payload);
-    };
-
-    const persistLocalDraft = (payload, savedAt = null) => {
-        try {
-            localStorage.setItem(storageKey, JSON.stringify({
-                payload,
-                savedAt: savedAt || new Date().toISOString(),
-            }));
-        } catch (_) {
-            // no-op
-        }
-    };
-
-    const clearLocalDraft = () => {
-        try {
-            localStorage.removeItem(storageKey);
-        } catch (_) {
-            // no-op
-        }
-    };
-
-    const restoreLocalDraft = () => {
-        let parsed;
-
-        try {
-            parsed = JSON.parse(localStorage.getItem(storageKey) || 'null');
-        } catch (_) {
-            parsed = null;
-        }
-
-        if (!parsed || typeof parsed !== 'object' || !parsed.payload) {
-            return;
-        }
-
-        dispatchToLivewire('cotizaciones-restore-local-draft', {
-            targetId,
-            payload: parsed.payload,
-            savedAt: parsed.savedAt || null,
-        });
-    };
-
-    const onStore = (event) => {
-        const detail = event.detail || {};
-        if (detail.targetId !== targetId) {
-            return;
-        }
-
-        persistLocalDraft(detail.payload || {}, detail.savedAt || null);
-    };
-
-    const onClear = (event) => {
-        const detail = event.detail || {};
-        if (detail.targetId !== targetId) {
-            return;
-        }
-
-        clearLocalDraft();
-    };
-
-    const onRequest = (event) => {
-        const detail = event.detail || {};
-        if (detail.targetId !== targetId) {
-            return;
-        }
-
-        restoreLocalDraft();
-    };
+    window.__cotizacionesSearchGuardInstances[targetId] = true;
 
     const getSearchContainer = (element) => {
         if (!(element instanceof HTMLElement)) {
@@ -145,6 +69,25 @@
     };
 
     const formEl = document.getElementById('form');
+    let isDirty = false;
+
+    const onDirty = () => {
+        isDirty = true;
+    };
+
+    const onBeforeUnload = (event) => {
+        if (!isDirty) {
+            return;
+        }
+
+        event.preventDefault();
+        event.returnValue = '';
+    };
+
+    const onFormSubmit = () => {
+        isDirty = false;
+    };
+
     const onSubmitGuard = (event) => {
         const active = document.activeElement;
         if (!event.submitter && active instanceof HTMLElement && getSearchContainer(active)) {
@@ -152,22 +95,21 @@
         }
     };
 
-    window.addEventListener('cotizaciones-local-draft-store', onStore);
-    window.addEventListener('cotizaciones-local-draft-clear', onClear);
-    window.addEventListener('cotizaciones-local-draft-request', onRequest);
     document.addEventListener('keydown', onSearchEnter, true);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    formEl?.addEventListener('input', onDirty, true);
+    formEl?.addEventListener('change', onDirty, true);
     formEl?.addEventListener('submit', onSubmitGuard, true);
+    formEl?.addEventListener('submit', onFormSubmit, true);
 
     window.addEventListener('livewire:navigating', () => {
-        window.removeEventListener('cotizaciones-local-draft-store', onStore);
-        window.removeEventListener('cotizaciones-local-draft-clear', onClear);
-        window.removeEventListener('cotizaciones-local-draft-request', onRequest);
         document.removeEventListener('keydown', onSearchEnter, true);
+        window.removeEventListener('beforeunload', onBeforeUnload);
+        formEl?.removeEventListener('input', onDirty, true);
+        formEl?.removeEventListener('change', onDirty, true);
         formEl?.removeEventListener('submit', onSubmitGuard, true);
-        delete window.__cotizacionesAutosaveInstances[targetId];
+        formEl?.removeEventListener('submit', onFormSubmit, true);
+        delete window.__cotizacionesSearchGuardInstances[targetId];
     }, { once: true });
-
-    // Fallback: intentar restaurar desde local por si el request inicial no llego al listener.
-    window.setTimeout(restoreLocalDraft, 400);
 })();
 </script>

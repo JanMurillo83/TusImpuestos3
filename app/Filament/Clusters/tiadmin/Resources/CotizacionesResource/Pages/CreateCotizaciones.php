@@ -3,7 +3,6 @@
 namespace App\Filament\Clusters\tiadmin\Resources\CotizacionesResource\Pages;
 
 use App\Filament\Clusters\tiadmin\Resources\CotizacionesResource;
-use App\Filament\Clusters\tiadmin\Resources\CotizacionesResource\Pages\Concerns\InteractsWithCotizacionAutosave;
 use App\Filament\Support\HasDownloadRedirect;
 use App\Models\CotizacionesPartidas;
 use App\Models\SeriesFacturas;
@@ -20,7 +19,6 @@ use Spatie\Browsershot\Browsershot;
 class CreateCotizaciones extends CreateRecord
 {
     use HasDownloadRedirect;
-    use InteractsWithCotizacionAutosave;
 
     protected static string $resource = CotizacionesResource::class;
     protected static string $view = 'filament.clusters.tiadmin.resources.cotizaciones-resource.pages.create-cotizaciones';
@@ -97,12 +95,6 @@ class CreateCotizaciones extends CreateRecord
             ->scale(0.85)->savePdf($ruta);
 
         $this->setDownloadFilename($archivo_pdf);
-        $this->clearAutosaveDrafts();
-    }
-
-    protected function getAutosaveRecordId(): ?int
-    {
-        return null;
     }
 
     protected function getRedirectUrl(): string

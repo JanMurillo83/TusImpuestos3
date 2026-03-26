@@ -87,10 +87,6 @@
         restoreLocalDraft();
     };
 
-    const triggerAutosave = () => {
-        dispatchToLivewire('cotizaciones-force-autosave', { targetId });
-    };
-
     const getSearchContainer = (element) => {
         if (!(element instanceof HTMLElement)) {
             return null;
@@ -159,18 +155,13 @@
     window.addEventListener('cotizaciones-local-draft-store', onStore);
     window.addEventListener('cotizaciones-local-draft-clear', onClear);
     window.addEventListener('cotizaciones-local-draft-request', onRequest);
-    window.addEventListener('beforeunload', triggerAutosave);
     document.addEventListener('keydown', onSearchEnter, true);
     formEl?.addEventListener('submit', onSubmitGuard, true);
 
-    const intervalId = window.setInterval(triggerAutosave, 15000);
-
     window.addEventListener('livewire:navigating', () => {
-        window.clearInterval(intervalId);
         window.removeEventListener('cotizaciones-local-draft-store', onStore);
         window.removeEventListener('cotizaciones-local-draft-clear', onClear);
         window.removeEventListener('cotizaciones-local-draft-request', onRequest);
-        window.removeEventListener('beforeunload', triggerAutosave);
         document.removeEventListener('keydown', onSearchEnter, true);
         formEl?.removeEventListener('submit', onSubmitGuard, true);
         delete window.__cotizacionesAutosaveInstances[targetId];

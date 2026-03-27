@@ -437,8 +437,8 @@ class FacturasResource extends Resource
                                 ->default('H87'),
                             TextInput::make('precio')
                                 ->numeric()
-                                ->minValue(0.01)
-                                ->prefix('$')->default(0.00)->currencyMask(decimalSeparator:'.',precision:2)
+                                ->minValue(0.0001)
+                                ->prefix('$')->default(0.00000)->currencyMask(decimalSeparator:'.',precision:4)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function(Get $get, Set $set){
                                     $cant = floatval($get('cant'));

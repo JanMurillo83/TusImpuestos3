@@ -111,7 +111,12 @@
                         </td>
                         @if($mostrarClave)
                             <td class="py-1.5 px-2 font-mono text-slate-700">
-                                {{$par->item}}
+                                <?php
+                                  $inv = \App\Models\Inventario::where('id',$par->item)->first();
+                                  $cve = $inv?->clave ?? $par->item;
+
+                                ?>
+                                {{$cve}}
                             </td>
                         @endif
                         <td class="py-1.5 px-2 text-slate-800">

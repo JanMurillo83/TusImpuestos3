@@ -207,7 +207,14 @@ class CotizacionesResource extends Resource
                                 ->default(Carbon::now())->disabledOn('edit'),
                             Forms\Components\Select::make('esquema')
                                 ->options(Esquemasimp::where('team_id',Filament::getTenant()->id)->pluck('descripcion','id'))
-                                ->default(Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id)->disabledOn('edit'),
+                                ->default(Esquemasimp::where('team_id',Filament::getTenant()->id)->first()->id)
+                                ->live()
+                                ->afterStateUpdated(function (Get $get, Set $set, $state): void {
+                                    static::recalculatePartidasForEsquema($get, $set, $state);
+                                })
+                                ->disabled(function (?Cotizaciones $record): bool {
+                                    return $record !== null && $record->estado !== 'Activa';
+                                }),
                             Forms\Components\Textarea::make('observa')
                                 ->columnSpan(3)->label('Observaciones')
                                 ->rows(1),
@@ -1171,6 +1178,38 @@ class CotizacionesResource extends Resource
         $set($prefix . 'ieps', $totals['ieps']);
         $set($prefix . 'Impuestos', ($totals['iva'] + $totals['ieps']) - ($totals['retiva'] + $totals['retisr']));
         $set($prefix . 'total', $totals['total']);
+    }
+
+    private static function recalculatePartidasForEsquema(Get $get, Set $set, $esquemaId): void
+    {
+        $partidas = $get('partidas') ?? [];
+
+        if (! is_array($partidas) || empty($partidas) || ! $esquemaId) {
+            return;
+        }
+
+        $partidasActualizadas = array_map(function ($partida) use ($esquemaId) {
+            if (! is_array($partida)) {
+                return $partida;
+            }
+
+            $cantidad = (float) ($partida['cant'] ?? 0);
+            $precio = (float) ($partida['precio'] ?? 0);
+            $subtotal = $cantidad * $precio;
+            $taxes = ImpuestosCalculator::fromEsquema($esquemaId, $subtotal);
+
+            $partida['subtotal'] = $subtotal;
+            $partida['iva'] = $taxes['iva'];
+            $partida['retiva'] = $taxes['retiva'];
+            $partida['retisr'] = $taxes['retisr'];
+            $partida['ieps'] = $taxes['ieps'];
+            $partida['total'] = $taxes['total'];
+
+            return $partida;
+        }, $partidas);
+
+        $set('partidas', $partidasActualizadas);
+        static::applyTotals($set, '', static::calculateTotalsFromPartidas($partidasActualizadas));
     }
 
     public static function downloadLayoutPartidas()
